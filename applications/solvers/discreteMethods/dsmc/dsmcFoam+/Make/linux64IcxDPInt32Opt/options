@@ -38,7 +38,9 @@
 
 # 8 "<command-line>" 2
 # 1 "Make/options"
-EXE_INC = -include $(WM_PROJECT_USER_DIR)/src/lagrangian/basic/lnInclude/hyCompatAPI.H -I$(LIB_SRC)/finiteVolume/lnInclude -I$(WM_PROJECT_USER_DIR)/src/lagrangian/basic/lnInclude -I$(WM_PROJECT_USER_DIR)/src/lagrangian/dsmc/lnInclude -I$(WM_PROJECT_USER_DIR)/src/lagrangian/molecularDynamics/general/lnInclude -I$(LIB_SRC)/meshTools/lnInclude
+OPENMP_FLAGS = -qopenmp
+
+EXE_INC = $(OPENMP_FLAGS) -include $(WM_PROJECT_USER_DIR)/src/lagrangian/basic/lnInclude/hyCompatAPI.H -I$(LIB_SRC)/finiteVolume/lnInclude -I$(WM_PROJECT_USER_DIR)/src/lagrangian/basic/lnInclude -I$(WM_PROJECT_USER_DIR)/src/lagrangian/dsmc/lnInclude -I$(WM_PROJECT_USER_DIR)/src/lagrangian/molecularDynamics/general/lnInclude -I$(LIB_SRC)/meshTools/lnInclude
 
 
 
@@ -46,6 +48,7 @@ EXE_INC = -include $(WM_PROJECT_USER_DIR)/src/lagrangian/basic/lnInclude/hyCompa
 
 
 
-EXE_LIBS = -L$(FOAM_USER_LIBBIN) -L$(WM_PROJECT_DIR)/platforms/$(WM_OPTIONS)/lib/intelmpi -lmeshTools -lfiniteVolume -lPstream -ldsmcFoam+ -llagrangian+
+
+EXE_LIBS = $(OPENMP_FLAGS) -L$(FOAM_USER_LIBBIN) -L$(WM_PROJECT_DIR)/platforms/$(WM_OPTIONS)/lib/intelmpi -lmeshTools -lfiniteVolume -lPstream -ldsmcFoam+ -llagrangian+
 
 # options

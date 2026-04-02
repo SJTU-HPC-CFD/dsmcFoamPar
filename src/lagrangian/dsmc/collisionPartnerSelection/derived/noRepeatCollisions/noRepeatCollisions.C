@@ -223,7 +223,8 @@ void noRepeatCollisions::collide()
 
 	  const List<DynamicList<dsmcParcel*> > cellOccupancy = cloud_.cellOccupancy();
 
-    forAll(cellOccupancy, cellI)
+    auto processCell =
+    [&](const label cellI, List<DynamicList<label>>& subCells)
     {
         const scalar deltaT = cloud_.deltaTValue(cellI);
 
@@ -390,7 +391,7 @@ void noRepeatCollisions::collide()
                             cloud_.sigmaTcRMax()[cellI] = sigmaTcR;
                         }
 
-                        if ((sigmaTcR/sigmaTcRMax) > rndGen_.sample01<scalar>())
+                        if ((sigmaTcR/sigmaTcRMax) > cloud_.rndGen().sample01<scalar>())
                         {
                             // chemical reactions
 
@@ -456,6 +457,43 @@ void noRepeatCollisions::collide()
                     }
 				}
 			}
+        }
+    };
+
+    #ifdef _OPENMP
+    if (cloud_.openmpEnabled())
+    {
+        #pragma omp parallel reduction(+:collisionCandidates, collisions)
+        {
+            List<DynamicList<label> > subCells(8);
+            const label threadI = cloud_.currentThreadId();
+            const label nThreads = omp_get_num_threads();
+
+            for
+            (
+                label segmentI = threadI;
+                segmentI < cloud_.collisionLoadStart().size();
+                segmentI += nThreads
+            )
+            {
+                const label startCell = cloud_.collisionLoadStart()[segmentI];
+                const label endCell = cloud_.collisionLoadEnd()[segmentI];
+
+                for (label cellI = startCell; cellI < endCell; ++cellI)
+                {
+                    processCell(cellI, subCells);
+                }
+            }
+        }
+    }
+    else
+    #endif
+    {
+        List<DynamicList<label> > subCells(8);
+
+        forAll(cellOccupancy, cellI)
+        {
+            processCell(cellI, subCells);
         }
     }
 

@@ -59,8 +59,6 @@ class collisionSelection
 
         dsmcCloud& cloud_;
 
-        Random& rndGen_;
-
 
     private:
 

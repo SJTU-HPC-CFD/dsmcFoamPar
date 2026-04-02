@@ -55,8 +55,7 @@ collisionSelection::collisionSelection
 )
 :
     mesh_(refCast<const fvMesh>(mesh)),
-    cloud_(cloud),
-    rndGen_(cloud_.rndGen())
+    cloud_(cloud)
 {}
 
 // * * * * * * * * * * * * * * * * Selectors * * * * * * * * * * * * * * * * //

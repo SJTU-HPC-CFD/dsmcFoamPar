@@ -36,6 +36,142 @@ License
 #include "wallPolyPatch.H"
 #include "cyclicAMIPolyPatch.H"
 
+#ifdef _OPENMP
+    #include <omp.h>
+#endif
+
+namespace Foam
+{
+namespace cloudOpenMP
+{
+template<class TrackCloudType>
+inline auto moveEnabled(const TrackCloudType& cloud, int)
+-> decltype(cloud.openmpMoveEnabled(), bool())
+{
+    return cloud.openmpMoveEnabled();
+}
+
+template<class TrackCloudType>
+inline bool moveEnabled(const TrackCloudType&, long)
+{
+    return false;
+}
+
+template<class TrackCloudType>
+inline auto moveThreads(const TrackCloudType& cloud, int)
+-> decltype(cloud.ompNumThreads(), label())
+{
+    return cloud.ompNumThreads();
+}
+
+template<class TrackCloudType>
+inline label moveThreads(const TrackCloudType&, long)
+{
+    return 1;
+}
+
+template<class TrackCloudType>
+inline auto moveSchedule(const TrackCloudType& cloud, int)
+-> decltype(cloud.openmpMoveSchedule(), word())
+{
+    return cloud.openmpMoveSchedule();
+}
+
+template<class TrackCloudType>
+inline word moveSchedule(const TrackCloudType&, long)
+{
+    return "static";
+}
+
+template<class TrackCloudType>
+inline auto moveChunk(const TrackCloudType& cloud, int)
+-> decltype(cloud.openmpMoveChunk(), label())
+{
+    return cloud.openmpMoveChunk();
+}
+
+template<class TrackCloudType>
+inline label moveChunk(const TrackCloudType&, long)
+{
+    return 64;
+}
+
+template<class TrackCloudType>
+inline auto hasParticlePartition(const TrackCloudType& cloud, int)
+-> decltype
+(
+    cloud.particleLoadStart(),
+    cloud.particleLoadEnd(),
+    cloud.cellOccupancy(),
+    bool()
+)
+{
+    return true;
+}
+
+template<class TrackCloudType>
+inline bool hasParticlePartition(const TrackCloudType&, long)
+{
+    return false;
+}
+
+template<class TrackCloudType>
+inline auto particleLoadStart(const TrackCloudType& cloud, int)
+-> decltype(cloud.particleLoadStart())
+{
+    return cloud.particleLoadStart();
+}
+
+template<class TrackCloudType>
+inline auto particleLoadEnd(const TrackCloudType& cloud, int)
+-> decltype(cloud.particleLoadEnd())
+{
+    return cloud.particleLoadEnd();
+}
+
+template<class TrackCloudType>
+inline auto cellOccupancy(const TrackCloudType& cloud, int)
+-> decltype(cloud.cellOccupancy())
+{
+    return cloud.cellOccupancy();
+}
+
+template<class TrackCloudType, class ParticleType>
+inline auto storeMoveOrderedParcels
+(
+    TrackCloudType& cloud,
+    const List<ParticleType*>& parcels,
+    const labelList& threadOffsets,
+    int
+)
+-> decltype(cloud.storeMoveOrderedParcels(parcels, threadOffsets), void())
+{
+    cloud.storeMoveOrderedParcels(parcels, threadOffsets);
+}
+
+template<class TrackCloudType, class ParticleType>
+inline void storeMoveOrderedParcels
+(
+    TrackCloudType&,
+    const List<ParticleType*>&,
+    const labelList&,
+    long
+)
+{}
+
+template<class TrackCloudType>
+inline auto clearMoveOrderedParcels(TrackCloudType& cloud, int)
+-> decltype(cloud.clearMoveOrderedParcels(), void())
+{
+    cloud.clearMoveOrderedParcels();
+}
+
+template<class TrackCloudType>
+inline void clearMoveOrderedParcels(TrackCloudType&, long)
+{}
+}
+}
+
 // * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * * //
 
 template<class ParticleType>
@@ -188,9 +324,29 @@ void Foam::Cloud<ParticleType>::move
     // Cache of opened UOPstream wrappers
     PtrList<UOPstream> UOPstreamPtrs(Pstream::nProcs());
 
+    #ifdef _OPENMP
+    const bool useOpenMPMove =
+        cloudOpenMP::moveEnabled(cloud, 0)
+     && cloudOpenMP::moveThreads(cloud, 0) > 1
+     && this->size() > 1;
+    const label moveThreads = cloudOpenMP::moveThreads(cloud, 0);
+    const word moveSchedule = cloudOpenMP::moveSchedule(cloud, 0);
+    const label moveChunk = max(cloudOpenMP::moveChunk(cloud, 0), label(1));
+    const bool useParticlePartition =
+        useOpenMPMove && cloudOpenMP::hasParticlePartition(cloud, 0);
+    #else
+    const bool useOpenMPMove = false;
+    const label moveThreads = 1;
+    const word moveSchedule = "static";
+    const label moveChunk = 64;
+    const bool useParticlePartition = false;
+    #endif
+
     // While there are particles to transfer
     while (true)
     {
+        cloudOpenMP::clearMoveOrderedParcels(cloud, 0);
+
         // Reset transfer buffers
         pBufs.clear();
 
@@ -204,61 +360,280 @@ void Foam::Cloud<ParticleType>::move
             }
         }
 
-        // Loop over all particles
-        for (ParticleType& p : *this)
+        if (useOpenMPMove)
         {
-            // Move the particle
-            const bool keepParticle = p.move(cloud, td, trackTime);
+            List<ParticleType*> particles;
+            labelList threadOffsets(moveThreads + 1, 0);
 
-            // If the particle is to be kept
-            // (i.e. it hasn't passed through an inlet or outlet)
-            if (keepParticle)
+            if (useParticlePartition)
             {
-                if (td.switchProcessor)
+                const auto& cellOccupancy = cloudOpenMP::cellOccupancy(cloud, 0);
+                const auto& particleLoadStart = cloudOpenMP::particleLoadStart(cloud, 0);
+                const auto& particleLoadEnd = cloudOpenMP::particleLoadEnd(cloud, 0);
+
+                for (label threadI = 0; threadI < moveThreads; ++threadI)
                 {
-                    #ifdef FULLDEBUG
-                    if
+                    label localCount = 0;
+
+                    for
                     (
-                        !Pstream::parRun()
-                     || !p.onBoundaryFace()
-                     || procPatchNeighbours[p.patch()] < 0
+                        label celli = particleLoadStart[threadI];
+                        celli < particleLoadEnd[threadI];
+                        ++celli
                     )
                     {
-                        FatalErrorInFunction
-                            << "Switch processor flag is true when no parallel "
-                            << "transfer is possible. This is a bug."
-                            << exit(FatalError);
+                        localCount += cellOccupancy[celli].size();
                     }
-                    #endif
 
-                    const label patchi = p.patch();
+                    threadOffsets[threadI + 1] = threadOffsets[threadI] + localCount;
+                }
 
-                    const label toProci =
+                particles.setSize(threadOffsets.last());
+
+                for (label threadI = 0; threadI < moveThreads; ++threadI)
+                {
+                    label particlei = threadOffsets[threadI];
+
+                    for
                     (
-                        refCast<const processorPolyPatch>(pbm[patchi])
-                        .neighbProcNo()
-                    );
-
-                    // Get/create output stream
-                    auto* osptr = UOPstreamPtrs.get(toProci);
-                    if (!osptr)
+                        label celli = particleLoadStart[threadI];
+                        celli < particleLoadEnd[threadI];
+                        ++celli
+                    )
                     {
-                        osptr = new UOPstream(toProci, pBufs);
-                        UOPstreamPtrs.set(toProci, osptr);
+                        const auto& cellParcels = cellOccupancy[celli];
+
+                        forAll(cellParcels, i)
+                        {
+                            particles[particlei++] = cellParcels[i];
+                        }
                     }
-
-                    p.prepareForParallelTransfer();
-
-                    // Tuple: (patchi particle)
-                    (*osptr) << procPatchNeighbours[patchi] << p;
-
-                    // Can now remove from my list
-                    deleteParticle(p);
                 }
             }
             else
             {
-                deleteParticle(p);
+                particles.setSize(this->size());
+                label particlei = 0;
+
+                for (ParticleType& p : *this)
+                {
+                    particles[particlei++] = &p;
+                }
+
+                for (label threadI = 0; threadI < moveThreads; ++threadI)
+                {
+                    threadOffsets[threadI] = threadI*particles.size()/moveThreads;
+                }
+
+                threadOffsets[moveThreads] = particles.size();
+            }
+
+            List<label> keepParticleFlags(particles.size(), 1);
+            List<label> switchProcessorFlags(particles.size(), 0);
+
+            #ifdef _OPENMP
+            omp_sched_t sched = omp_sched_static;
+
+            if (moveSchedule == "dynamic")
+            {
+                sched = omp_sched_dynamic;
+            }
+            else if (moveSchedule == "guided")
+            {
+                sched = omp_sched_guided;
+            }
+
+            omp_set_schedule(sched, int(moveChunk));
+            #endif
+
+            #pragma omp parallel num_threads(moveThreads)
+            {
+                typename ParticleType::trackingData localTd(cloud);
+                const label threadI =
+                #ifdef _OPENMP
+                    omp_get_thread_num();
+                #else
+                    0;
+                #endif
+
+                if (useParticlePartition)
+                {
+                    for (label i = threadOffsets[threadI]; i < threadOffsets[threadI + 1]; ++i)
+                    {
+                        ParticleType& p = *particles[i];
+
+                        localTd.switchProcessor = false;
+                        localTd.keepParticle = true;
+
+                        keepParticleFlags[i] = p.move(cloud, localTd, trackTime) ? 1 : 0;
+                        switchProcessorFlags[i] = localTd.switchProcessor ? 1 : 0;
+                    }
+                }
+                else
+                {
+                    #pragma omp for schedule(runtime)
+                    for (label i = 0; i < particles.size(); ++i)
+                    {
+                        ParticleType& p = *particles[i];
+
+                        localTd.switchProcessor = false;
+                        localTd.keepParticle = true;
+
+                        keepParticleFlags[i] = p.move(cloud, localTd, trackTime) ? 1 : 0;
+                        switchProcessorFlags[i] = localTd.switchProcessor ? 1 : 0;
+                    }
+                }
+            }
+
+            DynamicList<ParticleType*> survivingParticles(particles.size());
+            labelList survivingThreadCounts(moveThreads, 0);
+
+            forAll(particles, i)
+            {
+                ParticleType& p = *particles[i];
+                label ownerThread = 0;
+
+                if (useParticlePartition)
+                {
+                    while (ownerThread + 1 < threadOffsets.size() && i >= threadOffsets[ownerThread + 1])
+                    {
+                        ++ownerThread;
+                    }
+                }
+
+                if (keepParticleFlags[i])
+                {
+                    if (switchProcessorFlags[i])
+                    {
+                        #ifdef FULLDEBUG
+                        if
+                        (
+                            !Pstream::parRun()
+                         || !p.onBoundaryFace()
+                         || procPatchNeighbours[p.patch()] < 0
+                        )
+                        {
+                            FatalErrorInFunction
+                                << "Switch processor flag is true when no parallel "
+                                << "transfer is possible. This is a bug."
+                                << exit(FatalError);
+                        }
+                        #endif
+
+                        const label patchi = p.patch();
+
+                        const label toProci =
+                        (
+                            refCast<const processorPolyPatch>(pbm[patchi])
+                            .neighbProcNo()
+                        );
+
+                        auto* osptr = UOPstreamPtrs.get(toProci);
+                        if (!osptr)
+                        {
+                            osptr = new UOPstream(toProci, pBufs);
+                            UOPstreamPtrs.set(toProci, osptr);
+                        }
+
+                        p.prepareForParallelTransfer();
+                        (*osptr) << procPatchNeighbours[patchi] << p;
+                        deleteParticle(p);
+                    }
+                    else
+                    {
+                        survivingParticles.append(&p);
+
+                        if (useParticlePartition && ownerThread < survivingThreadCounts.size())
+                        {
+                            ++survivingThreadCounts[ownerThread];
+                        }
+                    }
+                }
+                else
+                {
+                    deleteParticle(p);
+                }
+            }
+
+            if (useParticlePartition)
+            {
+                List<ParticleType*> survivingList(survivingParticles.size());
+
+                forAll(survivingParticles, i)
+                {
+                    survivingList[i] = survivingParticles[i];
+                }
+
+                labelList survivingOffsets(moveThreads + 1, 0);
+
+                for (label threadI = 0; threadI < moveThreads; ++threadI)
+                {
+                    survivingOffsets[threadI + 1] =
+                        survivingOffsets[threadI] + survivingThreadCounts[threadI];
+                }
+
+                cloudOpenMP::storeMoveOrderedParcels(cloud, survivingList, survivingOffsets, 0);
+            }
+        }
+        else
+        {
+            for (ParticleType& p : *this)
+            {
+                // Move the particle
+                bool keepParticle = p.move(cloud, td, trackTime);
+
+                // If the particle is to be kept
+                // (i.e. it hasn't passed through an inlet or outlet)
+                if (keepParticle)
+                {
+                    // If the particle is going to switch processors, stream it
+                    // into transfer buffers
+                    if (td.switchProcessor)
+                    {
+                        #ifdef FULLDEBUG
+                        if
+                        (
+                            !Pstream::parRun()
+                         || !p.onBoundaryFace()
+                         || procPatchNeighbours[p.patch()] < 0
+                        )
+                        {
+                            FatalErrorInFunction
+                                << "Switch processor flag is true when no parallel "
+                                << "transfer is possible. This is a bug."
+                                << exit(FatalError);
+                        }
+                        #endif
+
+                        const label patchi = p.patch();
+
+                        const label toProci =
+                        (
+                            refCast<const processorPolyPatch>(pbm[patchi])
+                            .neighbProcNo()
+                        );
+
+                        // Get/create output stream
+                        auto* osptr = UOPstreamPtrs.get(toProci);
+                        if (!osptr)
+                        {
+                            osptr = new UOPstream(toProci, pBufs);
+                            UOPstreamPtrs.set(toProci, osptr);
+                        }
+
+                        p.prepareForParallelTransfer();
+
+                        // Tuple: (patchi particle)
+                        (*osptr) << procPatchNeighbours[patchi] << p;
+
+                        // Can now remove from my list
+                        deleteParticle(p);
+                    }
+                }
+                else
+                {
+                    deleteParticle(p);
+                }
             }
         }
 

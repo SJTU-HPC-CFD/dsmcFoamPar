@@ -27,6 +27,87 @@ License
 #include "dsmcCloud.H"
 #include "meshTools.H"
 
+#ifdef _OPENMP
+    #include <omp.h>
+#endif
+
+namespace
+{
+inline bool useOpenMPMoveCriticals(const Foam::dsmcCloud& cloud)
+{
+    #ifdef _OPENMP
+    return cloud.openmpMoveEnabled() && omp_in_parallel();
+    #else
+    return false;
+    #endif
+}
+
+inline void trackParcelFaceTransitionThreadSafe
+(
+    Foam::dsmcCloud& cloud,
+    const Foam::dsmcParcel& p
+)
+{
+    cloud.tracker().trackParcelFaceTransition(p);
+}
+
+inline void controlCyclicBoundaryThreadSafe
+(
+    Foam::dsmcCloud& cloud,
+    const Foam::label boundaryI,
+    Foam::dsmcParcel& p,
+    Foam::dsmcParcel::trackingData& td
+)
+{
+    if (useOpenMPMoveCriticals(cloud))
+    {
+        #pragma omp critical(dsmcMoveBoundary)
+        {
+            cloud.boundaries().cyclicBoundaryModels()[boundaryI]->controlMol(p, td);
+        }
+    }
+    else
+    {
+        cloud.boundaries().cyclicBoundaryModels()[boundaryI]->controlMol(p, td);
+    }
+}
+
+inline void controlPatchBoundaryThreadSafe
+(
+    Foam::dsmcCloud& cloud,
+    const Foam::label boundaryI,
+    Foam::dsmcParcel& p,
+    Foam::dsmcParcel::trackingData& td
+)
+{
+    Foam::dsmcPatchBoundary& model =
+        *cloud.boundaries().patchBoundaryModels()[boundaryI];
+    const Foam::word& modelType = model.type();
+    const bool threadSafePatchModel =
+        modelType == "dsmcDiffuseWallPatch"
+     || modelType == "dsmcSpecularWallPatch";
+
+    if (useOpenMPMoveCriticals(cloud))
+    {
+        if (threadSafePatchModel)
+        {
+            model.controlParticle(p, td);
+        }
+        else
+        {
+            #pragma omp critical(dsmcMoveBoundary)
+            {
+                model.controlParticle(p, td);
+            }
+        }
+    }
+    else
+    {
+        model.controlParticle(p, td);
+    }
+}
+}
+
 bool Foam::dsmcParcel::move
 (
     dsmcCloud& cloud,
@@ -58,7 +139,10 @@ bool Foam::dsmcParcel::move
 
             if (face() != -1)
             {
-                cloud.tracker().trackParcelFaceTransition(*this);
+                if (cloud.trackerActive())
+                {
+                    trackParcelFaceTransitionThreadSafe(cloud, *this);
+                }
 
                 forAll(cloud.boundaries().cyclicBoundaryModels(), c)
                 {
@@ -66,7 +150,7 @@ bool Foam::dsmcParcel::move
 
                     if (Foam::hyCompat::indexOf(faces, face()) != -1)
                     {
-                        cloud.boundaries().cyclicBoundaryModels()[c]->controlMol(*this, td);
+                        controlCyclicBoundaryThreadSafe(cloud, c, *this, td);
                     }
                 }
             }
@@ -78,7 +162,7 @@ bool Foam::dsmcParcel::move
         {
             if (cloud.boundaries().patchBoundaryModels()[c]->patchId() == stuck().wallTemperature()[1])
             {
-                cloud.boundaries().patchBoundaryModels()[c]->controlParticle(*this, td);
+                controlPatchBoundaryThreadSafe(cloud, c, *this, td);
                 break;
             }
         }
@@ -97,7 +181,7 @@ bool Foam::dsmcParcel::hitPatch(dsmcCloud& cloud, trackingData& td)
 
         if (patchModelId >= 0)
         {
-            cloud.boundaries().patchBoundaryModels()[patchModelId]->controlParticle(*this, td);
+            controlPatchBoundaryThreadSafe(cloud, patchModelId, *this, td);
         }
     }
 
@@ -119,7 +203,7 @@ void Foam::dsmcParcel::hitWallPatch(dsmcCloud& cloud, trackingData& td)
 
         if (patchModelId >= 0)
         {
-            cloud.boundaries().patchBoundaryModels()[patchModelId]->controlParticle(*this, td);
+            controlPatchBoundaryThreadSafe(cloud, patchModelId, *this, td);
             return;
         }
     }

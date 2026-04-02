@@ -57,6 +57,10 @@ SourceFiles
 #include "collisionPartnerSelection.H"
 #include "porousMeasurements.H"
 
+#ifdef _OPENMP
+    #include <omp.h>
+#endif
+
 namespace Foam
 {
 
@@ -111,6 +115,40 @@ class dsmcCloud
     scalarField collisionSelectionRemainder_;
     List<dsmcParcel::constantProperties> constProps_;
     Random rndGen_;
+    bool openmpEnabled_;
+    bool openmpMoveEnabled_;
+    bool trackerActive_;
+    label ompNumThreads_;
+    word openmpCollisionStrategy_;
+    word openmpMoveSchedule_;
+    label openmpMoveChunk_;
+    bool collisionProfileEnabled_;
+    bool evolveProfileEnabled_;
+    List<Random> ompRndGens_;
+    labelList particleLoadStart_;
+    labelList particleLoadEnd_;
+    List<dsmcParcel*> moveOrderedParcels_;
+    labelList moveOrderedThreadOffsets_;
+    bool moveOrderedParcelsValid_;
+    scalarField selectedPairsPerCell_;
+    labelList nCandidatesPerCell_;
+    labelList collisionLoadStart_;
+    labelList collisionLoadEnd_;
+    scalar collisionPrecomputeWallTime_;
+    scalar collisionPartitionWallTime_;
+    scalar collisionSelectionWallTime_;
+    label collisionProfileCalls_;
+    scalar buildOccupancyExtractWallTime_;
+    scalar buildOccupancyCountWallTime_;
+    scalar buildOccupancyAssembleWallTime_;
+    label buildOccupancyProfileCalls_;
+    scalar evolveMoveWallTime_;
+    scalar evolveBuildWallTime_;
+    scalar evolveCoordWallTime_;
+    scalar evolveCollisionWallTime_;
+    scalar evolveReactionWallTime_;
+    scalar evolvePostWallTime_;
+    label evolveProfileCalls_;
     autoPtr<porousMeasurements> porousMeasurements_;
     dsmcControllers controllers_;
     boundaryMeasurements boundaryMeas_;
@@ -144,6 +182,8 @@ class dsmcCloud
 
     void buildConstProps();
     void buildCellOccupancy();
+    void storeMoveOrderedParcels(const List<dsmcParcel*>& parcels, const labelList& threadOffsets);
+    void clearMoveOrderedParcels();
     void readBoundaryModels();
     void readFieldSpecs();
     void createFields();
@@ -153,6 +193,11 @@ class dsmcCloud
     void insertInflowParcels();
     void sampleFields();
     void initialiseSpeciesBoundaryForceDensity();
+    void initOpenMP();
+    void refreshTrackerUsage();
+    void precomputeCollisionCandidates();
+    void rebuildCollisionLoadPartition();
+    void rebuildParticleLoadPartition();
     scalar initialSigmaTcRMax() const;
     bool speciesSelected(const label fieldI, const label typeId) const;
 
@@ -184,6 +229,23 @@ public:
     inline scalar nParticles(const label patchi, const label facei) const;
     inline scalar deltaTValue(const label celli = 0) const;
     inline label nTerminalOutputs() const;
+    inline bool openmpEnabled() const;
+    inline bool openmpMoveEnabled() const;
+    inline bool trackerActive() const;
+    inline label ompNumThreads() const;
+    inline const word& openmpCollisionStrategy() const;
+    inline const word& openmpMoveSchedule() const;
+    inline label openmpMoveChunk() const;
+    inline label currentThreadId() const;
+    inline const labelList& particleLoadStart() const;
+    inline const labelList& particleLoadEnd() const;
+    inline bool hasMoveOrderedParcels() const;
+    inline const List<dsmcParcel*>& moveOrderedParcels() const;
+    inline const labelList& moveOrderedThreadOffsets() const;
+    inline const scalarField& selectedPairsPerCell() const;
+    inline const labelList& nCandidatesPerCell() const;
+    inline const labelList& collisionLoadStart() const;
+    inline const labelList& collisionLoadEnd() const;
     inline label randomLabel(const label min, const label max);
     inline const List<DynamicList<dsmcParcel*>>& cellOccupancy() const;
     inline volScalarField& sigmaTcRMax();
@@ -289,6 +351,7 @@ public:
     void initialiseFromDict(const dictionary& dsmcInitialiseDict);
 
     void info() const;
+    void reportProfiling() const;
     void loadBalanceCheck();
     void evolve();
 

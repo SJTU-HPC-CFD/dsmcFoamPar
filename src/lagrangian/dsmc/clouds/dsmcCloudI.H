@@ -93,9 +93,101 @@ inline Foam::label Foam::dsmcCloud::nTerminalOutputs() const
     return nTerminalOutputs_;
 }
 
+inline bool Foam::dsmcCloud::openmpEnabled() const
+{
+    return openmpEnabled_;
+}
+
+inline bool Foam::dsmcCloud::openmpMoveEnabled() const
+{
+    return openmpMoveEnabled_;
+}
+
+inline bool Foam::dsmcCloud::trackerActive() const
+{
+    return trackerActive_;
+}
+
+inline Foam::label Foam::dsmcCloud::ompNumThreads() const
+{
+    return ompNumThreads_;
+}
+
+inline const Foam::word& Foam::dsmcCloud::openmpCollisionStrategy() const
+{
+    return openmpCollisionStrategy_;
+}
+
+inline const Foam::word& Foam::dsmcCloud::openmpMoveSchedule() const
+{
+    return openmpMoveSchedule_;
+}
+
+inline Foam::label Foam::dsmcCloud::openmpMoveChunk() const
+{
+    return openmpMoveChunk_;
+}
+
+inline Foam::label Foam::dsmcCloud::currentThreadId() const
+{
+    #ifdef _OPENMP
+    if (openmpEnabled_ && omp_in_parallel())
+    {
+        return omp_get_thread_num();
+    }
+    #endif
+
+    return 0;
+}
+
+inline const Foam::labelList& Foam::dsmcCloud::particleLoadStart() const
+{
+    return particleLoadStart_;
+}
+
+inline const Foam::labelList& Foam::dsmcCloud::particleLoadEnd() const
+{
+    return particleLoadEnd_;
+}
+
+inline bool Foam::dsmcCloud::hasMoveOrderedParcels() const
+{
+    return moveOrderedParcelsValid_;
+}
+
+inline const Foam::List<Foam::dsmcParcel*>& Foam::dsmcCloud::moveOrderedParcels() const
+{
+    return moveOrderedParcels_;
+}
+
+inline const Foam::labelList& Foam::dsmcCloud::moveOrderedThreadOffsets() const
+{
+    return moveOrderedThreadOffsets_;
+}
+
+inline const Foam::scalarField& Foam::dsmcCloud::selectedPairsPerCell() const
+{
+    return selectedPairsPerCell_;
+}
+
+inline const Foam::labelList& Foam::dsmcCloud::nCandidatesPerCell() const
+{
+    return nCandidatesPerCell_;
+}
+
+inline const Foam::labelList& Foam::dsmcCloud::collisionLoadStart() const
+{
+    return collisionLoadStart_;
+}
+
+inline const Foam::labelList& Foam::dsmcCloud::collisionLoadEnd() const
+{
+    return collisionLoadEnd_;
+}
+
 inline Foam::label Foam::dsmcCloud::randomLabel(const label min, const label max)
 {
-    return rndGen_.position<label>(min, max);
+    return rndGen().position<label>(min, max);
 }
 
 inline const Foam::List<Foam::DynamicList<Foam::dsmcParcel*>>&
@@ -138,6 +230,11 @@ inline const Foam::dsmcParcel::constantProperties& Foam::dsmcCloud::constProps
 
 inline Foam::Random& Foam::dsmcCloud::rndGen()
 {
+    if (openmpEnabled_ && ompRndGens_.size())
+    {
+        return ompRndGens_[currentThreadId()];
+    }
+
     return rndGen_;
 }
 

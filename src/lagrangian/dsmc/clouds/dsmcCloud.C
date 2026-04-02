@@ -30,6 +30,7 @@ License
 #include "entry.H"
 #include "wallPolyPatch.H"
 #include "zeroGradientFvPatchFields.H"
+#include <chrono>
 
 using namespace Foam::constant;
 using namespace Foam::constant::mathematical;
@@ -98,16 +99,221 @@ void Foam::dsmcCloud::buildConstProps()
 
 void Foam::dsmcCloud::buildCellOccupancy()
 {
+    using clock_type = std::chrono::steady_clock;
+
+    const auto t0 = clock_type::now();
+
     forAll(cellOccupancy_, celli)
     {
         cellOccupancy_[celli].clear();
     }
+
+    const bool useMoveOrderedParcels =
+        openmpEnabled_
+     && openmpMoveEnabled_
+     && moveOrderedParcelsValid_
+     && moveOrderedParcels_.size() == this->size()
+     && moveOrderedThreadOffsets_.size() == ompNumThreads_ + 1;
+
+    const label nParcels =
+        useMoveOrderedParcels ? moveOrderedParcels_.size() : this->size();
+    const label nCells = cellOccupancy_.size();
+
+    #ifdef _OPENMP
+    if (openmpEnabled_ && ompNumThreads_ > 1 && nParcels > 0)
+    {
+        List<dsmcParcel*> parcels;
+        labelList parcelThreadOffsets;
+
+        if (useMoveOrderedParcels)
+        {
+            parcels = moveOrderedParcels_;
+            parcelThreadOffsets = moveOrderedThreadOffsets_;
+        }
+        else
+        {
+            parcels.setSize(nParcels);
+            label parcelI = 0;
+
+            forAllIter(dsmcCloud, *this, iter)
+            {
+                parcels[parcelI++] = &iter();
+            }
+        }
+
+        const auto t1 = clock_type::now();
+
+        List<labelList> threadCellCounts(ompNumThreads_);
+
+        forAll(threadCellCounts, threadI)
+        {
+            threadCellCounts[threadI].setSize(nCells, 0);
+        }
+
+        #pragma omp parallel
+        {
+            const label threadI = currentThreadId();
+            labelList& localCounts = threadCellCounts[threadI];
+
+            if (useMoveOrderedParcels)
+            {
+                for (label i = parcelThreadOffsets[threadI]; i < parcelThreadOffsets[threadI + 1]; ++i)
+                {
+                    const label celli = parcels[i]->cell();
+
+                    if (celli >= 0 && celli < nCells)
+                    {
+                        ++localCounts[celli];
+                    }
+                }
+            }
+            else
+            {
+                #pragma omp for schedule(static)
+                for (label i = 0; i < nParcels; ++i)
+                {
+                    const label celli = parcels[i]->cell();
+
+                    if (celli >= 0 && celli < nCells)
+                    {
+                        ++localCounts[celli];
+                    }
+                }
+            }
+        }
+
+        labelList totalCounts(nCells, 0);
+
+        for (label threadI = 0; threadI < ompNumThreads_; ++threadI)
+        {
+            for (label celli = 0; celli < nCells; ++celli)
+            {
+                totalCounts[celli] += threadCellCounts[threadI][celli];
+            }
+        }
+
+        const auto t2 = clock_type::now();
+
+        for (label celli = 0; celli < nCells; ++celli)
+        {
+            cellOccupancy_[celli].setCapacity(totalCounts[celli]);
+            cellOccupancy_[celli].setSize(totalCounts[celli]);
+        }
+
+        rebuildParticleLoadPartition();
+
+        for (label celli = 0; celli < nCells; ++celli)
+        {
+            label offset = 0;
+
+            for (label threadI = 0; threadI < ompNumThreads_; ++threadI)
+            {
+                const label count = threadCellCounts[threadI][celli];
+                threadCellCounts[threadI][celli] = offset;
+                offset += count;
+            }
+        }
+
+        #pragma omp parallel
+        {
+            const label threadI = currentThreadId();
+            labelList& localOffsets = threadCellCounts[threadI];
+
+            if (useMoveOrderedParcels)
+            {
+                for (label i = parcelThreadOffsets[threadI]; i < parcelThreadOffsets[threadI + 1]; ++i)
+                {
+                    dsmcParcel* pPtr = parcels[i];
+                    const label celli = pPtr->cell();
+
+                    if (celli >= 0 && celli < nCells)
+                    {
+                        cellOccupancy_[celli][localOffsets[celli]++] = pPtr;
+                    }
+                }
+            }
+            else
+            {
+                #pragma omp for schedule(static)
+                for (label i = 0; i < nParcels; ++i)
+                {
+                    dsmcParcel* pPtr = parcels[i];
+                    const label celli = pPtr->cell();
+
+                    if (celli >= 0 && celli < nCells)
+                    {
+                        cellOccupancy_[celli][localOffsets[celli]++] = pPtr;
+                    }
+                }
+            }
+        }
+
+        const auto t3 = clock_type::now();
+
+        if (evolveProfileEnabled_)
+        {
+            buildOccupancyExtractWallTime_ += std::chrono::duration<scalar>(t1 - t0).count();
+            buildOccupancyCountWallTime_ += std::chrono::duration<scalar>(t2 - t1).count();
+            buildOccupancyAssembleWallTime_ += std::chrono::duration<scalar>(t3 - t2).count();
+            ++buildOccupancyProfileCalls_;
+
+            if (mesh_.time().writeTime() && Pstream::master())
+            {
+                const scalar totalProfiled =
+                    buildOccupancyExtractWallTime_
+                  + buildOccupancyCountWallTime_
+                  + buildOccupancyAssembleWallTime_;
+
+                Info<< "BuildCellOccupancy profiling summary:" << nl
+                    << "    buildCellOccupancy calls      = " << buildOccupancyProfileCalls_ << nl
+                    << "    extract parcels [s]           = " << buildOccupancyExtractWallTime_ << nl
+                    << "    count/reduce [s]              = " << buildOccupancyCountWallTime_ << nl
+                    << "    allocate/fill [s]             = " << buildOccupancyAssembleWallTime_ << nl
+                    << "    total profiled [s]            = " << totalProfiled << nl
+                    << endl;
+
+                buildOccupancyExtractWallTime_ = 0.0;
+                buildOccupancyCountWallTime_ = 0.0;
+                buildOccupancyAssembleWallTime_ = 0.0;
+                buildOccupancyProfileCalls_ = 0;
+            }
+        }
+
+        return;
+    }
+    #endif
 
     forAllIter(dsmcCloud, *this, iter)
     {
         if (iter().cell() >= 0 && iter().cell() < cellOccupancy_.size())
         {
             cellOccupancy_[iter().cell()].append(&iter());
+        }
+    }
+
+    rebuildParticleLoadPartition();
+
+    const auto t1 = clock_type::now();
+
+    if (evolveProfileEnabled_)
+    {
+        buildOccupancyExtractWallTime_ += std::chrono::duration<scalar>(t1 - t0).count();
+        ++buildOccupancyProfileCalls_;
+
+        if (mesh_.time().writeTime() && Pstream::master())
+        {
+            Info<< "BuildCellOccupancy profiling summary:" << nl
+                << "    buildCellOccupancy calls      = " << buildOccupancyProfileCalls_ << nl
+                << "    extract parcels [s]           = " << buildOccupancyExtractWallTime_ << nl
+                << "    count/reduce [s]              = " << buildOccupancyCountWallTime_ << nl
+                << "    allocate/fill [s]             = " << buildOccupancyAssembleWallTime_ << nl
+                << "    total profiled [s]            = " << buildOccupancyExtractWallTime_ << nl
+                << endl;
+
+            buildOccupancyExtractWallTime_ = 0.0;
+            buildOccupancyCountWallTime_ = 0.0;
+            buildOccupancyAssembleWallTime_ = 0.0;
+            buildOccupancyProfileCalls_ = 0;
         }
     }
 }
@@ -884,7 +1090,47 @@ void Foam::dsmcCloud::collisions()
             << exit(FatalError);
     }
 
+    using clock_type = std::chrono::steady_clock;
+
+    const auto t0 = clock_type::now();
+    precomputeCollisionCandidates();
+    const auto t1 = clock_type::now();
+    if (openmpEnabled_ && openmpCollisionStrategy_ == "partition")
+    {
+        rebuildCollisionLoadPartition();
+    }
+    const auto t2 = clock_type::now();
     collisionPartnerSelectionPtr_->collide();
+    const auto t3 = clock_type::now();
+
+    if (collisionProfileEnabled_)
+    {
+        collisionPrecomputeWallTime_ += std::chrono::duration<scalar>(t1 - t0).count();
+        collisionPartitionWallTime_ += std::chrono::duration<scalar>(t2 - t1).count();
+        collisionSelectionWallTime_ += std::chrono::duration<scalar>(t3 - t2).count();
+        ++collisionProfileCalls_;
+
+        if (mesh_.time().writeTime() && Pstream::master())
+        {
+            const scalar totalProfiled =
+                collisionPrecomputeWallTime_
+              + collisionPartitionWallTime_
+              + collisionSelectionWallTime_;
+
+            Info<< "Collision profiling summary:" << nl
+                << "    collision calls               = " << collisionProfileCalls_ << nl
+                << "    precompute candidates [s]     = " << collisionPrecomputeWallTime_ << nl
+                << "    rebuild partition [s]         = " << collisionPartitionWallTime_ << nl
+                << "    selection/collide [s]         = " << collisionSelectionWallTime_ << nl
+                << "    total profiled [s]            = " << totalProfiled << nl
+                << endl;
+
+            collisionPrecomputeWallTime_ = 0.0;
+            collisionPartitionWallTime_ = 0.0;
+            collisionSelectionWallTime_ = 0.0;
+            collisionProfileCalls_ = 0;
+        }
+    }
 }
 
 
@@ -1139,6 +1385,335 @@ void Foam::dsmcCloud::sampleFields()
 }
 
 
+void Foam::dsmcCloud::initOpenMP()
+{
+    const dictionary& controlDict = mesh_.time().controlDict();
+
+    openmpEnabled_ = controlDict.lookupOrDefault<bool>("useOpenMP", false);
+    openmpMoveEnabled_ = controlDict.lookupOrDefault<bool>("openmpMove", false);
+    ompNumThreads_ = controlDict.lookupOrDefault<label>("openmpThreads", 0);
+    openmpCollisionStrategy_ =
+        controlDict.lookupOrDefault<word>("openmpCollisionStrategy", "dynamic");
+    openmpMoveSchedule_ =
+        controlDict.lookupOrDefault<word>("openmpMoveSchedule", "static");
+    openmpMoveChunk_ =
+        controlDict.lookupOrDefault<label>("openmpMoveChunk", 64);
+    collisionProfileEnabled_ =
+        controlDict.lookupOrDefault<bool>("profileCollisionPhases", false);
+    evolveProfileEnabled_ =
+        controlDict.lookupOrDefault<bool>("profileEvolvePhases", false);
+
+    #ifdef _OPENMP
+    if (openmpEnabled_)
+    {
+        if
+        (
+            openmpCollisionStrategy_ != "dynamic"
+         && openmpCollisionStrategy_ != "partition"
+        )
+        {
+            WarningInFunction
+                << "Unknown openmpCollisionStrategy '"
+                << openmpCollisionStrategy_
+                << "'. Falling back to 'dynamic'." << endl;
+
+            openmpCollisionStrategy_ = "dynamic";
+        }
+
+        if
+        (
+            openmpMoveSchedule_ != "static"
+         && openmpMoveSchedule_ != "dynamic"
+         && openmpMoveSchedule_ != "guided"
+        )
+        {
+            WarningInFunction
+                << "Unknown openmpMoveSchedule '"
+                << openmpMoveSchedule_
+                << "'. Falling back to 'static'." << endl;
+
+            openmpMoveSchedule_ = "static";
+        }
+
+        if (openmpMoveChunk_ < 1)
+        {
+            openmpMoveChunk_ = 1;
+        }
+
+        if (ompNumThreads_ <= 0)
+        {
+            ompNumThreads_ = omp_get_max_threads();
+        }
+
+        if (ompNumThreads_ < 1)
+        {
+            ompNumThreads_ = 1;
+        }
+
+        ompRndGens_.setSize(ompNumThreads_);
+        particleLoadStart_.setSize(ompNumThreads_, 0);
+        particleLoadEnd_.setSize(ompNumThreads_, mesh_.nCells());
+        collisionLoadStart_.setSize(ompNumThreads_, 0);
+        collisionLoadEnd_.setSize(ompNumThreads_, mesh_.nCells());
+
+        forAll(ompRndGens_, threadI)
+        {
+            const label seed = 104729*Pstream::myProcNo() + threadI + 1;
+            ompRndGens_[threadI].reset(seed);
+        }
+
+        Info<< "OpenMP enabled for dsmcCloud with "
+            << ompNumThreads_ << " thread-local RNG streams"
+            << " using collision strategy '" << openmpCollisionStrategy_
+            << "', move kernel "
+            << (openmpMoveEnabled_ ? "enabled" : "disabled")
+            << " (" << openmpMoveSchedule_ << ", chunk "
+            << openmpMoveChunk_ << ")"
+            << endl;
+    }
+    else
+    {
+        openmpMoveEnabled_ = false;
+        ompNumThreads_ = 1;
+        ompRndGens_.clear();
+        particleLoadStart_.setSize(1, 0);
+        particleLoadEnd_.setSize(1, mesh_.nCells());
+        collisionLoadStart_.setSize(1, 0);
+        collisionLoadEnd_.setSize(1, mesh_.nCells());
+    }
+    #else
+    if (openmpEnabled_)
+    {
+        WarningInFunction
+            << "OpenMP requested via controlDict entry 'useOpenMP', "
+            << "but the code was built without OpenMP support. "
+            << "Falling back to serial execution." << endl;
+    }
+
+    openmpEnabled_ = false;
+    openmpMoveEnabled_ = false;
+    ompNumThreads_ = 1;
+    ompRndGens_.clear();
+    particleLoadStart_.setSize(1, 0);
+    particleLoadEnd_.setSize(1, mesh_.nCells());
+    collisionLoadStart_.setSize(1, 0);
+    collisionLoadEnd_.setSize(1, mesh_.nCells());
+    #endif
+}
+
+
+void Foam::dsmcCloud::precomputeCollisionCandidates()
+{
+    if (selectedPairsPerCell_.size() != mesh_.nCells())
+    {
+        selectedPairsPerCell_.setSize(mesh_.nCells(), 0.0);
+    }
+
+    if (nCandidatesPerCell_.size() != mesh_.nCells())
+    {
+        nCandidatesPerCell_.setSize(mesh_.nCells(), 0);
+    }
+
+    #ifdef _OPENMP
+    if (openmpEnabled_)
+    {
+        #pragma omp parallel for schedule(static)
+        for (label celli = 0; celli < mesh_.nCells(); ++celli)
+        {
+            const label nC = cellOccupancy_[celli].size();
+            const scalar sigmaTcRMaxCell = max(sigmaTcRMax_[celli], SMALL);
+            const scalar selectedPairs =
+                collisionSelectionRemainder_[celli]
+              + 0.5*nC*(nC - 1)*nParticles(celli)*sigmaTcRMaxCell*deltaTValue(celli)
+               /mesh_.cellVolumes()[celli];
+
+            selectedPairsPerCell_[celli] = selectedPairs;
+            nCandidatesPerCell_[celli] = label(selectedPairs);
+            collisionSelectionRemainder_[celli] =
+                selectedPairs - scalar(nCandidatesPerCell_[celli]);
+        }
+    }
+    else
+    #endif
+    {
+        forAll(selectedPairsPerCell_, celli)
+        {
+            const label nC = cellOccupancy_[celli].size();
+            const scalar sigmaTcRMaxCell = max(sigmaTcRMax_[celli], SMALL);
+            const scalar selectedPairs =
+                collisionSelectionRemainder_[celli]
+              + 0.5*nC*(nC - 1)*nParticles(celli)*sigmaTcRMaxCell*deltaTValue(celli)
+               /mesh_.cellVolumes()[celli];
+
+            selectedPairsPerCell_[celli] = selectedPairs;
+            nCandidatesPerCell_[celli] = label(selectedPairs);
+            collisionSelectionRemainder_[celli] =
+                selectedPairs - scalar(nCandidatesPerCell_[celli]);
+        }
+    }
+}
+
+
+void Foam::dsmcCloud::rebuildCollisionLoadPartition()
+{
+    if (!openmpEnabled_ || ompNumThreads_ <= 1)
+    {
+        collisionLoadStart_.setSize(1, 0);
+        collisionLoadEnd_.setSize(1, mesh_.nCells());
+        return;
+    }
+
+    collisionLoadStart_.setSize(ompNumThreads_, mesh_.nCells());
+    collisionLoadEnd_.setSize(ompNumThreads_, mesh_.nCells());
+
+    label totalCandidates = 0;
+
+    forAll(nCandidatesPerCell_, celli)
+    {
+        totalCandidates += nCandidatesPerCell_[celli];
+    }
+
+    if (totalCandidates <= 0)
+    {
+        for (label threadI = 0; threadI < ompNumThreads_; ++threadI)
+        {
+            collisionLoadStart_[threadI] = threadI*mesh_.nCells()/ompNumThreads_;
+            collisionLoadEnd_[threadI] = (threadI + 1)*mesh_.nCells()/ompNumThreads_;
+        }
+
+        return;
+    }
+
+    const scalar avgCandidates = scalar(totalCandidates)/scalar(ompNumThreads_);
+    scalar accumulatedCandidates = 0.0;
+    label start = 0;
+
+    for (label threadI = 0; threadI < ompNumThreads_; ++threadI)
+    {
+        collisionLoadStart_[threadI] = start;
+
+        if (threadI == ompNumThreads_ - 1)
+        {
+            collisionLoadEnd_[threadI] = mesh_.nCells();
+            break;
+        }
+
+        const scalar targetCandidates = avgCandidates*scalar(threadI + 1);
+        label end = start;
+
+        while (end < mesh_.nCells() && accumulatedCandidates < targetCandidates)
+        {
+            accumulatedCandidates += nCandidatesPerCell_[end];
+            ++end;
+        }
+
+        collisionLoadEnd_[threadI] = end;
+        start = end;
+    }
+}
+
+
+void Foam::dsmcCloud::rebuildParticleLoadPartition()
+{
+    if (!openmpEnabled_ || ompNumThreads_ <= 1)
+    {
+        particleLoadStart_.setSize(1, 0);
+        particleLoadEnd_.setSize(1, mesh_.nCells());
+        return;
+    }
+
+    particleLoadStart_.setSize(ompNumThreads_, mesh_.nCells());
+    particleLoadEnd_.setSize(ompNumThreads_, mesh_.nCells());
+
+    label totalParticles = 0;
+
+    forAll(cellOccupancy_, celli)
+    {
+        totalParticles += cellOccupancy_[celli].size();
+    }
+
+    if (totalParticles <= 0)
+    {
+        for (label threadI = 0; threadI < ompNumThreads_; ++threadI)
+        {
+            particleLoadStart_[threadI] = threadI*mesh_.nCells()/ompNumThreads_;
+            particleLoadEnd_[threadI] = (threadI + 1)*mesh_.nCells()/ompNumThreads_;
+        }
+
+        return;
+    }
+
+    const scalar avgParticles = scalar(totalParticles)/scalar(ompNumThreads_);
+    scalar accumulatedParticles = 0.0;
+    label start = 0;
+
+    for (label threadI = 0; threadI < ompNumThreads_; ++threadI)
+    {
+        particleLoadStart_[threadI] = start;
+
+        if (threadI == ompNumThreads_ - 1)
+        {
+            particleLoadEnd_[threadI] = mesh_.nCells();
+            break;
+        }
+
+        const scalar targetParticles = avgParticles*scalar(threadI + 1);
+        label end = start;
+
+        while (end < mesh_.nCells() && accumulatedParticles < targetParticles)
+        {
+            accumulatedParticles += cellOccupancy_[end].size();
+            ++end;
+        }
+
+        particleLoadEnd_[threadI] = end;
+        start = end;
+    }
+}
+
+
+void Foam::dsmcCloud::storeMoveOrderedParcels
+(
+    const List<dsmcParcel*>& parcels,
+    const labelList& threadOffsets
+)
+{
+    moveOrderedParcels_ = parcels;
+    moveOrderedThreadOffsets_ = threadOffsets;
+    moveOrderedParcelsValid_ = true;
+}
+
+
+void Foam::dsmcCloud::clearMoveOrderedParcels()
+{
+    moveOrderedParcels_.clear();
+    moveOrderedThreadOffsets_.clear();
+    moveOrderedParcelsValid_ = false;
+}
+
+
+void Foam::dsmcCloud::refreshTrackerUsage()
+{
+    trackerActive_ = false;
+
+    const auto& configuredFields = fields_.fields();
+
+    forAll(configuredFields, i)
+    {
+        if (configuredFields[i].valid())
+        {
+            const word fieldType(configuredFields[i]->type());
+
+            if (fieldType == "dsmcFluxSurface")
+            {
+                trackerActive_ = true;
+                break;
+            }
+        }
+    }
+}
+
+
 Foam::dsmcCloud::dsmcCloud
 (
     Time&,
@@ -1161,6 +1736,38 @@ Foam::dsmcCloud::dsmcCloud
     collisionSelectionRemainder_(mesh_.nCells(), 0.0),
     constProps_(),
     rndGen_(Pstream::myProcNo()),
+    openmpEnabled_(false),
+    openmpMoveEnabled_(false),
+    trackerActive_(true),
+    ompNumThreads_(1),
+    openmpCollisionStrategy_("dynamic"),
+    openmpMoveSchedule_("static"),
+    openmpMoveChunk_(64),
+    collisionProfileEnabled_(false),
+    evolveProfileEnabled_(false),
+    ompRndGens_(),
+    particleLoadStart_(),
+    particleLoadEnd_(),
+    moveOrderedParcels_(),
+    moveOrderedThreadOffsets_(),
+    moveOrderedParcelsValid_(false),
+    selectedPairsPerCell_(mesh_.nCells(), 0.0),
+    nCandidatesPerCell_(mesh_.nCells(), 0),
+    collisionPrecomputeWallTime_(0.0),
+    collisionPartitionWallTime_(0.0),
+    collisionSelectionWallTime_(0.0),
+    collisionProfileCalls_(0),
+    buildOccupancyExtractWallTime_(0.0),
+    buildOccupancyCountWallTime_(0.0),
+    buildOccupancyAssembleWallTime_(0.0),
+    buildOccupancyProfileCalls_(0),
+    evolveMoveWallTime_(0.0),
+    evolveBuildWallTime_(0.0),
+    evolveCoordWallTime_(0.0),
+    evolveCollisionWallTime_(0.0),
+    evolveReactionWallTime_(0.0),
+    evolvePostWallTime_(0.0),
+    evolveProfileCalls_(0),
     porousMeasurements_(porousMeasurements::New(const_cast<Time&>(mesh_.time()), mesh_, *this)),
     controllers_(const_cast<Time&>(mesh_.time()), mesh_, *this),
     boundaryMeas_(mesh, *this, true),
@@ -1196,6 +1803,8 @@ Foam::dsmcCloud::dsmcCloud
         this->clear();
     }
 
+    initOpenMP();
+
     coordSystem().checkCoordinateSystemInputs();
     buildConstProps();
 
@@ -1223,6 +1832,7 @@ Foam::dsmcCloud::dsmcCloud
     collisionPartnerSelectionPtr_->initialConfiguration();
 
     fields_.createFields();
+    refreshTrackerUsage();
     boundaryMeas_.setInitialConfig();
     boundaries_.setInitialConfig();
     controllers_.initialConfig();
@@ -1659,29 +2269,45 @@ void Foam::dsmcCloud::initialiseFromDict(const dictionary& dsmcInitialiseDict)
 
 void Foam::dsmcCloud::evolve()
 {
+    using clock_type = std::chrono::steady_clock;
+
     boundaries_.updateTimeInfo();
     fields_.updateTimeInfo();
     controllers_.updateTimeInfo();
 
     dsmcParcel::trackingData td(*this);
 
+    const auto t0 = clock_type::now();
+
     controllers_.controlBeforeMove();
     boundaries_.controlBeforeMove();
 
+    if (openmpEnabled_ && openmpMoveEnabled_)
+    {
+        rebuildParticleLoadPartition();
+    }
+
     Cloud<dsmcParcel>::move(*this, td, mesh_.time().deltaTValue());
+    const auto t1 = clock_type::now();
+
     buildCellOccupancy();
+    const auto t2 = clock_type::now();
+
     coordSystem().evolve();
+    const auto t3 = clock_type::now();
 
     controllers_.controlBeforeCollisions();
     boundaries_.controlBeforeCollisions();
 
     collisions();
+    const auto t4 = clock_type::now();
 
     if (reactionsActive())
     {
         buildCellOccupancy();
         reactions().outputData();
     }
+    const auto t5 = clock_type::now();
 
     controllers_.controlAfterCollisions();
     boundaries_.controlAfterCollisions();
@@ -1700,6 +2326,49 @@ void Foam::dsmcCloud::evolve()
     trackingInfo_.clean();
     boundaryMeas_.clean();
     cellMeas_.clean();
+
+    const auto t6 = clock_type::now();
+
+    if (evolveProfileEnabled_)
+    {
+        evolveMoveWallTime_ += std::chrono::duration<scalar>(t1 - t0).count();
+        evolveBuildWallTime_ += std::chrono::duration<scalar>(t2 - t1).count();
+        evolveCoordWallTime_ += std::chrono::duration<scalar>(t3 - t2).count();
+        evolveCollisionWallTime_ += std::chrono::duration<scalar>(t4 - t3).count();
+        evolveReactionWallTime_ += std::chrono::duration<scalar>(t5 - t4).count();
+        evolvePostWallTime_ += std::chrono::duration<scalar>(t6 - t5).count();
+        ++evolveProfileCalls_;
+
+        if (mesh_.time().writeTime() && Pstream::master())
+        {
+            const scalar totalProfiled =
+                evolveMoveWallTime_
+              + evolveBuildWallTime_
+              + evolveCoordWallTime_
+              + evolveCollisionWallTime_
+              + evolveReactionWallTime_
+              + evolvePostWallTime_;
+
+            Info<< "Evolve profiling summary:" << nl
+                << "    evolve calls                  = " << evolveProfileCalls_ << nl
+                << "    move only [s]                 = " << evolveMoveWallTime_ << nl
+                << "    buildCellOccupancy [s]        = " << evolveBuildWallTime_ << nl
+                << "    coordSystem [s]               = " << evolveCoordWallTime_ << nl
+                << "    collision phase [s]           = " << evolveCollisionWallTime_ << nl
+                << "    reaction/output [s]           = " << evolveReactionWallTime_ << nl
+                << "    post fields/output [s]        = " << evolvePostWallTime_ << nl
+                << "    total profiled [s]            = " << totalProfiled << nl
+                << endl;
+
+            evolveMoveWallTime_ = 0.0;
+            evolveBuildWallTime_ = 0.0;
+            evolveCoordWallTime_ = 0.0;
+            evolveCollisionWallTime_ = 0.0;
+            evolveReactionWallTime_ = 0.0;
+            evolvePostWallTime_ = 0.0;
+            evolveProfileCalls_ = 0;
+        }
+    }
 }
 
 
@@ -1751,6 +2420,69 @@ void Foam::dsmcCloud::info() const
             << "    Average electronic energy       = " << electronicEnergy/nMol << nl
             << "    Average total energy            = "
             << (linearKineticEnergy + rotationalEnergy + vibrationalEnergy + electronicEnergy)/nMol
+            << endl;
+    }
+}
+
+
+void Foam::dsmcCloud::reportProfiling() const
+{
+    if (!Pstream::master())
+    {
+        return;
+    }
+
+    if (buildOccupancyProfileCalls_ > 0)
+    {
+        const scalar totalProfiled =
+            buildOccupancyExtractWallTime_
+          + buildOccupancyCountWallTime_
+          + buildOccupancyAssembleWallTime_;
+
+        Info<< "BuildCellOccupancy profiling summary:" << nl
+            << "    buildCellOccupancy calls      = " << buildOccupancyProfileCalls_ << nl
+            << "    extract parcels [s]           = " << buildOccupancyExtractWallTime_ << nl
+            << "    count/reduce [s]              = " << buildOccupancyCountWallTime_ << nl
+            << "    allocate/fill [s]             = " << buildOccupancyAssembleWallTime_ << nl
+            << "    total profiled [s]            = " << totalProfiled << nl
+            << endl;
+    }
+
+    if (collisionProfileCalls_ > 0)
+    {
+        const scalar totalProfiled =
+            collisionPrecomputeWallTime_
+          + collisionPartitionWallTime_
+          + collisionSelectionWallTime_;
+
+        Info<< "Collision profiling summary:" << nl
+            << "    collision calls               = " << collisionProfileCalls_ << nl
+            << "    precompute candidates [s]     = " << collisionPrecomputeWallTime_ << nl
+            << "    rebuild partition [s]         = " << collisionPartitionWallTime_ << nl
+            << "    selection/collide [s]         = " << collisionSelectionWallTime_ << nl
+            << "    total profiled [s]            = " << totalProfiled << nl
+            << endl;
+    }
+
+    if (evolveProfileCalls_ > 0)
+    {
+        const scalar totalProfiled =
+            evolveMoveWallTime_
+          + evolveBuildWallTime_
+          + evolveCoordWallTime_
+          + evolveCollisionWallTime_
+          + evolveReactionWallTime_
+          + evolvePostWallTime_;
+
+        Info<< "Evolve profiling summary:" << nl
+            << "    evolve calls                  = " << evolveProfileCalls_ << nl
+            << "    move only [s]                 = " << evolveMoveWallTime_ << nl
+            << "    buildCellOccupancy [s]        = " << evolveBuildWallTime_ << nl
+            << "    coordSystem [s]               = " << evolveCoordWallTime_ << nl
+            << "    collision phase [s]           = " << evolveCollisionWallTime_ << nl
+            << "    reaction/output [s]           = " << evolveReactionWallTime_ << nl
+            << "    post fields/output [s]        = " << evolvePostWallTime_ << nl
+            << "    total profiled [s]            = " << totalProfiled << nl
             << endl;
     }
 }

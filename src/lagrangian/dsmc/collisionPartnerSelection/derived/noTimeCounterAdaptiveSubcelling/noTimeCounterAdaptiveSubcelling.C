@@ -219,7 +219,8 @@ void noTimeCounterAdaptiveSubcelling::collide()
     label subCell;
     vector pS;
 
-    forAll(cellOccupancy, cellI)
+    auto processCell =
+    [&](const label cellI)
     {
         const scalar deltaT = cloud_.deltaTValue(cellI);
 
@@ -343,7 +344,7 @@ void noTimeCounterAdaptiveSubcelling::collide()
                     cloud_.sigmaTcRMax()[cellI] = sigmaTcR;
                 }
 
-                if ((sigmaTcR/sigmaTcRMax) > rndGen_.sample01<scalar>())
+                if ((sigmaTcR/sigmaTcRMax) > cloud_.rndGen().sample01<scalar>())
                 {
                     // chemical reactions
 
@@ -399,6 +400,41 @@ void noTimeCounterAdaptiveSubcelling::collide()
                     collisions++;
                 }
             }
+        }
+    };
+
+    #ifdef _OPENMP
+    if (cloud_.openmpEnabled())
+    {
+        #pragma omp parallel reduction(+:collisionCandidates, collisions) \
+            private(nX, nY, nZ, subCell, pS)
+        {
+            const label threadI = cloud_.currentThreadId();
+            const label nThreads = omp_get_num_threads();
+
+            for
+            (
+                label segmentI = threadI;
+                segmentI < cloud_.collisionLoadStart().size();
+                segmentI += nThreads
+            )
+            {
+                const label startCell = cloud_.collisionLoadStart()[segmentI];
+                const label endCell = cloud_.collisionLoadEnd()[segmentI];
+
+                for (label cellI = startCell; cellI < endCell; ++cellI)
+                {
+                    processCell(cellI);
+                }
+            }
+        }
+    }
+    else
+    #endif
+    {
+        forAll(cellOccupancy, cellI)
+        {
+            processCell(cellI);
         }
     }
 

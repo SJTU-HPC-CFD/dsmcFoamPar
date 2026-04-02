@@ -1115,163 +1115,351 @@ void dsmcVolFields::calculateField()
     {
         nTimeSteps_ += 1.0;
         const scalar nAvTimeSteps = nTimeSteps_;
+        const auto& cellOccupancy = cloud_.cellOccupancy();
+        const bool useOpenMPSampling = cloud_.openmpEnabled();
 
         if (densityOnly_)
         {
-            //- Loop over the the entire parcel cloud
-            forAllConstIter(dsmcCloud, cloud_, iter)
+            if (useOpenMPSampling)
             {
-                const dsmcParcel& p = iter();
-                const label spId = Foam::hyCompat::indexOf(speciesIds_, p.typeId());
-
-                //- Do not consider adsorbed parcels
-                if (spId != -1 && p.isFree())
+                #ifdef _OPENMP
+                #pragma omp parallel for schedule(static)
+                #endif
+                forAll(cellOccupancy, celli)
                 {
-                    const label cell = p.cell();
-                    const scalar nParticles = cloud_.nParticles(cell);
-                    const scalar mass = cloud_.constProps(p.typeId()).mass();
+                    const DynamicList<dsmcParcel*>& parcels = cellOccupancy[celli];
 
-                    // cumulative number of DSMC parcels
-                    dsmcNCum_[cell] += 1.0;
-                    // instantaneous number of DSMC parcels in this time step
-                    dsmcN_[cell] += 1.0;
-                    // cumulative number of real particles
-                    nCum_[cell] += nParticles;
-                    // cumulative mass of real particles
-                    mCum_[cell] += mass*nParticles;
+                    scalar dsmcNLocal = 0.0;
+                    scalar nLocal = 0.0;
+                    scalar mLocal = 0.0;
+
+                    forAll(parcels, pi)
+                    {
+                        const dsmcParcel& p = *parcels[pi];
+                        const label spId = Foam::hyCompat::indexOf(speciesIds_, p.typeId());
+
+                        if (spId != -1 && p.isFree())
+                        {
+                            const scalar nParticles = cloud_.nParticles(celli);
+                            const scalar mass = cloud_.constProps(p.typeId()).mass();
+
+                            dsmcNLocal += 1.0;
+                            nLocal += nParticles;
+                            mLocal += mass*nParticles;
+                        }
+                    }
+
+                    dsmcNCum_[celli] += dsmcNLocal;
+                    dsmcN_[celli] += dsmcNLocal;
+                    nCum_[celli] += nLocal;
+                    mCum_[celli] += mLocal;
+                }
+            }
+            else
+            {
+                //- Loop over the the entire parcel cloud
+                forAllConstIter(dsmcCloud, cloud_, iter)
+                {
+                    const dsmcParcel& p = iter();
+                    const label spId = Foam::hyCompat::indexOf(speciesIds_, p.typeId());
+
+                    //- Do not consider adsorbed parcels
+                    if (spId != -1 && p.isFree())
+                    {
+                        const label cell = p.cell();
+                        const scalar nParticles = cloud_.nParticles(cell);
+                        const scalar mass = cloud_.constProps(p.typeId()).mass();
+
+                        // cumulative number of DSMC parcels
+                        dsmcNCum_[cell] += 1.0;
+                        // instantaneous number of DSMC parcels in this time step
+                        dsmcN_[cell] += 1.0;
+                        // cumulative number of real particles
+                        nCum_[cell] += nParticles;
+                        // cumulative mass of real particles
+                        mCum_[cell] += mass*nParticles;
+                    }
                 }
             }
         }
         else
         {
-            //- Loop over the the entire parcel cloud
-            forAllConstIter(dsmcCloud, cloud_, iter)
+            if (useOpenMPSampling)
             {
-                const dsmcParcel& p = iter();
-                const label spId = Foam::hyCompat::indexOf(speciesIds_, p.typeId());
-
-                //- Do not consider adsorbed parcels
-                if (spId != -1 && p.isFree())
+                #ifdef _OPENMP
+                #pragma omp parallel for schedule(static)
+                #endif
+                forAll(cellOccupancy, celli)
                 {
-                    const dsmcParcel::constantProperties& cP =
-                        cloud_.constProps(p.typeId());
-                    
-                    //- Local copies
-                    const label cell = p.cell();
-                    const scalar nParticles = cloud_.nParticles(cell);
-                    const scalar mp = cP.mass();
-                    const vector& Up = p.U();
-                    const scalar linearKE = mp*(Up & Up);
-                    const scalar Erotp = p.ERot();
-                    const scalar zetaRotp = cP.rotationalDegreesOfFreedom();
+                    const DynamicList<dsmcParcel*>& parcels = cellOccupancy[celli];
 
-                    scalar Evibp = 0.0;
-                    forAll(cP.thetaV(), mod)
+                    forAll(parcels, pi)
                     {
-                        const label vibLvl = p.vibLevel()[mod];
-                        const scalar EvibMod = cP.eVib_m(mod, vibLvl);
-                        dsmcSpeciesEvibModCum_[spId][mod][cell] += EvibMod;
-                        Evibp += EvibMod;
+                        const dsmcParcel& p = *parcels[pi];
+                        const label spId = Foam::hyCompat::indexOf(speciesIds_, p.typeId());
+
+                        if (spId != -1 && p.isFree())
+                        {
+                            const dsmcParcel::constantProperties& cP =
+                                cloud_.constProps(p.typeId());
+
+                            const scalar nParticles = cloud_.nParticles(celli);
+                            const scalar mp = cP.mass();
+                            const vector& Up = p.U();
+                            const scalar linearKE = mp*(Up & Up);
+                            const scalar Erotp = p.ERot();
+                            const scalar zetaRotp = cP.rotationalDegreesOfFreedom();
+
+                            scalar Evibp = 0.0;
+                            forAll(cP.thetaV(), mod)
+                            {
+                                const label vibLvl = p.vibLevel()[mod];
+                                const scalar EvibMod = cP.eVib_m(mod, vibLvl);
+                                dsmcSpeciesEvibModCum_[spId][mod][celli] += EvibMod;
+                                Evibp += EvibMod;
+                            }
+
+                            const label nElecLevels = cP.nElectronicLevels();
+                            const scalarList& electronicEnergies =
+                                cP.electronicEnergyList();
+                            const scalar Eelecp = 0.0;
+                            const scalar Eintp = Erotp + Evibp + Eelecp;
+
+                            dsmcNCum_[celli] += 1.0;
+                            dsmcN_[celli] += 1.0;
+                            dsmcMCum_[celli] += mp;
+                            dsmcLinearKECum_[celli] += linearKE;
+                            dsmcMomentumCum_[celli] += mp*Up;
+                            dsmcErotCum_[celli] += Erotp;
+                            dsmcZetaRotCum_[celli] += zetaRotp;
+                            dsmcSpeciesEelecCum_[spId][celli] += electronicEnergies[p.ELevel()];
+                            dsmcNSpeciesCum_[spId][celli] += 1.0;
+                            dsmcMccSpeciesCum_[spId][celli] += linearKE;
+                            nSpeciesCum_[spId][celli] += nParticles;
+                            nCum_[celli] += nParticles;
+                            mCum_[celli] += mp*nParticles;
+                            momentumCum_[celli] += mp*Up*nParticles;
+                            linearKECum_[celli] += linearKE*nParticles;
+
+                            dsmcMuuCum_[celli] += mp*sqr(Up.x());
+                            dsmcMuvCum_[celli] += mp*Up.x()*Up.y();
+                            dsmcMuwCum_[celli] += mp*Up.x()*Up.z();
+                            dsmcMvvCum_[celli] += mp*sqr(Up.y());
+                            dsmcMvwCum_[celli] += mp*Up.y()*Up.z();
+                            dsmcMwwCum_[celli] += mp*sqr(Up.z());
+
+                            dsmcMccCum_[celli] += linearKE;
+                            dsmcMccuCum_[celli] += linearKE*(Up.x());
+                            dsmcMccvCum_[celli] += linearKE*(Up.y());
+                            dsmcMccwCum_[celli] += linearKE*(Up.z());
+
+                            dsmcEuCum_[celli] += Eintp*Up.x();
+                            dsmcEvCum_[celli] += Eintp*Up.y();
+                            dsmcEwCum_[celli] += Eintp*Up.z();
+                            dsmcECum_[celli] += Eintp;
+
+                            if (nElecLevels > 1)
+                            {
+                                dsmcNElecLvlCum_[celli] += 1.0;
+
+                                if (p.ELevel() == 0)
+                                {
+                                    dsmcNGrndElecLvlSpeciesCum_[spId][celli]++;
+                                }
+                                if (p.ELevel() == 1)
+                                {
+                                    dsmcN1stElecLvlSpeciesCum_[spId][celli]++;
+                                }
+                            }
+
+                            if (measureClassifications_)
+                            {
+                                const label classification = p.classification();
+
+                                if (classification == 0)
+                                {
+                                    dsmcNClassICum_[celli] += 1.0;
+                                }
+
+                                if (classification == 1)
+                                {
+                                    dsmcNClassIICum_[celli] += 1.0;
+                                }
+
+                                if (classification == 2)
+                                {
+                                    dsmcNClassIIICum_[celli] += 1.0;
+                                }
+                            }
+                        }
                     }
-                    
-                    const label nElecLevels = cP.nElectronicLevels();
-                    const scalarList& electronicEnergies =
-                        cP.electronicEnergyList();
-                    const scalar Eelecp = 0.0; // TODO
-                    const scalar Eintp = Erotp + Evibp + Eelecp;
+                }
+            }
+            else
+            {
+                //- Loop over the the entire parcel cloud
+                forAllConstIter(dsmcCloud, cloud_, iter)
+                {
+                    const dsmcParcel& p = iter();
+                    const label spId = Foam::hyCompat::indexOf(speciesIds_, p.typeId());
 
-                    // cumulative number of DSMC parcels
-                    dsmcNCum_[cell] += 1.0;
-                    // instantaneous number of DSMC parcels in this time step
-                    dsmcN_[cell] += 1.0;
-                    // cumulative mass of the DSMC parcels
-                    dsmcMCum_[cell] += mp;
-                    // cumulative linear kinetic energy of the DSMC parcels
-                    dsmcLinearKECum_[cell] += linearKE;
-                    // cumulative momentum of the DSMC parcels
-                    dsmcMomentumCum_[cell] += mp*Up;
-                    // cumulative rotational energy of the DSMC parcels
-                    dsmcErotCum_[cell] += Erotp;
-                    // cumulative rotational degrees of freedom of the DSMC
-                    // parcels
-                    dsmcZetaRotCum_[cell] += zetaRotp;
-                    // cumulative electronic energy of the DSMC parcels of
-                    // each species
-                    dsmcSpeciesEelecCum_[spId][cell] +=
-                        electronicEnergies[p.ELevel()];
-                    // cumulative number of DSMC parcels of each species
-                    dsmcNSpeciesCum_[spId][cell] += 1.0;
-                    dsmcMccSpeciesCum_[spId][cell] += linearKE;
-                    // cumulative number of real particles of each species
-                    nSpeciesCum_[spId][cell] += nParticles;
-                    // cumulative number of real particles
-                    nCum_[cell] += nParticles;
-                    // cumulative mass of real particles
-                    mCum_[cell] += mp*nParticles;
-                    // cumulative momentum of real particles
-                    momentumCum_[cell] += mp*Up*nParticles;
-                    // cumulative linear kinetic energy of the real particles
-                    linearKECum_[cell] += linearKE*nParticles;
-
-                    // cumulative counters for mass times squared velocity
-                    // components of the DSMC parcel
-                    // notation: Up = c = (u v w)
-                    dsmcMuuCum_[cell] += mp*sqr(Up.x());
-                    dsmcMuvCum_[cell] += mp*Up.x()*Up.y();
-                    dsmcMuwCum_[cell] += mp*Up.x()*Up.z();
-                    dsmcMvvCum_[cell] += mp*sqr(Up.y());
-                    dsmcMvwCum_[cell] += mp*Up.y()*Up.z();
-                    dsmcMwwCum_[cell] += mp*sqr(Up.z());
-
-                    dsmcMccCum_[cell] += linearKE;
-                    dsmcMccuCum_[cell] += linearKE*(Up.x());
-                    dsmcMccvCum_[cell] += linearKE*(Up.y());
-                    dsmcMccwCum_[cell] += linearKE*(Up.z());
-
-                    // cumulative internal energy times velocity components of
-                    // the DSMC parcel
-                    dsmcEuCum_[cell] += Eintp*Up.x();
-                    dsmcEvCum_[cell] += Eintp*Up.y();
-                    dsmcEwCum_[cell] += Eintp*Up.z();
-                    dsmcECum_[cell] += Eintp;
-
-                    if (nElecLevels > 1)
+                    //- Do not consider adsorbed parcels
+                    if (spId != -1 && p.isFree())
                     {
-                        dsmcNElecLvlCum_[cell] += 1.0;
+                        const dsmcParcel::constantProperties& cP =
+                            cloud_.constProps(p.typeId());
 
-                        if (p.ELevel() == 0)
-                        {
-                            dsmcNGrndElecLvlSpeciesCum_[spId][cell]++;
-                        }
-                        if (p.ELevel() == 1)
-                        {
-                            dsmcN1stElecLvlSpeciesCum_[spId][cell]++;
-                        }
-                    }
+                        //- Local copies
+                        const label cell = p.cell();
+                        const scalar nParticles = cloud_.nParticles(cell);
+                        const scalar mp = cP.mass();
+                        const vector& Up = p.U();
+                        const scalar linearKE = mp*(Up & Up);
+                        const scalar Erotp = p.ERot();
+                        const scalar zetaRotp = cP.rotationalDegreesOfFreedom();
 
-                    if (measureClassifications_)
-                    {
-                        const label classification = p.classification();
-
-                        if (classification == 0)
+                        scalar Evibp = 0.0;
+                        forAll(cP.thetaV(), mod)
                         {
-                            dsmcNClassICum_[cell] += 1.0;
-                        }
-
-                        if (classification == 1)
-                        {
-                            dsmcNClassIICum_[cell] += 1.0;
+                            const label vibLvl = p.vibLevel()[mod];
+                            const scalar EvibMod = cP.eVib_m(mod, vibLvl);
+                            dsmcSpeciesEvibModCum_[spId][mod][cell] += EvibMod;
+                            Evibp += EvibMod;
                         }
 
-                        if (classification == 2)
+                        const label nElecLevels = cP.nElectronicLevels();
+                        const scalarList& electronicEnergies =
+                            cP.electronicEnergyList();
+                        const scalar Eelecp = 0.0; // TODO
+                        const scalar Eintp = Erotp + Evibp + Eelecp;
+
+                        dsmcNCum_[cell] += 1.0;
+                        dsmcN_[cell] += 1.0;
+                        dsmcMCum_[cell] += mp;
+                        dsmcLinearKECum_[cell] += linearKE;
+                        dsmcMomentumCum_[cell] += mp*Up;
+                        dsmcErotCum_[cell] += Erotp;
+                        dsmcZetaRotCum_[cell] += zetaRotp;
+                        dsmcSpeciesEelecCum_[spId][cell] +=
+                            electronicEnergies[p.ELevel()];
+                        dsmcNSpeciesCum_[spId][cell] += 1.0;
+                        dsmcMccSpeciesCum_[spId][cell] += linearKE;
+                        nSpeciesCum_[spId][cell] += nParticles;
+                        nCum_[cell] += nParticles;
+                        mCum_[cell] += mp*nParticles;
+                        momentumCum_[cell] += mp*Up*nParticles;
+                        linearKECum_[cell] += linearKE*nParticles;
+
+                        dsmcMuuCum_[cell] += mp*sqr(Up.x());
+                        dsmcMuvCum_[cell] += mp*Up.x()*Up.y();
+                        dsmcMuwCum_[cell] += mp*Up.x()*Up.z();
+                        dsmcMvvCum_[cell] += mp*sqr(Up.y());
+                        dsmcMvwCum_[cell] += mp*Up.y()*Up.z();
+                        dsmcMwwCum_[cell] += mp*sqr(Up.z());
+
+                        dsmcMccCum_[cell] += linearKE;
+                        dsmcMccuCum_[cell] += linearKE*(Up.x());
+                        dsmcMccvCum_[cell] += linearKE*(Up.y());
+                        dsmcMccwCum_[cell] += linearKE*(Up.z());
+
+                        dsmcEuCum_[cell] += Eintp*Up.x();
+                        dsmcEvCum_[cell] += Eintp*Up.y();
+                        dsmcEwCum_[cell] += Eintp*Up.z();
+                        dsmcECum_[cell] += Eintp;
+
+                        if (nElecLevels > 1)
                         {
-                            dsmcNClassIIICum_[cell] += 1.0;
+                            dsmcNElecLvlCum_[cell] += 1.0;
+
+                            if (p.ELevel() == 0)
+                            {
+                                dsmcNGrndElecLvlSpeciesCum_[spId][cell]++;
+                            }
+                            if (p.ELevel() == 1)
+                            {
+                                dsmcN1stElecLvlSpeciesCum_[spId][cell]++;
+                            }
+                        }
+
+                        if (measureClassifications_)
+                        {
+                            const label classification = p.classification();
+
+                            if (classification == 0)
+                            {
+                                dsmcNClassICum_[cell] += 1.0;
+                            }
+
+                            if (classification == 1)
+                            {
+                                dsmcNClassIICum_[cell] += 1.0;
+                            }
+
+                            if (classification == 2)
+                            {
+                                dsmcNClassIIICum_[cell] += 1.0;
+                            }
                         }
                     }
                 }
             }
 
             //- Loop over all cells
+            #ifdef _OPENMP
+            if (useOpenMPSampling)
+            {
+                #pragma omp parallel for schedule(static)
+                for (label celli = 0; celli < dsmcNCum_.size(); ++celli)
+                {
+                    collisionSeparation_[celli] +=
+                        cloud_.cellPropMeasurements().collisionSeparation()[celli];
+
+                    dsmcNCollsCum_[celli] +=
+                        cloud_.cellPropMeasurements().nColls()[celli];
+
+                    if (dsmcNCum_[celli] > 1e-3)
+                    {
+                        const scalar cellVolume = mesh_.cellVolumes()[celli];
+
+                        dsmcNMean_[celli] = dsmcNCum_[celli]/nAvTimeSteps;
+
+                        const scalar rhoNMean = nCum_[celli]
+                            /(nAvTimeSteps*cellVolume);
+                        const scalar rhoMMean = mCum_[celli]
+                            /(nAvTimeSteps*cellVolume);
+
+                        rhoN_[celli] = rhoNMean;
+                        rhoM_[celli] = rhoMMean;
+
+                        UMean_[celli] = momentumCum_[celli]/mCum_[celli];
+
+                        const scalar linearKEMean = 0.5*linearKECum_[celli]
+                            /(cellVolume*nAvTimeSteps);
+
+                        Ttra_[celli] =
+                            2.0/(3.0*kB*rhoNMean)
+                           *(
+                                linearKEMean - 0.5*rhoMMean
+                               *(
+                                    UMean_[celli] & UMean_[celli]
+                                )
+                            );
+
+                        p_[celli] = rhoNMean*kB*Ttra_[celli];
+                    }
+                    else
+                    {
+                        dsmcNMean_[celli] = 0.001;
+                        rhoN_[celli] = 0.0;
+                        rhoM_[celli] = 0.0;
+                        UMean_[celli] = vector::zero;
+                        Ttra_[celli] = 0.0;
+                        p_[celli] = 0.0;
+                    }
+                }
+            }
+            else
+            #endif
             forAll(dsmcNCum_, celli)
             {
                 collisionSeparation_[celli] +=
@@ -1312,7 +1500,6 @@ void dsmcVolFields::calculateField()
                 }
                 else
                 {
-                    // not zero so that weighted decomposition still works
                     dsmcNMean_[celli] = 0.001;
                     rhoN_[celli] = 0.0;
                     rhoM_[celli] = 0.0;

@@ -34,6 +34,10 @@ Description
 #include "wallPolyPatch.H"
 #include "dsmcCloud.H"
 
+#ifdef _OPENMP
+    #include <omp.h>
+#endif
+
 namespace Foam
 {
 
@@ -146,6 +150,29 @@ void dsmcFaceTracker::trackFaceTransition
     //- direction of dsmcParcel trajectory with respect to the face normal
     scalar sgn = sign( U & mesh_.faceAreas()[crossedFaceI] ) * 1.0;
 
+    #ifdef _OPENMP
+    const bool useAtomic = cloud_.openmpMoveEnabled() && omp_in_parallel();
+    #else
+    const bool useAtomic = false;
+    #endif
+
+    auto addFlux = [&](const label faceI, const scalar parcelFlux, const scalar massFlux)
+    {
+        if (useAtomic)
+        {
+            #pragma omp atomic update
+            parcelIdFlux_[typeId][faceI] += parcelFlux;
+
+            #pragma omp atomic update
+            massIdFlux_[typeId][faceI] += massFlux;
+        }
+        else
+        {
+            parcelIdFlux_[typeId][faceI] += parcelFlux;
+            massIdFlux_[typeId][faceI] += massFlux;
+        }
+    };
+
     // check patch type and count accordingly
     if(patchId != -1) // face belongs to boundary patch
     {
@@ -160,8 +187,7 @@ void dsmcFaceTracker::trackFaceTransition
         //   processor only. Normal vector points out from the domain.
         if (isA<processorPolyPatch>(patch))
         {
-            parcelIdFlux_[typeId][crossedFaceI] += sgn*RWF;
-            massIdFlux_[typeId][crossedFaceI] += sgn*RWF*mass;
+            addFlux(crossedFaceI, sgn*RWF, sgn*RWF*mass);
         }
 
         // cyclic patches:
@@ -172,21 +198,18 @@ void dsmcFaceTracker::trackFaceTransition
                 patch
             ).neighbPatch().start() + faceIndex;
 
-            parcelIdFlux_[typeId][coupledFace] += RWF;
-            massIdFlux_[typeId][coupledFace] += RWF*mass;
+            addFlux(coupledFace, RWF, RWF*mass);
         }
 
         // all other boundary patches:
         else
         {
-            parcelIdFlux_[typeId][crossedFaceI] += sgn*RWF;
-            massIdFlux_[typeId][crossedFaceI] += sgn*RWF*mass;
+            addFlux(crossedFaceI, sgn*RWF, sgn*RWF*mass);
         }
     }
     else // internal face
     {
-        parcelIdFlux_[typeId][crossedFaceI] += sgn*RWF;
-        massIdFlux_[typeId][crossedFaceI] += sgn*RWF*mass;
+        addFlux(crossedFaceI, sgn*RWF, sgn*RWF*mass);
     }
 }
 

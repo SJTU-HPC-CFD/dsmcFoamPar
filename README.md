@@ -406,3 +406,25 @@ dsmcFoam+ -help
 4. 恢复 dynamicLoadBalancing
 5. 做数值一致性验证
 6. 做并行与性能验证
+
+
+################################################
+
+十二、实施顺序
+
+基础设施
+dsmcCloud 增加 OpenMP 开关、线程数、线程私有 RNG
+collisionSelection 去掉缓存 rndGen_
+第一版碰撞并行
+只改 noTimeCounter::collide()
+先用线程私有 RNG
+先用局部计数 + 末端 reduction
+第一版验证
+串行结果统计对照
+8 线程/16 线程短跑
+检查守恒、碰撞数、反应数、壁面通量是否量级一致
+第二版真正 dual-decomposition
+实现 collision weights -> multiSegmentPartition
+用连续 cell 段替代简单 dynamic 调度
+第三版再看 Move/Index
+这时才处理 buildCellOccupancy 和 relocation

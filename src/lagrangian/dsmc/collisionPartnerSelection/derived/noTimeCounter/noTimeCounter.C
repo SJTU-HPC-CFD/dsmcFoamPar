@@ -95,18 +95,17 @@ void noTimeCounter::collide()
     const List<DynamicList<dsmcParcel*>>& cellOccupancy = cloud_.cellOccupancy();
 
     const polyMesh& mesh = cloud_.mesh();
+    const label nCells = cellOccupancy.size();
 
-    forAll(cellOccupancy, cellI)
+    auto processCell =
+    [&](const label cellI, List<DynamicList<label>>& subCells)
     {
-        const scalar deltaT = cloud_.deltaTValue(cellI);
-
         const DynamicList<dsmcParcel*>& cellParcels(cellOccupancy[cellI]);
 
-        const scalar& cellVolume = mesh.cellVolumes()[cellI];
-
         const label nC(cellParcels.size());
+        const label nCandidates = cloud_.nCandidatesPerCell()[cellI];
 
-        if (nC > 1)
+        if (nC > 1 && nCandidates > 0)
         {
 
             // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -140,17 +139,6 @@ void noTimeCounter::collide()
             // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
             scalar sigmaTcRMax = cloud_.sigmaTcRMax()[cellI];
-
-            //scalar selectedPairs = 0.0;
-
-            scalar selectedPairs =
-                cloud_.collisionSelectionRemainder()[cellI]
-                + 0.5*nC*(nC - 1)*cloud_.nParticles(cellI)*sigmaTcRMax*deltaT
-                /cellVolume;
-
-            const label nCandidates(selectedPairs);
-
-            cloud_.collisionSelectionRemainder()[cellI] = selectedPairs - nCandidates;
 
             collisionCandidates += nCandidates;
 
@@ -245,7 +233,7 @@ void noTimeCounter::collide()
                         cloud_.sigmaTcRMax()[cellI] = sigmaTcR;
                     }
 
-                    if ((sigmaTcR/sigmaTcRMax) > rndGen_.sample01<scalar>())
+                    if ((sigmaTcR/sigmaTcRMax) > cloud_.rndGen().sample01<scalar>())
                     {
                         // chemical reactions
 
@@ -306,6 +294,49 @@ void noTimeCounter::collide()
                     }
                 }
             }
+        }
+    };
+
+    #ifdef _OPENMP
+    if (cloud_.openmpEnabled())
+    {
+        if (cloud_.openmpCollisionStrategy() == "partition")
+        {
+            #pragma omp parallel reduction(+:collisionCandidates, collisions)
+            {
+                List<DynamicList<label>> subCells(8);
+                const label threadI = cloud_.currentThreadId();
+                const label startCell = cloud_.collisionLoadStart()[threadI];
+                const label endCell = cloud_.collisionLoadEnd()[threadI];
+
+                for (label cellI = startCell; cellI < endCell; ++cellI)
+                {
+                    processCell(cellI, subCells);
+                }
+            }
+        }
+        else
+        {
+            #pragma omp parallel reduction(+:collisionCandidates, collisions)
+            {
+                List<DynamicList<label>> subCells(8);
+
+                #pragma omp for schedule(dynamic, 1)
+                for (label cellI = 0; cellI < nCells; ++cellI)
+                {
+                    processCell(cellI, subCells);
+                }
+            }
+        }
+    }
+    else
+    #endif
+    {
+        List<DynamicList<label>> subCells(8);
+
+        for (label cellI = 0; cellI < nCells; ++cellI)
+        {
+            processCell(cellI, subCells);
         }
     }
 

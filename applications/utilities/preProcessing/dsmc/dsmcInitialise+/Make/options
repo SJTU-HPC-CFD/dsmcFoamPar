@@ -1,4 +1,7 @@
+OPENMP_FLAGS = -qopenmp
+
 EXE_INC = \
+    $(OPENMP_FLAGS) \
     -include $(WM_PROJECT_USER_DIR)/src/lagrangian/basic/lnInclude/hyCompatAPI.H \
     -I$(LIB_SRC)/finiteVolume/lnInclude \
     -I$(WM_PROJECT_USER_DIR)/src/lagrangian/basic/lnInclude \
@@ -7,6 +10,7 @@ EXE_INC = \
     -I$(LIB_SRC)/meshTools/lnInclude
 
 EXE_LIBS = \
+    $(OPENMP_FLAGS) \
     -L$(FOAM_USER_LIBBIN) \
     -ldsmcFoam+ \
     -llagrangian+ \

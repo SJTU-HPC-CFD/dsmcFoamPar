@@ -68,6 +68,8 @@ int main(int argc, char *argv[])
         runTime.printExecutionTime(Info);
     }
 
+    dsmc.reportProfiling();
+
     Info<< "End\n" << endl;
 
     // The migrated lagrangian stack still has a destructor-time cleanup issue.
