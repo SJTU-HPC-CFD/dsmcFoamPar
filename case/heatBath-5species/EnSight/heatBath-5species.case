@@ -1,0 +1,63 @@
+FORMAT
+type: ensight gold
+
+GEOMETRY
+model:          data/constant/geometry
+measured: 1     data/********/lagrangian/dsmc/positions
+
+VARIABLE
+scalar per element: 1  Ttra_N          data/********/Ttra_N
+scalar per element: 1  Ttra_N2         data/********/Ttra_N2
+scalar per element: 1  Ttra_NO         data/********/Ttra_NO
+scalar per element: 1  Ttra_O          data/********/Ttra_O
+scalar per element: 1  Ttra_O2         data/********/Ttra_O2
+scalar per element: 1  Ttra_mixture    data/********/Ttra_mixture
+vector per element: 1  UMean_N         data/********/UMean_N
+vector per element: 1  UMean_N2        data/********/UMean_N2
+vector per element: 1  UMean_NO        data/********/UMean_NO
+vector per element: 1  UMean_O         data/********/UMean_O
+vector per element: 1  UMean_O2        data/********/UMean_O2
+vector per element: 1  UMean_mixture   data/********/UMean_mixture
+scalar per element: 1  dsmcN_N         data/********/dsmcN_N
+scalar per element: 1  dsmcN_N2        data/********/dsmcN_N2
+scalar per element: 1  dsmcN_NO        data/********/dsmcN_NO
+scalar per element: 1  dsmcN_O         data/********/dsmcN_O
+scalar per element: 1  dsmcN_O2        data/********/dsmcN_O2
+scalar per element: 1  dsmcN_mixture   data/********/dsmcN_mixture
+scalar per element: 1  dsmcSigmaTcRMax data/********/dsmcSigmaTcRMax
+vector per element: 1  fD_N            data/********/fD_N
+vector per element: 1  fD_N2           data/********/fD_N2
+vector per element: 1  fD_NO           data/********/fD_NO
+vector per element: 1  fD_O            data/********/fD_O
+vector per element: 1  fD_O2           data/********/fD_O2
+vector per element: 1  fD_mixture      data/********/fD_mixture
+scalar per element: 1  p_N             data/********/p_N
+scalar per element: 1  p_N2            data/********/p_N2
+scalar per element: 1  p_NO            data/********/p_NO
+scalar per element: 1  p_O             data/********/p_O
+scalar per element: 1  p_O2            data/********/p_O2
+scalar per element: 1  p_mixture       data/********/p_mixture
+scalar per element: 1  rhoM_N          data/********/rhoM_N
+scalar per element: 1  rhoM_N2         data/********/rhoM_N2
+scalar per element: 1  rhoM_NO         data/********/rhoM_NO
+scalar per element: 1  rhoM_O          data/********/rhoM_O
+scalar per element: 1  rhoM_O2         data/********/rhoM_O2
+scalar per element: 1  rhoM_mixture    data/********/rhoM_mixture
+scalar per element: 1  rhoN_N          data/********/rhoN_N
+scalar per element: 1  rhoN_N2         data/********/rhoN_N2
+scalar per element: 1  rhoN_NO         data/********/rhoN_NO
+scalar per element: 1  rhoN_O          data/********/rhoN_O
+scalar per element: 1  rhoN_O2         data/********/rhoN_O2
+scalar per element: 1  rhoN_mixture    data/********/rhoN_mixture
+scalar per measured node: 1    c0ERot          data/********/lagrangian/dsmc/ERot
+vector per measured node: 1    c0U             data/********/lagrangian/dsmc/U
+scalar per measured node: 1    c0radialWeight  data/********/lagrangian/dsmc/radialWeight
+
+TIME
+time set:               1
+number of steps:        1
+filename numbers:
+ 1000        
+time values:
+ 1.00000e-06 
+# end

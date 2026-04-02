@@ -1,0 +1,1 @@
+../boundaries/derived/patchBoundaries/dsmcDiffuseWallHeatFluxPatch/dsmcDiffuseWallHeatFluxPatch.C

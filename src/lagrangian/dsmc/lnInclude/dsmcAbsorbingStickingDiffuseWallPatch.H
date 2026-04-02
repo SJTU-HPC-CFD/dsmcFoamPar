@@ -1,0 +1,1 @@
+../boundaries/derived/patchBoundaries/mixed/dsmcAbsorbingStickingDiffuseWallPatch/dsmcAbsorbingStickingDiffuseWallPatch.H

@@ -1,0 +1,57 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  2506                                  |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    arch        "LSB;label=32;scalar=64";
+    class       dictionary;
+    location    "1e-06/uniform/functionObjects";
+    object      functionObjectProperties;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+cdf7e925f5746741c316f5fbcf39ad0dfca90775
+{
+    probes
+    {
+        scalar
+        {
+            average(Ttra_mixture) 18395.212515266;
+            min(Ttra_mixture) 18395.212515266;
+            max(Ttra_mixture) 18395.212515266;
+            average(rhoN_N) 9.061195104895103e+21;
+            min(rhoN_N)     9.061195104895103e+21;
+            max(rhoN_N)     9.061195104895103e+21;
+            average(rhoN_N2) 7.569819680319678e+21;
+            min(rhoN_N2)    7.569819680319678e+21;
+            max(rhoN_N2)    7.569819680319678e+21;
+            average(rhoN_NO) 1.497655344655344e+20;
+            min(rhoN_NO)    1.497655344655344e+20;
+            max(rhoN_NO)    1.497655344655344e+20;
+            average(rhoN_O) 5.34788881118881e+21;
+            min(rhoN_O)     5.34788881118881e+21;
+            max(rhoN_O)     5.34788881118881e+21;
+            average(rhoN_O2) 4.87572827172827e+20;
+            min(rhoN_O2)    4.87572827172827e+20;
+            max(rhoN_O2)    4.87572827172827e+20;
+        }
+        label
+        {
+            size(Ttra_mixture) 1;
+            size(rhoN_N)    1;
+            size(rhoN_N2)   1;
+            size(rhoN_NO)   1;
+            size(rhoN_O)    1;
+            size(rhoN_O2)   1;
+        }
+    }
+}
+
+
+// ************************************************************************* //

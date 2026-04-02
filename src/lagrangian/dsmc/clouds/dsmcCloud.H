@@ -1,0 +1,369 @@
+/*---------------------------------------------------------------------------*\\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     |
+    \\  /    A nd           | Copyright (C) 2016-2021 hyStrath
+     \\/     M anipulation  |
+-------------------------------------------------------------------------------
+License
+    This file is part of hyStrath, a derivative work of OpenFOAM.
+
+    OpenFOAM is free software: you can redistribute it and/or modify it
+    under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    OpenFOAM is distributed in the hope that it will be useful, but WITHOUT
+    ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+    FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+    for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
+
+Class
+    Foam::dsmcCloud
+
+Description
+    Minimal v2506 DSMC cloud extended with the subset of stage-2 features
+    required by the orion107kmNR case.
+
+SourceFiles
+    dsmcCloudI.H
+    dsmcCloud.C
+
+\*---------------------------------------------------------------------------*/
+
+#ifndef dsmcCloud_H
+#define dsmcCloud_H
+
+#include "Cloud.H"
+#include "IOdictionary.H"
+#include "Random.H"
+#include "fvMesh.H"
+#include "volFields.H"
+#include "autoPtr.H"
+#include "PtrList.H"
+#include "dsmcParcel.H"
+#include "BinaryCollisionModel.H"
+#include "dsmcReactions.H"
+#include "dsmcCoordinateSystem.H"
+#include "cellMeasurements.H"
+#include "dsmcControllers.H"
+#include "boundaryMeasurements.H"
+#include "dsmcFieldProperties.H"
+#include "dsmcBoundaries.H"
+#include "dsmcFaceTracker.H"
+#include "collisionPartnerSelection.H"
+#include "porousMeasurements.H"
+
+namespace Foam
+{
+
+class dsmcCloud
+:
+    public Cloud<dsmcParcel>
+{
+    struct diffuseWallSpec
+    {
+        word patchName;
+        label patchId = -1;
+        vector velocity = vector::zero;
+        scalar temperature = 0.0;
+    };
+
+    struct inflowSpec
+    {
+        word patchName;
+        label patchId = -1;
+        labelList speciesIds;
+        vector velocity = vector::zero;
+        scalar translationalTemperature = 0.0;
+        scalar rotationalTemperature = 0.0;
+        scalar vibrationalTemperature = 0.0;
+        scalar electronicTemperature = 0.0;
+        scalarList numberDensities;
+        labelList faces;
+        labelList cells;
+        List<scalarField> accumulatedParcelsToInsert;
+    };
+
+    struct fieldSpec
+    {
+        word fieldName;
+        labelList speciesIds;
+        bool measureMeanFreePath = false;
+        bool resetAtOutput = false;
+        scalar resetAtOutputUntilTime = -GREAT;
+        bool pendingReset = false;
+    };
+
+    word cloudName_;
+    const fvMesh& mesh_;
+    IOdictionary particleProperties_;
+    List<word> typeIdList_;
+    autoPtr<dsmcCoordinateSystem> dsmcCoordinateSystem_;
+    scalar nParticle_;
+    label nTerminalOutputs_;
+    word collisionPartnerSelectionModel_;
+    List<DynamicList<dsmcParcel*>> cellOccupancy_;
+    volScalarField sigmaTcRMax_;
+    scalarField collisionSelectionRemainder_;
+    List<dsmcParcel::constantProperties> constProps_;
+    Random rndGen_;
+    autoPtr<porousMeasurements> porousMeasurements_;
+    dsmcControllers controllers_;
+    boundaryMeasurements boundaryMeas_;
+    dsmcFieldProperties fields_;
+    dsmcBoundaries boundaries_;
+    dsmcFaceTracker trackingInfo_;
+    autoPtr<BinaryCollisionModel> binaryCollisionModel_;
+    autoPtr<collisionPartnerSelection> collisionPartnerSelectionPtr_;
+    autoPtr<dsmcReactions> reactions_;
+    cellMeasurements cellMeas_;
+
+    List<diffuseWallSpec> diffuseWalls_;
+    DynamicList<label> specularWallPatchIds_;
+    labelList wallPatchToModelId_;
+    List<inflowSpec> inflows_;
+
+    List<fieldSpec> fieldSpecs_;
+    PtrList<volScalarField> dsmcNFields_;
+    PtrList<volScalarField> rhoNFields_;
+    PtrList<volScalarField> rhoMFields_;
+    PtrList<volScalarField> pFields_;
+    PtrList<volScalarField> TtraFields_;
+    PtrList<volVectorField> UMeanFields_;
+    PtrList<volVectorField> fDFields_;
+    List<List<vectorField>> speciesBoundaryForceDensity_;
+    List<label> fieldAverageSteps_;
+    List<scalarField> rhoNCumulative_;
+    List<scalarField> rhoMCumulative_;
+    List<vectorField> momentumCumulative_;
+    List<scalarField> kineticCumulative_;
+
+    void buildConstProps();
+    void buildCellOccupancy();
+    void readBoundaryModels();
+    void readFieldSpecs();
+    void createFields();
+    void resetBoundaryForceDensity();
+    void collisions();
+    void noTimeCounterCollisions();
+    void insertInflowParcels();
+    void sampleFields();
+    void initialiseSpeciesBoundaryForceDensity();
+    scalar initialSigmaTcRMax() const;
+    bool speciesSelected(const label fieldI, const label typeId) const;
+
+    dsmcCloud(const dsmcCloud&);
+    void operator=(const dsmcCloud&);
+
+public:
+
+    dsmcCloud
+    (
+        Time& t,
+        const word& cloudName,
+        const fvMesh& mesh,
+        bool readFields = true
+    );
+
+    virtual ~dsmcCloud();
+
+    inline const word& cloudName() const;
+    inline const fvMesh& mesh() const;
+    inline const IOdictionary& particleProperties() const;
+    inline const List<word>& typeIdList() const;
+    inline const dsmcCoordinateSystem& coordSystem() const;
+    inline dsmcCoordinateSystem& coordSystem();
+    inline const porousMeasurements& porousMeas() const;
+    inline porousMeasurements& porousMeas();
+    inline scalar nParticle() const;
+    inline scalar nParticles(const label celli = 0) const;
+    inline scalar nParticles(const label patchi, const label facei) const;
+    inline scalar deltaTValue(const label celli = 0) const;
+    inline label nTerminalOutputs() const;
+    inline label randomLabel(const label min, const label max);
+    inline const List<DynamicList<dsmcParcel*>>& cellOccupancy() const;
+    inline volScalarField& sigmaTcRMax();
+    inline scalarField& collisionSelectionRemainder();
+    inline const List<dsmcParcel::constantProperties>& constProps() const;
+    inline const dsmcParcel::constantProperties& constProps(label typeId) const;
+    inline Random& rndGen();
+    inline const BinaryCollisionModel& binaryCollision() const;
+    inline BinaryCollisionModel& binaryCollision();
+    inline const dsmcControllers& controllers() const;
+    inline dsmcControllers& controllers();
+    inline const boundaryMeasurements& boundaryFluxMeasurements() const;
+    inline boundaryMeasurements& boundaryFluxMeasurements();
+    inline const dsmcFieldProperties& fields() const;
+    inline dsmcFieldProperties& fields();
+    inline const dsmcBoundaries& boundaries() const;
+    inline dsmcBoundaries& boundaries();
+    inline const dsmcFaceTracker& tracker() const;
+    inline dsmcFaceTracker& tracker();
+    inline const cellMeasurements& cellPropMeasurements() const;
+    inline cellMeasurements& cellPropMeasurements();
+
+    inline bool reactionsActive() const
+    {
+        return reactions_.valid() && reactions_->nReactions() > 0;
+    }
+
+    inline const dsmcReactions& reactions() const
+    {
+        return reactions_();
+    }
+
+    inline dsmcReactions& reactions()
+    {
+        return reactions_();
+    }
+
+    inline scalar maxwellianMostProbableSpeed
+    (
+        const scalar temperature,
+        const scalar mass
+    ) const;
+
+    vector equipartitionLinearVelocity
+    (
+        const scalar temperature,
+        const scalar mass
+    );
+
+    scalar equipartitionRotationalEnergy
+    (
+        const scalar temperature,
+        const scalar rotationalDof
+    );
+
+    labelList equipartitionVibrationalEnergyLevel
+    (
+        const scalar temperature,
+        const label nVibrationalModes,
+        const label typeId
+    );
+
+    label equipartitionElectronicLevel
+    (
+        const scalar temperature,
+        const labelList& electronicDegeneracyList,
+        const scalarList& electronicEnergyList
+    );
+
+    scalar postCollisionRotationalEnergy
+    (
+        const scalar rotationalDof,
+        const scalar chiB
+    );
+
+    label postCollisionVibrationalEnergyLevel
+    (
+        bool postReaction,
+        const label vibLevel,
+        const label iMax,
+        const scalar thetaV,
+        const scalar thetaD,
+        const scalar refTempZv,
+        const scalar omega,
+        const scalar Zref,
+        const scalar Ec,
+        const scalar fixedZv,
+        const label invZvFormulation,
+        const label cellI
+    );
+
+    label postCollisionElectronicEnergyLevel
+    (
+        const scalar Ec,
+        const label jMax,
+        const scalar omega,
+        const scalarList& EElist,
+        const labelList& gList
+    );
+
+    void handleWallInteraction(dsmcParcel& p, dsmcParcel::trackingData& td);
+    void calculateAndWriteTimeStep(const Time& runTime, const dictionary& dsmcInitialiseDict);
+    void initialiseFromDict(const dictionary& dsmcInitialiseDict);
+
+    void info() const;
+    void loadBalanceCheck();
+    void evolve();
+
+    void addNewParcel
+    (
+        const barycentric& coordinates,
+        const vector& U,
+        const scalar RWF,
+        const scalar ERot,
+        const label ELevel,
+        const label cellI,
+        const label tetFaceI,
+        const label tetPtI,
+        const label typeId,
+        const label newParcel,
+        const label classification,
+        const labelList& vibLevel
+    );
+
+    void addNewParcel
+    (
+        const vector& position,
+        const vector& U,
+        const scalar RWF,
+        const scalar ERot,
+        const label ELevel,
+        const label cellI,
+        const label tetFaceI,
+        const label tetPtI,
+        const label typeId,
+        const label newParcel,
+        const label classification,
+        const labelList& vibLevel
+    );
+
+    void addNewStuckParcel
+    (
+        const vector& position,
+        const vector& U,
+        const scalar RWF,
+        const scalar ERot,
+        const label ELevel,
+        const label cellI,
+        const label tetFaceI,
+        const label tetPtI,
+        const label typeId,
+        const label newParcel,
+        const label classification,
+        const labelList& vibLevel,
+        const scalarField& wallTemperature,
+        const vectorField& wallVectors
+    );
+
+    inline void reBuildCellOccupancy()
+    {
+        buildCellOccupancy();
+    }
+
+    inline void clear();
+};
+
+} // End namespace Foam
+
+#include "dsmcCloudI.H"
+
+#endif
+
+// ************************************************************************* //
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,37 @@
+FORMAT
+type: ensight gold
+
+GEOMETRY
+model:          data/constant/geometry
+measured: 1     data/********/lagrangian/dsmc/positions
+
+VARIABLE
+scalar per element: 1  Cp_N2           data/********/Cp_N2
+scalar per element: 1  Cq_N2           data/********/Cq_N2
+scalar per element: 1  Ma_N2           data/********/Ma_N2
+scalar per element: 1  Tov_N2          data/********/Tov_N2
+scalar per element: 1  Trot_N2         data/********/Trot_N2
+scalar per element: 1  Ttra_N2         data/********/Ttra_N2
+scalar per element: 1  Tvib_N2         data/********/Tvib_N2
+vector per element: 1  U_N2            data/********/U_N2
+scalar per element: 1  dsmcNMean_N2    data/********/dsmcNMean_N2
+scalar per element: 1  dsmcN_N2        data/********/dsmcN_N2
+scalar per element: 1  dsmcSigmaTcRMax data/********/dsmcSigmaTcRMax
+vector per element: 1  fD_N2           data/********/fD_N2
+scalar per element: 1  p_N2            data/********/p_N2
+scalar per element: 1  rhoM_N2         data/********/rhoM_N2
+scalar per element: 1  rhoN_N2         data/********/rhoN_N2
+scalar per element: 1  wallHeatFlux_N2 data/********/wallHeatFlux_N2
+scalar per element: 1  wallShearStress_N2 data/********/wallShearStress_N2
+scalar per measured node: 1    c0ERot          data/********/lagrangian/dsmc/ERot
+vector per measured node: 1    c0U             data/********/lagrangian/dsmc/U
+scalar per measured node: 1    c0radialWeight  data/********/lagrangian/dsmc/radialWeight
+
+TIME
+time set:               1
+number of steps:        1
+filename numbers:
+ 2714        
+time values:
+ 1.80004e-04 
+# end
