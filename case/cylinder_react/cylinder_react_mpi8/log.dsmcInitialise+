@@ -1,0 +1,210 @@
+/*---------------------------------------------------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  2506                                  |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+Build  : 95a5dfacc7-20250714 OPENFOAM=2506 version=v2506
+Arch   : "LSB;label=32;scalar=64"
+Exec   : /home/superxcx/code/DSMC/dsmcFoam++/hyStrath_xcx/platforms/linux64IcxDPInt32Opt/bin/dsmcInitialise+
+Date   : Apr 03 2026
+Time   : 07:47:56
+Host   : SuperXCX-ROG
+PID    : 311228
+I/O    : uncollated
+Case   : /home/superxcx/code/DSMC/dsmcFoam++/hyStrath_xcx/case/cylinder_react/cylinder_react_template
+nProcs : 1
+trapFpe: Floating point exception trapping enabled (FOAM_SIGFPE).
+fileModificationChecking : Monitoring run-time modified files using timeStampMaster (fileModificationSkew 5, maxFileModificationPolls 20)
+allowSystemOperations : Allowing user-supplied system call operations
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+Create time
+
+--> FOAM Warning : 
+    From static Foam::IOstreamOption::compressionType Foam::IOstreamOption::compressionEnum(const word &, const compressionType)
+    in file db/options/IOstreamOption.C at line 189
+    Unknown compression specifier 'uncompressed' using compression off
+Create mesh for time = 0
+
+Initialising dsmc for Time = 0
+
+Selecting the coordinate system model:	dsmcCartesian
+
+Selecting the time-step model:	dsmcConstantTimeStepModel
+
+Constant time-step model:
+- time-step [sec]	6.640048894e-08
+
+Selecting the porous measurement model:	dsmcNoPorousMediumMeasurements
+
+
+Creating dsmcControllers
+
+Creating fields: 
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+Resetting fields at output until time: 1.992014668e-06
+ measurement option: write
+ nSamples: 1, time interval: 6.640048894e-08
+ nAverages: 40, time interval: 2.656019558e-06
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+Resetting fields at output until time: 1.992014668e-06
+ measurement option: write
+ nSamples: 1, time interval: 6.640048894e-08
+ nAverages: 40, time interval: 2.656019558e-06
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+Resetting fields at output until time: 1.992014668e-06
+ measurement option: write
+ nSamples: 1, time interval: 6.640048894e-08
+ nAverages: 40, time interval: 2.656019558e-06
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+Resetting fields at output until time: 1.992014668e-06
+ measurement option: write
+ nSamples: 1, time interval: 6.640048894e-08
+ nAverages: 40, time interval: 2.656019558e-06
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+Resetting fields at output until time: 1.992014668e-06
+ measurement option: write
+ nSamples: 1, time interval: 6.640048894e-08
+ nAverages: 40, time interval: 2.656019558e-06
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+Resetting fields at output until time: 1.992014668e-06
+ measurement option: write
+ nSamples: 1, time interval: 6.640048894e-08
+ nAverages: 40, time interval: 2.656019558e-06
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Creating the boundary models: 
+
+Selecting dsmcPatchBoundaryModel dsmcDeletionPatch
+Selecting dsmcPatchBoundaryModel dsmcDeletionPatch
+Selecting dsmcPatchBoundaryModel dsmcDiffuseWallPatch
+Selecting dsmcGeneralBoundaryModel dsmcFreeStreamInflowPatch
+Selecting BinaryCollisionModel LarsenBorgnakkeVariableHardSphere
+OpenMP enabled for dsmcCloud with 8 thread-local RNG streams using collision strategy 'dynamic', move kernel enabled (dynamic, chunk 64)
+
+Constructing constant properties for
+    N2
+    O2
+    NO
+    N
+    O
+dsmcCloud ctor checkpoint: after buildConstProps
+dsmcCloud ctor checkpoint: after chemReactIO object
+dsmcCloud ctor checkpoint: chemReactDict present
+
+Creating dsmcReactions
+
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationExchangeQK
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationExchangeQK
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationExchangeQK
+Selecting the reaction model dissociationExchangeQK
+Selecting the reaction model dissociationQK
+Number of reactions created: 12
+dsmcCloud ctor checkpoint: after dsmcReactions ctor
+dsmcCloud ctor checkpoint: after reactions initialConfiguration
+dsmcCloud ctor checkpoint: before collisionPartnerSelection::New
+Selecting collisionPartnerSelectionModel noTimeCounter
+dsmcCloud ctor checkpoint: after collisionPartnerSelection::New
+dsmcCloud ctor checkpoint: after collisionPartnerSelection initialConfiguration
+
+Initialising the measurement fields
+
+Initialising dsmcVolFields field
+Initialising dsmcVolFields field
+Initialising dsmcVolFields field
+Initialising dsmcVolFields field
+Initialising dsmcVolFields field
+Initialising dsmcVolFields field
+dsmcCloud ctor checkpoint: after fields.createFields
+dsmcCloud ctor checkpoint: after boundaryMeas.setInitialConfig
+dsmcCloud ctor checkpoint: after boundaries.setInitialConfig
+dsmcCloud ctor checkpoint: after controllers.initialConfig
+dsmcCloud ctor checkpoint: after buildCellOccupancy
+  Species N2: mass = 4.65e-26 kg, numberDensity = 1.541202e+21 m^-3
+  Species O2: mass = 5.312e-26 kg, numberDensity = 4.34698e+20 m^-3
+  Species NO: mass = 4.981e-26 kg, numberDensity = 0 m^-3
+  Species N: mass = 2.325e-26 kg, numberDensity = 0 m^-3
+  Species O: mass = 2.656e-26 kg, numberDensity = 0 m^-3
+
+========== DSMC Time Step Calculation ==========
+Input parameters:
+  Translational temperature: 88.06 K
+  Flow velocity: 2819.64 m/s
+  Total number density: 1.9759e+21 m^-3
+Domain dimensions:
+  x-length: 0.06500014247 m
+  y-length: 0.11 m
+  z-length: 0.001 m
+  Max domain length: 0.11 m
+  Total number of cells: 60000
+Calculated values:
+  Average molecular mass: 4.79564e-26 kg
+  Thermal velocity: 225.1763888 m/s
+  Characteristic speed: 3044.816389 m/s
+  Mean cell volume: 6.611304264e-11 m^3
+  Max cell volume: 1.403543147e-10 m^3
+  Min cell volume: 2.69488912e-11 m^3
+  Max/Min: 5.208166588
+  Characteristic length: 0.0004043545939 m
+Time step adjustment:
+  Original time step: 6.640048894e-08 s
+  New time step: 6.640048894e-08 s before CTC-0.5 modification is 1.328009779e-07
+  Steady state steps (naver): 37
+  Sample steps: 10
+  Total steps: 47
+------------------------------------------------
+For control file parameter replace:
+  deltaT               6.640048894e-08
+  steadyStateTime      2.456818091e-06
+  totalTime            3.12082298e-06
+================================================
+
+
+ClockTime = 20 s
+
+End
+

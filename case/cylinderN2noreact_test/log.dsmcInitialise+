@@ -1,0 +1,60 @@
+/*---------------------------------------------------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  2506                                  |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+Build  : 95a5dfacc7-20250714 OPENFOAM=2506 version=v2506
+Arch   : "LSB;label=32;scalar=64"
+Exec   : dsmcInitialise+
+Date   : Apr 02 2026
+Time   : 14:50:21
+Host   : SuperXCX-ROG
+PID    : 159924
+I/O    : uncollated
+Case   : /home/superxcx/code/DSMC/dsmcFoam++/hyStrath_xcx/case/cylinderN2noreact_test
+nProcs : 1
+trapFpe: Floating point exception trapping enabled (FOAM_SIGFPE).
+fileModificationChecking : Monitoring run-time modified files using timeStampMaster (fileModificationSkew 5, maxFileModificationPolls 20)
+allowSystemOperations : Allowing user-supplied system call operations
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+Create time
+
+--> FOAM Warning : 
+    From static Foam::IOstreamOption::compressionType Foam::IOstreamOption::compressionEnum(const word &, const compressionType)
+    in file db/options/IOstreamOption.C at line 189
+    Unknown compression specifier 'uncompressed' using compression off
+Create mesh for time = 0
+
+Initialising dsmc for Time = 0
+
+Selecting the coordinate system model:	dsmcCartesian
+
+Selecting the time-step model:	dsmcConstantTimeStepModel
+
+Constant time-step model:
+- time-step [sec]	6.632426865e-08
+
+Selecting the porous measurement model:	dsmcNoPorousMediumMeasurements
+
+
+Creating dsmcControllers
+
+[stack trace]
+=============
+#1  Foam::sigSegv::sigHandler(int) in ~/code/OpenFoam/OF-2506/OpenFOAM-v2506/platforms/linux64IcxDPInt32Opt/lib/libOpenFOAM.so
+#2  ? in /lib/x86_64-linux-gnu/libc.so.6
+#3  __intel_avx_rep_memcpy in ~/OpenFOAM/superxcx-v2506/platforms/linux64IcxDPInt32Opt/bin/dsmcInitialise+
+#4  Foam::operator/(Foam::string const&, Foam::string const&) in ~/code/OpenFoam/OF-2506/OpenFOAM-v2506/platforms/linux64IcxDPInt32Opt/lib/libOpenFOAM.so
+#5  Foam::IOobject::path() const in ~/code/OpenFoam/OF-2506/OpenFOAM-v2506/platforms/linux64IcxDPInt32Opt/lib/libOpenFOAM.so
+#6  Foam::baseIOdictionary::baseIOdictionary(Foam::IOobject const&, Foam::dictionary const*) in ~/code/OpenFoam/OF-2506/OpenFOAM-v2506/platforms/linux64IcxDPInt32Opt/lib/libOpenFOAM.so
+#7  Foam::IOdictionary::IOdictionary(Foam::IOobject const&, Foam::dictionary const*) in ~/code/OpenFoam/OF-2506/OpenFOAM-v2506/platforms/linux64IcxDPInt32Opt/lib/libOpenFOAM.so
+#8  Foam::dsmcFieldProperties::dsmcFieldProperties(Foam::Time&, Foam::polyMesh const&, Foam::dsmcCloud&) in ~/code/DSMC/dsmcFoam++/hyStrath_xcx/platforms/linux64IcxDPInt32Opt/lib/libdsmcFoam+.so
+#9  Foam::dsmcCloud::dsmcCloud(Foam::Time&, Foam::word const&, Foam::fvMesh const&, bool) in ~/code/DSMC/dsmcFoam++/hyStrath_xcx/platforms/linux64IcxDPInt32Opt/lib/libdsmcFoam+.so
+#10  ? in ~/OpenFOAM/superxcx-v2506/platforms/linux64IcxDPInt32Opt/bin/dsmcInitialise+
+#11  ? in /lib/x86_64-linux-gnu/libc.so.6
+#12  __libc_start_main in /lib/x86_64-linux-gnu/libc.so.6
+#13  ? in ~/OpenFOAM/superxcx-v2506/platforms/linux64IcxDPInt32Opt/bin/dsmcInitialise+
+=============

@@ -1,0 +1,138 @@
+/*---------------------------------------------------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  2506                                  |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+Build  : 95a5dfacc7-20250714 OPENFOAM=2506 version=v2506
+Arch   : "LSB;label=32;scalar=64"
+Exec   : decomposePar -force
+Date   : Apr 04 2026
+Time   : 01:34:11
+Host   : SuperXCX-ROG
+PID    : 947143
+I/O    : uncollated
+Case   : /home/superxcx/code/DSMC/dsmcFoam++/hyStrath_xcx/case/cylinder_react/scaling_loopprofile_20260404/mpi4
+nProcs : 1
+trapFpe: Floating point exception trapping enabled (FOAM_SIGFPE).
+fileModificationChecking : Monitoring run-time modified files using timeStampMaster (fileModificationSkew 5, maxFileModificationPolls 20)
+allowSystemOperations : Allowing user-supplied system call operations
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+Create time
+
+--> FOAM Warning : 
+    From static Foam::IOstreamOption::compressionType Foam::IOstreamOption::compressionEnum(const word &, const compressionType)
+    in file db/options/IOstreamOption.C at line 189
+    Unknown compression specifier 'uncompressed' using compression off
+
+
+Decomposing mesh
+
+Create mesh
+
+Calculating distribution of cells
+Decomposition method scotch [4] (region region0)
+
+Finished decomposition in 0.14 s
+
+Calculating original mesh data
+
+Distributing cells to processors
+
+Distributing faces to processors
+
+Distributing points to processors
+
+Constructing processor meshes
+--> FOAM Warning : 
+    From static Foam::IOstreamOption::compressionType Foam::IOstreamOption::compressionEnum(const word &, const compressionType)
+    in file db/options/IOstreamOption.C at line 189
+    Unknown compression specifier 'uncompressed' using compression off
+
+Processor 0
+    Number of cells = 14956
+    Number of points = 19350
+    Number of faces shared with processor 1 = 352
+    Number of faces shared with processor 3 = 168
+    Number of processor patches = 2
+    Number of processor faces = 520
+    Number of boundary faces = 7998
+--> FOAM Warning : 
+    From static Foam::IOstreamOption::compressionType Foam::IOstreamOption::compressionEnum(const word &, const compressionType)
+    in file db/options/IOstreamOption.C at line 189
+    Unknown compression specifier 'uncompressed' using compression off
+
+Processor 1
+    Number of cells = 14908
+    Number of points = 19325
+    Number of faces shared with processor 0 = 352
+    Number of faces shared with processor 2 = 208
+    Number of faces shared with processor 3 = 60
+    Number of processor patches = 3
+    Number of processor faces = 620
+    Number of boundary faces = 7930
+--> FOAM Warning : 
+    From static Foam::IOstreamOption::compressionType Foam::IOstreamOption::compressionEnum(const word &, const compressionType)
+    in file db/options/IOstreamOption.C at line 189
+    Unknown compression specifier 'uncompressed' using compression off
+
+Processor 2
+    Number of cells = 15056
+    Number of points = 19465
+    Number of faces shared with processor 1 = 208
+    Number of faces shared with processor 3 = 316
+    Number of processor patches = 2
+    Number of processor faces = 524
+    Number of boundary faces = 8028
+--> FOAM Warning : 
+    From static Foam::IOstreamOption::compressionType Foam::IOstreamOption::compressionEnum(const word &, const compressionType)
+    in file db/options/IOstreamOption.C at line 189
+    Unknown compression specifier 'uncompressed' using compression off
+
+Processor 3
+    Number of cells = 15080
+    Number of points = 19510
+    Number of faces shared with processor 0 = 168
+    Number of faces shared with processor 1 = 60
+    Number of faces shared with processor 2 = 316
+    Number of processor patches = 3
+    Number of processor faces = 544
+    Number of boundary faces = 8044
+
+Number of processor faces = 1104
+Max number of cells = 15080 (0.5333333333% above average 15000)
+Max number of processor patches = 3 (20% above average 2.5)
+Max number of faces between processors = 620 (12.31884058% above average 552)
+
+Time = 0
+Identified lagrangian data set: "dsmc"
+
+Processor 0: field transfer
+--> FOAM Warning : 
+    From static Foam::IOstreamOption::compressionType Foam::IOstreamOption::compressionEnum(const word &, const compressionType)
+    in file db/options/IOstreamOption.C at line 189
+    Unknown compression specifier 'uncompressed' using compression off
+Detected additional non-decomposed files in "/home/superxcx/code/DSMC/dsmcFoam++/hyStrath_xcx/case/cylinder_react/scaling_loopprofile_20260404/mpi4/0/uniform"
+Processor 1: field transfer
+--> FOAM Warning : 
+    From static Foam::IOstreamOption::compressionType Foam::IOstreamOption::compressionEnum(const word &, const compressionType)
+    in file db/options/IOstreamOption.C at line 189
+    Unknown compression specifier 'uncompressed' using compression off
+Detected additional non-decomposed files in "/home/superxcx/code/DSMC/dsmcFoam++/hyStrath_xcx/case/cylinder_react/scaling_loopprofile_20260404/mpi4/0/uniform"
+Processor 2: field transfer
+--> FOAM Warning : 
+    From static Foam::IOstreamOption::compressionType Foam::IOstreamOption::compressionEnum(const word &, const compressionType)
+    in file db/options/IOstreamOption.C at line 189
+    Unknown compression specifier 'uncompressed' using compression off
+Detected additional non-decomposed files in "/home/superxcx/code/DSMC/dsmcFoam++/hyStrath_xcx/case/cylinder_react/scaling_loopprofile_20260404/mpi4/0/uniform"
+Processor 3: field transfer
+--> FOAM Warning : 
+    From static Foam::IOstreamOption::compressionType Foam::IOstreamOption::compressionEnum(const word &, const compressionType)
+    in file db/options/IOstreamOption.C at line 189
+    Unknown compression specifier 'uncompressed' using compression off
+Detected additional non-decomposed files in "/home/superxcx/code/DSMC/dsmcFoam++/hyStrath_xcx/case/cylinder_react/scaling_loopprofile_20260404/mpi4/0/uniform"
+
+End
+

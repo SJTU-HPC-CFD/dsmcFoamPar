@@ -33,6 +33,7 @@ Description
 #include "dsmcCloud.H"
 
 #include <cstdlib>
+#include <chrono>
 
 int main(int argc, char *argv[])
 {
@@ -46,19 +47,22 @@ int main(int argc, char *argv[])
     Info<< "\nStarting time loop\n" << endl;
 
     label infoCounter = 0;
+    const auto loopStart = std::chrono::steady_clock::now();
 
     while (runTime.loop())
     {
         ++infoCounter;
+        const bool emitStepDiagnostics = (infoCounter >= dsmc.nTerminalOutputs());
+        dsmc.setStepDiagnosticOutput(emitStepDiagnostics);
 
-        if (infoCounter >= dsmc.nTerminalOutputs())
+        if (emitStepDiagnostics)
         {
             Info<< "Time = " << runTime.timeName() << nl << endl;
         }
 
         dsmc.evolve();
 
-        if (infoCounter >= dsmc.nTerminalOutputs())
+        if (emitStepDiagnostics)
         {
             dsmc.info();
             infoCounter = 0;
@@ -67,6 +71,18 @@ int main(int argc, char *argv[])
         runTime.write();
         runTime.printExecutionTime(Info);
     }
+
+    const scalar mainLoopWallTime =
+        std::chrono::duration_cast<std::chrono::duration<scalar>>
+        (
+            std::chrono::steady_clock::now() - loopStart
+        ).count();
+
+    Info<< nl
+        << "Main loop profiling summary:" << nl
+        << "    main loop wall time [s]      = "
+        << mainLoopWallTime << nl
+        << endl;
 
     dsmc.reportProfiling();
 

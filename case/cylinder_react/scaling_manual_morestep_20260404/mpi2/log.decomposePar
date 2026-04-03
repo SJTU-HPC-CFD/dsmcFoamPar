@@ -1,0 +1,96 @@
+/*---------------------------------------------------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  2506                                  |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+Build  : 95a5dfacc7-20250714 OPENFOAM=2506 version=v2506
+Arch   : "LSB;label=32;scalar=64"
+Exec   : decomposePar -force
+Date   : Apr 04 2026
+Time   : 01:32:19
+Host   : SuperXCX-ROG
+PID    : 946945
+I/O    : uncollated
+Case   : /home/superxcx/code/DSMC/dsmcFoam++/hyStrath_xcx/case/cylinder_react/scaling_loopprofile_20260404/mpi2
+nProcs : 1
+trapFpe: Floating point exception trapping enabled (FOAM_SIGFPE).
+fileModificationChecking : Monitoring run-time modified files using timeStampMaster (fileModificationSkew 5, maxFileModificationPolls 20)
+allowSystemOperations : Allowing user-supplied system call operations
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+Create time
+
+--> FOAM Warning : 
+    From static Foam::IOstreamOption::compressionType Foam::IOstreamOption::compressionEnum(const word &, const compressionType)
+    in file db/options/IOstreamOption.C at line 189
+    Unknown compression specifier 'uncompressed' using compression off
+
+
+Decomposing mesh
+
+Create mesh
+
+Calculating distribution of cells
+Decomposition method scotch [2] (region region0)
+
+Finished decomposition in 0.08 s
+
+Calculating original mesh data
+
+Distributing cells to processors
+
+Distributing faces to processors
+
+Distributing points to processors
+
+Constructing processor meshes
+--> FOAM Warning : 
+    From static Foam::IOstreamOption::compressionType Foam::IOstreamOption::compressionEnum(const word &, const compressionType)
+    in file db/options/IOstreamOption.C at line 189
+    Unknown compression specifier 'uncompressed' using compression off
+
+Processor 0
+    Number of cells = 30000
+    Number of points = 38425
+    Number of faces shared with processor 1 = 472
+    Number of processor patches = 1
+    Number of processor faces = 472
+    Number of boundary faces = 16000
+--> FOAM Warning : 
+    From static Foam::IOstreamOption::compressionType Foam::IOstreamOption::compressionEnum(const word &, const compressionType)
+    in file db/options/IOstreamOption.C at line 189
+    Unknown compression specifier 'uncompressed' using compression off
+
+Processor 1
+    Number of cells = 30000
+    Number of points = 38425
+    Number of faces shared with processor 0 = 472
+    Number of processor patches = 1
+    Number of processor faces = 472
+    Number of boundary faces = 16000
+
+Number of processor faces = 472
+Max number of cells = 30000 (0% above average 30000)
+Max number of processor patches = 1 (0% above average 1)
+Max number of faces between processors = 472 (0% above average 472)
+
+Time = 0
+Identified lagrangian data set: "dsmc"
+
+Processor 0: field transfer
+--> FOAM Warning : 
+    From static Foam::IOstreamOption::compressionType Foam::IOstreamOption::compressionEnum(const word &, const compressionType)
+    in file db/options/IOstreamOption.C at line 189
+    Unknown compression specifier 'uncompressed' using compression off
+Detected additional non-decomposed files in "/home/superxcx/code/DSMC/dsmcFoam++/hyStrath_xcx/case/cylinder_react/scaling_loopprofile_20260404/mpi2/0/uniform"
+Processor 1: field transfer
+--> FOAM Warning : 
+    From static Foam::IOstreamOption::compressionType Foam::IOstreamOption::compressionEnum(const word &, const compressionType)
+    in file db/options/IOstreamOption.C at line 189
+    Unknown compression specifier 'uncompressed' using compression off
+Detected additional non-decomposed files in "/home/superxcx/code/DSMC/dsmcFoam++/hyStrath_xcx/case/cylinder_react/scaling_loopprofile_20260404/mpi2/0/uniform"
+
+End
+

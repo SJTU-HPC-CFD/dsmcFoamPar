@@ -169,6 +169,22 @@ inline auto clearMoveOrderedParcels(TrackCloudType& cloud, int)
 template<class TrackCloudType>
 inline void clearMoveOrderedParcels(TrackCloudType&, long)
 {}
+
+template<class TrackCloudType>
+inline auto recordMoveThreadCounts
+(
+    TrackCloudType& cloud,
+    const labelList& counts,
+    int
+)
+-> decltype(cloud.recordMoveThreadCounts(counts), void())
+{
+    cloud.recordMoveThreadCounts(counts);
+}
+
+template<class TrackCloudType>
+inline void recordMoveThreadCounts(TrackCloudType&, const labelList&, long)
+{}
 }
 }
 
@@ -430,6 +446,7 @@ void Foam::Cloud<ParticleType>::move
 
             List<label> keepParticleFlags(particles.size(), 1);
             List<label> switchProcessorFlags(particles.size(), 0);
+            labelList processedParticleCounts(moveThreads, 0);
 
             #ifdef _OPENMP
             omp_sched_t sched = omp_sched_static;
@@ -456,6 +473,8 @@ void Foam::Cloud<ParticleType>::move
                     0;
                 #endif
 
+                label localProcessedCount = 0;
+
                 if (useParticlePartition)
                 {
                     for (label i = threadOffsets[threadI]; i < threadOffsets[threadI + 1]; ++i)
@@ -467,6 +486,7 @@ void Foam::Cloud<ParticleType>::move
 
                         keepParticleFlags[i] = p.move(cloud, localTd, trackTime) ? 1 : 0;
                         switchProcessorFlags[i] = localTd.switchProcessor ? 1 : 0;
+                        ++localProcessedCount;
                     }
                 }
                 else
@@ -481,9 +501,14 @@ void Foam::Cloud<ParticleType>::move
 
                         keepParticleFlags[i] = p.move(cloud, localTd, trackTime) ? 1 : 0;
                         switchProcessorFlags[i] = localTd.switchProcessor ? 1 : 0;
+                        ++localProcessedCount;
                     }
                 }
+
+                processedParticleCounts[threadI] = localProcessedCount;
             }
+
+            cloudOpenMP::recordMoveThreadCounts(cloud, processedParticleCounts, 0);
 
             DynamicList<ParticleType*> survivingParticles(particles.size());
             labelList survivingThreadCounts(moveThreads, 0);
@@ -577,10 +602,12 @@ void Foam::Cloud<ParticleType>::move
         }
         else
         {
+            label processedParticleCount = 0;
             for (ParticleType& p : *this)
             {
                 // Move the particle
                 bool keepParticle = p.move(cloud, td, trackTime);
+                ++processedParticleCount;
 
                 // If the particle is to be kept
                 // (i.e. it hasn't passed through an inlet or outlet)
@@ -635,6 +662,9 @@ void Foam::Cloud<ParticleType>::move
                     deleteParticle(p);
                 }
             }
+
+            labelList processedCounts(1, processedParticleCount);
+            cloudOpenMP::recordMoveThreadCounts(cloud, processedCounts, 0);
         }
 
         if (!Pstream::parRun())

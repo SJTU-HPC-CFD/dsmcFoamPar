@@ -40,6 +40,7 @@ SourceFiles
 #include "polyMesh.H"
 #include "volFields.H"
 #include "dsmcCloud.H"
+#include <chrono>
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -197,6 +198,12 @@ protected:
         bool writeRotationalTemperature_;
         bool writeVibrationalTemperature_;
         bool writeElectronicTemperature_;
+        scalar profileSampleAccumWallTime_;
+        scalar profileCellReduceWallTime_;
+        scalar profileBoundaryAccumWallTime_;
+        scalar profileOutputTimeWallTime_;
+        label profileCalls_;
+        bool finalProfilePrinted_;
 
     // Protected Member Functions
 
@@ -267,4 +274,3 @@ public:
 #endif
 
 // ************************************************************************* //
-

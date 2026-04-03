@@ -257,26 +257,6 @@ void Foam::dsmcCloud::buildCellOccupancy()
             buildOccupancyAssembleWallTime_ += std::chrono::duration<scalar>(t3 - t2).count();
             ++buildOccupancyProfileCalls_;
 
-            if (mesh_.time().writeTime() && Pstream::master())
-            {
-                const scalar totalProfiled =
-                    buildOccupancyExtractWallTime_
-                  + buildOccupancyCountWallTime_
-                  + buildOccupancyAssembleWallTime_;
-
-                Info<< "BuildCellOccupancy profiling summary:" << nl
-                    << "    buildCellOccupancy calls      = " << buildOccupancyProfileCalls_ << nl
-                    << "    extract parcels [s]           = " << buildOccupancyExtractWallTime_ << nl
-                    << "    count/reduce [s]              = " << buildOccupancyCountWallTime_ << nl
-                    << "    allocate/fill [s]             = " << buildOccupancyAssembleWallTime_ << nl
-                    << "    total profiled [s]            = " << totalProfiled << nl
-                    << endl;
-
-                buildOccupancyExtractWallTime_ = 0.0;
-                buildOccupancyCountWallTime_ = 0.0;
-                buildOccupancyAssembleWallTime_ = 0.0;
-                buildOccupancyProfileCalls_ = 0;
-            }
         }
 
         return;
@@ -300,21 +280,6 @@ void Foam::dsmcCloud::buildCellOccupancy()
         buildOccupancyExtractWallTime_ += std::chrono::duration<scalar>(t1 - t0).count();
         ++buildOccupancyProfileCalls_;
 
-        if (mesh_.time().writeTime() && Pstream::master())
-        {
-            Info<< "BuildCellOccupancy profiling summary:" << nl
-                << "    buildCellOccupancy calls      = " << buildOccupancyProfileCalls_ << nl
-                << "    extract parcels [s]           = " << buildOccupancyExtractWallTime_ << nl
-                << "    count/reduce [s]              = " << buildOccupancyCountWallTime_ << nl
-                << "    allocate/fill [s]             = " << buildOccupancyAssembleWallTime_ << nl
-                << "    total profiled [s]            = " << buildOccupancyExtractWallTime_ << nl
-                << endl;
-
-            buildOccupancyExtractWallTime_ = 0.0;
-            buildOccupancyCountWallTime_ = 0.0;
-            buildOccupancyAssembleWallTime_ = 0.0;
-            buildOccupancyProfileCalls_ = 0;
-        }
     }
 }
 
@@ -1110,26 +1075,6 @@ void Foam::dsmcCloud::collisions()
         collisionSelectionWallTime_ += std::chrono::duration<scalar>(t3 - t2).count();
         ++collisionProfileCalls_;
 
-        if (mesh_.time().writeTime() && Pstream::master())
-        {
-            const scalar totalProfiled =
-                collisionPrecomputeWallTime_
-              + collisionPartitionWallTime_
-              + collisionSelectionWallTime_;
-
-            Info<< "Collision profiling summary:" << nl
-                << "    collision calls               = " << collisionProfileCalls_ << nl
-                << "    precompute candidates [s]     = " << collisionPrecomputeWallTime_ << nl
-                << "    rebuild partition [s]         = " << collisionPartitionWallTime_ << nl
-                << "    selection/collide [s]         = " << collisionSelectionWallTime_ << nl
-                << "    total profiled [s]            = " << totalProfiled << nl
-                << endl;
-
-            collisionPrecomputeWallTime_ = 0.0;
-            collisionPartitionWallTime_ = 0.0;
-            collisionSelectionWallTime_ = 0.0;
-            collisionProfileCalls_ = 0;
-        }
     }
 }
 
@@ -1745,6 +1690,7 @@ Foam::dsmcCloud::dsmcCloud
     openmpMoveChunk_(64),
     collisionProfileEnabled_(false),
     evolveProfileEnabled_(false),
+    emitStepDiagnostics_(false),
     ompRndGens_(),
     particleLoadStart_(),
     particleLoadEnd_(),
@@ -1768,6 +1714,9 @@ Foam::dsmcCloud::dsmcCloud
     evolveReactionWallTime_(0.0),
     evolvePostWallTime_(0.0),
     evolveProfileCalls_(0),
+    moveThreadParticleCounts_(),
+    collisionThreadCandidateCounts_(),
+    collisionThreadAcceptedCounts_(),
     porousMeasurements_(porousMeasurements::New(const_cast<Time&>(mesh_.time()), mesh_, *this)),
     controllers_(const_cast<Time&>(mesh_.time()), mesh_, *this),
     boundaryMeas_(mesh, *this, true),
@@ -2339,34 +2288,76 @@ void Foam::dsmcCloud::evolve()
         evolvePostWallTime_ += std::chrono::duration<scalar>(t6 - t5).count();
         ++evolveProfileCalls_;
 
-        if (mesh_.time().writeTime() && Pstream::master())
+        const label localMoveParcels = sum(moveThreadParticleCounts_);
+        const label localCollisionCandidates = sum(collisionThreadCandidateCounts_);
+        const label localAcceptedCollisions = sum(collisionThreadAcceptedCounts_);
+
+        if (emitStepDiagnostics_ && Pstream::parRun())
         {
-            const scalar totalProfiled =
-                evolveMoveWallTime_
-              + evolveBuildWallTime_
-              + evolveCoordWallTime_
-              + evolveCollisionWallTime_
-              + evolveReactionWallTime_
-              + evolvePostWallTime_;
-
-            Info<< "Evolve profiling summary:" << nl
-                << "    evolve calls                  = " << evolveProfileCalls_ << nl
-                << "    move only [s]                 = " << evolveMoveWallTime_ << nl
-                << "    buildCellOccupancy [s]        = " << evolveBuildWallTime_ << nl
-                << "    coordSystem [s]               = " << evolveCoordWallTime_ << nl
-                << "    collision phase [s]           = " << evolveCollisionWallTime_ << nl
-                << "    reaction/output [s]           = " << evolveReactionWallTime_ << nl
-                << "    post fields/output [s]        = " << evolvePostWallTime_ << nl
-                << "    total profiled [s]            = " << totalProfiled << nl
+            Pout<< "Load stats rank " << Pstream::myProcNo() << ":" << nl
+                << "    move particles processed      = " << localMoveParcels << nl
+                << "    collision candidates          = " << localCollisionCandidates << nl
+                << "    accepted collisions           = " << localAcceptedCollisions << nl
                 << endl;
+        }
 
-            evolveMoveWallTime_ = 0.0;
-            evolveBuildWallTime_ = 0.0;
-            evolveCoordWallTime_ = 0.0;
-            evolveCollisionWallTime_ = 0.0;
-            evolveReactionWallTime_ = 0.0;
-            evolvePostWallTime_ = 0.0;
-            evolveProfileCalls_ = 0;
+        if (emitStepDiagnostics_)
+        {
+            scalar moveSum = localMoveParcels;
+            scalar moveMax = localMoveParcels;
+            scalar moveMin = localMoveParcels;
+            scalar candSum = localCollisionCandidates;
+            scalar candMax = localCollisionCandidates;
+            scalar candMin = localCollisionCandidates;
+            scalar collSum = localAcceptedCollisions;
+            scalar collMax = localAcceptedCollisions;
+            scalar collMin = localAcceptedCollisions;
+
+            if (Pstream::parRun())
+            {
+                reduce(moveSum, sumOp<scalar>());
+                reduce(moveMax, maxOp<scalar>());
+                reduce(moveMin, minOp<scalar>());
+                reduce(candSum, sumOp<scalar>());
+                reduce(candMax, maxOp<scalar>());
+                reduce(candMin, minOp<scalar>());
+                reduce(collSum, sumOp<scalar>());
+                reduce(collMax, maxOp<scalar>());
+                reduce(collMin, minOp<scalar>());
+            }
+
+            if (Pstream::master())
+            {
+                const scalar nWorkers =
+                    Pstream::parRun() ? scalar(Pstream::nProcs()) : scalar(max(label(1), moveThreadParticleCounts_.size()));
+                const scalar moveAvg = moveSum/max(nWorkers, scalar(1));
+                const scalar candAvg = candSum/max(nWorkers, scalar(1));
+                const scalar collAvg = collSum/max(nWorkers, scalar(1));
+
+                Info<< "Load balance summary:" << nl
+                    << "    move particles avg/max/min    = "
+                    << moveAvg << " / " << moveMax << " / " << moveMin << nl
+                    << "    move imbalance max/avg        = "
+                    << (moveAvg > SMALL ? moveMax/moveAvg : 0.0) << nl
+                    << "    collision cand avg/max/min    = "
+                    << candAvg << " / " << candMax << " / " << candMin << nl
+                    << "    collision cand imbalance      = "
+                    << (candAvg > SMALL ? candMax/candAvg : 0.0) << nl
+                    << "    accepted coll avg/max/min     = "
+                    << collAvg << " / " << collMax << " / " << collMin << nl
+                    << "    accepted coll imbalance       = "
+                    << (collAvg > SMALL ? collMax/collAvg : 0.0) << nl;
+
+                if (!Pstream::parRun() && moveThreadParticleCounts_.size())
+                {
+                    Info<< "    thread move particles         = " << moveThreadParticleCounts_ << nl
+                        << "    thread collision candidates   = " << collisionThreadCandidateCounts_ << nl
+                        << "    thread accepted collisions    = " << collisionThreadAcceptedCounts_ << nl;
+                }
+
+                Info<< endl;
+            }
+
         }
     }
 }
@@ -2425,14 +2416,59 @@ void Foam::dsmcCloud::info() const
 }
 
 
-void Foam::dsmcCloud::reportProfiling() const
+void Foam::dsmcCloud::recordMoveThreadCounts(const labelList& counts)
 {
-    if (!Pstream::master())
+    if (moveThreadParticleCounts_.size() != counts.size())
     {
-        return;
+        moveThreadParticleCounts_.setSize(counts.size(), 0);
     }
 
-    if (buildOccupancyProfileCalls_ > 0)
+    forAll(counts, i)
+    {
+        moveThreadParticleCounts_[i] += counts[i];
+    }
+}
+
+
+void Foam::dsmcCloud::recordCollisionThreadCounts
+(
+    const labelList& candidateCounts,
+    const labelList& acceptedCounts
+)
+{
+    if (collisionThreadCandidateCounts_.size() != candidateCounts.size())
+    {
+        collisionThreadCandidateCounts_.setSize(candidateCounts.size(), 0);
+    }
+
+    if (collisionThreadAcceptedCounts_.size() != acceptedCounts.size())
+    {
+        collisionThreadAcceptedCounts_.setSize(acceptedCounts.size(), 0);
+    }
+
+    forAll(candidateCounts, i)
+    {
+        collisionThreadCandidateCounts_[i] += candidateCounts[i];
+    }
+
+    forAll(acceptedCounts, i)
+    {
+        collisionThreadAcceptedCounts_[i] += acceptedCounts[i];
+    }
+}
+
+
+void Foam::dsmcCloud::resetLoadStats()
+{
+    moveThreadParticleCounts_.clear();
+    collisionThreadCandidateCounts_.clear();
+    collisionThreadAcceptedCounts_.clear();
+}
+
+
+void Foam::dsmcCloud::reportProfiling() const
+{
+    if (buildOccupancyProfileCalls_ > 0 && Pstream::master())
     {
         const scalar totalProfiled =
             buildOccupancyExtractWallTime_
@@ -2448,7 +2484,7 @@ void Foam::dsmcCloud::reportProfiling() const
             << endl;
     }
 
-    if (collisionProfileCalls_ > 0)
+    if (collisionProfileCalls_ > 0 && Pstream::master())
     {
         const scalar totalProfiled =
             collisionPrecomputeWallTime_
@@ -2464,7 +2500,7 @@ void Foam::dsmcCloud::reportProfiling() const
             << endl;
     }
 
-    if (evolveProfileCalls_ > 0)
+    if (evolveProfileCalls_ > 0 && Pstream::master())
     {
         const scalar totalProfiled =
             evolveMoveWallTime_
@@ -2484,6 +2520,88 @@ void Foam::dsmcCloud::reportProfiling() const
             << "    post fields/output [s]        = " << evolvePostWallTime_ << nl
             << "    total profiled [s]            = " << totalProfiled << nl
             << endl;
+    }
+
+    const label localMoveParcels = sum(moveThreadParticleCounts_);
+    const label localCollisionCandidates = sum(collisionThreadCandidateCounts_);
+    const label localAcceptedCollisions = sum(collisionThreadAcceptedCounts_);
+
+    if (Pstream::parRun() && (localMoveParcels || localCollisionCandidates || localAcceptedCollisions))
+    {
+        Pout<< "Load stats rank " << Pstream::myProcNo() << ":" << nl
+            << "    move particles processed      = " << localMoveParcels << nl
+            << "    collision candidates          = " << localCollisionCandidates << nl
+            << "    accepted collisions           = " << localAcceptedCollisions << nl
+            << endl;
+    }
+
+    if (localMoveParcels || localCollisionCandidates || localAcceptedCollisions)
+    {
+        scalar moveSum = localMoveParcels;
+        scalar moveMax = localMoveParcels;
+        scalar moveMin = localMoveParcels;
+        scalar candSum = localCollisionCandidates;
+        scalar candMax = localCollisionCandidates;
+        scalar candMin = localCollisionCandidates;
+        scalar collSum = localAcceptedCollisions;
+        scalar collMax = localAcceptedCollisions;
+        scalar collMin = localAcceptedCollisions;
+
+        if (Pstream::parRun())
+        {
+            reduce(moveSum, sumOp<scalar>());
+            reduce(moveMax, maxOp<scalar>());
+            reduce(moveMin, minOp<scalar>());
+            reduce(candSum, sumOp<scalar>());
+            reduce(candMax, maxOp<scalar>());
+            reduce(candMin, minOp<scalar>());
+            reduce(collSum, sumOp<scalar>());
+            reduce(collMax, maxOp<scalar>());
+            reduce(collMin, minOp<scalar>());
+        }
+        else if (moveThreadParticleCounts_.size())
+        {
+            moveMax = scalar(max(moveThreadParticleCounts_));
+            moveMin = scalar(min(moveThreadParticleCounts_));
+            candMax = scalar(max(collisionThreadCandidateCounts_));
+            candMin = scalar(min(collisionThreadCandidateCounts_));
+            collMax = scalar(max(collisionThreadAcceptedCounts_));
+            collMin = scalar(min(collisionThreadAcceptedCounts_));
+        }
+
+        if (Pstream::master())
+        {
+            const scalar nWorkers =
+                Pstream::parRun() ? scalar(Pstream::nProcs()) : scalar(max(label(1), moveThreadParticleCounts_.size()));
+            const scalar moveAvg = moveSum/max(nWorkers, scalar(1));
+            const scalar candAvg = candSum/max(nWorkers, scalar(1));
+            const scalar collAvg = collSum/max(nWorkers, scalar(1));
+
+            Info<< "Load balance summary:" << nl
+                << "    move particles avg/max/min    = "
+                << moveAvg << " / " << moveMax << " / " << moveMin << nl
+                << "    move imbalance max/avg        = "
+                << (moveAvg > SMALL ? moveMax/moveAvg : 0.0) << nl
+                << "    collision cand avg/max/min    = "
+                << candAvg << " / " << candMax << " / " << candMin << nl
+                << "    collision cand imbalance      = "
+                << (candAvg > SMALL ? candMax/candAvg : 0.0) << nl
+                << "    accepted coll avg/max/min     = "
+                << collAvg << " / " << collMax << " / " << collMin << nl
+                << "    accepted coll imbalance       = "
+                << (collAvg > SMALL ? collMax/collAvg : 0.0) << nl;
+
+            if (!Pstream::parRun() && moveThreadParticleCounts_.size())
+            {
+                Info<< "    thread move particles         = " << moveThreadParticleCounts_ << nl
+                    << "    thread collision candidates   = " << collisionThreadCandidateCounts_ << nl
+                    << "    thread accepted collisions    = " << collisionThreadAcceptedCounts_ << nl;
+            }
+
+            Info<< endl;
+        }
+
+        const_cast<dsmcCloud&>(*this).resetLoadStats();
     }
 }
 

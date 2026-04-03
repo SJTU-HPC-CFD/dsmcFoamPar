@@ -1,0 +1,3102 @@
+/*---------------------------------------------------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  2506                                  |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+Build  : 95a5dfacc7-20250714 OPENFOAM=2506 version=v2506
+Arch   : "LSB;label=32;scalar=64"
+Exec   : /home/superxcx/code/DSMC/dsmcFoam++/hyStrath_xcx/platforms/linux64IcxDPInt32Opt/bin/dsmcFoam+
+Date   : Apr 04 2026
+Time   : 03:58:29
+Host   : SuperXCX-ROG
+PID    : 47429
+I/O    : uncollated
+Case   : /home/superxcx/code/DSMC/dsmcFoam++/hyStrath_xcx/case/cylinder_react/scaling_manual_morestep_20260404/omp8
+nProcs : 1
+trapFpe: Floating point exception trapping enabled (FOAM_SIGFPE).
+fileModificationChecking : Monitoring run-time modified files using timeStampMaster (fileModificationSkew 5, maxFileModificationPolls 20)
+allowSystemOperations : Allowing user-supplied system call operations
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+Create time
+
+--> FOAM Warning : 
+    From static Foam::IOstreamOption::compressionType Foam::IOstreamOption::compressionEnum(const word &, const compressionType)
+    in file db/options/IOstreamOption.C at line 189
+    Unknown compression specifier 'uncompressed' using compression off
+Create mesh for time = 0
+
+
+Constructing dsmcCloud
+Selecting the coordinate system model:	dsmcCartesian
+
+Selecting the time-step model:	dsmcConstantTimeStepModel
+
+Constant time-step model:
+- time-step [sec]	6.640048894e-08
+
+Selecting the porous measurement model:	dsmcNoPorousMediumMeasurements
+
+
+Creating dsmcControllers
+
+Creating fields: 
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+Resetting fields at output until time: 2.456818091e-06
+ measurement option: write
+ nSamples: 1, time interval: 6.640048894e-08
+ nAverages: 500, time interval: 3.320024447e-05
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+Resetting fields at output until time: 2.456818091e-06
+ measurement option: write
+ nSamples: 1, time interval: 6.640048894e-08
+ nAverages: 500, time interval: 3.320024447e-05
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+Resetting fields at output until time: 2.456818091e-06
+ measurement option: write
+ nSamples: 1, time interval: 6.640048894e-08
+ nAverages: 500, time interval: 3.320024447e-05
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+Resetting fields at output until time: 2.456818091e-06
+ measurement option: write
+ nSamples: 1, time interval: 6.640048894e-08
+ nAverages: 500, time interval: 3.320024447e-05
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+Resetting fields at output until time: 2.456818091e-06
+ measurement option: write
+ nSamples: 1, time interval: 6.640048894e-08
+ nAverages: 500, time interval: 3.320024447e-05
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+Resetting fields at output until time: 2.456818091e-06
+ measurement option: write
+ nSamples: 1, time interval: 6.640048894e-08
+ nAverages: 500, time interval: 3.320024447e-05
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Creating the boundary models: 
+
+Selecting dsmcPatchBoundaryModel dsmcDeletionPatch
+Selecting dsmcPatchBoundaryModel dsmcDeletionPatch
+Selecting dsmcPatchBoundaryModel dsmcDiffuseWallPatch
+Selecting dsmcGeneralBoundaryModel dsmcFreeStreamInflowPatch
+Selecting BinaryCollisionModel LarsenBorgnakkeVariableHardSphere
+OpenMP enabled for dsmcCloud with 8 thread-local RNG streams using collision strategy 'dynamic', move kernel enabled (dynamic, chunk 64)
+
+Constructing constant properties for
+    N2
+    O2
+    NO
+    N
+    O
+
+Creating dsmcReactions
+
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationExchangeQK
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationExchangeQK
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationExchangeQK
+Selecting the reaction model dissociationExchangeQK
+Selecting the reaction model dissociationQK
+Number of reactions created: 12
+Selecting collisionPartnerSelectionModel noTimeCounter
+
+Initialising the measurement fields
+
+Initialising dsmcVolFields field
+Initialising dsmcVolFields field
+Initialising dsmcVolFields field
+Initialising dsmcVolFields field
+Initialising dsmcVolFields field
+Initialising dsmcVolFields field
+
+Starting time loop
+
+ExecutionTime = 12.7 s  ClockTime = 8 s
+
+ExecutionTime = 16.05 s  ClockTime = 8 s
+
+ExecutionTime = 19.37 s  ClockTime = 9 s
+
+ExecutionTime = 22.46 s  ClockTime = 9 s
+
+ExecutionTime = 25.56 s  ClockTime = 9 s
+
+ExecutionTime = 28.79 s  ClockTime = 10 s
+
+ExecutionTime = 32.13 s  ClockTime = 10 s
+
+ExecutionTime = 35.55 s  ClockTime = 11 s
+
+ExecutionTime = 38.87 s  ClockTime = 11 s
+
+Time = 6.640048894e-07
+
+    Collisions                      = 27651
+
+Load balance summary:
+    move particles avg/max/min    = 1646689.5 / 13173516 / 13173516
+    move imbalance max/avg        = 8
+    collision cand avg/max/min    = 112330.75 / 898646 / 898646
+    collision cand imbalance      = 8
+    accepted coll avg/max/min     = 30610.125 / 244881 / 244881
+    accepted coll imbalance       = 8
+    thread move particles         = 8(1646825 1646874 1646459 1646895 1646503 1646805 1646571 1646584)
+    thread collision candidates   = 8(116928 108722 109562 108298 113659 112324 117537 111616)
+    thread accepted collisions    = 8(33396 27704 31839 27951 32488 29016 33589 28898)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1330365
+    Number of molecules             = 7.98219e+15
+    Mass in system                  = 3.828119002e-10
+    Average linear kinetic energy   = 1.893606962e-19
+    Average rotational energy       = 1.340083258e-21
+    Average vibrational energy      = 2.15753556e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.122761351e-19
+ExecutionTime = 42.48 s  ClockTime = 12 s
+
+ExecutionTime = 45.82 s  ClockTime = 12 s
+
+ExecutionTime = 49.53 s  ClockTime = 13 s
+
+ExecutionTime = 53.02 s  ClockTime = 13 s
+
+ExecutionTime = 56.53 s  ClockTime = 14 s
+
+ExecutionTime = 60.14 s  ClockTime = 14 s
+
+ExecutionTime = 63.77 s  ClockTime = 15 s
+
+ExecutionTime = 67.57 s  ClockTime = 15 s
+
+ExecutionTime = 71.35 s  ClockTime = 16 s
+
+ExecutionTime = 75.03 s  ClockTime = 16 s
+
+Time = 1.328009779e-06
+
+    Collisions                      = 36928
+
+Load balance summary:
+    move particles avg/max/min    = 3322972.625 / 26583781 / 26583781
+    move imbalance max/avg        = 8
+    collision cand avg/max/min    = 245018.125 / 1960145 / 1960145
+    collision cand imbalance      = 8
+    accepted coll avg/max/min     = 71377.5 / 571020 / 571020
+    accepted coll imbalance       = 8
+    thread move particles         = 8(3323225 3323488 3322409 3323946 3322006 3323774 3322169 3322764)
+    thread collision candidates   = 8(258534 238586 247707 234164 254987 233332 258455 234380)
+    thread accepted collisions    = 8(82954 61214 80557 60176 81756 60305 83552 60506)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1354057
+    Number of molecules             = 8.124342e+15
+    Mass in system                  = 3.89629108e-10
+    Average linear kinetic energy   = 1.866355935e-19
+    Average rotational energy       = 1.574845541e-21
+    Average vibrational energy      = 2.157544624e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.097858853e-19
+ExecutionTime = 79.13 s  ClockTime = 17 s
+
+ExecutionTime = 83.06 s  ClockTime = 17 s
+
+ExecutionTime = 87 s  ClockTime = 18 s
+
+ExecutionTime = 90.88 s  ClockTime = 18 s
+
+ExecutionTime = 94.84 s  ClockTime = 19 s
+
+ExecutionTime = 98.77 s  ClockTime = 19 s
+
+ExecutionTime = 102.7 s  ClockTime = 20 s
+
+ExecutionTime = 106.86 s  ClockTime = 21 s
+
+ExecutionTime = 110.92 s  ClockTime = 21 s
+
+ExecutionTime = 114.87 s  ClockTime = 22 s
+
+Time = 1.992014668e-06
+
+    Collisions                      = 46966
+
+Load balance summary:
+    move particles avg/max/min    = 5028811.75 / 40230494 / 40230494
+    move imbalance max/avg        = 8
+    collision cand avg/max/min    = 401186.75 / 3209494 / 3209494
+    collision cand imbalance      = 8
+    accepted coll avg/max/min     = 124384.25 / 995074 / 995074
+    accepted coll imbalance       = 8
+    thread move particles         = 8(5029214 5029615 5027961 5030520 5027075 5030450 5027187 5028472)
+    thread collision candidates   = 8(428455 376105 419286 373425 430317 374372 428306 379228)
+    thread accepted collisions    = 8(152245 96528 150217 95819 152682 96597 153410 97576)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1377598
+    Number of molecules             = 8.265588e+15
+    Mass in system                  = 3.964048223e-10
+    Average linear kinetic energy   = 1.84179129e-19
+    Average rotational energy       = 1.899040119e-21
+    Average vibrational energy      = 2.157537107e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.076535402e-19
+ExecutionTime = 119.23 s  ClockTime = 22 s
+
+ExecutionTime = 123.41 s  ClockTime = 23 s
+
+ExecutionTime = 127.6 s  ClockTime = 23 s
+
+ExecutionTime = 131.76 s  ClockTime = 24 s
+
+ExecutionTime = 135.95 s  ClockTime = 25 s
+
+ExecutionTime = 140.24 s  ClockTime = 25 s
+
+ExecutionTime = 144.4 s  ClockTime = 26 s
+
+
+Start sample at time 2.456818091e-06 and step 37
+
+
+Start sample at time 2.456818091e-06 and step 37
+
+
+Start sample at time 2.456818091e-06 and step 37
+
+
+Start sample at time 2.456818091e-06 and step 37
+
+
+Start sample at time 2.456818091e-06 and step 37
+
+
+Start sample at time 2.456818091e-06 and step 37
+
+ExecutionTime = 148.77 s  ClockTime = 26 s
+
+ExecutionTime = 153.03 s  ClockTime = 27 s
+
+ExecutionTime = 157.53 s  ClockTime = 28 s
+
+Time = 2.656019558e-06
+
+    Collisions                      = 57147
+
+Load balance summary:
+    move particles avg/max/min    = 6764204.625 / 54113637 / 54113637
+    move imbalance max/avg        = 8
+    collision cand avg/max/min    = 581566.5 / 4652532 / 4652532
+    collision cand imbalance      = 8
+    accepted coll avg/max/min     = 190000.375 / 1520003 / 1520003
+    accepted coll imbalance       = 8
+    thread move particles         = 8(6764711 6765307 6763011 6766316 6762114 6766619 6761822 6763737)
+    thread collision candidates   = 8(629244 529544 617189 526520 642965 534607 629525 542938)
+    thread accepted collisions    = 8(242086 135990 239472 134990 246433 137586 244108 139338)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1401306
+    Number of molecules             = 8.407836e+15
+    Mass in system                  = 4.03224945e-10
+    Average linear kinetic energy   = 1.819796818e-19
+    Average rotational energy       = 2.293206353e-21
+    Average vibrational energy      = 2.157568098e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.058485691e-19
+ExecutionTime = 162.26 s  ClockTime = 28 s
+
+ExecutionTime = 166.64 s  ClockTime = 29 s
+
+ExecutionTime = 170.97 s  ClockTime = 29 s
+
+ExecutionTime = 175.55 s  ClockTime = 30 s
+
+ExecutionTime = 180.09 s  ClockTime = 31 s
+
+ExecutionTime = 184.63 s  ClockTime = 31 s
+
+ExecutionTime = 189.24 s  ClockTime = 32 s
+
+ExecutionTime = 193.88 s  ClockTime = 33 s
+
+ExecutionTime = 198.49 s  ClockTime = 33 s
+
+ExecutionTime = 203.02 s  ClockTime = 34 s
+
+Time = 3.320024447e-06
+
+    Collisions                      = 67177
+
+Load balance summary:
+    move particles avg/max/min    = 8528973 / 68231784 / 68231784
+    move imbalance max/avg        = 8
+    collision cand avg/max/min    = 786882.875 / 6295063 / 6295063
+    collision cand imbalance      = 8
+    accepted coll avg/max/min     = 268558.625 / 2148469 / 2148469
+    accepted coll imbalance       = 8
+    thread move particles         = 8(8529563 8530420 8527528 8531191 8526738 8531559 8526380 8528405)
+    thread collision candidates   = 8(868425 697470 855603 699452 883127 707183 865104 718699)
+    thread accepted collisions    = 8(355058 179044 353042 179038 359329 181856 356392 184710)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1424683
+    Number of molecules             = 8.548098e+15
+    Mass in system                  = 4.09951686e-10
+    Average linear kinetic energy   = 1.799485743e-19
+    Average rotational energy       = 2.729238282e-21
+    Average vibrational energy      = 2.15759454e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.04253758e-19
+ExecutionTime = 208.04 s  ClockTime = 34 s
+
+ExecutionTime = 212.81 s  ClockTime = 35 s
+
+ExecutionTime = 217.34 s  ClockTime = 36 s
+
+ExecutionTime = 222.21 s  ClockTime = 33 s
+
+ExecutionTime = 226.86 s  ClockTime = 34 s
+
+ExecutionTime = 231.7 s  ClockTime = 35 s
+
+ExecutionTime = 236.38 s  ClockTime = 35 s
+
+ExecutionTime = 241.18 s  ClockTime = 36 s
+
+ExecutionTime = 246.16 s  ClockTime = 37 s
+
+ExecutionTime = 251.16 s  ClockTime = 37 s
+
+Time = 3.984029336e-06
+
+    Collisions                      = 77067
+
+Load balance summary:
+    move particles avg/max/min    = 10322998 / 82583984 / 82583984
+    move imbalance max/avg        = 8
+    collision cand avg/max/min    = 1015952.375 / 8127619 / 8127619
+    collision cand imbalance      = 8
+    accepted coll avg/max/min     = 359397.875 / 2875183 / 2875183
+    accepted coll imbalance       = 8
+    thread move particles         = 8(10323722 10324588 10321374 10325356 10320704 10326172 10319777 10322291)
+    thread collision candidates   = 8(1142885 886359 1119354 888612 1159060 897503 1127722 906124)
+    thread accepted collisions    = 8(488892 227758 485922 227389 493923 230524 487207 233568)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1448163
+    Number of molecules             = 8.688978e+15
+    Mass in system                  = 4.167067668e-10
+    Average linear kinetic energy   = 1.780753701e-19
+    Average rotational energy       = 3.212537929e-21
+    Average vibrational energy      = 2.157624617e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.028641542e-19
+ExecutionTime = 256.49 s  ClockTime = 38 s
+
+ExecutionTime = 261.41 s  ClockTime = 39 s
+
+ExecutionTime = 266.55 s  ClockTime = 40 s
+
+ExecutionTime = 271.66 s  ClockTime = 40 s
+
+ExecutionTime = 276.74 s  ClockTime = 41 s
+
+ExecutionTime = 281.98 s  ClockTime = 42 s
+
+ExecutionTime = 287.1 s  ClockTime = 42 s
+
+ExecutionTime = 292.32 s  ClockTime = 43 s
+
+ExecutionTime = 297.48 s  ClockTime = 44 s
+
+ExecutionTime = 302.68 s  ClockTime = 44 s
+
+Time = 4.648034226e-06
+
+    Collisions                      = 86448
+
+Load balance summary:
+    move particles avg/max/min    = 12146353.12 / 97170825 / 97170825
+    move imbalance max/avg        = 8
+    collision cand avg/max/min    = 1268085.25 / 10144682 / 10144682
+    collision cand imbalance      = 8
+    accepted coll avg/max/min     = 461984.375 / 3695875 / 3695875
+    accepted coll imbalance       = 8
+    thread move particles         = 8(12147218 12148137 12144536 12148835 12143918 12149650 12143022 12145509)
+    thread collision candidates   = 8(1439727 1089149 1422374 1088453 1461935 1101091 1425128 1116825)
+    thread accepted collisions    = 8(638785 280925 638337 279455 646365 284060 638176 289772)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1471619
+    Number of molecules             = 8.829714e+15
+    Mass in system                  = 4.234517754e-10
+    Average linear kinetic energy   = 1.763462311e-19
+    Average rotational energy       = 3.708334314e-21
+    Average vibrational energy      = 2.157699662e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.01631562e-19
+ExecutionTime = 308.37 s  ClockTime = 45 s
+
+ExecutionTime = 313.65 s  ClockTime = 46 s
+
+ExecutionTime = 319.15 s  ClockTime = 47 s
+
+ExecutionTime = 324.43 s  ClockTime = 47 s
+
+ExecutionTime = 329.68 s  ClockTime = 48 s
+
+ExecutionTime = 335.22 s  ClockTime = 49 s
+
+ExecutionTime = 340.62 s  ClockTime = 50 s
+
+ExecutionTime = 346.07 s  ClockTime = 50 s
+
+ExecutionTime = 351.71 s  ClockTime = 51 s
+
+ExecutionTime = 357.21 s  ClockTime = 52 s
+
+Time = 5.312039115e-06
+
+    Collisions                      = 95042
+
+Load balance summary:
+    move particles avg/max/min    = 13999139.12 / 111993113 / 111993113
+    move imbalance max/avg        = 8
+    collision cand avg/max/min    = 1542748.25 / 12341986 / 12341986
+    collision cand imbalance      = 8
+    accepted coll avg/max/min     = 575934 / 4607472 / 4607472
+    accepted coll imbalance       = 8
+    thread move particles         = 8(14000155 14001019 13997191 14001868 13996474 14002610 13995637 13998159)
+    thread collision candidates   = 8(1776530 1300580 1752869 1307280 1794382 1317789 1754231 1338325)
+    thread accepted collisions    = 8(808153 338175 805229 340382 814676 344337 804015 352505)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1494936
+    Number of molecules             = 8.969616e+15
+    Mass in system                  = 4.301616573e-10
+    Average linear kinetic energy   = 1.747258635e-19
+    Average rotational energy       = 4.20329248e-21
+    Average vibrational energy      = 2.157723777e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.005063937e-19
+ExecutionTime = 363.37 s  ClockTime = 53 s
+
+ExecutionTime = 368.93 s  ClockTime = 54 s
+
+ExecutionTime = 374.44 s  ClockTime = 54 s
+
+ExecutionTime = 379.93 s  ClockTime = 55 s
+
+ExecutionTime = 385.56 s  ClockTime = 56 s
+
+ExecutionTime = 391.23 s  ClockTime = 57 s
+
+ExecutionTime = 396.92 s  ClockTime = 57 s
+
+ExecutionTime = 402.79 s  ClockTime = 58 s
+
+ExecutionTime = 408.45 s  ClockTime = 59 s
+
+ExecutionTime = 414.13 s  ClockTime = 60 s
+
+Time = 5.976044005e-06
+
+    Collisions                      = 103378
+
+Load balance summary:
+    move particles avg/max/min    = 15880949.25 / 127047594 / 127047594
+    move imbalance max/avg        = 8
+    collision cand avg/max/min    = 1839076.125 / 14712609 / 14712609
+    collision cand imbalance      = 8
+    accepted coll avg/max/min     = 700481.375 / 5603851 / 5603851
+    accepted coll imbalance       = 8
+    thread move particles         = 8(15882035 15883267 15878617 15883939 15878019 15884821 15877038 15879858)
+    thread collision candidates   = 8(2138698 1530229 2109128 1537788 2157820 1552618 2111482 1574846)
+    thread accepted collisions    = 8(988256 406051 983147 409084 995974 415080 981575 424684)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1518264
+    Number of molecules             = 9.109584e+15
+    Mass in system                  = 4.368739329e-10
+    Average linear kinetic energy   = 1.732088149e-19
+    Average rotational energy       = 4.726742988e-21
+    Average vibrational energy      = 2.157754002e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.995130979e-19
+ExecutionTime = 420.72 s  ClockTime = 61 s
+
+ExecutionTime = 426.6 s  ClockTime = 61 s
+
+ExecutionTime = 432.59 s  ClockTime = 62 s
+
+ExecutionTime = 438.48 s  ClockTime = 63 s
+
+ExecutionTime = 444.42 s  ClockTime = 64 s
+
+ExecutionTime = 450.7 s  ClockTime = 65 s
+
+ExecutionTime = 456.6 s  ClockTime = 63 s
+
+ExecutionTime = 462.6 s  ClockTime = 64 s
+
+ExecutionTime = 468.69 s  ClockTime = 64 s
+
+ExecutionTime = 474.93 s  ClockTime = 65 s
+
+Time = 6.640048894e-06
+
+    Collisions                      = 111782
+
+Load balance summary:
+    move particles avg/max/min    = 17791866.88 / 142334935 / 142334935
+    move imbalance max/avg        = 8
+    collision cand avg/max/min    = 2156382.25 / 17251058 / 17251058
+    collision cand imbalance      = 8
+    accepted coll avg/max/min     = 835504.875 / 6684039 / 6684039
+    accepted coll imbalance       = 8
+    thread move particles         = 8(17793068 17794320 17789419 17795013 17788744 17796178 17787522 17790671)
+    thread collision candidates   = 8(2524317 1773486 2491948 1790756 2551837 1806071 2488368 1824275)
+    thread accepted collisions    = 8(1178141 482155 1172800 491027 1191027 497563 1166587 504739)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1541351
+    Number of molecules             = 9.248106e+15
+    Mass in system                  = 4.435153152e-10
+    Average linear kinetic energy   = 1.717805358e-19
+    Average rotational energy       = 5.235358406e-21
+    Average vibrational energy      = 2.157835e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.985942442e-19
+ExecutionTime = 481.69 s  ClockTime = 66 s
+
+ExecutionTime = 487.64 s  ClockTime = 67 s
+
+ExecutionTime = 493.83 s  ClockTime = 68 s
+
+ExecutionTime = 499.98 s  ClockTime = 69 s
+
+ExecutionTime = 506.41 s  ClockTime = 70 s
+
+ExecutionTime = 512.69 s  ClockTime = 70 s
+
+ExecutionTime = 518.88 s  ClockTime = 71 s
+
+ExecutionTime = 525.38 s  ClockTime = 72 s
+
+ExecutionTime = 531.7 s  ClockTime = 73 s
+
+ExecutionTime = 537.85 s  ClockTime = 74 s
+
+Time = 7.304053783e-06
+
+    Collisions                      = 120930
+
+Load balance summary:
+    move particles avg/max/min    = 19731670.75 / 157853366 / 157853366
+    move imbalance max/avg        = 8
+    collision cand avg/max/min    = 2494789 / 19958312 / 19958312
+    collision cand imbalance      = 8
+    accepted coll avg/max/min     = 981158.875 / 7849271 / 7849271
+    accepted coll imbalance       = 8
+    thread move particles         = 8(19732944 19734304 19729078 19734945 19728393 19736959 19726406 19730337)
+    thread collision candidates   = 8(2937081 2034266 2904216 2043559 2981004 2065372 2898535 2094279)
+    thread accepted collisions    = 8(1380574 568709 1374625 573734 1403091 583817 1367626 597095)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1564541
+    Number of molecules             = 9.387246e+15
+    Mass in system                  = 4.501898832e-10
+    Average linear kinetic energy   = 1.704292962e-19
+    Average rotational energy       = 5.736682547e-21
+    Average vibrational energy      = 2.157837928e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.97744358e-19
+ExecutionTime = 545 s  ClockTime = 75 s
+
+ExecutionTime = 551.17 s  ClockTime = 76 s
+
+ExecutionTime = 557.83 s  ClockTime = 77 s
+
+ExecutionTime = 564.26 s  ClockTime = 78 s
+
+ExecutionTime = 570.87 s  ClockTime = 78 s
+
+ExecutionTime = 577.51 s  ClockTime = 79 s
+
+ExecutionTime = 584.11 s  ClockTime = 80 s
+
+ExecutionTime = 590.84 s  ClockTime = 81 s
+
+ExecutionTime = 597.8 s  ClockTime = 82 s
+
+ExecutionTime = 604.63 s  ClockTime = 83 s
+
+Time = 7.968058673e-06
+
+    Collisions                      = 127862
+
+Load balance summary:
+    move particles avg/max/min    = 21700266.88 / 173602135 / 173602135
+    move imbalance max/avg        = 8
+    collision cand avg/max/min    = 2853609.125 / 22828873 / 22828873
+    collision cand imbalance      = 8
+    accepted coll avg/max/min     = 1136995.875 / 9095967 / 9095967
+    accepted coll imbalance       = 8
+    thread move particles         = 8(21701688 21703073 21697450 21703961 21696557 21707069 21693549 21698788)
+    thread collision candidates   = 8(3377399 2304524 3341927 2322193 3432612 2344334 3334853 2371031)
+    thread accepted collisions    = 8(1595250 661543 1588418 671850 1624448 681435 1579939 693084)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1587372
+    Number of molecules             = 9.524232e+15
+    Mass in system                  = 4.567586897e-10
+    Average linear kinetic energy   = 1.691492401e-19
+    Average rotational energy       = 6.215854765e-21
+    Average vibrational energy      = 2.15797874e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.969448823e-19
+ExecutionTime = 612.36 s  ClockTime = 84 s
+
+ExecutionTime = 618.85 s  ClockTime = 85 s
+
+ExecutionTime = 625.86 s  ClockTime = 86 s
+
+ExecutionTime = 632.97 s  ClockTime = 87 s
+
+ExecutionTime = 639.94 s  ClockTime = 88 s
+
+ExecutionTime = 647.09 s  ClockTime = 89 s
+
+ExecutionTime = 653.95 s  ClockTime = 90 s
+
+ExecutionTime = 660.87 s  ClockTime = 91 s
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 1
+ExecutionTime = 668.09 s  ClockTime = 92 s
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 675.14 s  ClockTime = 93 s
+
+Time = 8.632063562e-06
+
+    Collisions                      = 134749
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Load balance summary:
+    move particles avg/max/min    = 23697303.88 / 189578431 / 189578431
+    move imbalance max/avg        = 8
+    collision cand avg/max/min    = 3229906.25 / 25839250 / 25839250
+    collision cand imbalance      = 8
+    accepted coll avg/max/min     = 1301456.125 / 10411649 / 10411649
+    accepted coll imbalance       = 8
+    thread move particles         = 8(23698910 23700677 23693856 23702470 23692130 23705476 23689211 23695701)
+    thread collision candidates   = 8(3837031 2596283 3798346 2604772 3906851 2636547 3793948 2665472)
+    thread accepted collisions    = 8(1818626 766941 1810159 771733 1854988 787084 1802384 799734)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1609996
+    Number of molecules             = 9.659976e+15
+    Mass in system                  = 4.632737937e-10
+    Average linear kinetic energy   = 1.679527841e-19
+    Average rotational energy       = 6.713247521e-21
+    Average vibrational energy      = 2.157942579e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.962454574e-19
+ExecutionTime = 683.7 s  ClockTime = 94 s
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 690.25 s  ClockTime = 95 s
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 697.55 s  ClockTime = 93 s
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 704.77 s  ClockTime = 94 s
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 712.3 s  ClockTime = 95 s
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 719.45 s  ClockTime = 96 s
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 726.71 s  ClockTime = 97 s
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 733.89 s  ClockTime = 98 s
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 741.59 s  ClockTime = 99 s
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 749.1 s  ClockTime = 100 s
+
+Time = 9.296068452e-06
+
+    Collisions                      = 141889
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Load balance summary:
+    move particles avg/max/min    = 25722305.38 / 205778443 / 205778443
+    move imbalance max/avg        = 8
+    collision cand avg/max/min    = 3624008.625 / 28992069 / 28992069
+    collision cand imbalance      = 8
+    accepted coll avg/max/min     = 1474738.125 / 11797905 / 11797905
+    accepted coll imbalance       = 8
+    thread move particles         = 8(25724008 25726568 25717953 25727887 25716754 25731373 25713318 25720582)
+    thread collision candidates   = 8(4324633 2897498 4271968 2906728 4401197 2938532 4270293 2981220)
+    thread accepted collisions    = 8(2054200 878244 2039333 883519 2093909 897937 2032104 918659)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1632473
+    Number of molecules             = 9.794838e+15
+    Mass in system                  = 4.697409346e-10
+    Average linear kinetic energy   = 1.668080259e-19
+    Average rotational energy       = 7.211910298e-21
+    Average vibrational energy      = 2.15803185e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.956002547e-19
+ExecutionTime = 757.46 s  ClockTime = 101 s
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 764.41 s  ClockTime = 102 s
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 771.94 s  ClockTime = 103 s
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 779.42 s  ClockTime = 104 s
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 787 s  ClockTime = 105 s
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 794.52 s  ClockTime = 107 s
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 801.96 s  ClockTime = 108 s
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 809.47 s  ClockTime = 109 s
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 816.91 s  ClockTime = 110 s
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 824.61 s  ClockTime = 111 s
+
+Time = 9.960073341e-06
+
+    Collisions                      = 148104
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Load balance summary:
+    move particles avg/max/min    = 27775465.12 / 222203721 / 222203721
+    move imbalance max/avg        = 8
+    collision cand avg/max/min    = 4034649.75 / 32277198 / 32277198
+    collision cand imbalance      = 8
+    accepted coll avg/max/min     = 1656105.5 / 13248844 / 13248844
+    accepted coll imbalance       = 8
+    thread move particles         = 8(27777294 27781241 27769597 27781281 27769667 27785878 27765133 27773630)
+    thread collision candidates   = 8(4826756 3211283 4758434 3228671 4918206 3256874 4769138 3307836)
+    thread accepted collisions    = 8(2296128 996837 2273180 1006787 2343337 1018412 2270283 1043880)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1654842
+    Number of molecules             = 9.929052e+15
+    Mass in system                  = 4.761734551e-10
+    Average linear kinetic energy   = 1.657399273e-19
+    Average rotational energy       = 7.672037502e-21
+    Average vibrational energy      = 2.158176065e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.949937254e-19
+ExecutionTime = 833.66 s  ClockTime = 112 s
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 840.59 s  ClockTime = 113 s
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 848.58 s  ClockTime = 114 s
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 856.19 s  ClockTime = 115 s
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 864.35 s  ClockTime = 116 s
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 871.98 s  ClockTime = 117 s
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 879.91 s  ClockTime = 118 s
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 887.85 s  ClockTime = 119 s
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 896.19 s  ClockTime = 121 s
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 904.21 s  ClockTime = 122 s
+
+Time = 1.062407823e-05
+
+    Collisions                      = 155262
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Load balance summary:
+    move particles avg/max/min    = 29856328.25 / 238850626 / 238850626
+    move imbalance max/avg        = 8
+    collision cand avg/max/min    = 4461886.125 / 35695089 / 35695089
+    collision cand imbalance      = 8
+    accepted coll avg/max/min     = 1845617.5 / 14764940 / 14764940
+    accepted coll imbalance       = 8
+    thread move particles         = 8(29858263 29862912 29849652 29863530 29849149 29868222 29844503 29854395)
+    thread collision candidates   = 8(5345981 3543774 5269532 3562632 5451718 3588045 5289661 3643746)
+    thread accepted collisions    = 8(2545258 1126477 2517836 1136586 2599429 1146772 2518468 1174114)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1677023
+    Number of molecules             = 1.0062138e+16
+    Mass in system                  = 4.825543975e-10
+    Average linear kinetic energy   = 1.647431808e-19
+    Average rotational energy       = 8.110196657e-21
+    Average vibrational energy      = 2.158339335e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.944367708e-19
+ExecutionTime = 913.27 s  ClockTime = 123 s
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 920.04 s  ClockTime = 124 s
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 928.04 s  ClockTime = 122 s
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 935.96 s  ClockTime = 123 s
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 944.05 s  ClockTime = 124 s
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 952.53 s  ClockTime = 126 s
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 960.34 s  ClockTime = 127 s
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 968.31 s  ClockTime = 128 s
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 976.29 s  ClockTime = 129 s
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 984.29 s  ClockTime = 130 s
+
+Time = 1.128808312e-05
+
+    Collisions                      = 161364
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Load balance summary:
+    move particles avg/max/min    = 31964814.62 / 255718517 / 255718517
+    move imbalance max/avg        = 8
+    collision cand avg/max/min    = 4905775.25 / 39246202 / 39246202
+    collision cand imbalance      = 8
+    accepted coll avg/max/min     = 2043530.875 / 16348247 / 16348247
+    accepted coll imbalance       = 8
+    thread move particles         = 8(31966837 31972486 31957112 31973380 31956254 31977773 31951915 31962760)
+    thread collision candidates   = 8(5888832 3887683 5807174 3910147 5999831 3927406 5821898 4003231)
+    thread accepted collisions    = 8(2805276 1262308 2774537 1274137 2861807 1280073 2772033 1318076)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1698653
+    Number of molecules             = 1.0191918e+16
+    Mass in system                  = 4.887786319e-10
+    Average linear kinetic energy   = 1.6376643e-19
+    Average rotational energy       = 8.565862962e-21
+    Average vibrational energy      = 2.15840261e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.93916319e-19
+ExecutionTime = 993.45 s  ClockTime = 131 s
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 1000.59 s  ClockTime = 132 s
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 1008.75 s  ClockTime = 133 s
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 1017.13 s  ClockTime = 135 s
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 1025.38 s  ClockTime = 136 s
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 1033.79 s  ClockTime = 137 s
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 1042.01 s  ClockTime = 138 s
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 1050.18 s  ClockTime = 139 s
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 1058.5 s  ClockTime = 140 s
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 1067 s  ClockTime = 141 s
+
+Time = 1.195208801e-05
+
+    Collisions                      = 167620
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Load balance summary:
+    move particles avg/max/min    = 34100249.88 / 272801999 / 272801999
+    move imbalance max/avg        = 8
+    collision cand avg/max/min    = 5365482.875 / 42923863 / 42923863
+    collision cand imbalance      = 8
+    accepted coll avg/max/min     = 2249600.5 / 17996804 / 17996804
+    accepted coll imbalance       = 8
+    thread move particles         = 8(34102379 34108556 34091916 34110201 34090349 34114399 34086101 34098098)
+    thread collision candidates   = 8(6453890 4246100 6361398 4274735 6562614 4287489 6373027 4364610)
+    thread accepted collisions    = 8(3075724 1406332 3038900 1421747 3130910 1424826 3035009 1463356)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1720218
+    Number of molecules             = 1.0321308e+16
+    Mass in system                  = 4.949857243e-10
+    Average linear kinetic energy   = 1.628279001e-19
+    Average rotational energy       = 9.016431543e-21
+    Average vibrational energy      = 2.158510983e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.934294415e-19
+ExecutionTime = 1076.38 s  ClockTime = 143 s
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 1084.15 s  ClockTime = 144 s
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 1092.36 s  ClockTime = 145 s
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 1100.81 s  ClockTime = 146 s
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 1109.13 s  ClockTime = 147 s
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 1117.65 s  ClockTime = 149 s
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 1126.1 s  ClockTime = 150 s
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 1134.67 s  ClockTime = 151 s
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 1143.19 s  ClockTime = 152 s
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 1151.74 s  ClockTime = 153 s
+
+Time = 1.26160929e-05
+
+    Collisions                      = 174733
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Load balance summary:
+    move particles avg/max/min    = 36262764.62 / 290102117 / 290102117
+    move imbalance max/avg        = 8
+    collision cand avg/max/min    = 5842497 / 46739976 / 46739976
+    collision cand imbalance      = 8
+    accepted coll avg/max/min     = 2464259.375 / 19714075 / 19714075
+    accepted coll imbalance       = 8
+    thread move particles         = 8(36265010 36271804 36253688 36272974 36252622 36277853 36247661 36260505)
+    thread collision candidates   = 8(7031137 4607982 6930695 4653268 7153500 4665340 6946528 4751526)
+    thread accepted collisions    = 8(3350572 1551832 3309338 1577737 3412577 1579839 3308775 1623405)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1741754
+    Number of molecules             = 1.0450524e+16
+    Mass in system                  = 5.011840505e-10
+    Average linear kinetic energy   = 1.618999394e-19
+    Average rotational energy       = 9.455845276e-21
+    Average vibrational energy      = 2.158599099e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.929417757e-19
+ExecutionTime = 1161.6 s  ClockTime = 152 s
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 1169.46 s  ClockTime = 153 s
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 1177.8 s  ClockTime = 154 s
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 1186.36 s  ClockTime = 156 s
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 1194.98 s  ClockTime = 157 s
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 1203.53 s  ClockTime = 158 s
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 1212.04 s  ClockTime = 159 s
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 1220.93 s  ClockTime = 160 s
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 1229.59 s  ClockTime = 162 s
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 1238.33 s  ClockTime = 163 s
+
+Time = 1.328009779e-05
+
+    Collisions                      = 181605
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Load balance summary:
+    move particles avg/max/min    = 38452058.75 / 307616470 / 307616470
+    move imbalance max/avg        = 8
+    collision cand avg/max/min    = 6336553.875 / 50692431 / 50692431
+    collision cand imbalance      = 8
+    accepted coll avg/max/min     = 2687426.875 / 21499415 / 21499415
+    accepted coll imbalance       = 8
+    thread move particles         = 8(38454395 38461326 38442771 38462506 38441681 38467295 38436778 38449718)
+    thread collision candidates   = 8(7638853 4994498 7518753 5044484 7767165 5050068 7535469 5143141)
+    thread accepted collisions    = 8(3639989 1711834 3588061 1740144 3705895 1739008 3588329 1786155)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1763114
+    Number of molecules             = 1.0578684e+16
+    Mass in system                  = 5.073289035e-10
+    Average linear kinetic energy   = 1.610136755e-19
+    Average rotational energy       = 9.896432899e-21
+    Average vibrational energy      = 2.158763079e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.924977392e-19
+ExecutionTime = 1248.31 s  ClockTime = 164 s
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 1256.41 s  ClockTime = 166 s
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 1265.33 s  ClockTime = 167 s
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 1274.79 s  ClockTime = 168 s
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 1283.97 s  ClockTime = 170 s
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 1292.82 s  ClockTime = 171 s
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 1301.86 s  ClockTime = 172 s
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 1310.82 s  ClockTime = 173 s
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 1320.21 s  ClockTime = 175 s
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 1329.05 s  ClockTime = 176 s
+
+Time = 1.394410268e-05
+
+    Collisions                      = 187732
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Load balance summary:
+    move particles avg/max/min    = 40667618.75 / 325340950 / 325340950
+    move imbalance max/avg        = 8
+    collision cand avg/max/min    = 6847328.5 / 54778628 / 54778628
+    collision cand imbalance      = 8
+    accepted coll avg/max/min     = 2918847.5 / 23350780 / 23350780
+    accepted coll imbalance       = 8
+    thread move particles         = 8(40670106 40676992 40658145 40678213 40657119 40682974 40652254 40665147)
+    thread collision candidates   = 8(8262928 5387422 8135250 5443441 8399181 5452706 8147842 5549858)
+    thread accepted collisions    = 8(3936317 1875603 3880550 1906903 4005513 1909108 3879281 1957505)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1784008
+    Number of molecules             = 1.0704048e+16
+    Mass in system                  = 5.133426303e-10
+    Average linear kinetic energy   = 1.601879586e-19
+    Average rotational energy       = 1.029097522e-20
+    Average vibrational energy      = 2.158943425e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.920683681e-19
+ExecutionTime = 1339.49 s  ClockTime = 177 s
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 1347.44 s  ClockTime = 179 s
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 1356.44 s  ClockTime = 180 s
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 1365.41 s  ClockTime = 181 s
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 1374.69 s  ClockTime = 183 s
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 1383.76 s  ClockTime = 184 s
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 1392.89 s  ClockTime = 182 s
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 1401.92 s  ClockTime = 183 s
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 1411.09 s  ClockTime = 185 s
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 1420.37 s  ClockTime = 186 s
+
+Time = 1.460810757e-05
+
+    Collisions                      = 194982
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Load balance summary:
+    move particles avg/max/min    = 42909013.12 / 343272105 / 343272105
+    move imbalance max/avg        = 8
+    collision cand avg/max/min    = 7373899 / 58991192 / 58991192
+    collision cand imbalance      = 8
+    accepted coll avg/max/min     = 3158414 / 25267312 / 25267312
+    accepted coll imbalance       = 8
+    thread move particles         = 8(42911601 42918499 42899478 42919688 42898357 42924521 42893526 42906435)
+    thread collision candidates   = 8(8900184 5802509 8760403 5858756 9047358 5870475 8772500 5979007)
+    thread accepted collisions    = 8(4238004 2052168 4176006 2083097 4312451 2088250 4175125 2142211)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1804337
+    Number of molecules             = 1.0826022e+16
+    Mass in system                  = 5.191920491e-10
+    Average linear kinetic energy   = 1.593434128e-19
+    Average rotational energy       = 1.069862232e-20
+    Average vibrational energy      = 2.159052633e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.916325614e-19
+ExecutionTime = 1431.16 s  ClockTime = 188 s
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 1439.51 s  ClockTime = 189 s
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 1448.86 s  ClockTime = 190 s
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 1458.08 s  ClockTime = 192 s
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 1467.46 s  ClockTime = 193 s
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 1476.55 s  ClockTime = 194 s
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 1485.99 s  ClockTime = 196 s
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 1495.3 s  ClockTime = 197 s
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 1504.55 s  ClockTime = 198 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 1
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 1513.94 s  ClockTime = 200 s
+
+Time = 1.527211246e-05
+
+    Collisions                      = 200877
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Load balance summary:
+    move particles avg/max/min    = 45175975 / 361407800 / 361407800
+    move imbalance max/avg        = 8
+    collision cand avg/max/min    = 7915752.125 / 63326017 / 63326017
+    collision cand imbalance      = 8
+    accepted coll avg/max/min     = 3405708.875 / 27245671 / 27245671
+    accepted coll imbalance       = 8
+    thread move particles         = 8(45178640 45185624 45166281 45186896 45165116 45191635 45160301 45173307)
+    thread collision candidates   = 8(9565423 6217177 9413593 6290986 9717086 6299915 9415244 6406593)
+    thread accepted collisions    = 8(4555376 2228464 4484551 2269655 4630187 2273589 4478299 2325550)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1824821
+    Number of molecules             = 1.0948926e+16
+    Mass in system                  = 5.25083004e-10
+    Average linear kinetic energy   = 1.585529825e-19
+    Average rotational energy       = 1.108790916e-20
+    Average vibrational energy      = 2.159178055e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.912326722e-19
+ExecutionTime = 1524.89 s  ClockTime = 201 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 1533.07 s  ClockTime = 202 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 1542.72 s  ClockTime = 204 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 1552.12 s  ClockTime = 205 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 1561.42 s  ClockTime = 207 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 1570.77 s  ClockTime = 208 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 1579.98 s  ClockTime = 209 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 1589.44 s  ClockTime = 211 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 1599.14 s  ClockTime = 212 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 1608.83 s  ClockTime = 213 s
+
+Time = 1.593611735e-05
+
+    Collisions                      = 206717
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Load balance summary:
+    move particles avg/max/min    = 47468265 / 379746120 / 379746120
+    move imbalance max/avg        = 8
+    collision cand avg/max/min    = 8472258.5 / 67778068 / 67778068
+    collision cand imbalance      = 8
+    accepted coll avg/max/min     = 3660239.5 / 29281916 / 29281916
+    accepted coll imbalance       = 8
+    thread move particles         = 8(47471039 47478146 47458284 47479327 47457327 47484074 47452459 47465464)
+    thread collision candidates   = 8(10238854 6643174 10080637 6738603 10401547 6744103 10077147 6854003)
+    thread accepted collisions    = 8(4875644 2411318 4799174 2464523 4954023 2466883 4789819 2520532)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1845029
+    Number of molecules             = 1.1070174e+16
+    Mass in system                  = 5.309002129e-10
+    Average linear kinetic energy   = 1.577931183e-19
+    Average rotational energy       = 1.146384074e-20
+    Average vibrational energy      = 2.159325793e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.90850217e-19
+ExecutionTime = 1619.87 s  ClockTime = 212 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 1628.13 s  ClockTime = 214 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 1637.6 s  ClockTime = 215 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 1647.3 s  ClockTime = 217 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 1656.76 s  ClockTime = 218 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 1666.39 s  ClockTime = 219 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 1676.15 s  ClockTime = 221 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 1685.65 s  ClockTime = 222 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 1695.43 s  ClockTime = 224 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 1704.87 s  ClockTime = 225 s
+
+Time = 1.660012224e-05
+
+    Collisions                      = 212038
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Load balance summary:
+    move particles avg/max/min    = 49785818.88 / 398286551 / 398286551
+    move imbalance max/avg        = 8
+    collision cand avg/max/min    = 9042926.875 / 72343415 / 72343415
+    collision cand imbalance      = 8
+    accepted coll avg/max/min     = 3921853 / 31374824 / 31374824
+    accepted coll imbalance       = 8
+    thread move particles         = 8(49788677 49795930 49775660 49797052 49774685 49801782 49769823 49782942)
+    thread collision candidates   = 8(10931284 7088999 10759907 7186340 11107417 7198208 10757295 7313965)
+    thread accepted collisions    = 8(5203782 2606069 5119614 2660290 5287502 2665203 5109959 2722405)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1865071
+    Number of molecules             = 1.1190426e+16
+    Mass in system                  = 5.366633227e-10
+    Average linear kinetic energy   = 1.570222719e-19
+    Average rotational energy       = 1.186173329e-20
+    Average vibrational energy      = 2.15950361e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.904790413e-19
+ExecutionTime = 1715.74 s  ClockTime = 227 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 1724.15 s  ClockTime = 228 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 1733.85 s  ClockTime = 230 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 1743.51 s  ClockTime = 231 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 1753.21 s  ClockTime = 232 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 1763.04 s  ClockTime = 234 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 1772.89 s  ClockTime = 235 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 1782.98 s  ClockTime = 237 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 1793.29 s  ClockTime = 239 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 1803.08 s  ClockTime = 240 s
+
+Time = 1.726412712e-05
+
+    Collisions                      = 217265
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Load balance summary:
+    move particles avg/max/min    = 52128200.75 / 417025606 / 417025606
+    move imbalance max/avg        = 8
+    collision cand avg/max/min    = 9628471.75 / 77027774 / 77027774
+    collision cand imbalance      = 8
+    accepted coll avg/max/min     = 4191143.375 / 33529147 / 33529147
+    accepted coll imbalance       = 8
+    thread move particles         = 8(52131186 52138666 52117678 52140263 52116240 52144761 52111601 52125211)
+    thread collision candidates   = 8(11636010 7546114 11458667 7657084 11829473 7660012 11456547 7783867)
+    thread accepted collisions    = 8(5537069 2807205 5449863 2869417 5628233 2868176 5438219 2930965)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1884806
+    Number of molecules             = 1.1308836e+16
+    Mass in system                  = 5.423417328e-10
+    Average linear kinetic energy   = 1.562925821e-19
+    Average rotational energy       = 1.223531044e-20
+    Average vibrational energy      = 2.159675262e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.901246451e-19
+ExecutionTime = 1814.68 s  ClockTime = 242 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 1823.88 s  ClockTime = 243 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 1833.6 s  ClockTime = 242 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 1843.43 s  ClockTime = 243 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 1853.3 s  ClockTime = 245 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 1863.12 s  ClockTime = 246 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 1873.02 s  ClockTime = 248 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 1882.82 s  ClockTime = 249 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 1892.99 s  ClockTime = 251 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 1902.8 s  ClockTime = 252 s
+
+Time = 1.792813201e-05
+
+    Collisions                      = 223358
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Load balance summary:
+    move particles avg/max/min    = 54495005 / 435960040 / 435960040
+    move imbalance max/avg        = 8
+    collision cand avg/max/min    = 10227332.62 / 81818661 / 81818661
+    collision cand imbalance      = 8
+    accepted coll avg/max/min     = 4467209.25 / 35737674 / 35737674
+    accepted coll imbalance       = 8
+    thread move particles         = 8(54498107 54506334 54483553 54508282 54481870 54512312 54477689 54491893)
+    thread collision candidates   = 8(12351844 8018620 12169286 8142218 12559879 8140206 12169135 8267473)
+    thread accepted collisions    = 8(5875313 3017304 5784663 3085823 5972743 3082142 5772871 3146815)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1903855
+    Number of molecules             = 1.142313e+16
+    Mass in system                  = 5.478211226e-10
+    Average linear kinetic energy   = 1.555681922e-19
+    Average rotational energy       = 1.259985588e-20
+    Average vibrational energy      = 2.159849267e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.897665407e-19
+ExecutionTime = 1914.26 s  ClockTime = 254 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 1922.96 s  ClockTime = 256 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 1932.92 s  ClockTime = 257 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 1
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 1942.87 s  ClockTime = 259 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 1953.28 s  ClockTime = 260 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 1963.09 s  ClockTime = 262 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 1973.23 s  ClockTime = 263 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 1983.63 s  ClockTime = 265 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 1
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 1994.21 s  ClockTime = 266 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 2004.22 s  ClockTime = 268 s
+
+Time = 1.85921369e-05
+
+    Collisions                      = 229249
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Load balance summary:
+    move particles avg/max/min    = 56885754.5 / 455086036 / 455086036
+    move imbalance max/avg        = 8
+    collision cand avg/max/min    = 10839612.38 / 86716899 / 86716899
+    collision cand imbalance      = 8
+    accepted coll avg/max/min     = 4750152.125 / 38001217 / 38001217
+    accepted coll imbalance       = 8
+    thread move particles         = 8(56888955 56898206 56873253 56900679 56870911 56904112 56867407 56882513)
+    thread collision candidates   = 8(13085176 8510759 12893156 8633485 13313748 8626282 12897022 8757271)
+    thread accepted collisions    = 8(6221302 3238377 6125342 3306423 6329181 3299284 6114899 3366409)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1923176
+    Number of molecules             = 1.1539056e+16
+    Mass in system                  = 5.533816019e-10
+    Average linear kinetic energy   = 1.548880497e-19
+    Average rotational energy       = 1.294382096e-20
+    Average vibrational energy      = 2.159978141e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.894316521e-19
+ExecutionTime = 2015.81 s  ClockTime = 270 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 2024.78 s  ClockTime = 271 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 2035.22 s  ClockTime = 273 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 2045.27 s  ClockTime = 272 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 2055.89 s  ClockTime = 273 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 2066.1 s  ClockTime = 275 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 1
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 2076.82 s  ClockTime = 277 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 2086.82 s  ClockTime = 278 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 2097.19 s  ClockTime = 280 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 2107.62 s  ClockTime = 281 s
+
+Time = 1.925614179e-05
+
+    Collisions                      = 234976
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Load balance summary:
+    move particles avg/max/min    = 59300719.5 / 474405756 / 474405756
+    move imbalance max/avg        = 8
+    collision cand avg/max/min    = 11466864.5 / 91734916 / 91734916
+    collision cand imbalance      = 8
+    accepted coll avg/max/min     = 5040404.625 / 40323237 / 40323237
+    accepted coll imbalance       = 8
+    thread move particles         = 8(59304067 59313700 59287609 59316876 59284672 59319326 59282134 59297372)
+    thread collision candidates   = 8(13843433 9008633 13640318 9127986 14087758 9123392 13641876 9261520)
+    thread accepted collisions    = 8(6578194 3461964 6476616 3528506 6694450 3523043 6466183 3594281)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1942604
+    Number of molecules             = 1.1655624e+16
+    Mass in system                  = 5.589721734e-10
+    Average linear kinetic energy   = 1.542268621e-19
+    Average rotational energy       = 1.327745019e-20
+    Average vibrational energy      = 2.160127398e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.891055863e-19
+ExecutionTime = 2119.36 s  ClockTime = 283 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 2128.89 s  ClockTime = 285 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 2139.94 s  ClockTime = 287 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 1
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 2151.44 s  ClockTime = 289 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 2165.54 s  ClockTime = 291 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 2180.22 s  ClockTime = 294 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 2196.8 s  ClockTime = 297 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 2215.22 s  ClockTime = 300 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 2232.05 s  ClockTime = 303 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 2246.86 s  ClockTime = 303 s
+
+Time = 1.992014668e-05
+
+    Collisions                      = 240089
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Load balance summary:
+    move particles avg/max/min    = 61739634.75 / 493917078 / 493917078
+    move imbalance max/avg        = 8
+    collision cand avg/max/min    = 12107547.62 / 96860381 / 96860381
+    collision cand imbalance      = 8
+    accepted coll avg/max/min     = 5337383 / 42699064 / 42699064
+    accepted coll imbalance       = 8
+    thread move particles         = 8(61743152 61754558 61724547 61756576 61722760 61758466 61720852 61736167)
+    thread collision candidates   = 8(14622590 9496945 14422345 9627361 14876899 9616698 14419209 9778334)
+    thread accepted collisions    = 8(6945299 3681229 6845149 3753590 7067620 3744704 6832470 3829003)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1961544
+    Number of molecules             = 1.1769264e+16
+    Mass in system                  = 5.64423455e-10
+    Average linear kinetic energy   = 1.535755865e-19
+    Average rotational energy       = 1.359909594e-20
+    Average vibrational energy      = 2.160294883e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.887776312e-19
+ExecutionTime = 2264.01 s  ClockTime = 306 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 1
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 2280.26 s  ClockTime = 309 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 2298.69 s  ClockTime = 313 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 2314.28 s  ClockTime = 316 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 2330.95 s  ClockTime = 319 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 2347.11 s  ClockTime = 322 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 2364.01 s  ClockTime = 325 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 2381.38 s  ClockTime = 328 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 2402.78 s  ClockTime = 332 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 2420.47 s  ClockTime = 333 s
+
+Time = 2.058415157e-05
+
+    Collisions                      = 246269
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Load balance summary:
+    move particles avg/max/min    = 64201935.25 / 513615482 / 513615482
+    move imbalance max/avg        = 8
+    collision cand avg/max/min    = 12761783.75 / 102094270 / 102094270
+    collision cand imbalance      = 8
+    accepted coll avg/max/min     = 5641617.625 / 45132941 / 45132941
+    accepted coll imbalance       = 8
+    thread move particles         = 8(64205536 64218691 64185023 64219679 64184312 64221980 64181885 64198376)
+    thread collision candidates   = 8(15442735 9985582 15222827 10120762 15698203 10113250 15223229 10287682)
+    thread accepted collisions    = 8(7334158 3901362 7222922 3975860 7456663 3968898 7213153 4059925)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1979969
+    Number of molecules             = 1.1879814e+16
+    Mass in system                  = 5.697237432e-10
+    Average linear kinetic energy   = 1.529355494e-19
+    Average rotational energy       = 1.39278882e-20
+    Average vibrational energy      = 2.160481026e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.884682479e-19
+ExecutionTime = 2440.85 s  ClockTime = 337 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 2459.08 s  ClockTime = 341 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 2478.74 s  ClockTime = 345 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 2496.85 s  ClockTime = 348 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 2516.16 s  ClockTime = 352 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 2531.43 s  ClockTime = 354 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 2547.02 s  ClockTime = 357 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 2565 s  ClockTime = 361 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 2583.32 s  ClockTime = 361 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 2600.27 s  ClockTime = 364 s
+
+Time = 2.124815646e-05
+
+    Collisions                      = 250859
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Load balance summary:
+    move particles avg/max/min    = 66687262.75 / 533498102 / 533498102
+    move imbalance max/avg        = 8
+    collision cand avg/max/min    = 13429742.25 / 107437938 / 107437938
+    collision cand imbalance      = 8
+    accepted coll avg/max/min     = 5952121.625 / 47616973 / 47616973
+    accepted coll imbalance       = 8
+    thread move particles         = 8(66690966 66705561 66668846 66705612 66668971 66708160 66666398 66683588)
+    thread collision candidates   = 8(16277327 10483975 16059385 10614151 16515471 10607907 16063858 10815864)
+    thread accepted collisions    = 8(7728899 4126013 7617778 4198075 7840947 4192292 7611734 4301235)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1998412
+    Number of molecules             = 1.1990472e+16
+    Mass in system                  = 5.750290146e-10
+    Average linear kinetic energy   = 1.522749096e-19
+    Average rotational energy       = 1.425738773e-20
+    Average vibrational energy      = 2.16074889e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.881397862e-19
+ExecutionTime = 2617.46 s  ClockTime = 368 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 2629.46 s  ClockTime = 370 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 2644.06 s  ClockTime = 373 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 2662.46 s  ClockTime = 376 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 2681.26 s  ClockTime = 380 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 2700.22 s  ClockTime = 384 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 2718.97 s  ClockTime = 387 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 2735.41 s  ClockTime = 390 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 2749.88 s  ClockTime = 390 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 2767.29 s  ClockTime = 393 s
+
+Time = 2.191216135e-05
+
+    Collisions                      = 256285
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Load balance summary:
+    move particles avg/max/min    = 69195333.25 / 553562666 / 553562666
+    move imbalance max/avg        = 8
+    collision cand avg/max/min    = 14110556.38 / 112884451 / 112884451
+    collision cand imbalance      = 8
+    accepted coll avg/max/min     = 6269103 / 50152824 / 50152824
+    accepted coll imbalance       = 8
+    thread move particles         = 8(69199173 69215258 69175312 69215133 69175506 69217955 69172768 69191561)
+    thread collision candidates   = 8(17125562 10985003 16911709 11119640 17336414 11117061 16913425 11375637)
+    thread accepted collisions    = 8(8128695 4353108 8020357 4427643 8225286 4424664 8012580 4560491)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 2016357
+    Number of molecules             = 1.2098142e+16
+    Mass in system                  = 5.801910542e-10
+    Average linear kinetic energy   = 1.516609947e-19
+    Average rotational energy       = 1.455212535e-20
+    Average vibrational energy      = 2.160927175e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.878223918e-19
+ExecutionTime = 2785.66 s  ClockTime = 397 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 2800.96 s  ClockTime = 400 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 1
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 2816.26 s  ClockTime = 403 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 2835 s  ClockTime = 407 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 2851.17 s  ClockTime = 410 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 2867.84 s  ClockTime = 413 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 2884.05 s  ClockTime = 416 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 2904.04 s  ClockTime = 421 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 2925.58 s  ClockTime = 422 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 2945.49 s  ClockTime = 426 s
+
+Time = 2.257616624e-05
+
+    Collisions                      = 260381
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Load balance summary:
+    move particles avg/max/min    = 71725981.88 / 573807855 / 573807855
+    move imbalance max/avg        = 8
+    collision cand avg/max/min    = 14803630.25 / 118429042 / 118429042
+    collision cand imbalance      = 8
+    accepted coll avg/max/min     = 6592378.875 / 52739031 / 52739031
+    accepted coll imbalance       = 8
+    thread move particles         = 8(71729926 71747244 71704637 71746977 71704932 71749716 71702332 71722091)
+    thread collision candidates   = 8(17958367 11473179 17804444 11627559 18190943 11686583 17729142 11958825)
+    thread accepted collisions    = 8(8518379 4573803 8444978 4658300 8626998 4689043 8394637 4832893)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 2034632
+    Number of molecules             = 1.2207792e+16
+    Mass in system                  = 5.854498102e-10
+    Average linear kinetic energy   = 1.510403467e-19
+    Average rotational energy       = 1.48591888e-20
+    Average vibrational energy      = 2.16114459e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.875109814e-19
+ExecutionTime = 2965.17 s  ClockTime = 430 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 2985.66 s  ClockTime = 434 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 3006.42 s  ClockTime = 438 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 3026.45 s  ClockTime = 442 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 3047.24 s  ClockTime = 446 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 3065.63 s  ClockTime = 450 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 3085.87 s  ClockTime = 450 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 3107.88 s  ClockTime = 454 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 3130.96 s  ClockTime = 458 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 1
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 3150.83 s  ClockTime = 462 s
+
+Time = 2.324017113e-05
+
+    Collisions                      = 266278
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 1
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Load balance summary:
+    move particles avg/max/min    = 74279100 / 594232800 / 594232800
+    move imbalance max/avg        = 8
+    collision cand avg/max/min    = 15508950 / 124071600 / 124071600
+    collision cand imbalance      = 8
+    accepted coll avg/max/min     = 6922266.625 / 55378133 / 55378133
+    accepted coll imbalance       = 8
+    thread move particles         = 8(74283143 74302594 74255554 74301413 74256717 74303816 74254484 74275079)
+    thread collision candidates   = 8(18858075 11970812 18708290 12124220 19028281 12281722 18546292 12553908)
+    thread accepted collisions    = 8(8943959 4799889 8874139 4883359 9018963 4967616 8777593 5112615)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 2052202
+    Number of molecules             = 1.2313212e+16
+    Mass in system                  = 5.905084542e-10
+    Average linear kinetic energy   = 1.504533294e-19
+    Average rotational energy       = 1.514397626e-20
+    Average vibrational energy      = 2.161219782e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.872095035e-19
+ExecutionTime = 3169.84 s  ClockTime = 466 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 3185.18 s  ClockTime = 469 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 3202.87 s  ClockTime = 472 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 3223.41 s  ClockTime = 476 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 3243.42 s  ClockTime = 480 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 3260.39 s  ClockTime = 480 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 3281.14 s  ClockTime = 484 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 3304.18 s  ClockTime = 489 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 3327.1 s  ClockTime = 493 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 1
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 1
+ExecutionTime = 3347.07 s  ClockTime = 497 s
+
+Time = 2.390417602e-05
+
+    Collisions                      = 271136
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Load balance summary:
+    move particles avg/max/min    = 76854380.62 / 614835045 / 614835045
+    move imbalance max/avg        = 8
+    collision cand avg/max/min    = 16226636.38 / 129813091 / 129813091
+    collision cand imbalance      = 8
+    accepted coll avg/max/min     = 7257821.375 / 58062571 / 58062571
+    accepted coll imbalance       = 8
+    thread move particles         = 8(76858545 76879201 76829481 76876963 76831777 76879634 76829184 76850260)
+    thread collision candidates   = 8(19710645 12566991 19594045 12637824 19866633 12891321 19373826 13171806)
+    thread accepted collisions    = 8(9340993 5080598 9289928 5117996 9409445 5254963 9163904 5404744)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 2069880
+    Number of molecules             = 1.241928e+16
+    Mass in system                  = 5.955974288e-10
+    Average linear kinetic energy   = 1.49848443e-19
+    Average rotational energy       = 1.54578233e-20
+    Average vibrational energy      = 2.161323044e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.869194968e-19
+ExecutionTime = 3366.84 s  ClockTime = 501 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 2
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 3386.87 s  ClockTime = 505 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 3407.54 s  ClockTime = 509 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 3429.92 s  ClockTime = 511 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 3450.22 s  ClockTime = 515 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 1
+ExecutionTime = 3466.85 s  ClockTime = 518 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 1
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 3483.66 s  ClockTime = 521 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 3499.35 s  ClockTime = 524 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 3515.15 s  ClockTime = 526 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 3533.03 s  ClockTime = 530 s
+
+Time = 2.456818091e-05
+
+    Collisions                      = 275495
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Load balance summary:
+    move particles avg/max/min    = 79451570.25 / 635612562 / 635612562
+    move imbalance max/avg        = 8
+    collision cand avg/max/min    = 16955531.5 / 135644252 / 135644252
+    collision cand imbalance      = 8
+    accepted coll avg/max/min     = 7599188.125 / 60793505 / 60793505
+    accepted coll imbalance       = 8
+    thread move particles         = 8(79455817 79478170 79424921 79475744 79427391 79478126 79425044 79447349)
+    thread collision candidates   = 8(20564921 13106896 20498462 13196748 20762923 13466080 20274329 13773893)
+    thread accepted collisions    = 8(9740452 5330059 9714327 5377914 9831114 5523396 9588737 5687506)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 2087216
+    Number of molecules             = 1.2523296e+16
+    Mass in system                  = 6.0058582e-10
+    Average linear kinetic energy   = 1.492926499e-19
+    Average rotational energy       = 1.57270071e-20
+    Average vibrational energy      = 2.161454444e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.866342014e-19
+ExecutionTime = 3551.29 s  ClockTime = 533 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 1
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 3567.44 s  ClockTime = 536 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 3582.51 s  ClockTime = 539 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 3599.92 s  ClockTime = 540 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 3616.43 s  ClockTime = 543 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 3635.89 s  ClockTime = 547 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 3654.16 s  ClockTime = 550 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 3673.93 s  ClockTime = 554 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 3695.42 s  ClockTime = 558 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 3712.25 s  ClockTime = 561 s
+
+Time = 2.52321858e-05
+
+    Collisions                      = 280121
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Load balance summary:
+    move particles avg/max/min    = 82070141 / 656561128 / 656561128
+    move imbalance max/avg        = 8
+    collision cand avg/max/min    = 17696496.88 / 141571975 / 141571975
+    collision cand imbalance      = 8
+    accepted coll avg/max/min     = 7946773.5 / 63574188 / 63574188
+    accepted coll imbalance       = 8
+    thread move particles         = 8(82074465 82098554 82041716 82096044 82044193 82098031 82042314 82065811)
+    thread collision candidates   = 8(21477124 13668311 21379374 13748900 21698257 14030723 21190604 14378682)
+    thread accepted collisions    = 8(10167904 5591964 10126888 5635221 10271703 5787888 10020092 5972528)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 2104189
+    Number of molecules             = 1.2625134e+16
+    Mass in system                  = 6.054645958e-10
+    Average linear kinetic energy   = 1.487011722e-19
+    Average rotational energy       = 1.602661979e-20
+    Average vibrational energy      = 2.161761886e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.863454109e-19
+ExecutionTime = 3730.81 s  ClockTime = 564 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 3746.51 s  ClockTime = 568 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 3763.12 s  ClockTime = 568 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 3780.94 s  ClockTime = 571 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 3795.11 s  ClockTime = 574 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 3812.77 s  ClockTime = 577 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 3830.78 s  ClockTime = 581 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 3848.13 s  ClockTime = 584 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 1
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 3865.17 s  ClockTime = 587 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 3881.42 s  ClockTime = 590 s
+
+Time = 2.589619069e-05
+
+    Collisions                      = 284834
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 1
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Load balance summary:
+    move particles avg/max/min    = 84710168.25 / 677681346 / 677681346
+    move imbalance max/avg        = 8
+    collision cand avg/max/min    = 18448772.38 / 147590179 / 147590179
+    collision cand imbalance      = 8
+    accepted coll avg/max/min     = 8299899.125 / 66399193 / 66399193
+    accepted coll imbalance       = 8
+    thread move particles         = 8(84714578 84739618 84680751 84737408 84682923 84738822 84681539 84705707)
+    thread collision candidates   = 8(22393111 14250382 22281851 14321704 22632101 14616169 22088266 15006595)
+    thread accepted collisions    = 8(10596428 5864542 10548635 5903166 10710884 6062955 10441254 6271329)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 2121412
+    Number of molecules             = 1.2728472e+16
+    Mass in system                  = 6.104217796e-10
+    Average linear kinetic energy   = 1.481704888e-19
+    Average rotational energy       = 1.62795842e-20
+    Average vibrational energy      = 2.161900664e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.860690796e-19
+ExecutionTime = 3902 s  ClockTime = 595 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 3918.93 s  ClockTime = 598 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 3935.83 s  ClockTime = 598 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 3953.6 s  ClockTime = 602 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 3970.15 s  ClockTime = 605 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 3986.44 s  ClockTime = 608 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 4002.81 s  ClockTime = 611 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 4018.27 s  ClockTime = 614 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 4032.99 s  ClockTime = 617 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 4049.29 s  ClockTime = 620 s
+
+Time = 2.656019558e-05
+
+    Collisions                      = 289467
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Load balance summary:
+    move particles avg/max/min    = 87371268.38 / 698970147 / 698970147
+    move imbalance max/avg        = 8
+    collision cand avg/max/min    = 19212689.38 / 153701515 / 153701515
+    collision cand imbalance      = 8
+    accepted coll avg/max/min     = 8659137 / 69273096 / 69273096
+    accepted coll imbalance       = 8
+    thread move particles         = 8(87375828 87401318 87341223 87399635 87342871 87400359 87342229 87366684)
+    thread collision candidates   = 8(23305107 14857772 23204391 14909801 23584706 15203554 23024458 15611726)
+    thread accepted collisions    = 8(11021937 6152350 10981009 6180017 11158090 6339155 10882529 6558009)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 2137774
+    Number of molecules             = 1.2826644e+16
+    Mass in system                  = 6.151254798e-10
+    Average linear kinetic energy   = 1.476356782e-19
+    Average rotational energy       = 1.652810772e-20
+    Average vibrational energy      = 2.162106264e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.857848486e-19
+ExecutionTime = 4068.34 s  ClockTime = 624 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 4083.02 s  ClockTime = 627 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 4099.89 s  ClockTime = 627 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 4118.92 s  ClockTime = 631 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 4139.45 s  ClockTime = 635 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 4157.77 s  ClockTime = 638 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 4176.03 s  ClockTime = 642 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 4194.57 s  ClockTime = 645 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 4213.75 s  ClockTime = 649 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 4233.66 s  ClockTime = 653 s
+
+Time = 2.722420047e-05
+
+    Collisions                      = 294049
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Load balance summary:
+    move particles avg/max/min    = 90052888.38 / 720423107 / 720423107
+    move imbalance max/avg        = 8
+    collision cand avg/max/min    = 19987791.88 / 159902335 / 159902335
+    collision cand imbalance      = 8
+    accepted coll avg/max/min     = 9023926.25 / 72191410 / 72191410
+    accepted coll imbalance       = 8
+    thread move particles         = 8(90057572 90083110 90022648 90081853 90023904 90083834 90022014 90048172)
+    thread collision candidates   = 8(24238328 15458362 24142301 15510406 24548033 15782210 23971684 16251011)
+    thread accepted collisions    = 8(11458481 6436265 11419046 6463293 11612802 6611202 11327163 6863158)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 2154514
+    Number of molecules             = 1.2927084e+16
+    Mass in system                  = 6.199431818e-10
+    Average linear kinetic energy   = 1.471120003e-19
+    Average rotational energy       = 1.677425386e-20
+    Average vibrational energy      = 2.162234834e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.855086025e-19
+ExecutionTime = 4254.71 s  ClockTime = 657 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 4270.39 s  ClockTime = 657 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 4288.47 s  ClockTime = 661 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 4305.89 s  ClockTime = 664 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 4326.95 s  ClockTime = 668 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 4348.97 s  ClockTime = 672 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 1
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 4370.65 s  ClockTime = 676 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 4392.48 s  ClockTime = 681 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 4409.58 s  ClockTime = 684 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 4432.4 s  ClockTime = 686 s
+
+Time = 2.788820535e-05
+
+    Collisions                      = 298604
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Load balance summary:
+    move particles avg/max/min    = 92755310.5 / 742042484 / 742042484
+    move imbalance max/avg        = 8
+    collision cand avg/max/min    = 20774428.38 / 166195427 / 166195427
+    collision cand imbalance      = 8
+    accepted coll avg/max/min     = 9394412.375 / 75155299 / 75155299
+    accepted coll imbalance       = 8
+    thread move particles         = 8(92760166 92785907 92724709 92785651 92724847 92788310 92722381 92750513)
+    thread collision candidates   = 8(25193049 16069003 25094081 16119797 25509657 16386605 24947576 16875659)
+    thread accepted collisions    = 8(11904102 6725694 11864902 6752066 12065605 6896955 11785700 7160275)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 2170989
+    Number of molecules             = 1.3025934e+16
+    Mass in system                  = 6.246812282e-10
+    Average linear kinetic energy   = 1.465739205e-19
+    Average rotational energy       = 1.704075928e-20
+    Average vibrational energy      = 2.162444069e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.852391205e-19
+ExecutionTime = 4457.36 s  ClockTime = 692 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 4475.57 s  ClockTime = 696 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 4496.49 s  ClockTime = 700 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 4511.35 s  ClockTime = 703 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 1
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 1
+ExecutionTime = 4527.26 s  ClockTime = 706 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 4541.49 s  ClockTime = 709 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 4557.48 s  ClockTime = 712 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 4575.24 s  ClockTime = 715 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 4596.54 s  ClockTime = 717 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 4618.09 s  ClockTime = 721 s
+
+Time = 2.855221024e-05
+
+    Collisions                      = 303864
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Load balance summary:
+    move particles avg/max/min    = 95478262.88 / 763826103 / 763826103
+    move imbalance max/avg        = 8
+    collision cand avg/max/min    = 21573238.12 / 172585905 / 172585905
+    collision cand imbalance      = 8
+    accepted coll avg/max/min     = 9771193.25 / 78169546 / 78169546
+    accepted coll imbalance       = 8
+    thread move particles         = 8(95483293 95509651 95446843 95510204 95446233 95513219 95443384 95473276)
+    thread collision candidates   = 8(26150902 16707509 26044585 16730652 26502053 17002613 25946066 17501525)
+    thread accepted collisions    = 8(12351452 7031232 12308798 7042040 12533633 7189223 12254807 7458361)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 2187284
+    Number of molecules             = 1.3123704e+16
+    Mass in system                  = 6.293703247e-10
+    Average linear kinetic energy   = 1.46048196e-19
+    Average rotational energy       = 1.728937388e-20
+    Average vibrational energy      = 2.162615473e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.849637246e-19
+ExecutionTime = 4639.05 s  ClockTime = 725 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 4658.29 s  ClockTime = 729 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 4678.49 s  ClockTime = 733 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 4697.82 s  ClockTime = 737 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 4717.77 s  ClockTime = 741 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 4737.12 s  ClockTime = 745 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 4756.13 s  ClockTime = 746 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 4774.02 s  ClockTime = 749 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 4794.32 s  ClockTime = 753 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 4814.1 s  ClockTime = 757 s
+
+Time = 2.921621513e-05
+
+    Collisions                      = 307944
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 1
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Load balance summary:
+    move particles avg/max/min    = 98221513.75 / 785772110 / 785772110
+    move imbalance max/avg        = 8
+    collision cand avg/max/min    = 22384069.5 / 179072556 / 179072556
+    collision cand imbalance      = 8
+    accepted coll avg/max/min     = 10153826.25 / 81230610 / 81230610
+    accepted coll imbalance       = 8
+    thread move particles         = 8(98226672 98254084 98188940 98254592 98188332 98257351 98185764 98216375)
+    thread collision candidates   = 8(27143915 17335315 27015596 17345455 27522611 17612563 26955202 18141899)
+    thread accepted collisions    = 8(12817922 7330788 12762236 7334513 13013735 7478171 12728235 7765010)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 2203504
+    Number of molecules             = 1.3221024e+16
+    Mass in system                  = 6.340449318e-10
+    Average linear kinetic energy   = 1.455528472e-19
+    Average rotational energy       = 1.752524302e-20
+    Average vibrational energy      = 2.162714898e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.847052392e-19
+ExecutionTime = 4835.89 s  ClockTime = 762 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 1
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 4851.94 s  ClockTime = 765 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 4869.86 s  ClockTime = 769 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 4887.46 s  ClockTime = 772 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 4904.88 s  ClockTime = 776 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 4923.2 s  ClockTime = 776 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 4939.32 s  ClockTime = 780 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 4954.37 s  ClockTime = 783 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 4970.62 s  ClockTime = 786 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 4988.06 s  ClockTime = 789 s
+
+Time = 2.988022002e-05
+
+    Collisions                      = 312233
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Load balance summary:
+    move particles avg/max/min    = 100984675.6 / 807877405 / 807877405
+    move imbalance max/avg        = 8
+    collision cand avg/max/min    = 23206196.88 / 185649575 / 185649575
+    collision cand imbalance      = 8
+    accepted coll avg/max/min     = 10542169.88 / 84337359 / 84337359
+    accepted coll imbalance       = 8
+    thread move particles         = 8(100989973 101018868 100950508 101019189 100950073 101022158 100947313 100979323)
+    thread collision candidates   = 8(28134050 17973702 28016579 17982061 28542856 18257151 27951721 18791455)
+    thread accepted collisions    = 8(13279120 7636609 13230786 7638835 13493973 7786918 13195104 8076014)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 2219253
+    Number of molecules             = 1.3315518e+16
+    Mass in system                  = 6.385710503e-10
+    Average linear kinetic energy   = 1.4505776e-19
+    Average rotational energy       = 1.775367196e-20
+    Average vibrational energy      = 2.162976299e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.84441195e-19
+ExecutionTime = 5007.38 s  ClockTime = 793 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 5023.36 s  ClockTime = 797 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 1
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 5040.13 s  ClockTime = 800 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 1
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 5058.05 s  ClockTime = 804 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 5074.9 s  ClockTime = 804 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 5090.78 s  ClockTime = 808 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 5106.82 s  ClockTime = 811 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 5123.63 s  ClockTime = 814 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 5142.18 s  ClockTime = 818 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 5159.44 s  ClockTime = 822 s
+
+Time = 3.054422491e-05
+
+    Collisions                      = 317443
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Load balance summary:
+    move particles avg/max/min    = 103767686.6 / 830141493 / 830141493
+    move imbalance max/avg        = 8
+    collision cand avg/max/min    = 24040080.25 / 192320642 / 192320642
+    collision cand imbalance      = 8
+    accepted coll avg/max/min     = 10936583.62 / 87492669 / 87492669
+    accepted coll imbalance       = 8
+    thread move particles         = 8(103773126 103802986 103732415 103803433 103731849 103806004 103729670 103762010)
+    thread collision candidates   = 8(29156282 18626246 29016672 18624482 29569893 18907633 28961243 19458191)
+    thread accepted collisions    = 8(13757995 7949879 13698023 7946490 13975914 8099175 13667718 8397475)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 2235086
+    Number of molecules             = 1.3410516e+16
+    Mass in system                  = 6.431263235e-10
+    Average linear kinetic energy   = 1.445711282e-19
+    Average rotational energy       = 1.797883839e-20
+    Average vibrational energy      = 2.163210671e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.841820733e-19
+ExecutionTime = 5178.8 s  ClockTime = 826 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 5196.71 s  ClockTime = 829 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 1
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 5215.42 s  ClockTime = 833 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 5233.59 s  ClockTime = 834 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 5249.99 s  ClockTime = 838 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 5265.9 s  ClockTime = 841 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 5282.17 s  ClockTime = 844 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 5297.72 s  ClockTime = 847 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 5309.97 s  ClockTime = 849 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 5322.4 s  ClockTime = 852 s
+
+Time = 3.12082298e-05
+
+    Collisions                      = 320202
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Load balance summary:
+    move particles avg/max/min    = 106570370.4 / 852562963 / 852562963
+    move imbalance max/avg        = 8
+    collision cand avg/max/min    = 24882926.25 / 199063410 / 199063410
+    collision cand imbalance      = 8
+    accepted coll avg/max/min     = 11335462.38 / 90683699 / 90683699
+    accepted coll imbalance       = 8
+    thread move particles         = 8(106575996 106607691 106533236 106606011 106534861 106608329 106532551 106564288)
+    thread collision candidates   = 8(30178794 19279751 30030516 19291266 30594323 19576015 29975779 20136966)
+    thread accepted collisions    = 8(14236199 8263888 14171692 8267536 14455673 8421175 14141369 8726167)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 2250743
+    Number of molecules             = 1.3504458e+16
+    Mass in system                  = 6.476318581e-10
+    Average linear kinetic energy   = 1.441011385e-19
+    Average rotational energy       = 1.8198676e-20
+    Average vibrational energy      = 2.163389564e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.839337101e-19
+ExecutionTime = 5336.16 s  ClockTime = 854 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 5347.14 s  ClockTime = 857 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 5359.68 s  ClockTime = 859 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 5371.95 s  ClockTime = 861 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 5384.37 s  ClockTime = 864 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 5396.67 s  ClockTime = 863 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 5409.34 s  ClockTime = 865 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 5421.34 s  ClockTime = 868 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 5433.52 s  ClockTime = 870 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 1
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 5446.11 s  ClockTime = 872 s
+
+Time = 3.187223469e-05
+
+    Collisions                      = 325152
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Load balance summary:
+    move particles avg/max/min    = 109392398.9 / 875139191 / 875139191
+    move imbalance max/avg        = 8
+    collision cand avg/max/min    = 25735308.5 / 205882468 / 205882468
+    collision cand imbalance      = 8
+    accepted coll avg/max/min     = 11739043.75 / 93912350 / 93912350
+    accepted coll imbalance       = 8
+    thread move particles         = 8(109398218 109431416 109353503 109429434 109355566 109431674 109353202 109386178)
+    thread collision candidates   = 8(31191814 19961587 31033276 19988025 31632412 20260273 30980229 20834852)
+    thread accepted collisions    = 8(14710309 8593242 14639445 8604167 14941392 8751618 14607856 9064321)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 2266086
+    Number of molecules             = 1.3596516e+16
+    Mass in system                  = 6.520487938e-10
+    Average linear kinetic energy   = 1.436456694e-19
+    Average rotational energy       = 1.841630133e-20
+    Average vibrational energy      = 2.163504502e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.836970158e-19
+ExecutionTime = 5459.76 s  ClockTime = 875 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 5471.16 s  ClockTime = 877 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 5484.2 s  ClockTime = 880 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 5496.68 s  ClockTime = 882 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 5509.28 s  ClockTime = 885 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 1
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 5521.58 s  ClockTime = 887 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 1
+ExecutionTime = 5534.13 s  ClockTime = 889 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 1
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 5546.43 s  ClockTime = 892 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 5559.13 s  ClockTime = 894 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 5571.77 s  ClockTime = 894 s
+
+Time = 3.253623958e-05
+
+    Collisions                      = 328843
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Load balance summary:
+    move particles avg/max/min    = 112233428.2 / 897867426 / 897867426
+    move imbalance max/avg        = 8
+    collision cand avg/max/min    = 26598915.38 / 212791323 / 212791323
+    collision cand imbalance      = 8
+    accepted coll avg/max/min     = 12148521.75 / 97188174 / 97188174
+    accepted coll imbalance       = 8
+    thread move particles         = 8(112239419 112273463 112193501 112271778 112195279 112273878 112193122 112226986)
+    thread collision candidates   = 8(32226107 20651021 32050214 20690214 32684476 20954376 31994747 21540168)
+    thread accepted collisions    = 8(15194433 8927499 15114271 8944871 15434007 9087312 15078663 9407118)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 2280940
+    Number of molecules             = 1.368564e+16
+    Mass in system                  = 6.56322266e-10
+    Average linear kinetic energy   = 1.43203413e-19
+    Average rotational energy       = 1.860873719e-20
+    Average vibrational energy      = 2.163613933e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.834482895e-19
+ExecutionTime = 5585.7 s  ClockTime = 896 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 5597.23 s  ClockTime = 899 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 5609.86 s  ClockTime = 901 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 5622.24 s  ClockTime = 904 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 5634.63 s  ClockTime = 906 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 5647.09 s  ClockTime = 908 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 5659.62 s  ClockTime = 911 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 5672.01 s  ClockTime = 913 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+ExecutionTime = 5684.71 s  ClockTime = 915 s
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+dsmcVolFields final profiling [N2]
+    calls                 = 499
+    sample accumulation   = 67.77775522 s
+    cell reduction        = 1.127547085 s
+    boundary accumulation = 0.57197952 s
+    output-time block     = 0 s
+
+dsmcVolFields final profiling [O2]
+    calls                 = 499
+    sample accumulation   = 2.447672891 s
+    cell reduction        = 0.891404316 s
+    boundary accumulation = 0.536668411 s
+    output-time block     = 0 s
+
+dsmcVolFields final profiling [NO]
+    calls                 = 499
+    sample accumulation   = 2.481907391 s
+    cell reduction        = 1.011894341 s
+    boundary accumulation = 0.575914062 s
+    output-time block     = 0 s
+
+dsmcVolFields final profiling [N]
+    calls                 = 499
+    sample accumulation   = 2.347094105 s
+    cell reduction        = 1.023017033 s
+    boundary accumulation = 0.564154265 s
+    output-time block     = 0 s
+
+dsmcVolFields final profiling [O]
+    calls                 = 499
+    sample accumulation   = 2.306502541 s
+    cell reduction        = 0.878056547 s
+    boundary accumulation = 0.56804551 s
+    output-time block     = 0 s
+
+dsmcVolFields final profiling [mixture]
+    calls                 = 499
+    sample accumulation   = 5.270513333 s
+    cell reduction        = 1.159707843 s
+    boundary accumulation = 2.302922036 s
+    output-time block     = 0 s
+
+ExecutionTime = 5697.46 s  ClockTime = 918 s
+
+Time = 3.320024447e-05
+
+    Collisions                      = 333951
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Load balance summary:
+    move particles avg/max/min    = 115093228.2 / 920745826 / 920745826
+    move imbalance max/avg        = 8
+    collision cand avg/max/min    = 27473395.75 / 219787166 / 219787166
+    collision cand imbalance      = 8
+    accepted coll avg/max/min     = 12563458.88 / 100507671 / 100507671
+    accepted coll imbalance       = 8
+    thread move particles         = 8(115099423 115134772 115051826 115132451 115054139 115134288 115052317 115086610)
+    thread collision candidates   = 8(33263144 21352332 33078489 21405253 33747200 21664570 33019076 22257102)
+    thread accepted collisions    = 8(15678562 9268073 15593742 9292277 15931794 9432856 15554326 9756041)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 2296220
+    Number of molecules             = 1.377732e+16
+    Mass in system                  = 6.60716184e-10
+    Average linear kinetic energy   = 1.427633025e-19
+    Average rotational energy       = 1.880929296e-20
+    Average vibrational energy      = 2.163741403e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.832100095e-19
+ExecutionTime = 5711.69 s  ClockTime = 921 s
+
+
+Main loop profiling summary:
+    main loop wall time [s]      = 1000.10209
+
+BuildCellOccupancy profiling summary:
+    buildCellOccupancy calls      = 1001
+    extract parcels [s]           = 267.1170553
+    count/reduce [s]              = 9.695818516
+    allocate/fill [s]             = 28.26739112
+    total profiled [s]            = 305.0802649
+
+Collision profiling summary:
+    collision calls               = 500
+    precompute candidates [s]     = 0.955651492
+    rebuild partition [s]         = 9.7716e-05
+    selection/collide [s]         = 186.0578853
+    total profiled [s]            = 187.0136345
+
+Evolve profiling summary:
+    evolve calls                  = 500
+    move only [s]                 = 397.8745591
+    buildCellOccupancy [s]        = 155.0858168
+    coordSystem [s]               = 0.000872025
+    collision phase [s]           = 187.017128
+    reaction/output [s]           = 150.1510206
+    post fields/output [s]        = 95.42904359
+    total profiled [s]            = 985.5584401
+
+Load balance summary:
+    move particles avg/max/min    = 115093228.2 / 115134772 / 115051826
+    move imbalance max/avg        = 1.000360957
+    collision cand avg/max/min    = 27473395.75 / 33747200 / 21352332
+    collision cand imbalance      = 1.228359257
+    accepted coll avg/max/min     = 12563458.88 / 15931794 / 9268073
+    accepted coll imbalance       = 1.268105715
+    thread move particles         = 8(115099423 115134772 115051826 115132451 115054139 115134288 115052317 115086610)
+    thread collision candidates   = 8(33263144 21352332 33078489 21405253 33747200 21664570 33019076 22257102)
+    thread accepted collisions    = 8(15678562 9268073 15593742 9292277 15931794 9432856 15554326 9756041)
+
+End
+

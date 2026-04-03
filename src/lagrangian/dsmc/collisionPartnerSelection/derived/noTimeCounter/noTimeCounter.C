@@ -88,9 +88,10 @@ void noTimeCounter::collide()
     // Temporary storage for subCells
     List<DynamicList<label>> subCells(8);
 
-    label collisionCandidates = 0;
-
-    label collisions = 0;
+    const label statsThreads =
+        cloud_.openmpEnabled() ? max(cloud_.ompNumThreads(), label(1)) : label(1);
+    labelList threadCandidateCounts(statsThreads, 0);
+    labelList threadAcceptedCounts(statsThreads, 0);
 
     const List<DynamicList<dsmcParcel*>>& cellOccupancy = cloud_.cellOccupancy();
 
@@ -99,11 +100,13 @@ void noTimeCounter::collide()
 
     auto processCell =
     [&](const label cellI, List<DynamicList<label>>& subCells)
+    -> label
     {
         const DynamicList<dsmcParcel*>& cellParcels(cellOccupancy[cellI]);
 
         const label nC(cellParcels.size());
         const label nCandidates = cloud_.nCandidatesPerCell()[cellI];
+        label acceptedCollisions = 0;
 
         if (nC > 1 && nCandidates > 0)
         {
@@ -139,8 +142,6 @@ void noTimeCounter::collide()
             // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
             scalar sigmaTcRMax = cloud_.sigmaTcRMax()[cellI];
-
-            collisionCandidates += nCandidates;
 
             for (label c = 0; c < nCandidates; c++)
             {
@@ -290,11 +291,12 @@ void noTimeCounter::collide()
                             );
                         }
 
-                        collisions++;
+                        acceptedCollisions++;
                     }
                 }
             }
         }
+        return acceptedCollisions;
     };
 
     #ifdef _OPENMP
@@ -302,30 +304,43 @@ void noTimeCounter::collide()
     {
         if (cloud_.openmpCollisionStrategy() == "partition")
         {
-            #pragma omp parallel reduction(+:collisionCandidates, collisions)
+            #pragma omp parallel
             {
                 List<DynamicList<label>> subCells(8);
                 const label threadI = cloud_.currentThreadId();
                 const label startCell = cloud_.collisionLoadStart()[threadI];
                 const label endCell = cloud_.collisionLoadEnd()[threadI];
+                label localCandidates = 0;
+                label localCollisions = 0;
 
                 for (label cellI = startCell; cellI < endCell; ++cellI)
                 {
-                    processCell(cellI, subCells);
+                    localCandidates += cloud_.nCandidatesPerCell()[cellI];
+                    localCollisions += processCell(cellI, subCells);
                 }
+
+                threadCandidateCounts[threadI] = localCandidates;
+                threadAcceptedCounts[threadI] = localCollisions;
             }
         }
         else
         {
-            #pragma omp parallel reduction(+:collisionCandidates, collisions)
+            #pragma omp parallel
             {
                 List<DynamicList<label>> subCells(8);
+                const label threadI = cloud_.currentThreadId();
+                label localCandidates = 0;
+                label localCollisions = 0;
 
                 #pragma omp for schedule(dynamic, 1)
                 for (label cellI = 0; cellI < nCells; ++cellI)
                 {
-                    processCell(cellI, subCells);
+                    localCandidates += cloud_.nCandidatesPerCell()[cellI];
+                    localCollisions += processCell(cellI, subCells);
                 }
+
+                threadCandidateCounts[threadI] = localCandidates;
+                threadAcceptedCounts[threadI] = localCollisions;
             }
         }
     }
@@ -336,9 +351,15 @@ void noTimeCounter::collide()
 
         for (label cellI = 0; cellI < nCells; ++cellI)
         {
-            processCell(cellI, subCells);
+            threadCandidateCounts[0] += cloud_.nCandidatesPerCell()[cellI];
+            threadAcceptedCounts[0] += processCell(cellI, subCells);
         }
     }
+
+    cloud_.recordCollisionThreadCounts(threadCandidateCounts, threadAcceptedCounts);
+
+    label collisionCandidates = sum(threadCandidateCounts);
+    label collisions = sum(threadAcceptedCounts);
 
     reduce(collisions, sumOp<label>());
 

@@ -1,0 +1,346 @@
+/*---------------------------------------------------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  2506                                  |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+Build  : 95a5dfacc7-20250714 OPENFOAM=2506 version=v2506
+Arch   : "LSB;label=32;scalar=64"
+Exec   : /home/superxcx/code/DSMC/dsmcFoam++/hyStrath_xcx/platforms/linux64IcxDPInt32Opt/bin/dsmcFoam+
+Date   : Apr 03 2026
+Time   : 22:15:47
+Host   : SuperXCX-ROG
+PID    : 872671
+I/O    : uncollated
+Case   : /home/superxcx/code/DSMC/dsmcFoam++/hyStrath_xcx/case/cylinder_react/cylinder_react_omp8
+nProcs : 1
+trapFpe: Floating point exception trapping enabled (FOAM_SIGFPE).
+fileModificationChecking : Monitoring run-time modified files using timeStampMaster (fileModificationSkew 5, maxFileModificationPolls 20)
+allowSystemOperations : Allowing user-supplied system call operations
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+Create time
+
+--> FOAM Warning : 
+    From static Foam::IOstreamOption::compressionType Foam::IOstreamOption::compressionEnum(const word &, const compressionType)
+    in file db/options/IOstreamOption.C at line 189
+    Unknown compression specifier 'uncompressed' using compression off
+Create mesh for time = 0
+
+
+Constructing dsmcCloud
+Selecting the coordinate system model:	dsmcCartesian
+
+Selecting the time-step model:	dsmcConstantTimeStepModel
+
+Constant time-step model:
+- time-step [sec]	6.640048894e-08
+
+Selecting the porous measurement model:	dsmcNoPorousMediumMeasurements
+
+
+Creating dsmcControllers
+
+Creating fields: 
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+Resetting fields at output until time: 2.456818091e-06
+ measurement option: write
+ nSamples: 1, time interval: 6.640048894e-08
+ nAverages: 47, time interval: 3.12082298e-06
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+Resetting fields at output until time: 2.456818091e-06
+ measurement option: write
+ nSamples: 1, time interval: 6.640048894e-08
+ nAverages: 47, time interval: 3.12082298e-06
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+Resetting fields at output until time: 2.456818091e-06
+ measurement option: write
+ nSamples: 1, time interval: 6.640048894e-08
+ nAverages: 47, time interval: 3.12082298e-06
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+Resetting fields at output until time: 2.456818091e-06
+ measurement option: write
+ nSamples: 1, time interval: 6.640048894e-08
+ nAverages: 47, time interval: 3.12082298e-06
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+Resetting fields at output until time: 2.456818091e-06
+ measurement option: write
+ nSamples: 1, time interval: 6.640048894e-08
+ nAverages: 47, time interval: 3.12082298e-06
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+Resetting fields at output until time: 2.456818091e-06
+ measurement option: write
+ nSamples: 1, time interval: 6.640048894e-08
+ nAverages: 47, time interval: 3.12082298e-06
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Creating the boundary models: 
+
+Selecting dsmcPatchBoundaryModel dsmcDeletionPatch
+Selecting dsmcPatchBoundaryModel dsmcDeletionPatch
+Selecting dsmcPatchBoundaryModel dsmcDiffuseWallPatch
+Selecting dsmcGeneralBoundaryModel dsmcFreeStreamInflowPatch
+Selecting BinaryCollisionModel LarsenBorgnakkeVariableHardSphere
+OpenMP enabled for dsmcCloud with 8 thread-local RNG streams using collision strategy 'dynamic', move kernel enabled (dynamic, chunk 64)
+
+Constructing constant properties for
+    N2
+    O2
+    NO
+    N
+    O
+
+Creating dsmcReactions
+
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationExchangeQK
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationExchangeQK
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationExchangeQK
+Selecting the reaction model dissociationExchangeQK
+Selecting the reaction model dissociationQK
+Number of reactions created: 12
+Selecting collisionPartnerSelectionModel noTimeCounter
+
+Initialising the measurement fields
+
+Initialising dsmcVolFields field
+Initialising dsmcVolFields field
+Initialising dsmcVolFields field
+Initialising dsmcVolFields field
+Initialising dsmcVolFields field
+Initialising dsmcVolFields field
+
+Starting time loop
+
+ExecutionTime = 23.66 s  ClockTime = 17 s
+
+ExecutionTime = 33.23 s  ClockTime = 18 s
+
+ExecutionTime = 43.31 s  ClockTime = 20 s
+
+ExecutionTime = 72.7 s  ClockTime = 24 s
+
+ExecutionTime = 83.92 s  ClockTime = 25 s
+
+ExecutionTime = 95.8 s  ClockTime = 27 s
+
+ExecutionTime = 108.25 s  ClockTime = 29 s
+
+ExecutionTime = 119.58 s  ClockTime = 28 s
+
+ExecutionTime = 131.52 s  ClockTime = 29 s
+
+Time = 6.640048894e-07
+
+    Collisions                      = 27645
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1330356
+    Number of molecules             = 7.982136e+15
+    Mass in system                  = 3.828100247e-10
+    Average linear kinetic energy   = 1.893634328e-19
+    Average rotational energy       = 1.336837499e-21
+    Average vibrational energy      = 2.157525156e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.122755219e-19
+ExecutionTime = 145.19 s  ClockTime = 31 s
+
+ExecutionTime = 157.09 s  ClockTime = 33 s
+
+ExecutionTime = 169.38 s  ClockTime = 34 s
+
+ExecutionTime = 181.13 s  ClockTime = 36 s
+
+ExecutionTime = 192.66 s  ClockTime = 38 s
+
+ExecutionTime = 201.76 s  ClockTime = 39 s
+
+ExecutionTime = 210.5 s  ClockTime = 40 s
+
+ExecutionTime = 221.26 s  ClockTime = 42 s
+
+ExecutionTime = 231.51 s  ClockTime = 43 s
+
+ExecutionTime = 239.7 s  ClockTime = 44 s
+
+Time = 1.328009779e-06
+
+    Collisions                      = 36544
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1354066
+    Number of molecules             = 8.124396e+15
+    Mass in system                  = 3.896327709e-10
+    Average linear kinetic energy   = 1.866215854e-19
+    Average rotational energy       = 1.574321484e-21
+    Average vibrational energy      = 2.157529266e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.097711995e-19
+ExecutionTime = 247.4 s  ClockTime = 45 s
+
+ExecutionTime = 253.09 s  ClockTime = 46 s
+
+ExecutionTime = 260.07 s  ClockTime = 47 s
+
+ExecutionTime = 266.79 s  ClockTime = 48 s
+
+ExecutionTime = 273.62 s  ClockTime = 49 s
+
+ExecutionTime = 283.66 s  ClockTime = 50 s
+
+ExecutionTime = 291.58 s  ClockTime = 51 s
+
+ExecutionTime = 300.09 s  ClockTime = 52 s
+
+ExecutionTime = 309.92 s  ClockTime = 54 s
+
+ExecutionTime = 316.79 s  ClockTime = 55 s
+
+Time = 1.992014668e-06
+
+    Collisions                      = 46996
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1377625
+    Number of molecules             = 8.26575e+15
+    Mass in system                  = 3.964129908e-10
+    Average linear kinetic energy   = 1.841825799e-19
+    Average rotational energy       = 1.901621403e-21
+    Average vibrational energy      = 2.15753266e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.076595279e-19
+ExecutionTime = 325.87 s  ClockTime = 56 s
+
+ExecutionTime = 334.85 s  ClockTime = 57 s
+
+ExecutionTime = 341.54 s  ClockTime = 58 s
+
+ExecutionTime = 350.31 s  ClockTime = 57 s
+
+ExecutionTime = 361.36 s  ClockTime = 58 s
+
+ExecutionTime = 372.13 s  ClockTime = 60 s
+
+ExecutionTime = 384.65 s  ClockTime = 61 s
+
+
+Start sample at time 2.456818091e-06 and step 37
+
+
+Start sample at time 2.456818091e-06 and step 37
+
+
+Start sample at time 2.456818091e-06 and step 37
+
+
+Start sample at time 2.456818091e-06 and step 37
+
+
+Start sample at time 2.456818091e-06 and step 37
+
+
+Start sample at time 2.456818091e-06 and step 37
+
+ExecutionTime = 398.13 s  ClockTime = 63 s
+
+ExecutionTime = 409.58 s  ClockTime = 65 s
+
+ExecutionTime = 421.15 s  ClockTime = 66 s
+
+Time = 2.656019558e-06
+
+    Collisions                      = 57579
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1401256
+    Number of molecules             = 8.407536e+15
+    Mass in system                  = 4.032114319e-10
+    Average linear kinetic energy   = 1.819804473e-19
+    Average rotational energy       = 2.297571419e-21
+    Average vibrational energy      = 2.157542696e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.058534457e-19
+ExecutionTime = 431.25 s  ClockTime = 68 s
+
+ExecutionTime = 438.27 s  ClockTime = 69 s
+
+ExecutionTime = 446.55 s  ClockTime = 70 s
+
+ExecutionTime = 456.34 s  ClockTime = 71 s
+
+ExecutionTime = 465.97 s  ClockTime = 72 s
+
+ExecutionTime = 476.03 s  ClockTime = 74 s
+
+ExecutionTime = 485.96 s  ClockTime = 75 s
+
+ExecutionTime = 494.22 s  ClockTime = 76 s
+
+BuildCellOccupancy profiling summary:
+    buildCellOccupancy calls      = 95
+    extract parcels [s]           = 4.228941195
+    count/reduce [s]              = 1.98458456
+    allocate/fill [s]             = 3.335833514
+    total profiled [s]            = 9.549359269
+
+Collision profiling summary:
+    collision calls               = 47
+    precompute candidates [s]     = 0.418963344
+    rebuild partition [s]         = 1.5303e-05
+    selection/collide [s]         = 8.616495083
+    total profiled [s]            = 9.03547373
+
+Evolve profiling summary:
+    evolve calls                  = 47
+    move only [s]                 = 32.9192909
+    buildCellOccupancy [s]        = 5.156001996
+    coordSystem [s]               = 0.00010742
+    collision phase [s]           = 9.036120447
+    reaction/output [s]           = 4.373471144
+    post fields/output [s]        = 13.60458598
+    total profiled [s]            = 65.08957788
+
+End
+

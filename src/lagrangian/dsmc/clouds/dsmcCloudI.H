@@ -108,6 +108,21 @@ inline bool Foam::dsmcCloud::trackerActive() const
     return trackerActive_;
 }
 
+inline bool Foam::dsmcCloud::evolveProfileEnabled() const
+{
+    return evolveProfileEnabled_;
+}
+
+inline void Foam::dsmcCloud::setStepDiagnosticOutput(const bool enabled)
+{
+    emitStepDiagnostics_ = enabled;
+}
+
+inline bool Foam::dsmcCloud::emitStepDiagnostics() const
+{
+    return emitStepDiagnostics_;
+}
+
 inline Foam::label Foam::dsmcCloud::ompNumThreads() const
 {
     return ompNumThreads_;

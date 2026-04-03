@@ -124,6 +124,7 @@ class dsmcCloud
     label openmpMoveChunk_;
     bool collisionProfileEnabled_;
     bool evolveProfileEnabled_;
+    bool emitStepDiagnostics_;
     List<Random> ompRndGens_;
     labelList particleLoadStart_;
     labelList particleLoadEnd_;
@@ -149,6 +150,9 @@ class dsmcCloud
     scalar evolveReactionWallTime_;
     scalar evolvePostWallTime_;
     label evolveProfileCalls_;
+    labelList moveThreadParticleCounts_;
+    labelList collisionThreadCandidateCounts_;
+    labelList collisionThreadAcceptedCounts_;
     autoPtr<porousMeasurements> porousMeasurements_;
     dsmcControllers controllers_;
     boundaryMeasurements boundaryMeas_;
@@ -232,6 +236,9 @@ public:
     inline bool openmpEnabled() const;
     inline bool openmpMoveEnabled() const;
     inline bool trackerActive() const;
+    inline bool evolveProfileEnabled() const;
+    inline void setStepDiagnosticOutput(const bool enabled);
+    inline bool emitStepDiagnostics() const;
     inline label ompNumThreads() const;
     inline const word& openmpCollisionStrategy() const;
     inline const word& openmpMoveSchedule() const;
@@ -352,6 +359,9 @@ public:
 
     void info() const;
     void reportProfiling() const;
+    void recordMoveThreadCounts(const labelList& counts);
+    void recordCollisionThreadCounts(const labelList& candidateCounts, const labelList& acceptedCounts);
+    void resetLoadStats();
     void loadBalanceCheck();
     void evolve();
 

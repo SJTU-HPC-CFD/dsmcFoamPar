@@ -1,0 +1,222 @@
+/*---------------------------------------------------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  2506                                  |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+Build  : 95a5dfacc7-20250714 OPENFOAM=2506 version=v2506
+Arch   : "LSB;label=32;scalar=64"
+Exec   : /home/superxcx/code/DSMC/dsmcFoam++/hyStrath_xcx/platforms/linux64IcxDPInt32Opt/bin/dsmcFoam+ -case /home/superxcx/code/DSMC/dsmcFoam++/hyStrath_xcx/case/orion107kmNR
+Date   : Apr 01 2026
+Time   : 17:13:15
+Host   : SuperXCX-ROG
+PID    : 718140
+I/O    : uncollated
+Case   : /home/superxcx/code/DSMC/dsmcFoam++/hyStrath_xcx/case/orion107kmNR
+nProcs : 1
+trapFpe: Floating point exception trapping enabled (FOAM_SIGFPE).
+fileModificationChecking : Monitoring run-time modified files using timeStampMaster (fileModificationSkew 5, maxFileModificationPolls 20)
+allowSystemOperations : Allowing user-supplied system call operations
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+Create time
+
+--> FOAM Warning : 
+    From static Foam::IOstreamOption::compressionType Foam::IOstreamOption::compressionEnum(const word &, const compressionType)
+    in file db/options/IOstreamOption.C at line 189
+    Unknown compression specifier 'uncompressed' using compression off
+Create mesh for time = 0
+
+
+Constructing dsmcCloud
+Selecting the coordinate system model:	dsmcCartesian
+
+Selecting the time-step model:	dsmcConstantTimeStepModel
+
+Constant time-step model:
+- time-step [sec]	7e-06
+
+Selecting the porous measurement model:	dsmcNoPorousMediumMeasurements
+
+
+Creating dsmcControllers
+
+Creating fields: 
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+Resetting fields at output until time: 0.014
+ measurement option: write
+ nSamples: 1, time interval: 7e-06
+ nAverages: 1000, time interval: 0.007
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+Resetting fields at output until time: 0.014
+ measurement option: write
+ nSamples: 1, time interval: 7e-06
+ nAverages: 1000, time interval: 0.007
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+Resetting fields at output until time: 0.014
+ measurement option: write
+ nSamples: 1, time interval: 7e-06
+ nAverages: 1000, time interval: 0.007
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Creating the boundary models: 
+
+Selecting dsmcPatchBoundaryModel dsmcDeletionPatch
+Selecting dsmcPatchBoundaryModel dsmcDeletionPatch
+Selecting dsmcPatchBoundaryModel dsmcDiffuseWallPatch
+Selecting dsmcGeneralBoundaryModel dsmcFreeStreamInflowPatch
+Selecting dsmcGeneralBoundaryModel dsmcFreeStreamInflowPatch
+Selecting BinaryCollisionModel LarsenBorgnakkeVariableHardSphere
+
+Constructing constant properties for
+    N2
+    O2
+
+Creating dsmcReactions
+
+There are no chemical reactions defined.
+
+Starting time loop
+
+    Collisions                      = 1977
+    Acceptance rate                 = 0.3164212548
+
+ExecutionTime = 4.59 s  ClockTime = 5 s
+
+    Collisions                      = 2060
+    Acceptance rate                 = 0.3238484515
+
+ExecutionTime = 4.99 s  ClockTime = 5 s
+
+    Collisions                      = 2078
+    Acceptance rate                 = 0.3290577989
+
+ExecutionTime = 5.4 s  ClockTime = 6 s
+
+    Collisions                      = 2101
+    Acceptance rate                 = 0.3321214037
+
+ExecutionTime = 5.83 s  ClockTime = 6 s
+
+    Collisions                      = 2019
+    Acceptance rate                 = 0.3180529301
+
+ExecutionTime = 6.25 s  ClockTime = 7 s
+
+    Collisions                      = 2136
+    Acceptance rate                 = 0.3262563006
+
+ExecutionTime = 6.67 s  ClockTime = 7 s
+
+    Collisions                      = 2164
+    Acceptance rate                 = 0.3266415094
+
+ExecutionTime = 7.09 s  ClockTime = 8 s
+
+    Collisions                      = 2180
+    Acceptance rate                 = 0.3291062802
+
+ExecutionTime = 7.55 s  ClockTime = 8 s
+
+    Collisions                      = 2242
+    Acceptance rate                 = 0.3388754534
+
+ExecutionTime = 8.02 s  ClockTime = 9 s
+
+Time = 7e-05
+
+    Collisions                      = 2272
+    Acceptance rate                 = 0.3411411411
+
+Cloud name: dsmc
+    Number of dsmc particles        = 642625
+    Number of molecules             = 1.71632285e+21
+    Mass in system                  = 8.219700269e-05
+    Average linear kinetic energy   = 8.756081603e-19
+    Average rotational energy       = 3.109530765e-21
+    Average vibrational energy      = 2.166976807e-20
+    Average electronic energy       = 0
+    Average total energy            = 9.003874591e-19
+ExecutionTime = 8.48 s  ClockTime = 9 s
+
+    Collisions                      = 2227
+    Acceptance rate                 = 0.3328849028
+
+ExecutionTime = 8.94 s  ClockTime = 10 s
+
+    Collisions                      = 2183
+    Acceptance rate                 = 0.3314606742
+
+ExecutionTime = 9.39 s  ClockTime = 10 s
+
+    Collisions                      = 2295
+    Acceptance rate                 = 0.3398992891
+
+ExecutionTime = 9.86 s  ClockTime = 9 s
+
+    Collisions                      = 2426
+    Acceptance rate                 = 0.3466704773
+
+ExecutionTime = 10.35 s  ClockTime = 9 s
+
+    Collisions                      = 2357
+    Acceptance rate                 = 0.3442886357
+
+ExecutionTime = 10.82 s  ClockTime = 10 s
+
+    Collisions                      = 2346
+    Acceptance rate                 = 0.3387725632
+
+ExecutionTime = 11.3 s  ClockTime = 10 s
+
+    Collisions                      = 2509
+    Acceptance rate                 = 0.3594555874
+
+ExecutionTime = 11.81 s  ClockTime = 11 s
+
+    Collisions                      = 2519
+    Acceptance rate                 = 0.3504451864
+
+ExecutionTime = 12.3 s  ClockTime = 11 s
+
+    Collisions                      = 2609
+    Acceptance rate                 = 0.3583298997
+
+ExecutionTime = 12.81 s  ClockTime = 12 s
+
+Time = 0.00014
+
+    Collisions                      = 2499
+    Acceptance rate                 = 0.3491198659
+
+Cloud name: dsmc
+    Number of dsmc particles        = 642574
+    Number of molecules             = 1.716186639e+21
+    Mass in system                  = 8.219130539e-05
+    Average linear kinetic energy   = 8.697358297e-19
+    Average rotational energy       = 3.249732168e-21
+    Average vibrational energy      = 2.168413379e-20
+    Average electronic energy       = 0
+    Average total energy            = 8.946696957e-19
+ExecutionTime = 13.32 s  ClockTime = 12 s
+
+End
+
