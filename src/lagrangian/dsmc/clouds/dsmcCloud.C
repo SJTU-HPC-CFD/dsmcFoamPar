@@ -2251,7 +2251,7 @@ void Foam::dsmcCloud::evolve()
     collisions();
     const auto t4 = clock_type::now();
 
-    if (reactionsActive())
+    if (reactionsActive() && emitStepDiagnostics_)
     {
         buildCellOccupancy();
         reactions().outputData();
