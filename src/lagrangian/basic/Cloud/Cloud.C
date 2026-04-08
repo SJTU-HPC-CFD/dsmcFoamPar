@@ -35,6 +35,7 @@ License
 #include "OFstream.H"
 #include "wallPolyPatch.H"
 #include "cyclicAMIPolyPatch.H"
+#include <chrono>
 
 #ifdef _OPENMP
     #include <omp.h>
@@ -185,6 +186,82 @@ inline auto recordMoveThreadCounts
 template<class TrackCloudType>
 inline void recordMoveThreadCounts(TrackCloudType&, const labelList&, long)
 {}
+
+template<class TrackCloudType>
+inline auto recordMoveThreadProfile
+(
+    TrackCloudType& cloud,
+    const labelList& counts,
+    const scalarField& wallTimes,
+    int
+)
+-> decltype(cloud.recordMoveThreadProfile(counts, wallTimes), void())
+{
+    cloud.recordMoveThreadProfile(counts, wallTimes);
+}
+
+template<class TrackCloudType>
+inline void recordMoveThreadProfile
+(
+    TrackCloudType& cloud,
+    const labelList& counts,
+    const scalarField&,
+    long
+)
+{
+    cloudOpenMP::recordMoveThreadCounts(cloud, counts, 0);
+}
+
+template<class TrackCloudType>
+inline auto recordMovePhaseProfile
+(
+    TrackCloudType& cloud,
+    const scalar preControlWallTime,
+    const scalar resetSetupWallTime,
+    const scalar extractWallTime,
+    const scalar kernelWallTime,
+    const scalar commitWallTime,
+    const scalar transferFinalizeWallTime,
+    int
+)
+-> decltype
+(
+    cloud.recordMovePhaseProfile
+    (
+        preControlWallTime,
+        resetSetupWallTime,
+        extractWallTime,
+        kernelWallTime,
+        commitWallTime,
+        transferFinalizeWallTime
+    ),
+    void()
+)
+{
+    cloud.recordMovePhaseProfile
+    (
+        preControlWallTime,
+        resetSetupWallTime,
+        extractWallTime,
+        kernelWallTime,
+        commitWallTime,
+        transferFinalizeWallTime
+    );
+}
+
+template<class TrackCloudType>
+inline void recordMovePhaseProfile
+(
+    TrackCloudType&,
+    const scalar,
+    const scalar,
+    const scalar,
+    const scalar,
+    const scalar,
+    const scalar,
+    long
+)
+{}
 }
 }
 
@@ -299,6 +376,9 @@ void Foam::Cloud<ParticleType>::move
     const scalar trackTime
 )
 {
+    using clock_type = std::chrono::steady_clock;
+    const auto tResetSetupBegin = clock_type::now();
+
     const polyBoundaryMesh& pbm = pMesh().boundaryMesh();
     const globalMeshData& pData = polyMesh_.globalData();
 
@@ -311,12 +391,6 @@ void Foam::Cloud<ParticleType>::move
 
     // Which processors this processor is connected to
     const labelList& neighbourProcs = pData.topology().procNeighbours();
-
-    // Initialise the stepFraction moved for the particles
-    for (ParticleType& p : *this)
-    {
-        p.reset();
-    }
 
     // Clear the global positions as these are about to change
     globalPositionsPtr_.clear();
@@ -358,9 +432,20 @@ void Foam::Cloud<ParticleType>::move
     const bool useParticlePartition = false;
     #endif
 
+    scalar moveExtractWallTime = 0.0;
+    scalar moveKernelWallTime = 0.0;
+    scalar moveCommitWallTime = 0.0;
+    scalar moveTransferFinalizeWallTime = 0.0;
+    scalar moveResetSetupWallTime = 0.0;
+    bool resetPending = true;
+
+    moveResetSetupWallTime +=
+        std::chrono::duration<scalar>(clock_type::now() - tResetSetupBegin).count();
+
     // While there are particles to transfer
     while (true)
     {
+        const auto tLoopSetupBegin = clock_type::now();
         cloudOpenMP::clearMoveOrderedParcels(cloud, 0);
 
         // Reset transfer buffers
@@ -376,17 +461,25 @@ void Foam::Cloud<ParticleType>::move
             }
         }
 
+        moveResetSetupWallTime +=
+            std::chrono::duration<scalar>(clock_type::now() - tLoopSetupBegin).count();
+
         if (useOpenMPMove)
         {
             List<ParticleType*> particles;
             labelList threadOffsets(moveThreads + 1, 0);
+            const auto tExtractBegin = clock_type::now();
 
             if (useParticlePartition)
             {
                 const auto& cellOccupancy = cloudOpenMP::cellOccupancy(cloud, 0);
                 const auto& particleLoadStart = cloudOpenMP::particleLoadStart(cloud, 0);
                 const auto& particleLoadEnd = cloudOpenMP::particleLoadEnd(cloud, 0);
+                labelList threadCounts(moveThreads, 0);
 
+                #ifdef _OPENMP
+                #pragma omp parallel for num_threads(moveThreads) schedule(static)
+                #endif
                 for (label threadI = 0; threadI < moveThreads; ++threadI)
                 {
                     label localCount = 0;
@@ -401,11 +494,20 @@ void Foam::Cloud<ParticleType>::move
                         localCount += cellOccupancy[celli].size();
                     }
 
-                    threadOffsets[threadI + 1] = threadOffsets[threadI] + localCount;
+                    threadCounts[threadI] = localCount;
+                }
+
+                for (label threadI = 0; threadI < moveThreads; ++threadI)
+                {
+                    threadOffsets[threadI + 1] =
+                        threadOffsets[threadI] + threadCounts[threadI];
                 }
 
                 particles.setSize(threadOffsets.last());
 
+                #ifdef _OPENMP
+                #pragma omp parallel for num_threads(moveThreads) schedule(static)
+                #endif
                 for (label threadI = 0; threadI < moveThreads; ++threadI)
                 {
                     label particlei = threadOffsets[threadI];
@@ -444,9 +546,30 @@ void Foam::Cloud<ParticleType>::move
                 threadOffsets[moveThreads] = particles.size();
             }
 
+            moveExtractWallTime +=
+                std::chrono::duration<scalar>(clock_type::now() - tExtractBegin).count();
+
+            if (resetPending)
+            {
+                const auto tResetBegin = clock_type::now();
+
+                #ifdef _OPENMP
+                #pragma omp parallel for num_threads(moveThreads) schedule(static)
+                #endif
+                for (label i = 0; i < particles.size(); ++i)
+                {
+                    particles[i]->reset();
+                }
+
+                moveResetSetupWallTime +=
+                    std::chrono::duration<scalar>(clock_type::now() - tResetBegin).count();
+                resetPending = false;
+            }
+
             List<label> keepParticleFlags(particles.size(), 1);
             List<label> switchProcessorFlags(particles.size(), 0);
             labelList processedParticleCounts(moveThreads, 0);
+            scalarField moveThreadWallTimes(moveThreads, 0.0);
 
             #ifdef _OPENMP
             omp_sched_t sched = omp_sched_static;
@@ -463,6 +586,7 @@ void Foam::Cloud<ParticleType>::move
             omp_set_schedule(sched, int(moveChunk));
             #endif
 
+            const auto tKernelBegin = clock_type::now();
             #pragma omp parallel num_threads(moveThreads)
             {
                 typename ParticleType::trackingData localTd(cloud);
@@ -474,6 +598,7 @@ void Foam::Cloud<ParticleType>::move
                 #endif
 
                 label localProcessedCount = 0;
+                const auto tBegin = clock_type::now();
 
                 if (useParticlePartition)
                 {
@@ -506,102 +631,215 @@ void Foam::Cloud<ParticleType>::move
                 }
 
                 processedParticleCounts[threadI] = localProcessedCount;
+                moveThreadWallTimes[threadI] =
+                    std::chrono::duration<scalar>(clock_type::now() - tBegin).count();
+            }
+            moveKernelWallTime +=
+                std::chrono::duration<scalar>(clock_type::now() - tKernelBegin).count();
+
+            cloudOpenMP::recordMoveThreadProfile
+            (
+                cloud,
+                processedParticleCounts,
+                moveThreadWallTimes,
+                0
+            );
+
+            const auto tCommitBegin = clock_type::now();
+            List<DynamicList<ParticleType*>> survivingPerThread(moveThreads);
+            List<DynamicList<ParticleType*>> transferPerThread(moveThreads);
+            List<DynamicList<ParticleType*>> deletePerThread(moveThreads);
+
+            for (label threadI = 0; threadI < moveThreads; ++threadI)
+            {
+                const label estimatedCount =
+                    useParticlePartition
+                  ? threadOffsets[threadI + 1] - threadOffsets[threadI]
+                  : max(particles.size()/moveThreads, label(1));
+
+                survivingPerThread[threadI].setCapacity(estimatedCount);
+                transferPerThread[threadI].setCapacity(max(estimatedCount/16, label(4)));
+                deletePerThread[threadI].setCapacity(max(estimatedCount/16, label(4)));
             }
 
-            cloudOpenMP::recordMoveThreadCounts(cloud, processedParticleCounts, 0);
-
-            DynamicList<ParticleType*> survivingParticles(particles.size());
-            labelList survivingThreadCounts(moveThreads, 0);
-
-            forAll(particles, i)
+            if (useParticlePartition)
             {
-                ParticleType& p = *particles[i];
-                label ownerThread = 0;
-
-                if (useParticlePartition)
+                #ifdef _OPENMP
+                #pragma omp parallel for num_threads(moveThreads) schedule(static)
+                #endif
+                for (label threadI = 0; threadI < moveThreads; ++threadI)
                 {
-                    while (ownerThread + 1 < threadOffsets.size() && i >= threadOffsets[ownerThread + 1])
-                    {
-                        ++ownerThread;
-                    }
-                }
+                    auto& survivingLocal = survivingPerThread[threadI];
+                    auto& transferLocal = transferPerThread[threadI];
+                    auto& deleteLocal = deletePerThread[threadI];
 
-                if (keepParticleFlags[i])
-                {
-                    if (switchProcessorFlags[i])
+                    for
+                    (
+                        label i = threadOffsets[threadI];
+                        i < threadOffsets[threadI + 1];
+                        ++i
+                    )
                     {
-                        #ifdef FULLDEBUG
-                        if
-                        (
-                            !Pstream::parRun()
-                         || !p.onBoundaryFace()
-                         || procPatchNeighbours[p.patch()] < 0
-                        )
+                        if (keepParticleFlags[i])
                         {
-                            FatalErrorInFunction
-                                << "Switch processor flag is true when no parallel "
-                                << "transfer is possible. This is a bug."
-                                << exit(FatalError);
+                            if (switchProcessorFlags[i])
+                            {
+                                transferLocal.append(particles[i]);
+                            }
+                            else
+                            {
+                                survivingLocal.append(particles[i]);
+                            }
                         }
-                        #endif
-
-                        const label patchi = p.patch();
-
-                        const label toProci =
-                        (
-                            refCast<const processorPolyPatch>(pbm[patchi])
-                            .neighbProcNo()
-                        );
-
-                        auto* osptr = UOPstreamPtrs.get(toProci);
-                        if (!osptr)
+                        else
                         {
-                            osptr = new UOPstream(toProci, pBufs);
-                            UOPstreamPtrs.set(toProci, osptr);
-                        }
-
-                        p.prepareForParallelTransfer();
-                        (*osptr) << procPatchNeighbours[patchi] << p;
-                        deleteParticle(p);
-                    }
-                    else
-                    {
-                        survivingParticles.append(&p);
-
-                        if (useParticlePartition && ownerThread < survivingThreadCounts.size())
-                        {
-                            ++survivingThreadCounts[ownerThread];
+                            deleteLocal.append(particles[i]);
                         }
                     }
                 }
-                else
+            }
+            else
+            {
+                #pragma omp parallel num_threads(moveThreads)
                 {
+                    const label threadI =
+                    #ifdef _OPENMP
+                        omp_get_thread_num();
+                    #else
+                        0;
+                    #endif
+
+                    auto& survivingLocal = survivingPerThread[threadI];
+                    auto& transferLocal = transferPerThread[threadI];
+                    auto& deleteLocal = deletePerThread[threadI];
+
+                    #pragma omp for schedule(static)
+                    for (label i = 0; i < particles.size(); ++i)
+                    {
+                        if (keepParticleFlags[i])
+                        {
+                            if (switchProcessorFlags[i])
+                            {
+                                transferLocal.append(particles[i]);
+                            }
+                            else
+                            {
+                                survivingLocal.append(particles[i]);
+                            }
+                        }
+                        else
+                        {
+                            deleteLocal.append(particles[i]);
+                        }
+                    }
+                }
+            }
+
+            for (label threadI = 0; threadI < moveThreads; ++threadI)
+            {
+                auto& transferLocal = transferPerThread[threadI];
+
+                forAll(transferLocal, i)
+                {
+                    ParticleType& p = *transferLocal[i];
+
+                    #ifdef FULLDEBUG
+                    if
+                    (
+                        !Pstream::parRun()
+                     || !p.onBoundaryFace()
+                     || procPatchNeighbours[p.patch()] < 0
+                    )
+                    {
+                        FatalErrorInFunction
+                            << "Switch processor flag is true when no parallel "
+                            << "transfer is possible. This is a bug."
+                            << exit(FatalError);
+                    }
+                    #endif
+
+                    const label patchi = p.patch();
+
+                    const label toProci =
+                    (
+                        refCast<const processorPolyPatch>(pbm[patchi])
+                        .neighbProcNo()
+                    );
+
+                    auto* osptr = UOPstreamPtrs.get(toProci);
+                    if (!osptr)
+                    {
+                        osptr = new UOPstream(toProci, pBufs);
+                        UOPstreamPtrs.set(toProci, osptr);
+                    }
+
+                    p.prepareForParallelTransfer();
+                    (*osptr) << procPatchNeighbours[patchi] << p;
                     deleteParticle(p);
+                }
+            }
+
+            for (label threadI = 0; threadI < moveThreads; ++threadI)
+            {
+                auto& deleteLocal = deletePerThread[threadI];
+
+                forAll(deleteLocal, i)
+                {
+                    deleteParticle(*deleteLocal[i]);
                 }
             }
 
             if (useParticlePartition)
             {
-                List<ParticleType*> survivingList(survivingParticles.size());
-
-                forAll(survivingParticles, i)
-                {
-                    survivingList[i] = survivingParticles[i];
-                }
-
                 labelList survivingOffsets(moveThreads + 1, 0);
 
                 for (label threadI = 0; threadI < moveThreads; ++threadI)
                 {
                     survivingOffsets[threadI + 1] =
-                        survivingOffsets[threadI] + survivingThreadCounts[threadI];
+                        survivingOffsets[threadI] + survivingPerThread[threadI].size();
                 }
 
-                cloudOpenMP::storeMoveOrderedParcels(cloud, survivingList, survivingOffsets, 0);
+                List<ParticleType*> survivingList(survivingOffsets.last());
+
+                for (label threadI = 0; threadI < moveThreads; ++threadI)
+                {
+                    label offset = survivingOffsets[threadI];
+                    const auto& survivingLocal = survivingPerThread[threadI];
+
+                    forAll(survivingLocal, i)
+                    {
+                        survivingList[offset++] = survivingLocal[i];
+                    }
+                }
+
+                cloudOpenMP::storeMoveOrderedParcels
+                (
+                    cloud,
+                    survivingList,
+                    survivingOffsets,
+                    0
+                );
             }
+            moveCommitWallTime +=
+                std::chrono::duration<scalar>(clock_type::now() - tCommitBegin).count();
         }
         else
         {
+            if (resetPending)
+            {
+                const auto tResetBegin = clock_type::now();
+
+                for (ParticleType& p : *this)
+                {
+                    p.reset();
+                }
+
+                moveResetSetupWallTime +=
+                    std::chrono::duration<scalar>(clock_type::now() - tResetBegin).count();
+                resetPending = false;
+            }
+
+            const auto tBegin = clock_type::now();
             label processedParticleCount = 0;
             for (ParticleType& p : *this)
             {
@@ -664,7 +902,13 @@ void Foam::Cloud<ParticleType>::move
             }
 
             labelList processedCounts(1, processedParticleCount);
-            cloudOpenMP::recordMoveThreadCounts(cloud, processedCounts, 0);
+            scalarField moveWallTimes
+            (
+                1,
+                std::chrono::duration<scalar>(clock_type::now() - tBegin).count()
+            );
+            moveKernelWallTime += moveWallTimes[0];
+            cloudOpenMP::recordMoveThreadProfile(cloud, processedCounts, moveWallTimes, 0);
         }
 
         if (!Pstream::parRun())
@@ -672,11 +916,14 @@ void Foam::Cloud<ParticleType>::move
             break;
         }
 
+        const auto tTransferBegin = clock_type::now();
         pBufs.finishedNeighbourSends(neighbourProcs);
 
         if (!returnReduceOr(pBufs.hasRecvData()))
         {
             // No parcels to transfer
+            moveTransferFinalizeWallTime +=
+                std::chrono::duration<scalar>(clock_type::now() - tTransferBegin).count();
             break;
         }
 
@@ -701,7 +948,22 @@ void Foam::Cloud<ParticleType>::move
                 }
             }
         }
+
+        moveTransferFinalizeWallTime +=
+            std::chrono::duration<scalar>(clock_type::now() - tTransferBegin).count();
     }
+
+    cloudOpenMP::recordMovePhaseProfile
+    (
+        cloud,
+        0.0,
+        moveResetSetupWallTime,
+        moveExtractWallTime,
+        moveKernelWallTime,
+        moveCommitWallTime,
+        moveTransferFinalizeWallTime,
+        0
+    );
 }
 
 

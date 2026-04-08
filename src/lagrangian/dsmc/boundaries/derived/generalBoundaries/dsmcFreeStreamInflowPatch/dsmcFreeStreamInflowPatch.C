@@ -91,7 +91,25 @@ void dsmcFreeStreamInflowPatch::calculateProperties()
 
 void dsmcFreeStreamInflowPatch::controlParcelsBeforeMove()
 {
+    struct InflowInsertSlot
+    {
+        label faceLocalI = -1;
+        label typeId = -1;
+        label nInsert = 0;
+        scalar mass = 0.0;
+        scalar mostProbableSpeed = 0.0;
+        scalar sCosTheta = 0.0;
+        scalar coeffA = 0.0;
+        scalar coeffB = 0.0;
+        scalar randomScaling = 0.0;
+        bool hasNormalVelocity = false;
+    };
+
     Random& rndGen = cloud_.rndGen();
+    const bool useOpenMPInflow =
+        cloud_.openmpEnabled() && cloud_.ompNumThreads() > 1;
+    const label inflowThreads =
+        useOpenMPInflow ? cloud_.ompNumThreads() : label(1);
 
     const scalar sqrtPi = sqrt(pi);
 
@@ -151,57 +169,71 @@ void dsmcFreeStreamInflowPatch::controlParcelsBeforeMove()
     const scalar faceVibrationalTemperature = vibrationalTemperature_;
     const scalar faceElectronicTemperature = electronicTemperature_;
 
-    // insert parcels
+    List<List<tetIndices>> faceTets(faces_.size());
+    List<scalarField> faceCTriAFracs(faces_.size());
+    vectorField faceNormals(faces_.size(), Zero);
+    vectorField faceTangential1(faces_.size(), Zero);
+    vectorField faceTangential2(faces_.size(), Zero);
+    scalarField faceRWF(faces_.size(), 0.0);
+
     forAll(faces_, f)
     {
         const label faceI = faces_[f];
         const label cellI = cells_[f];
         const vector fC = mesh_.faceCentres()[faceI];
         const vector sF = mesh_.faceAreas()[faces_[f]];
+        const scalar fA = mag(sF);
 
-        scalar fA = mag(sF);
-
-        List<tetIndices> faceTets = polyMeshTetDecomposition::faceTetIndices
+        faceTets[f] = polyMeshTetDecomposition::faceTetIndices
         (
             mesh_,
             faceI,
             cellI
         );
 
-        // Cumulative triangle area fractions
-        List<scalar> cTriAFracs(faceTets.size(), 0.0);
+        scalarField& cTriAFracs = faceCTriAFracs[f];
+        cTriAFracs.setSize(faceTets[f].size(), 0.0);
 
         scalar previousCumulativeSum = 0.0;
 
-        forAll(faceTets, triI)
+        forAll(faceTets[f], triI)
         {
-            const tetIndices faceTetIs = faceTets[triI];
+            const tetIndices& faceTetIs = faceTets[f][triI];
 
             cTriAFracs[triI] =
                 faceTetIs.faceTri(mesh_).mag()/fA
-                + previousCumulativeSum;
+              + previousCumulativeSum;
 
             previousCumulativeSum = cTriAFracs[triI];
         }
 
-        // Force the last area fraction value to 1.0 to avoid any
-        // rounding/non-flat face errors giving a value < 1.0
-        cTriAFracs.last() = 1.0;
+        if (cTriAFracs.size())
+        {
+            cTriAFracs.last() = 1.0;
+        }
 
-        // Normal unit vector *negative* so normal is pointing into the
-        // domain
         vector n = sF;
         n /= -mag(n);
 
-        //- Wall tangential unit vector. Use the direction between the
-        //  face centre and the first vertex in the list
         vector t1 = fC - mesh_.points()[mesh_.faces()[faceI][0]];
         t1 /= mag(t1);
 
-        //- Other tangential unit vector.  Rescaling in case face is not
-        //  flat and n and t1 aren't perfectly orthogonal
         vector t2 = n^t1;
         t2 /= mag(t2);
+
+        faceNormals[f] = n;
+        faceTangential1[f] = t1;
+        faceTangential2[f] = t2;
+        faceRWF[f] = cloud_.coordSystem().RWF(cellI);
+    }
+
+    DynamicList<InflowInsertSlot> insertionSlots;
+    label totalInsertedParcels = 0;
+
+    // insert parcels
+    forAll(faces_, f)
+    {
+        const vector& n = faceNormals[f];
 
         forAll(typeIds_, m)
         {
@@ -221,148 +253,204 @@ void dsmcFreeStreamInflowPatch::controlParcelsBeforeMove()
 
             faceAccumulator -= nI;
 
-            const scalar mass = cloud_.constProps(typeId).mass();
-
-            for (label i = 0; i < nI; i++)
+            if (nI > 0)
             {
-                // Choose a triangle to insert on, based on their relative
-                // area
-
-                scalar triSelection = rndGen.sample01<scalar>();
-
-                // Selected triangle
-                label selectedTriI = -1;
-
-                forAll(cTriAFracs, triI)
-                {
-                    selectedTriI = triI;
-
-                    if (cTriAFracs[triI] >= triSelection)
-                    {
-                        break;
-                    }
-                }
-
-                // Randomly distribute the points on the triangle.
-
-                const tetIndices& faceTetIs = faceTets[selectedTriI];
-
-                point p = faceTetIs.faceTri(mesh_).randomPoint(rndGen);
-
-                // Velocity generation
-                scalar mostProbableSpeed
-                (
+                const scalar mass = cloud_.constProps(typeId).mass();
+                const scalar mostProbableSpeed =
                     cloud_.maxwellianMostProbableSpeed
                     (
                         faceTranslationalTemperature,
                         mass
-                    )
-                );
-
-                scalar sCosTheta = (faceVelocity & n)/mostProbableSpeed;
-
-                // Coefficients required for Bird eqn 12.5
-                scalar uNormProbCoeffA = sCosTheta + sqrt(sqr(sCosTheta) + 2.0);
-
-                scalar uNormProbCoeffB =
+                    );
+                const scalar sCosTheta = (faceVelocity & n)/mostProbableSpeed;
+                const scalar coeffA = sCosTheta + sqrt(sqr(sCosTheta) + 2.0);
+                const scalar coeffB =
                     0.5*
                     (
                         1.0
-                        + sCosTheta*(sCosTheta - sqrt(sqr(sCosTheta) + 2.0))
+                      + sCosTheta*(sCosTheta - sqrt(sqr(sCosTheta) + 2.0))
                     );
 
-                // Equivalent to the QA value in Bird's DSMC3.FOR
-                scalar randomScaling = 3.0;
-
-                if (sCosTheta < -3)
-                {
-                    randomScaling = mag(sCosTheta) + 1;
-                }
-
-                scalar P = -1;
-
-                // Normalised candidates for the normal direction velocity
-                // component
-                scalar uNormal;
-                scalar uNormalThermal;
-
-                if(abs(faceVelocity & n) > VSMALL)
-                {
-                    // Select a velocity using Bird eqn 12.5
-                    do
-                    {
-                        uNormalThermal =
-                            randomScaling*(2.0*rndGen.sample01<scalar>() - 1);
-
-                        uNormal = uNormalThermal + sCosTheta;
-
-                        if (uNormal < 0.0)
-                        {
-                            P = -1;
-                        }
-                        else
-                        {
-                            P = 2.0*uNormal/uNormProbCoeffA
-                                *exp(uNormProbCoeffB - sqr(uNormalThermal));
-                        }
-
-                    } while (P < rndGen.sample01<scalar>());
-                }
-                else
-                {
-                    uNormal = sqrt(-log(rndGen.sample01<scalar>()));
-                }
-
-                vector U =
-                    sqrt(physicoChemical::k.value()*faceTranslationalTemperature/mass)
-                    *(
-                        rndGen.GaussNormal<scalar>()*t1
-                        + rndGen.GaussNormal<scalar>()*t2
-                    )
-                    + (t1 & faceVelocity)*t1
-                    + (t2 & faceVelocity)*t2
-                    + mostProbableSpeed*uNormal*n;
-
-                scalar ERot = cloud_.equipartitionRotationalEnergy
-                (
-                    faceRotationalTemperature,
-                    cloud_.constProps(typeId).rotationalDegreesOfFreedom()
-                );
-
-                labelList vibLevel = cloud_.equipartitionVibrationalEnergyLevel
-                (
-                    faceVibrationalTemperature,
-                    cloud_.constProps(typeId).nVibrationalModes(),
-                    typeId
-                );
-
-                label ELevel = cloud_.equipartitionElectronicLevel
-                (
-                    faceElectronicTemperature,
-                    cloud_.constProps(typeId).electronicDegeneracyList(),
-                    cloud_.constProps(typeId).electronicEnergyList()
-                );
-
-                label newParcel = patchId();
-
-                const scalar RWF = cloud_.coordSystem().RWF(cellI);
-
-                cloud_.addNewParcel
-                (
-                    p,
-                    U,
-                    RWF,
-                    ERot,
-                    ELevel,
-                    cellI,
-                    faces_[f],
-                    faceTetIs.tetPt(),
-                    typeId,
-                    newParcel,
-                    0,
-                    vibLevel
-                );
+                insertionSlots.append(InflowInsertSlot());
+                InflowInsertSlot& slot =
+                    insertionSlots[insertionSlots.size() - 1];
+                slot.faceLocalI = f;
+                slot.typeId = typeId;
+                slot.nInsert = nI;
+                slot.mass = mass;
+                slot.mostProbableSpeed = mostProbableSpeed;
+                slot.sCosTheta = sCosTheta;
+                slot.coeffA = coeffA;
+                slot.coeffB = coeffB;
+                slot.randomScaling = sCosTheta < -3 ? mag(sCosTheta) + 1 : 3.0;
+                slot.hasNormalVelocity = mag(faceVelocity & n) > VSMALL;
+                totalInsertedParcels += nI;
             }
+        }
+    }
+
+    if (!insertionSlots.size())
+    {
+        return;
+    }
+
+    struct GeneratedParcel
+    {
+        point position = Zero;
+        vector U = Zero;
+        scalar RWF = 0.0;
+        scalar ERot = 0.0;
+        label ELevel = 0;
+        label cellI = -1;
+        label faceI = -1;
+        label typeId = -1;
+        label newParcel = -1;
+        labelList vibLevel;
+    };
+
+    List<DynamicList<GeneratedParcel>> generatedByThread(inflowThreads);
+
+    forAll(generatedByThread, threadI)
+    {
+        generatedByThread[threadI].reserve
+        (
+            max(totalInsertedParcels/max(inflowThreads, label(1)), label(16))
+        );
+    }
+
+    #ifdef _OPENMP
+    #pragma omp parallel for if(useOpenMPInflow) num_threads(inflowThreads) schedule(dynamic, 1)
+    #endif
+    for (label slotI = 0; slotI < insertionSlots.size(); ++slotI)
+    {
+        const label threadI = useOpenMPInflow ? cloud_.currentThreadId() : 0;
+        Random& threadRndGen = cloud_.rndGen();
+        DynamicList<GeneratedParcel>& localGenerated = generatedByThread[threadI];
+        const InflowInsertSlot& slot = insertionSlots[slotI];
+        const label faceLocalI = slot.faceLocalI;
+        const label faceI = faces_[faceLocalI];
+        const label cellI = cells_[faceLocalI];
+        const vector& n = faceNormals[faceLocalI];
+        const vector& t1 = faceTangential1[faceLocalI];
+        const vector& t2 = faceTangential2[faceLocalI];
+        const List<tetIndices>& localFaceTets = faceTets[faceLocalI];
+        const scalarField& cTriAFracs = faceCTriAFracs[faceLocalI];
+        const scalar tangentialV1 = t1 & faceVelocity;
+        const scalar tangentialV2 = t2 & faceVelocity;
+
+        for (label i = 0; i < slot.nInsert; ++i)
+        {
+            const scalar triSelection = threadRndGen.sample01<scalar>();
+            label selectedTriI = -1;
+
+            forAll(cTriAFracs, triI)
+            {
+                selectedTriI = triI;
+
+                if (cTriAFracs[triI] >= triSelection)
+                {
+                    break;
+                }
+            }
+
+            const tetIndices& faceTetIs = localFaceTets[selectedTriI];
+            point p = faceTetIs.faceTri(mesh_).randomPoint(threadRndGen);
+            scalar uNormal = 0.0;
+
+            if (slot.hasNormalVelocity)
+            {
+                scalar P = -1.0;
+
+                do
+                {
+                    const scalar uNormalThermal =
+                        slot.randomScaling
+                       *(2.0*threadRndGen.sample01<scalar>() - 1.0);
+
+                    uNormal = uNormalThermal + slot.sCosTheta;
+
+                    if (uNormal < 0.0)
+                    {
+                        P = -1.0;
+                    }
+                    else
+                    {
+                        P = 2.0*uNormal/slot.coeffA
+                          *exp(slot.coeffB - sqr(uNormalThermal));
+                    }
+                } while (P < threadRndGen.sample01<scalar>());
+            }
+            else
+            {
+                uNormal = sqrt(-log(threadRndGen.sample01<scalar>()));
+            }
+
+            const vector U =
+                sqrt(physicoChemical::k.value()*faceTranslationalTemperature/slot.mass)
+               *(
+                    threadRndGen.GaussNormal<scalar>()*t1
+                  + threadRndGen.GaussNormal<scalar>()*t2
+                )
+              + tangentialV1*t1
+              + tangentialV2*t2
+              + slot.mostProbableSpeed*uNormal*n;
+            const scalar ERot = cloud_.equipartitionRotationalEnergy
+            (
+                faceRotationalTemperature,
+                cloud_.constProps(slot.typeId).rotationalDegreesOfFreedom()
+            );
+            const labelList vibLevel =
+                cloud_.equipartitionVibrationalEnergyLevel
+            (
+                faceVibrationalTemperature,
+                cloud_.constProps(slot.typeId).nVibrationalModes(),
+                slot.typeId
+            );
+            const label ELevel = cloud_.equipartitionElectronicLevel
+            (
+                faceElectronicTemperature,
+                cloud_.constProps(slot.typeId).electronicDegeneracyList(),
+                cloud_.constProps(slot.typeId).electronicEnergyList()
+            );
+
+            GeneratedParcel parcel;
+            parcel.position = p;
+            parcel.U = U;
+            parcel.RWF = faceRWF[faceLocalI];
+            parcel.ERot = ERot;
+            parcel.ELevel = ELevel;
+            parcel.cellI = cellI;
+            parcel.faceI = faceI;
+            parcel.typeId = slot.typeId;
+            parcel.newParcel = patchId();
+            parcel.vibLevel = vibLevel;
+            localGenerated.append(parcel);
+        }
+    }
+
+    forAll(generatedByThread, threadI)
+    {
+        const DynamicList<GeneratedParcel>& localGenerated = generatedByThread[threadI];
+
+        forAll(localGenerated, i)
+        {
+            const GeneratedParcel& parcel = localGenerated[i];
+
+            cloud_.addNewParcel
+            (
+                parcel.position,
+                parcel.U,
+                parcel.RWF,
+                parcel.ERot,
+                parcel.ELevel,
+                parcel.cellI,
+                parcel.faceI,
+                0,
+                parcel.typeId,
+                parcel.newParcel,
+                0,
+                parcel.vibLevel
+            );
         }
     }
 }

@@ -97,11 +97,12 @@ void Foam::dsmcCloud::buildConstProps()
 }
 
 
-void Foam::dsmcCloud::buildCellOccupancy()
+void Foam::dsmcCloud::buildCellOccupancy(const bool rebuildParticlePartition)
 {
     using clock_type = std::chrono::steady_clock;
 
     const auto t0 = clock_type::now();
+    occupancyOrderedParcelsValid_ = false;
 
     forAll(cellOccupancy_, celli)
     {
@@ -122,24 +123,39 @@ void Foam::dsmcCloud::buildCellOccupancy()
     #ifdef _OPENMP
     if (openmpEnabled_ && ompNumThreads_ > 1 && nParcels > 0)
     {
-        List<dsmcParcel*> parcels;
-        labelList parcelThreadOffsets;
+        const List<dsmcParcel*>* parcelsPtr = nullptr;
+        const labelList* parcelThreadOffsetsPtr = nullptr;
+        List<dsmcParcel*> gatheredParcels;
+        labelList generatedThreadOffsets;
 
         if (useMoveOrderedParcels)
         {
-            parcels = moveOrderedParcels_;
-            parcelThreadOffsets = moveOrderedThreadOffsets_;
+            parcelsPtr = &moveOrderedParcels_;
+            parcelThreadOffsetsPtr = &moveOrderedThreadOffsets_;
         }
         else
         {
-            parcels.setSize(nParcels);
+            gatheredParcels.setSize(nParcels);
             label parcelI = 0;
 
             forAllIter(dsmcCloud, *this, iter)
             {
-                parcels[parcelI++] = &iter();
+                gatheredParcels[parcelI++] = &iter();
             }
+
+            generatedThreadOffsets.setSize(ompNumThreads_ + 1, 0);
+            for (label threadI = 0; threadI < ompNumThreads_; ++threadI)
+            {
+                generatedThreadOffsets[threadI] = threadI*nParcels/ompNumThreads_;
+            }
+            generatedThreadOffsets[ompNumThreads_] = nParcels;
+
+            parcelsPtr = &gatheredParcels;
+            parcelThreadOffsetsPtr = &generatedThreadOffsets;
         }
+
+        const List<dsmcParcel*>& parcels = *parcelsPtr;
+        const labelList& parcelThreadOffsets = *parcelThreadOffsetsPtr;
 
         const auto t1 = clock_type::now();
 
@@ -155,29 +171,13 @@ void Foam::dsmcCloud::buildCellOccupancy()
             const label threadI = currentThreadId();
             labelList& localCounts = threadCellCounts[threadI];
 
-            if (useMoveOrderedParcels)
+            for (label i = parcelThreadOffsets[threadI]; i < parcelThreadOffsets[threadI + 1]; ++i)
             {
-                for (label i = parcelThreadOffsets[threadI]; i < parcelThreadOffsets[threadI + 1]; ++i)
-                {
-                    const label celli = parcels[i]->cell();
+                const label celli = parcels[i]->cell();
 
-                    if (celli >= 0 && celli < nCells)
-                    {
-                        ++localCounts[celli];
-                    }
-                }
-            }
-            else
-            {
-                #pragma omp for schedule(static)
-                for (label i = 0; i < nParcels; ++i)
+                if (celli >= 0 && celli < nCells)
                 {
-                    const label celli = parcels[i]->cell();
-
-                    if (celli >= 0 && celli < nCells)
-                    {
-                        ++localCounts[celli];
-                    }
+                    ++localCounts[celli];
                 }
             }
         }
@@ -196,11 +196,29 @@ void Foam::dsmcCloud::buildCellOccupancy()
 
         for (label celli = 0; celli < nCells; ++celli)
         {
-            cellOccupancy_[celli].setCapacity(totalCounts[celli]);
-            cellOccupancy_[celli].setSize(totalCounts[celli]);
+            if (totalCounts[celli] > 0)
+            {
+                if (cellOccupancy_[celli].capacity() < totalCounts[celli])
+                {
+                    cellOccupancy_[celli].setCapacity(totalCounts[celli]);
+                }
+
+                cellOccupancy_[celli].setSize(totalCounts[celli]);
+            }
         }
 
-        rebuildParticleLoadPartition();
+        occupancyCellOffsets_.setSize(nCells + 1, 0);
+        for (label celli = 0; celli < nCells; ++celli)
+        {
+            occupancyCellOffsets_[celli + 1] =
+                occupancyCellOffsets_[celli] + totalCounts[celli];
+        }
+        occupancyOrderedParcels_.setSize(occupancyCellOffsets_.last());
+
+        if (rebuildParticlePartition)
+        {
+            rebuildParticleLoadPartition();
+        }
 
         for (label celli = 0; celli < nCells; ++celli)
         {
@@ -219,36 +237,22 @@ void Foam::dsmcCloud::buildCellOccupancy()
             const label threadI = currentThreadId();
             labelList& localOffsets = threadCellCounts[threadI];
 
-            if (useMoveOrderedParcels)
+            for (label i = parcelThreadOffsets[threadI]; i < parcelThreadOffsets[threadI + 1]; ++i)
             {
-                for (label i = parcelThreadOffsets[threadI]; i < parcelThreadOffsets[threadI + 1]; ++i)
-                {
-                    dsmcParcel* pPtr = parcels[i];
-                    const label celli = pPtr->cell();
+                dsmcParcel* pPtr = parcels[i];
+                const label celli = pPtr->cell();
 
-                    if (celli >= 0 && celli < nCells)
-                    {
-                        cellOccupancy_[celli][localOffsets[celli]++] = pPtr;
-                    }
-                }
-            }
-            else
-            {
-                #pragma omp for schedule(static)
-                for (label i = 0; i < nParcels; ++i)
+                if (celli >= 0 && celli < nCells)
                 {
-                    dsmcParcel* pPtr = parcels[i];
-                    const label celli = pPtr->cell();
-
-                    if (celli >= 0 && celli < nCells)
-                    {
-                        cellOccupancy_[celli][localOffsets[celli]++] = pPtr;
-                    }
+                    const label slot = localOffsets[celli]++;
+                    cellOccupancy_[celli][slot] = pPtr;
+                    occupancyOrderedParcels_[occupancyCellOffsets_[celli] + slot] = pPtr;
                 }
             }
         }
 
         const auto t3 = clock_type::now();
+        occupancyOrderedParcelsValid_ = true;
 
         if (evolveProfileEnabled_)
         {
@@ -271,7 +275,32 @@ void Foam::dsmcCloud::buildCellOccupancy()
         }
     }
 
-    rebuildParticleLoadPartition();
+    if (rebuildParticlePartition)
+    {
+        rebuildParticleLoadPartition();
+    }
+
+    occupancyCellOffsets_.setSize(nCells + 1, 0);
+    for (label celli = 0; celli < nCells; ++celli)
+    {
+        occupancyCellOffsets_[celli + 1] =
+            occupancyCellOffsets_[celli] + cellOccupancy_[celli].size();
+    }
+
+    occupancyOrderedParcels_.setSize(occupancyCellOffsets_.last());
+
+    for (label celli = 0; celli < nCells; ++celli)
+    {
+        label offset = occupancyCellOffsets_[celli];
+        const auto& cellParcels = cellOccupancy_[celli];
+
+        forAll(cellParcels, i)
+        {
+            occupancyOrderedParcels_[offset++] = cellParcels[i];
+        }
+    }
+
+    occupancyOrderedParcelsValid_ = true;
 
     const auto t1 = clock_type::now();
 
@@ -1343,6 +1372,18 @@ void Foam::dsmcCloud::initOpenMP()
         controlDict.lookupOrDefault<word>("openmpMoveSchedule", "static");
     openmpMoveChunk_ =
         controlDict.lookupOrDefault<label>("openmpMoveChunk", 64);
+    openmpAdaptivePartition_ =
+        controlDict.lookupOrDefault<bool>("openmpAdaptivePartition", true);
+    openmpPartitionMinUpdateInterval_ =
+        controlDict.lookupOrDefault<label>("openmpPartitionMinUpdateInterval", 5);
+    openmpPartitionImbalanceThreshold_ =
+        controlDict.lookupOrDefault<scalar>("openmpPartitionImbalanceThreshold", 1.10);
+    openmpPartitionDriftThreshold_ =
+        controlDict.lookupOrDefault<scalar>("openmpPartitionDriftThreshold", 0.10);
+    openmpCollisionCostCandidateWeight_ =
+        controlDict.lookupOrDefault<scalar>("openmpCollisionCostCandidateWeight", 1.0);
+    openmpCollisionCostActiveCellWeight_ =
+        controlDict.lookupOrDefault<scalar>("openmpCollisionCostActiveCellWeight", 16.0);
     collisionProfileEnabled_ =
         controlDict.lookupOrDefault<bool>("profileCollisionPhases", false);
     evolveProfileEnabled_ =
@@ -1385,6 +1426,44 @@ void Foam::dsmcCloud::initOpenMP()
             openmpMoveChunk_ = 1;
         }
 
+        if (openmpPartitionMinUpdateInterval_ < 1)
+        {
+            openmpPartitionMinUpdateInterval_ = 1;
+        }
+
+        if (openmpPartitionImbalanceThreshold_ < 1.0)
+        {
+            openmpPartitionImbalanceThreshold_ = 1.0;
+        }
+
+        if (openmpPartitionDriftThreshold_ < 0.0)
+        {
+            openmpPartitionDriftThreshold_ = 0.0;
+        }
+
+        if (openmpCollisionCostCandidateWeight_ < 0.0)
+        {
+            openmpCollisionCostCandidateWeight_ = 0.0;
+        }
+
+        if (openmpCollisionCostActiveCellWeight_ < 0.0)
+        {
+            openmpCollisionCostActiveCellWeight_ = 0.0;
+        }
+
+        if
+        (
+            openmpCollisionCostCandidateWeight_ < SMALL
+         && openmpCollisionCostActiveCellWeight_ < SMALL
+        )
+        {
+            WarningInFunction
+                << "Both collision partition cost weights are near zero. "
+                << "Falling back to candidate-only weighting." << endl;
+            openmpCollisionCostCandidateWeight_ = 1.0;
+            openmpCollisionCostActiveCellWeight_ = 0.0;
+        }
+
         if (ompNumThreads_ <= 0)
         {
             ompNumThreads_ = omp_get_max_threads();
@@ -1400,6 +1479,12 @@ void Foam::dsmcCloud::initOpenMP()
         particleLoadEnd_.setSize(ompNumThreads_, mesh_.nCells());
         collisionLoadStart_.setSize(ompNumThreads_, 0);
         collisionLoadEnd_.setSize(ompNumThreads_, mesh_.nCells());
+        particlePartitionStep_ = 0;
+        particlePartitionLastRebuildStep_ = -1;
+        particlePartitionReferenceLoad_.clear();
+        collisionPartitionStep_ = 0;
+        collisionPartitionLastRebuildStep_ = -1;
+        collisionPartitionReferenceLoad_.clear();
 
         forAll(ompRndGens_, threadI)
         {
@@ -1414,6 +1499,15 @@ void Foam::dsmcCloud::initOpenMP()
             << (openmpMoveEnabled_ ? "enabled" : "disabled")
             << " (" << openmpMoveSchedule_ << ", chunk "
             << openmpMoveChunk_ << ")"
+            << ", adaptive partition "
+            << (openmpAdaptivePartition_ ? "enabled" : "disabled")
+            << " (interval " << openmpPartitionMinUpdateInterval_
+            << ", imbalance " << openmpPartitionImbalanceThreshold_
+            << ", drift " << openmpPartitionDriftThreshold_ << ")"
+            << ", collision partition cost (candidate x"
+            << openmpCollisionCostCandidateWeight_
+            << ", active-cell x" << openmpCollisionCostActiveCellWeight_
+            << ")"
             << endl;
     }
     else
@@ -1425,6 +1519,12 @@ void Foam::dsmcCloud::initOpenMP()
         particleLoadEnd_.setSize(1, mesh_.nCells());
         collisionLoadStart_.setSize(1, 0);
         collisionLoadEnd_.setSize(1, mesh_.nCells());
+        particlePartitionStep_ = 0;
+        particlePartitionLastRebuildStep_ = -1;
+        particlePartitionReferenceLoad_.clear();
+        collisionPartitionStep_ = 0;
+        collisionPartitionLastRebuildStep_ = -1;
+        collisionPartitionReferenceLoad_.clear();
     }
     #else
     if (openmpEnabled_)
@@ -1443,6 +1543,12 @@ void Foam::dsmcCloud::initOpenMP()
     particleLoadEnd_.setSize(1, mesh_.nCells());
     collisionLoadStart_.setSize(1, 0);
     collisionLoadEnd_.setSize(1, mesh_.nCells());
+    particlePartitionStep_ = 0;
+    particlePartitionLastRebuildStep_ = -1;
+    particlePartitionReferenceLoad_.clear();
+    collisionPartitionStep_ = 0;
+    collisionPartitionLastRebuildStep_ = -1;
+    collisionPartitionReferenceLoad_.clear();
     #endif
 }
 
@@ -1508,17 +1614,95 @@ void Foam::dsmcCloud::rebuildCollisionLoadPartition()
         return;
     }
 
-    collisionLoadStart_.setSize(ompNumThreads_, mesh_.nCells());
-    collisionLoadEnd_.setSize(ompNumThreads_, mesh_.nCells());
+    ++collisionPartitionStep_;
 
-    label totalCandidates = 0;
+    const label nCells = mesh_.nCells();
+    scalarField currentCellLoads(nCells, 0.0);
+    scalar totalLoad = 0.0;
 
     forAll(nCandidatesPerCell_, celli)
     {
-        totalCandidates += nCandidatesPerCell_[celli];
+        const label candidateCount = nCandidatesPerCell_[celli];
+        const scalar activeCell = candidateCount > 0 ? 1.0 : 0.0;
+        const scalar load =
+            openmpCollisionCostCandidateWeight_*scalar(candidateCount)
+          + openmpCollisionCostActiveCellWeight_*activeCell;
+
+        currentCellLoads[celli] = load;
+        totalLoad += load;
     }
 
-    if (totalCandidates <= 0)
+    if
+    (
+        openmpAdaptivePartition_
+     && collisionPartitionLastRebuildStep_ >= 0
+     && collisionLoadStart_.size() == ompNumThreads_
+     && collisionLoadEnd_.size() == ompNumThreads_
+     && collisionPartitionReferenceLoad_.size() == nCells
+    )
+    {
+        scalar maxThreadLoad = 0.0;
+
+        for (label threadI = 0; threadI < ompNumThreads_; ++threadI)
+        {
+            const label start =
+                max(min(collisionLoadStart_[threadI], nCells), label(0));
+            const label end =
+                max(min(collisionLoadEnd_[threadI], nCells), start);
+
+            scalar threadLoad = 0.0;
+
+            for (label celli = start; celli < end; ++celli)
+            {
+                threadLoad += currentCellLoads[celli];
+            }
+
+            maxThreadLoad = max(maxThreadLoad, threadLoad);
+        }
+
+        const scalar avgThreadLoad =
+            totalLoad/max(scalar(ompNumThreads_), scalar(1));
+        const scalar imbalance =
+            avgThreadLoad > SMALL ? maxThreadLoad/avgThreadLoad : 1.0;
+
+        scalar driftAccum = 0.0;
+        forAll(currentCellLoads, celli)
+        {
+            driftAccum += mag
+            (
+                scalar(currentCellLoads[celli] - collisionPartitionReferenceLoad_[celli])
+            );
+        }
+        const scalar drift =
+            totalLoad > SMALL ? driftAccum/totalLoad : 0.0;
+
+        const label sinceLastRebuild =
+            collisionPartitionStep_ - collisionPartitionLastRebuildStep_;
+
+        if
+        (
+            sinceLastRebuild < openmpPartitionMinUpdateInterval_
+         && imbalance <= openmpPartitionImbalanceThreshold_
+         && drift <= openmpPartitionDriftThreshold_
+        )
+        {
+            return;
+        }
+
+        if
+        (
+            imbalance <= openmpPartitionImbalanceThreshold_
+         && drift <= openmpPartitionDriftThreshold_
+        )
+        {
+            return;
+        }
+    }
+
+    collisionLoadStart_.setSize(ompNumThreads_, mesh_.nCells());
+    collisionLoadEnd_.setSize(ompNumThreads_, mesh_.nCells());
+
+    if (totalLoad <= SMALL)
     {
         for (label threadI = 0; threadI < ompNumThreads_; ++threadI)
         {
@@ -1526,11 +1710,13 @@ void Foam::dsmcCloud::rebuildCollisionLoadPartition()
             collisionLoadEnd_[threadI] = (threadI + 1)*mesh_.nCells()/ompNumThreads_;
         }
 
+        collisionPartitionReferenceLoad_.transfer(currentCellLoads);
+        collisionPartitionLastRebuildStep_ = collisionPartitionStep_;
         return;
     }
 
-    const scalar avgCandidates = scalar(totalCandidates)/scalar(ompNumThreads_);
-    scalar accumulatedCandidates = 0.0;
+    const scalar avgLoad = totalLoad/scalar(ompNumThreads_);
+    scalar accumulatedLoad = 0.0;
     label start = 0;
 
     for (label threadI = 0; threadI < ompNumThreads_; ++threadI)
@@ -1543,18 +1729,21 @@ void Foam::dsmcCloud::rebuildCollisionLoadPartition()
             break;
         }
 
-        const scalar targetCandidates = avgCandidates*scalar(threadI + 1);
+        const scalar targetLoad = avgLoad*scalar(threadI + 1);
         label end = start;
 
-        while (end < mesh_.nCells() && accumulatedCandidates < targetCandidates)
+        while (end < mesh_.nCells() && accumulatedLoad < targetLoad)
         {
-            accumulatedCandidates += nCandidatesPerCell_[end];
+            accumulatedLoad += currentCellLoads[end];
             ++end;
         }
 
         collisionLoadEnd_[threadI] = end;
         start = end;
     }
+
+    collisionPartitionReferenceLoad_.transfer(currentCellLoads);
+    collisionPartitionLastRebuildStep_ = collisionPartitionStep_;
 }
 
 
@@ -1567,15 +1756,85 @@ void Foam::dsmcCloud::rebuildParticleLoadPartition()
         return;
     }
 
-    particleLoadStart_.setSize(ompNumThreads_, mesh_.nCells());
-    particleLoadEnd_.setSize(ompNumThreads_, mesh_.nCells());
+    ++particlePartitionStep_;
 
+    const label nCells = mesh_.nCells();
+    labelList currentCellLoads(nCells, 0);
     label totalParticles = 0;
 
     forAll(cellOccupancy_, celli)
     {
-        totalParticles += cellOccupancy_[celli].size();
+        const label load = cellOccupancy_[celli].size();
+        currentCellLoads[celli] = load;
+        totalParticles += load;
     }
+
+    if
+    (
+        openmpAdaptivePartition_
+     && particlePartitionLastRebuildStep_ >= 0
+     && particleLoadStart_.size() == ompNumThreads_
+     && particleLoadEnd_.size() == ompNumThreads_
+     && particlePartitionReferenceLoad_.size() == nCells
+    )
+    {
+        label maxThreadLoad = 0;
+
+        for (label threadI = 0; threadI < ompNumThreads_; ++threadI)
+        {
+            const label start = max(min(particleLoadStart_[threadI], nCells), label(0));
+            const label end = max(min(particleLoadEnd_[threadI], nCells), start);
+
+            label threadLoad = 0;
+            for (label celli = start; celli < end; ++celli)
+            {
+                threadLoad += currentCellLoads[celli];
+            }
+
+            maxThreadLoad = max(maxThreadLoad, threadLoad);
+        }
+
+        const scalar avgThreadLoad =
+            scalar(totalParticles)/max(scalar(ompNumThreads_), scalar(1));
+        const scalar imbalance =
+            avgThreadLoad > SMALL ? scalar(maxThreadLoad)/avgThreadLoad : 1.0;
+
+        scalar driftAccum = 0.0;
+        forAll(currentCellLoads, celli)
+        {
+            driftAccum += mag
+            (
+                scalar(currentCellLoads[celli] - particlePartitionReferenceLoad_[celli])
+            );
+        }
+        const scalar drift =
+            totalParticles > 0 ? driftAccum/scalar(totalParticles) : 0.0;
+
+        const label sinceLastRebuild =
+            particlePartitionStep_ - particlePartitionLastRebuildStep_;
+
+        if
+        (
+            sinceLastRebuild < openmpPartitionMinUpdateInterval_
+         && imbalance <= openmpPartitionImbalanceThreshold_
+         && drift <= openmpPartitionDriftThreshold_
+        )
+        {
+            return;
+        }
+
+        if
+        (
+            imbalance <= openmpPartitionImbalanceThreshold_
+         && drift <= openmpPartitionDriftThreshold_
+        )
+        {
+            return;
+        }
+    }
+
+    particleLoadStart_.setSize(ompNumThreads_, mesh_.nCells());
+    particleLoadEnd_.setSize(ompNumThreads_, mesh_.nCells());
 
     if (totalParticles <= 0)
     {
@@ -1585,11 +1844,49 @@ void Foam::dsmcCloud::rebuildParticleLoadPartition()
             particleLoadEnd_[threadI] = (threadI + 1)*mesh_.nCells()/ompNumThreads_;
         }
 
+        particlePartitionReferenceLoad_.transfer(currentCellLoads);
+        particlePartitionLastRebuildStep_ = particlePartitionStep_;
         return;
     }
 
-    const scalar avgParticles = scalar(totalParticles)/scalar(ompNumThreads_);
+    scalarField threadWeights(ompNumThreads_, 1.0);
+    scalar totalWeight = scalar(ompNumThreads_);
+
+    if
+    (
+        moveLastThreadParticleCounts_.size() == ompNumThreads_
+     && moveLastThreadWallTimes_.size() == ompNumThreads_
+    )
+    {
+        totalWeight = 0.0;
+
+        for (label threadI = 0; threadI < ompNumThreads_; ++threadI)
+        {
+            const label processed = moveLastThreadParticleCounts_[threadI];
+            const scalar wallTime = moveLastThreadWallTimes_[threadI];
+
+            if (processed > 0 && wallTime > SMALL)
+            {
+                // Use last-step throughput so faster threads receive more cells.
+                threadWeights[threadI] = scalar(processed)/wallTime;
+            }
+            else
+            {
+                threadWeights[threadI] = 1.0;
+            }
+
+            totalWeight += threadWeights[threadI];
+        }
+
+        if (totalWeight <= SMALL)
+        {
+            threadWeights = scalarField(ompNumThreads_, 1.0);
+            totalWeight = scalar(ompNumThreads_);
+        }
+    }
+
     scalar accumulatedParticles = 0.0;
+    scalar accumulatedWeight = 0.0;
     label start = 0;
 
     for (label threadI = 0; threadI < ompNumThreads_; ++threadI)
@@ -1602,18 +1899,23 @@ void Foam::dsmcCloud::rebuildParticleLoadPartition()
             break;
         }
 
-        const scalar targetParticles = avgParticles*scalar(threadI + 1);
+        accumulatedWeight += threadWeights[threadI];
+        const scalar targetParticles =
+            scalar(totalParticles)*(accumulatedWeight/totalWeight);
         label end = start;
 
         while (end < mesh_.nCells() && accumulatedParticles < targetParticles)
         {
-            accumulatedParticles += cellOccupancy_[end].size();
+            accumulatedParticles += currentCellLoads[end];
             ++end;
         }
 
         particleLoadEnd_[threadI] = end;
         start = end;
     }
+
+    particlePartitionReferenceLoad_.transfer(currentCellLoads);
+    particlePartitionLastRebuildStep_ = particlePartitionStep_;
 }
 
 
@@ -1688,17 +1990,32 @@ Foam::dsmcCloud::dsmcCloud
     openmpCollisionStrategy_("dynamic"),
     openmpMoveSchedule_("static"),
     openmpMoveChunk_(64),
+    openmpAdaptivePartition_(true),
+    openmpPartitionMinUpdateInterval_(5),
+    openmpPartitionImbalanceThreshold_(1.10),
+    openmpPartitionDriftThreshold_(0.10),
+    openmpCollisionCostCandidateWeight_(1.0),
+    openmpCollisionCostActiveCellWeight_(16.0),
     collisionProfileEnabled_(false),
     evolveProfileEnabled_(false),
     emitStepDiagnostics_(false),
     ompRndGens_(),
     particleLoadStart_(),
     particleLoadEnd_(),
+    particlePartitionStep_(0),
+    particlePartitionLastRebuildStep_(-1),
+    particlePartitionReferenceLoad_(),
     moveOrderedParcels_(),
     moveOrderedThreadOffsets_(),
     moveOrderedParcelsValid_(false),
+    occupancyOrderedParcels_(),
+    occupancyCellOffsets_(),
+    occupancyOrderedParcelsValid_(false),
     selectedPairsPerCell_(mesh_.nCells(), 0.0),
     nCandidatesPerCell_(mesh_.nCells(), 0),
+    collisionPartitionStep_(0),
+    collisionPartitionLastRebuildStep_(-1),
+    collisionPartitionReferenceLoad_(),
     collisionPrecomputeWallTime_(0.0),
     collisionPartitionWallTime_(0.0),
     collisionSelectionWallTime_(0.0),
@@ -1707,6 +2024,13 @@ Foam::dsmcCloud::dsmcCloud
     buildOccupancyCountWallTime_(0.0),
     buildOccupancyAssembleWallTime_(0.0),
     buildOccupancyProfileCalls_(0),
+    movePreControlWallTime_(0.0),
+    moveResetSetupWallTime_(0.0),
+    moveExtractWallTime_(0.0),
+    moveKernelWallTime_(0.0),
+    moveCommitWallTime_(0.0),
+    moveTransferFinalizeWallTime_(0.0),
+    moveProfileCalls_(0),
     evolveMoveWallTime_(0.0),
     evolveBuildWallTime_(0.0),
     evolveCoordWallTime_(0.0),
@@ -1715,8 +2039,14 @@ Foam::dsmcCloud::dsmcCloud
     evolvePostWallTime_(0.0),
     evolveProfileCalls_(0),
     moveThreadParticleCounts_(),
+    moveThreadWallTimes_(),
+    moveLastThreadParticleCounts_(),
+    moveLastThreadWallTimes_(),
     collisionThreadCandidateCounts_(),
     collisionThreadAcceptedCounts_(),
+    collisionThreadActiveCellCounts_(),
+    collisionThreadReactionHitCounts_(),
+    collisionThreadWallTimes_(),
     porousMeasurements_(porousMeasurements::New(const_cast<Time&>(mesh_.time()), mesh_, *this)),
     controllers_(const_cast<Time&>(mesh_.time()), mesh_, *this),
     boundaryMeas_(mesh, *this, true),
@@ -2227,19 +2557,28 @@ void Foam::dsmcCloud::evolve()
     dsmcParcel::trackingData td(*this);
 
     const auto t0 = clock_type::now();
-
     controllers_.controlBeforeMove();
     boundaries_.controlBeforeMove();
-
     if (openmpEnabled_ && openmpMoveEnabled_)
     {
         rebuildParticleLoadPartition();
     }
+    const auto tMovePreEnd = clock_type::now();
+    recordMovePhaseProfile
+    (
+        std::chrono::duration<scalar>(tMovePreEnd - t0).count(),
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+    );
 
     Cloud<dsmcParcel>::move(*this, td, mesh_.time().deltaTValue());
     const auto t1 = clock_type::now();
 
     buildCellOccupancy();
+    const label occupancyParcelCountAfterMove = this->size();
     const auto t2 = clock_type::now();
 
     coordSystem().evolve();
@@ -2253,7 +2592,6 @@ void Foam::dsmcCloud::evolve()
 
     if (reactionsActive() && emitStepDiagnostics_)
     {
-        buildCellOccupancy();
         reactions().outputData();
     }
     const auto t5 = clock_type::now();
@@ -2430,6 +2768,49 @@ void Foam::dsmcCloud::recordMoveThreadCounts(const labelList& counts)
 }
 
 
+void Foam::dsmcCloud::recordMoveThreadProfile
+(
+    const labelList& counts,
+    const scalarField& wallTimes
+)
+{
+    recordMoveThreadCounts(counts);
+
+    if (moveThreadWallTimes_.size() != wallTimes.size())
+    {
+        moveThreadWallTimes_.setSize(wallTimes.size(), 0.0);
+    }
+
+    forAll(wallTimes, i)
+    {
+        moveThreadWallTimes_[i] += wallTimes[i];
+    }
+
+    moveLastThreadParticleCounts_ = counts;
+    moveLastThreadWallTimes_ = wallTimes;
+}
+
+
+void Foam::dsmcCloud::recordMovePhaseProfile
+(
+    const scalar preControlWallTime,
+    const scalar resetSetupWallTime,
+    const scalar extractWallTime,
+    const scalar kernelWallTime,
+    const scalar commitWallTime,
+    const scalar transferFinalizeWallTime
+)
+{
+    movePreControlWallTime_ += preControlWallTime;
+    moveResetSetupWallTime_ += resetSetupWallTime;
+    moveExtractWallTime_ += extractWallTime;
+    moveKernelWallTime_ += kernelWallTime;
+    moveCommitWallTime_ += commitWallTime;
+    moveTransferFinalizeWallTime_ += transferFinalizeWallTime;
+    ++moveProfileCalls_;
+}
+
+
 void Foam::dsmcCloud::recordCollisionThreadCounts
 (
     const labelList& candidateCounts,
@@ -2458,16 +2839,86 @@ void Foam::dsmcCloud::recordCollisionThreadCounts
 }
 
 
+void Foam::dsmcCloud::recordCollisionThreadProfile
+(
+    const labelList& candidateCounts,
+    const labelList& acceptedCounts,
+    const labelList& activeCellCounts,
+    const labelList& reactionHitCounts,
+    const scalarField& wallTimes
+)
+{
+    recordCollisionThreadCounts(candidateCounts, acceptedCounts);
+
+    if (collisionThreadActiveCellCounts_.size() != activeCellCounts.size())
+    {
+        collisionThreadActiveCellCounts_.setSize(activeCellCounts.size(), 0);
+    }
+
+    if (collisionThreadReactionHitCounts_.size() != reactionHitCounts.size())
+    {
+        collisionThreadReactionHitCounts_.setSize(reactionHitCounts.size(), 0);
+    }
+
+    if (collisionThreadWallTimes_.size() != wallTimes.size())
+    {
+        collisionThreadWallTimes_.setSize(wallTimes.size(), 0.0);
+    }
+
+    forAll(activeCellCounts, i)
+    {
+        collisionThreadActiveCellCounts_[i] += activeCellCounts[i];
+    }
+
+    forAll(reactionHitCounts, i)
+    {
+        collisionThreadReactionHitCounts_[i] += reactionHitCounts[i];
+    }
+
+    forAll(wallTimes, i)
+    {
+        collisionThreadWallTimes_[i] += wallTimes[i];
+    }
+}
+
+
 void Foam::dsmcCloud::resetLoadStats()
 {
     moveThreadParticleCounts_.clear();
+    moveThreadWallTimes_.clear();
     collisionThreadCandidateCounts_.clear();
     collisionThreadAcceptedCounts_.clear();
+    collisionThreadActiveCellCounts_.clear();
+    collisionThreadReactionHitCounts_.clear();
+    collisionThreadWallTimes_.clear();
 }
 
 
 void Foam::dsmcCloud::reportProfiling() const
 {
+    if (moveProfileCalls_ > 0 && Pstream::master())
+    {
+        const scalar totalProfiled =
+            movePreControlWallTime_
+          + moveResetSetupWallTime_
+          + moveExtractWallTime_
+          + moveKernelWallTime_
+          + moveCommitWallTime_
+          + moveTransferFinalizeWallTime_;
+
+        Info<< "Move profiling summary:" << nl
+            << "    move calls                    = " << moveProfileCalls_ << nl
+            << "    move pre-control/partition [s]= " << movePreControlWallTime_ << nl
+            << "    move reset/setup [s]          = " << moveResetSetupWallTime_ << nl
+            << "    move extract parcels [s]      = " << moveExtractWallTime_ << nl
+            << "    move parallel kernel wall [s] = " << moveKernelWallTime_ << nl
+            << "    move commit/survivor rebuild [s] = " << moveCommitWallTime_ << nl
+            << "    move transfer/delete finalize [s] = "
+            << moveTransferFinalizeWallTime_ << nl
+            << "    total profiled [s]            = " << totalProfiled << nl
+            << endl;
+    }
+
     if (buildOccupancyProfileCalls_ > 0 && Pstream::master())
     {
         const scalar totalProfiled =
@@ -2593,9 +3044,62 @@ void Foam::dsmcCloud::reportProfiling() const
 
             if (!Pstream::parRun() && moveThreadParticleCounts_.size())
             {
-                Info<< "    thread move particles         = " << moveThreadParticleCounts_ << nl
-                    << "    thread collision candidates   = " << collisionThreadCandidateCounts_ << nl
+                Info<< "    thread move particles         = " << moveThreadParticleCounts_ << nl;
+
+                if (moveThreadWallTimes_.size() == moveThreadParticleCounts_.size())
+                {
+                    scalarField moveNsPerParticle(moveThreadParticleCounts_.size(), 0.0);
+
+                    forAll(moveThreadParticleCounts_, i)
+                    {
+                        if (moveThreadParticleCounts_[i] > 0)
+                        {
+                            moveNsPerParticle[i] =
+                                1.0e9*moveThreadWallTimes_[i]
+                               /scalar(moveThreadParticleCounts_[i]);
+                        }
+                    }
+
+                    Info<< "    thread move wall time [s]     = " << moveThreadWallTimes_ << nl
+                        << "    thread move ns/particle       = " << moveNsPerParticle << nl;
+                }
+
+                Info<< "    thread collision candidates   = " << collisionThreadCandidateCounts_ << nl
                     << "    thread accepted collisions    = " << collisionThreadAcceptedCounts_ << nl;
+
+                if
+                (
+                    collisionThreadActiveCellCounts_.size() == collisionThreadCandidateCounts_.size()
+                 && collisionThreadReactionHitCounts_.size() == collisionThreadCandidateCounts_.size()
+                 && collisionThreadWallTimes_.size() == collisionThreadCandidateCounts_.size()
+                )
+                {
+                    scalarField nsPerCandidate(collisionThreadCandidateCounts_.size(), 0.0);
+                    scalarField nsPerAccepted(collisionThreadAcceptedCounts_.size(), 0.0);
+
+                    forAll(collisionThreadCandidateCounts_, i)
+                    {
+                        if (collisionThreadCandidateCounts_[i] > 0)
+                        {
+                            nsPerCandidate[i] =
+                                1.0e9*collisionThreadWallTimes_[i]
+                               /scalar(collisionThreadCandidateCounts_[i]);
+                        }
+
+                        if (collisionThreadAcceptedCounts_[i] > 0)
+                        {
+                            nsPerAccepted[i] =
+                                1.0e9*collisionThreadWallTimes_[i]
+                               /scalar(collisionThreadAcceptedCounts_[i]);
+                        }
+                    }
+
+                    Info<< "    thread collision active cells = " << collisionThreadActiveCellCounts_ << nl
+                        << "    thread collision reaction hits= " << collisionThreadReactionHitCounts_ << nl
+                        << "    thread collision wall time [s]= " << collisionThreadWallTimes_ << nl
+                        << "    thread collision ns/candidate = " << nsPerCandidate << nl
+                        << "    thread collision ns/accepted  = " << nsPerAccepted << nl;
+                }
             }
 
             Info<< endl;

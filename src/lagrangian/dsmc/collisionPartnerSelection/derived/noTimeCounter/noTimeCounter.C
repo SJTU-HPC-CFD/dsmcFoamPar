@@ -30,6 +30,7 @@ Description
 
 #include "noTimeCounter.H"
 #include "addToRunTimeSelectionTable.H"
+#include <chrono>
 
 namespace Foam
 {
@@ -92,6 +93,9 @@ void noTimeCounter::collide()
         cloud_.openmpEnabled() ? max(cloud_.ompNumThreads(), label(1)) : label(1);
     labelList threadCandidateCounts(statsThreads, 0);
     labelList threadAcceptedCounts(statsThreads, 0);
+    labelList threadActiveCellCounts(statsThreads, 0);
+    labelList threadReactionHitCounts(statsThreads, 0);
+    scalarField threadWallTimes(statsThreads, 0.0);
 
     const List<DynamicList<dsmcParcel*>>& cellOccupancy = cloud_.cellOccupancy();
 
@@ -99,7 +103,13 @@ void noTimeCounter::collide()
     const label nCells = cellOccupancy.size();
 
     auto processCell =
-    [&](const label cellI, List<DynamicList<label>>& subCells)
+    [&]
+    (
+        const label cellI,
+        List<DynamicList<label>>& subCells,
+        label& activeCellCount,
+        label& reactionHitCount
+    )
     -> label
     {
         const DynamicList<dsmcParcel*>& cellParcels(cellOccupancy[cellI]);
@@ -110,6 +120,7 @@ void noTimeCounter::collide()
 
         if (nC > 1 && nCandidates > 0)
         {
+            ++activeCellCount;
 
             // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
             // Assign particles to one of 8 Cartesian subCells
@@ -248,6 +259,7 @@ void noTimeCounter::collide()
 
                         if(rMId != -1)
                         {
+                            ++reactionHitCount;
                             // try to react molecules
     //                         if(cloud_.reactions().reactions()[rMId]->reactWithLists())
     //                         {
@@ -306,57 +318,107 @@ void noTimeCounter::collide()
         {
             #pragma omp parallel
             {
+                using clock_type = std::chrono::steady_clock;
+                const auto tBegin = clock_type::now();
                 List<DynamicList<label>> subCells(8);
                 const label threadI = cloud_.currentThreadId();
                 const label startCell = cloud_.collisionLoadStart()[threadI];
                 const label endCell = cloud_.collisionLoadEnd()[threadI];
                 label localCandidates = 0;
                 label localCollisions = 0;
+                label localActiveCells = 0;
+                label localReactionHits = 0;
 
                 for (label cellI = startCell; cellI < endCell; ++cellI)
                 {
                     localCandidates += cloud_.nCandidatesPerCell()[cellI];
-                    localCollisions += processCell(cellI, subCells);
+                    localCollisions += processCell
+                    (
+                        cellI,
+                        subCells,
+                        localActiveCells,
+                        localReactionHits
+                    );
                 }
 
                 threadCandidateCounts[threadI] = localCandidates;
                 threadAcceptedCounts[threadI] = localCollisions;
+                threadActiveCellCounts[threadI] = localActiveCells;
+                threadReactionHitCounts[threadI] = localReactionHits;
+                threadWallTimes[threadI] =
+                    std::chrono::duration<scalar>(clock_type::now() - tBegin).count();
             }
         }
         else
         {
             #pragma omp parallel
             {
+                using clock_type = std::chrono::steady_clock;
+                const auto tBegin = clock_type::now();
                 List<DynamicList<label>> subCells(8);
                 const label threadI = cloud_.currentThreadId();
                 label localCandidates = 0;
                 label localCollisions = 0;
+                label localActiveCells = 0;
+                label localReactionHits = 0;
 
                 #pragma omp for schedule(dynamic, 1)
                 for (label cellI = 0; cellI < nCells; ++cellI)
                 {
                     localCandidates += cloud_.nCandidatesPerCell()[cellI];
-                    localCollisions += processCell(cellI, subCells);
+                    localCollisions += processCell
+                    (
+                        cellI,
+                        subCells,
+                        localActiveCells,
+                        localReactionHits
+                    );
                 }
 
                 threadCandidateCounts[threadI] = localCandidates;
                 threadAcceptedCounts[threadI] = localCollisions;
+                threadActiveCellCounts[threadI] = localActiveCells;
+                threadReactionHitCounts[threadI] = localReactionHits;
+                threadWallTimes[threadI] =
+                    std::chrono::duration<scalar>(clock_type::now() - tBegin).count();
             }
         }
     }
     else
     #endif
     {
+        using clock_type = std::chrono::steady_clock;
+        const auto tBegin = clock_type::now();
         List<DynamicList<label>> subCells(8);
+        label localActiveCells = 0;
+        label localReactionHits = 0;
 
         for (label cellI = 0; cellI < nCells; ++cellI)
         {
             threadCandidateCounts[0] += cloud_.nCandidatesPerCell()[cellI];
-            threadAcceptedCounts[0] += processCell(cellI, subCells);
+            threadAcceptedCounts[0] += processCell
+            (
+                cellI,
+                subCells,
+                localActiveCells,
+                localReactionHits
+            );
         }
+
+        threadActiveCellCounts[0] = localActiveCells;
+        threadReactionHitCounts[0] = localReactionHits;
+        threadWallTimes[0] =
+            std::chrono::duration<scalar>(clock_type::now() - tBegin).count();
     }
 
-    cloud_.recordCollisionThreadCounts(threadCandidateCounts, threadAcceptedCounts);
+    cloud_.recordCollisionThreadProfile
+    (
+        threadCandidateCounts,
+        threadAcceptedCounts,
+        threadActiveCellCounts,
+        threadReactionHitCounts,
+        threadWallTimes
+    );
 
     label collisionCandidates = sum(threadCandidateCounts);
     label collisions = sum(threadAcceptedCounts);

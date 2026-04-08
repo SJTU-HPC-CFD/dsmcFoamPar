@@ -180,6 +180,21 @@ inline const Foam::labelList& Foam::dsmcCloud::moveOrderedThreadOffsets() const
     return moveOrderedThreadOffsets_;
 }
 
+inline bool Foam::dsmcCloud::hasOccupancyOrderedParcels() const
+{
+    return occupancyOrderedParcelsValid_;
+}
+
+inline const Foam::List<Foam::dsmcParcel*>& Foam::dsmcCloud::occupancyOrderedParcels() const
+{
+    return occupancyOrderedParcels_;
+}
+
+inline const Foam::labelList& Foam::dsmcCloud::occupancyCellOffsets() const
+{
+    return occupancyCellOffsets_;
+}
+
 inline const Foam::scalarField& Foam::dsmcCloud::selectedPairsPerCell() const
 {
     return selectedPairsPerCell_;

@@ -26,6 +26,8 @@ Description
 \*---------------------------------------------------------------------------*/
 
 #include "dsmcFieldProperties.H"
+#include "Pstream.H"
+#include <chrono>
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -56,7 +58,13 @@ dsmcFieldProperties::dsmcFieldProperties
     fieldList_(),
     fieldNames_(),
     fieldIds_(),
-    fields_()
+    fields_(),
+    profileCalculateWallTime_(0.0),
+    profileWriteWallTime_(0.0),
+    profileDictRefreshWallTime_(0.0),
+    profileCalculateCalls_(0),
+    profileWriteCalls_(0),
+    finalProfilePrinted_(false)
 {}
 
 
@@ -82,7 +90,13 @@ dsmcFieldProperties::dsmcFieldProperties
     fieldList_(Foam::hyCompat::lookup(Foam::hyCompat::lookup(dsmcFieldPropertiesDict_, "dsmcFields"))),
     fieldNames_(fieldList_.size()),
     fieldIds_(fieldList_.size()),
-    fields_(fieldList_.size())
+    fields_(fieldList_.size()),
+    profileCalculateWallTime_(0.0),
+    profileWriteWallTime_(0.0),
+    profileDictRefreshWallTime_(0.0),
+    profileCalculateCalls_(0),
+    profileWriteCalls_(0),
+    finalProfilePrinted_(false)
 {
     if(fields_.size() > 0 )
     {
@@ -149,8 +163,6 @@ void dsmcFieldProperties::updateTimeInfo()
 
 void dsmcFieldProperties::calculateFields()
 {
-//  Info << "Calculate fields" << endl;
-
     forAll(fields_, f)
     {
         fields_[f]->calculateField();

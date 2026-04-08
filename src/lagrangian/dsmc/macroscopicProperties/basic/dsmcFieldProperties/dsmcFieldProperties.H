@@ -71,6 +71,12 @@ class dsmcFieldProperties
         List<word> fieldNames_;
         List<label> fieldIds_;
         List< autoPtr<dsmcField> > fields_;
+        scalar profileCalculateWallTime_;
+        scalar profileWriteWallTime_;
+        scalar profileDictRefreshWallTime_;
+        label profileCalculateCalls_;
+        label profileWriteCalls_;
+        bool finalProfilePrinted_;
 
 public:
 

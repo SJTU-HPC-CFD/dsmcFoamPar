@@ -122,19 +122,34 @@ class dsmcCloud
     word openmpCollisionStrategy_;
     word openmpMoveSchedule_;
     label openmpMoveChunk_;
+    bool openmpAdaptivePartition_;
+    label openmpPartitionMinUpdateInterval_;
+    scalar openmpPartitionImbalanceThreshold_;
+    scalar openmpPartitionDriftThreshold_;
+    scalar openmpCollisionCostCandidateWeight_;
+    scalar openmpCollisionCostActiveCellWeight_;
     bool collisionProfileEnabled_;
     bool evolveProfileEnabled_;
     bool emitStepDiagnostics_;
     List<Random> ompRndGens_;
     labelList particleLoadStart_;
     labelList particleLoadEnd_;
+    label particlePartitionStep_;
+    label particlePartitionLastRebuildStep_;
+    labelList particlePartitionReferenceLoad_;
     List<dsmcParcel*> moveOrderedParcels_;
     labelList moveOrderedThreadOffsets_;
     bool moveOrderedParcelsValid_;
+    List<dsmcParcel*> occupancyOrderedParcels_;
+    labelList occupancyCellOffsets_;
+    bool occupancyOrderedParcelsValid_;
     scalarField selectedPairsPerCell_;
     labelList nCandidatesPerCell_;
     labelList collisionLoadStart_;
     labelList collisionLoadEnd_;
+    label collisionPartitionStep_;
+    label collisionPartitionLastRebuildStep_;
+    scalarField collisionPartitionReferenceLoad_;
     scalar collisionPrecomputeWallTime_;
     scalar collisionPartitionWallTime_;
     scalar collisionSelectionWallTime_;
@@ -143,6 +158,13 @@ class dsmcCloud
     scalar buildOccupancyCountWallTime_;
     scalar buildOccupancyAssembleWallTime_;
     label buildOccupancyProfileCalls_;
+    scalar movePreControlWallTime_;
+    scalar moveResetSetupWallTime_;
+    scalar moveExtractWallTime_;
+    scalar moveKernelWallTime_;
+    scalar moveCommitWallTime_;
+    scalar moveTransferFinalizeWallTime_;
+    label moveProfileCalls_;
     scalar evolveMoveWallTime_;
     scalar evolveBuildWallTime_;
     scalar evolveCoordWallTime_;
@@ -151,8 +173,14 @@ class dsmcCloud
     scalar evolvePostWallTime_;
     label evolveProfileCalls_;
     labelList moveThreadParticleCounts_;
+    scalarField moveThreadWallTimes_;
+    labelList moveLastThreadParticleCounts_;
+    scalarField moveLastThreadWallTimes_;
     labelList collisionThreadCandidateCounts_;
     labelList collisionThreadAcceptedCounts_;
+    labelList collisionThreadActiveCellCounts_;
+    labelList collisionThreadReactionHitCounts_;
+    scalarField collisionThreadWallTimes_;
     autoPtr<porousMeasurements> porousMeasurements_;
     dsmcControllers controllers_;
     boundaryMeasurements boundaryMeas_;
@@ -185,7 +213,7 @@ class dsmcCloud
     List<scalarField> kineticCumulative_;
 
     void buildConstProps();
-    void buildCellOccupancy();
+    void buildCellOccupancy(const bool rebuildParticlePartition = true);
     void storeMoveOrderedParcels(const List<dsmcParcel*>& parcels, const labelList& threadOffsets);
     void clearMoveOrderedParcels();
     void readBoundaryModels();
@@ -249,6 +277,9 @@ public:
     inline bool hasMoveOrderedParcels() const;
     inline const List<dsmcParcel*>& moveOrderedParcels() const;
     inline const labelList& moveOrderedThreadOffsets() const;
+    inline bool hasOccupancyOrderedParcels() const;
+    inline const List<dsmcParcel*>& occupancyOrderedParcels() const;
+    inline const labelList& occupancyCellOffsets() const;
     inline const scalarField& selectedPairsPerCell() const;
     inline const labelList& nCandidatesPerCell() const;
     inline const labelList& collisionLoadStart() const;
@@ -360,7 +391,29 @@ public:
     void info() const;
     void reportProfiling() const;
     void recordMoveThreadCounts(const labelList& counts);
+    void recordMoveThreadProfile
+    (
+        const labelList& counts,
+        const scalarField& wallTimes
+    );
+    void recordMovePhaseProfile
+    (
+        const scalar preControlWallTime,
+        const scalar resetSetupWallTime,
+        const scalar extractWallTime,
+        const scalar kernelWallTime,
+        const scalar commitWallTime,
+        const scalar transferFinalizeWallTime
+    );
     void recordCollisionThreadCounts(const labelList& candidateCounts, const labelList& acceptedCounts);
+    void recordCollisionThreadProfile
+    (
+        const labelList& candidateCounts,
+        const labelList& acceptedCounts,
+        const labelList& activeCellCounts,
+        const labelList& reactionHitCounts,
+        const scalarField& wallTimes
+    );
     void resetLoadStats();
     void loadBalanceCheck();
     void evolve();
