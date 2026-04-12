@@ -183,7 +183,7 @@ struct dsmcVolSharedSampleCache
     void build
     (
         const dsmcCloud& cloud,
-        const List<DynamicList<dsmcParcel*>>& cellOccupancy,
+        const List<DynamicList<dsmcParcel*>>* cellOccupancyPtr,
         const List<dsmcParcel*>* occupancyOrderedParcelsPtr,
         const labelList* occupancyCellOffsetsPtr,
         const scalar currentTime,
@@ -199,8 +199,16 @@ struct dsmcVolSharedSampleCache
         const bool useFlatOccupancy =
             occupancyOrderedParcelsPtr
          && occupancyCellOffsetsPtr
-         && occupancyCellOffsetsPtr->size() == cellOccupancy.size() + 1
+         && occupancyCellOffsetsPtr->size() == cloud.mesh().nCells() + 1
          && occupancyOrderedParcelsPtr->size() == occupancyCellOffsetsPtr->last();
+
+        if (!useFlatOccupancy && !cellOccupancyPtr)
+        {
+            FatalErrorInFunction
+                << "Shared sample cache requires either flat occupancy data "
+                << "or a materialized cellOccupancy view." << nl
+                << abort(FatalError);
+        }
 
         auto wallClockNow = []()
         {
@@ -295,13 +303,16 @@ struct dsmcVolSharedSampleCache
                 scalar localClassAccumWallTime = 0.0;
                 label localDetailSampleCells = 0;
                 label localDetailSampleParcels = 0;
-                const DynamicList<dsmcParcel*>& parcels = cellOccupancy[celli];
+                const DynamicList<dsmcParcel*>* parcelsPtr =
+                    useFlatOccupancy ? nullptr : &(*cellOccupancyPtr)[celli];
                 const label parcelBegin =
                     useFlatOccupancy ? (*occupancyCellOffsetsPtr)[celli] : 0;
                 const label parcelEnd =
-                    useFlatOccupancy ? (*occupancyCellOffsetsPtr)[celli + 1] : parcels.size();
+                    useFlatOccupancy
+                  ? (*occupancyCellOffsetsPtr)[celli + 1]
+                  : parcelsPtr->size();
                 const label parcelCount =
-                    useFlatOccupancy ? (parcelEnd - parcelBegin) : parcels.size();
+                    useFlatOccupancy ? (parcelEnd - parcelBegin) : parcelsPtr->size();
                 const bool profileCellDetail =
                     doProfile && parcelCount > 0 && (celli % 32 == 0);
 
@@ -316,7 +327,7 @@ struct dsmcVolSharedSampleCache
                     const dsmcParcel& p =
                         useFlatOccupancy
                       ? *(*occupancyOrderedParcelsPtr)[parcelBegin + pi]
-                      : *parcels[pi];
+                      : *(*parcelsPtr)[pi];
 
                     if (!p.isFree())
                     {
@@ -499,12 +510,12 @@ struct dsmcVolSharedSampleCache
 
         #ifdef _OPENMP
         #pragma omp parallel for schedule(static) if (cloud.openmpEnabled())
-        forAll(cellOccupancy, celli)
+        for (label celli = 0; celli < cloud.mesh().nCells(); ++celli)
         {
             accumulateCell(celli);
         }
         #else
-        forAll(cellOccupancy, celli)
+        for (label celli = 0; celli < cloud.mesh().nCells(); ++celli)
         {
             accumulateCell(celli);
         }
@@ -1629,13 +1640,14 @@ void dsmcVolFields::calculateField()
     {
         nTimeSteps_ += 1.0;
         const scalar nAvTimeSteps = nTimeSteps_;
-        const auto& cellOccupancy = cloud_.cellOccupancy();
         const bool useOpenMPSampling = cloud_.openmpEnabled();
         const auto sampleAccumStart =
             doProfile ? wallClockNow() : std::chrono::steady_clock::time_point();
 
         if (densityOnly_)
         {
+            const auto& cellOccupancy = cloud_.cellOccupancy();
+
             if (useOpenMPSampling)
             {
                 #ifdef _OPENMP
@@ -1716,7 +1728,7 @@ void dsmcVolFields::calculateField()
             sharedSampleCache_.build
             (
                 cloud_,
-                cellOccupancy,
+                nullptr,
                 cloud_.hasOccupancyOrderedParcels()
                   ? &cloud_.occupancyOrderedParcels()
                   : nullptr,
@@ -1760,7 +1772,7 @@ void dsmcVolFields::calculateField()
             #ifdef _OPENMP
             #pragma omp parallel for schedule(static) if (useOpenMPSampling)
             #endif
-            forAll(cellOccupancy, celli)
+            for (label celli = 0; celli < cloud_.mesh().nCells(); ++celli)
             {
                 scalar dsmcNLocal = 0.0;
                 scalar dsmcMLocal = 0.0;

@@ -8,6 +8,7 @@
 #include "UList.H"
 #include "stringOps.H"
 #include "token.H"
+#include "Istream.H"
 #include "ITstream.H"
 
 namespace Foam
@@ -17,9 +18,9 @@ namespace hyCompat
 
 template<class DictType>
 inline auto lookup(const DictType& dict, const word& key)
--> decltype(dict.lookup(key))
+-> decltype(const_cast<DictType&>(dict).lookup(key))
 {
-    return dict.lookup(key);
+    return const_cast<DictType&>(dict).lookup(key);
 }
 
 template<class T>
@@ -45,6 +46,11 @@ inline scalar toScalar(Istream& is)
     return readScalar(is);
 }
 
+inline scalar toScalar(const Istream& is)
+{
+    return readScalar(const_cast<Istream&>(is));
+}
+
 inline scalar toScalar(const token& tok)
 {
     return tok.number();
@@ -59,6 +65,11 @@ inline label toLabel(const DictType& dict, const word& key)
 inline label toLabel(Istream& is)
 {
     return readLabel(is);
+}
+
+inline label toLabel(const Istream& is)
+{
+    return readLabel(const_cast<Istream&>(is));
 }
 
 inline label toLabel(const token& tok)

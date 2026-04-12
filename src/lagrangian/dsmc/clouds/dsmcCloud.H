@@ -140,9 +140,13 @@ class dsmcCloud
     List<dsmcParcel*> moveOrderedParcels_;
     labelList moveOrderedThreadOffsets_;
     bool moveOrderedParcelsValid_;
+    bool moveAppendCaptureActive_;
+    DynamicList<dsmcParcel*> moveAppendedParcels_;
+    DynamicList<dsmcParcel*> pendingMoveParcels_;
     List<dsmcParcel*> occupancyOrderedParcels_;
     labelList occupancyCellOffsets_;
     bool occupancyOrderedParcelsValid_;
+    mutable bool cellOccupancyMaterialized_;
     scalarField selectedPairsPerCell_;
     labelList nCandidatesPerCell_;
     labelList collisionLoadStart_;
@@ -158,6 +162,24 @@ class dsmcCloud
     scalar buildOccupancyCountWallTime_;
     scalar buildOccupancyAssembleWallTime_;
     label buildOccupancyProfileCalls_;
+    label buildOccupancyMoveOrderedHits_;
+    label buildOccupancyFallbackHits_;
+    label buildOccupancyMoveOrderedInvalidHits_;
+    label buildOccupancyMoveOrderedOffsetMismatchHits_;
+    label buildOccupancyMoveOrderedSizeMismatchHits_;
+    scalar buildOccupancyMoveOrderedSizeDeltaSum_;
+    label buildOccupancyMoveOrderedSizeDeltaMin_;
+    label buildOccupancyMoveOrderedSizeDeltaMax_;
+    scalar buildOccupancyMoveOrderedParcelsSum_;
+    scalar buildOccupancyMoveAppendedParcelsSum_;
+    scalar buildOccupancyCloudSizeSum_;
+    scalar buildOccupancyCloudValidCellSum_;
+    scalar buildOccupancyCloudInvalidCellSum_;
+    scalar buildOccupancyMoveOrderedValidCellSum_;
+    scalar buildOccupancyMoveOrderedInvalidCellSum_;
+    scalar buildOccupancyPartitionAssignedParcelsSum_;
+    scalar buildOccupancyPartitionGapCellsSum_;
+    scalar buildOccupancyPartitionOverlapCellsSum_;
     scalar movePreControlWallTime_;
     scalar moveResetSetupWallTime_;
     scalar moveExtractWallTime_;
@@ -165,6 +187,11 @@ class dsmcCloud
     scalar moveCommitWallTime_;
     scalar moveTransferFinalizeWallTime_;
     label moveProfileCalls_;
+    label moveCommitCountCalls_;
+    scalar moveExtractedParcelsSum_;
+    scalar moveSurvivorParcelsSum_;
+    scalar moveTransferredParcelsSum_;
+    scalar moveDeletedParcelsSum_;
     scalar evolveMoveWallTime_;
     scalar evolveBuildWallTime_;
     scalar evolveCoordWallTime_;
@@ -214,8 +241,7 @@ class dsmcCloud
 
     void buildConstProps();
     void buildCellOccupancy(const bool rebuildParticlePartition = true);
-    void storeMoveOrderedParcels(const List<dsmcParcel*>& parcels, const labelList& threadOffsets);
-    void clearMoveOrderedParcels();
+    void materializeCellOccupancy();
     void readBoundaryModels();
     void readFieldSpecs();
     void createFields();
@@ -274,12 +300,30 @@ public:
     inline label currentThreadId() const;
     inline const labelList& particleLoadStart() const;
     inline const labelList& particleLoadEnd() const;
+    void beginMoveAppendCapture();
+    void endMoveAppendCapture();
+    void recordMoveAppendedParcel(dsmcParcel* pPtr);
+    void clearPendingMoveParcels();
+    void recordMoveCommitCounts
+    (
+        const label extracted,
+        const label survivors,
+        const label transferred,
+        const label deleted
+    );
+    void storeMoveOrderedParcels(const List<dsmcParcel*>& parcels, const labelList& threadOffsets);
+    void clearMoveOrderedParcels();
     inline bool hasMoveOrderedParcels() const;
     inline const List<dsmcParcel*>& moveOrderedParcels() const;
     inline const labelList& moveOrderedThreadOffsets() const;
+    inline const DynamicList<dsmcParcel*>& pendingMoveParcels() const;
     inline bool hasOccupancyOrderedParcels() const;
     inline const List<dsmcParcel*>& occupancyOrderedParcels() const;
     inline const labelList& occupancyCellOffsets() const;
+    inline label occupancyStart(const label celli) const;
+    inline label occupancyEnd(const label celli) const;
+    inline label occupancyCount(const label celli) const;
+    inline dsmcParcel* occupancyParcel(const label index) const;
     inline const scalarField& selectedPairsPerCell() const;
     inline const labelList& nCandidatesPerCell() const;
     inline const labelList& collisionLoadStart() const;

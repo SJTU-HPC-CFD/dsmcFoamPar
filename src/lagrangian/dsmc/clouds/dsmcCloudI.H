@@ -180,6 +180,12 @@ inline const Foam::labelList& Foam::dsmcCloud::moveOrderedThreadOffsets() const
     return moveOrderedThreadOffsets_;
 }
 
+inline const Foam::DynamicList<Foam::dsmcParcel*>&
+Foam::dsmcCloud::pendingMoveParcels() const
+{
+    return pendingMoveParcels_;
+}
+
 inline bool Foam::dsmcCloud::hasOccupancyOrderedParcels() const
 {
     return occupancyOrderedParcelsValid_;
@@ -193,6 +199,41 @@ inline const Foam::List<Foam::dsmcParcel*>& Foam::dsmcCloud::occupancyOrderedPar
 inline const Foam::labelList& Foam::dsmcCloud::occupancyCellOffsets() const
 {
     return occupancyCellOffsets_;
+}
+
+inline Foam::label Foam::dsmcCloud::occupancyStart(const label celli) const
+{
+    if (occupancyOrderedParcelsValid_ || !cellOccupancyMaterialized_)
+    {
+        return occupancyCellOffsets_[celli];
+    }
+
+    return 0;
+}
+
+inline Foam::label Foam::dsmcCloud::occupancyEnd(const label celli) const
+{
+    if (occupancyOrderedParcelsValid_ || !cellOccupancyMaterialized_)
+    {
+        return occupancyCellOffsets_[celli + 1];
+    }
+
+    return 0;
+}
+
+inline Foam::label Foam::dsmcCloud::occupancyCount(const label celli) const
+{
+    if (occupancyOrderedParcelsValid_ || !cellOccupancyMaterialized_)
+    {
+        return occupancyCellOffsets_[celli + 1] - occupancyCellOffsets_[celli];
+    }
+
+    return cellOccupancy_[celli].size();
+}
+
+inline Foam::dsmcParcel* Foam::dsmcCloud::occupancyParcel(const label index) const
+{
+    return occupancyOrderedParcels_[index];
 }
 
 inline const Foam::scalarField& Foam::dsmcCloud::selectedPairsPerCell() const
@@ -223,6 +264,11 @@ inline Foam::label Foam::dsmcCloud::randomLabel(const label min, const label max
 inline const Foam::List<Foam::DynamicList<Foam::dsmcParcel*>>&
 Foam::dsmcCloud::cellOccupancy() const
 {
+    if (!cellOccupancyMaterialized_)
+    {
+        const_cast<dsmcCloud&>(*this).materializeCellOccupancy();
+    }
+
     return cellOccupancy_;
 }
 

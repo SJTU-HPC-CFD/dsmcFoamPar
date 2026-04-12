@@ -97,10 +97,12 @@ void noTimeCounter::collide()
     labelList threadReactionHitCounts(statsThreads, 0);
     scalarField threadWallTimes(statsThreads, 0.0);
 
-    const List<DynamicList<dsmcParcel*>>& cellOccupancy = cloud_.cellOccupancy();
+    const bool useFlatOccupancy = cloud_.hasOccupancyOrderedParcels();
+    const List<DynamicList<dsmcParcel*>>* cellOccupancyPtr =
+        useFlatOccupancy ? nullptr : &cloud_.cellOccupancy();
 
     const polyMesh& mesh = cloud_.mesh();
-    const label nCells = cellOccupancy.size();
+    const label nCells = mesh.nCells();
 
     auto processCell =
     [&]
@@ -112,9 +114,11 @@ void noTimeCounter::collide()
     )
     -> label
     {
-        const DynamicList<dsmcParcel*>& cellParcels(cellOccupancy[cellI]);
-
-        const label nC(cellParcels.size());
+        const DynamicList<dsmcParcel*>* cellParcelsPtr =
+            useFlatOccupancy ? nullptr : &(*cellOccupancyPtr)[cellI];
+        const label occStart = useFlatOccupancy ? cloud_.occupancyStart(cellI) : 0;
+        const label nC =
+            useFlatOccupancy ? cloud_.occupancyCount(cellI) : cellParcelsPtr->size();
         const label nCandidates = cloud_.nCandidatesPerCell()[cellI];
         label acceptedCollisions = 0;
 
@@ -132,13 +136,16 @@ void noTimeCounter::collide()
             }
 
             // Inverse addressing specifying which subCell a parcel is in
-            List<label> whichSubCell(cellParcels.size());
+            List<label> whichSubCell(nC);
 
             const point& cC = mesh.cellCentres()[cellI];
 
-            forAll(cellParcels, i)
+            for (label i = 0; i < nC; ++i)
             {
-                const dsmcParcel& p = *cellParcels[i];
+                const dsmcParcel& p =
+                    useFlatOccupancy
+                  ? *cloud_.occupancyParcel(occStart + i)
+                  : *(*cellParcelsPtr)[i];
 
                 vector relPos = p.position() - cC;
 
@@ -214,8 +221,14 @@ void noTimeCounter::collide()
 
                 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-                dsmcParcel& parcelP = *cellParcels[candidateP];
-                dsmcParcel& parcelQ = *cellParcels[candidateQ];
+                dsmcParcel& parcelP =
+                    useFlatOccupancy
+                  ? *cloud_.occupancyParcel(occStart + candidateP)
+                  : *(*cellParcelsPtr)[candidateP];
+                dsmcParcel& parcelQ =
+                    useFlatOccupancy
+                  ? *cloud_.occupancyParcel(occStart + candidateQ)
+                  : *(*cellParcelsPtr)[candidateQ];
 
                 label chargeP = -2;
                 label chargeQ = -2;

@@ -172,6 +172,63 @@ inline void clearMoveOrderedParcels(TrackCloudType&, long)
 {}
 
 template<class TrackCloudType>
+inline auto beginMoveAppendCapture(TrackCloudType& cloud, int)
+-> decltype(cloud.beginMoveAppendCapture(), void())
+{
+    cloud.beginMoveAppendCapture();
+}
+
+template<class TrackCloudType>
+inline void beginMoveAppendCapture(TrackCloudType&, long)
+{}
+
+template<class TrackCloudType>
+inline auto endMoveAppendCapture(TrackCloudType& cloud, int)
+-> decltype(cloud.endMoveAppendCapture(), void())
+{
+    cloud.endMoveAppendCapture();
+}
+
+template<class TrackCloudType>
+inline void endMoveAppendCapture(TrackCloudType&, long)
+{}
+
+template<class TrackCloudType, class ParticleType>
+inline auto pendingMoveParcels(const TrackCloudType& cloud, int)
+-> decltype(cloud.pendingMoveParcels())
+{
+    return cloud.pendingMoveParcels();
+}
+
+template<class TrackCloudType, class ParticleType>
+inline DynamicList<ParticleType*> pendingMoveParcels(const TrackCloudType&, long)
+{
+    return DynamicList<ParticleType*>();
+}
+
+template<class TrackCloudType>
+inline auto clearPendingMoveParcels(TrackCloudType& cloud, int)
+-> decltype(cloud.clearPendingMoveParcels(), void())
+{
+    cloud.clearPendingMoveParcels();
+}
+
+template<class TrackCloudType>
+inline void clearPendingMoveParcels(TrackCloudType&, long)
+{}
+
+template<class TrackCloudType, class ParticleType>
+inline auto recordMoveAppendedParcel(TrackCloudType& cloud, ParticleType* pPtr, int)
+-> decltype(cloud.recordMoveAppendedParcel(pPtr), void())
+{
+    cloud.recordMoveAppendedParcel(pPtr);
+}
+
+template<class TrackCloudType, class ParticleType>
+inline void recordMoveAppendedParcel(TrackCloudType&, ParticleType*, long)
+{}
+
+template<class TrackCloudType>
 inline auto recordMoveThreadCounts
 (
     TrackCloudType& cloud,
@@ -259,6 +316,33 @@ inline void recordMovePhaseProfile
     const scalar,
     const scalar,
     const scalar,
+    long
+)
+{}
+
+template<class TrackCloudType>
+inline auto recordMoveCommitCounts
+(
+    TrackCloudType& cloud,
+    const label extracted,
+    const label survivors,
+    const label transferred,
+    const label deleted,
+    int
+)
+-> decltype(cloud.recordMoveCommitCounts(extracted, survivors, transferred, deleted), void())
+{
+    cloud.recordMoveCommitCounts(extracted, survivors, transferred, deleted);
+}
+
+template<class TrackCloudType>
+inline void recordMoveCommitCounts
+(
+    TrackCloudType&,
+    const label,
+    const label,
+    const label,
+    const label,
     long
 )
 {}
@@ -468,14 +552,38 @@ void Foam::Cloud<ParticleType>::move
         {
             List<ParticleType*> particles;
             labelList threadOffsets(moveThreads + 1, 0);
+            const auto deferredParcels =
+                cloudOpenMP::pendingMoveParcels<TrackCloudType, ParticleType>(cloud, 0);
             const auto tExtractBegin = clock_type::now();
 
             if (useParticlePartition)
             {
-                const auto& cellOccupancy = cloudOpenMP::cellOccupancy(cloud, 0);
                 const auto& particleLoadStart = cloudOpenMP::particleLoadStart(cloud, 0);
                 const auto& particleLoadEnd = cloudOpenMP::particleLoadEnd(cloud, 0);
                 labelList threadCounts(moveThreads, 0);
+                labelList occupancyThreadCounts(moveThreads, 0);
+                labelList deferredThreadCounts(moveThreads, 0);
+
+                auto ownerThreadForCell =
+                [&](const label celli, const label fallbackIndex)
+                {
+                    if (celli >= 0)
+                    {
+                        for (label threadI = 0; threadI < moveThreads; ++threadI)
+                        {
+                            if
+                            (
+                                celli >= particleLoadStart[threadI]
+                             && celli < particleLoadEnd[threadI]
+                            )
+                            {
+                                return threadI;
+                            }
+                        }
+                    }
+
+                    return min(moveThreads - 1, fallbackIndex*moveThreads/max(deferredParcels.size(), label(1)));
+                };
 
                 #ifdef _OPENMP
                 #pragma omp parallel for num_threads(moveThreads) schedule(static)
@@ -491,10 +599,18 @@ void Foam::Cloud<ParticleType>::move
                         ++celli
                     )
                     {
-                        localCount += cellOccupancy[celli].size();
+                        localCount += cloud.occupancyCount(celli);
                     }
 
                     threadCounts[threadI] = localCount;
+                    occupancyThreadCounts[threadI] = localCount;
+                }
+
+                forAll(deferredParcels, i)
+                {
+                    const label threadI = ownerThreadForCell(deferredParcels[i]->cell(), i);
+                    ++deferredThreadCounts[threadI];
+                    ++threadCounts[threadI];
                 }
 
                 for (label threadI = 0; threadI < moveThreads; ++threadI)
@@ -519,13 +635,30 @@ void Foam::Cloud<ParticleType>::move
                         ++celli
                     )
                     {
-                        const auto& cellParcels = cellOccupancy[celli];
-
-                        forAll(cellParcels, i)
+                        for
+                        (
+                            label occI = cloud.occupancyStart(celli);
+                            occI < cloud.occupancyEnd(celli);
+                            ++occI
+                        )
                         {
-                            particles[particlei++] = cellParcels[i];
+                            particles[particlei++] = cloud.occupancyParcel(occI);
                         }
                     }
+                }
+
+                labelList deferredWriteOffsets(moveThreads, 0);
+
+                for (label threadI = 0; threadI < moveThreads; ++threadI)
+                {
+                    deferredWriteOffsets[threadI] =
+                        threadOffsets[threadI] + occupancyThreadCounts[threadI];
+                }
+
+                forAll(deferredParcels, i)
+                {
+                    const label threadI = ownerThreadForCell(deferredParcels[i]->cell(), i);
+                    particles[deferredWriteOffsets[threadI]++] = deferredParcels[i];
                 }
             }
             else
@@ -545,6 +678,8 @@ void Foam::Cloud<ParticleType>::move
 
                 threadOffsets[moveThreads] = particles.size();
             }
+
+            cloudOpenMP::clearPendingMoveParcels(cloud, 0);
 
             moveExtractWallTime +=
                 std::chrono::duration<scalar>(clock_type::now() - tExtractBegin).count();
@@ -792,11 +927,15 @@ void Foam::Cloud<ParticleType>::move
             if (useParticlePartition)
             {
                 labelList survivingOffsets(moveThreads + 1, 0);
+                label transferredCount = 0;
+                label deletedCount = 0;
 
                 for (label threadI = 0; threadI < moveThreads; ++threadI)
                 {
                     survivingOffsets[threadI + 1] =
                         survivingOffsets[threadI] + survivingPerThread[threadI].size();
+                    transferredCount += transferPerThread[threadI].size();
+                    deletedCount += deletePerThread[threadI].size();
                 }
 
                 List<ParticleType*> survivingList(survivingOffsets.last());
@@ -817,6 +956,16 @@ void Foam::Cloud<ParticleType>::move
                     cloud,
                     survivingList,
                     survivingOffsets,
+                    0
+                );
+
+                cloudOpenMP::recordMoveCommitCounts
+                (
+                    cloud,
+                    particles.size(),
+                    survivingList.size(),
+                    transferredCount,
+                    deletedCount,
                     0
                 );
             }
@@ -945,6 +1094,7 @@ void Foam::Cloud<ParticleType>::move
 
                     (*newp).correctAfterParallelTransfer(patchi, td);
                     addParticle(newp);
+                    cloudOpenMP::recordMoveAppendedParcel(cloud, newp, 0);
                 }
             }
         }
@@ -952,7 +1102,6 @@ void Foam::Cloud<ParticleType>::move
         moveTransferFinalizeWallTime +=
             std::chrono::duration<scalar>(clock_type::now() - tTransferBegin).count();
     }
-
     cloudOpenMP::recordMovePhaseProfile
     (
         cloud,
