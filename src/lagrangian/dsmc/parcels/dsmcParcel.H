@@ -232,9 +232,26 @@ public:
         public particle::trackingData
     {
     public:
+        label moveFaceHitCount;
+        label moveCyclicHitCount;
+        label moveStuckHitCount;
+        label movePatchHitCount;
+        label moveProcessorHitCount;
+        scalar moveTrackWallTime;
+        scalar moveTrackerWallTime;
+        scalar moveBoundaryWallTime;
+
         trackingData(const dsmcCloud& cloud)
         :
-            particle::trackingData(cloud)
+            particle::trackingData(cloud),
+            moveFaceHitCount(0),
+            moveCyclicHitCount(0),
+            moveStuckHitCount(0),
+            movePatchHitCount(0),
+            moveProcessorHitCount(0),
+            moveTrackWallTime(0.0),
+            moveTrackerWallTime(0.0),
+            moveBoundaryWallTime(0.0)
         {}
     };
 

@@ -120,8 +120,12 @@ class dsmcCloud
     bool trackerActive_;
     label ompNumThreads_;
     word openmpCollisionStrategy_;
+    label openmpCollisionChunk_;
     word openmpMoveSchedule_;
     label openmpMoveChunk_;
+    label openmpMoveGuardLayers_;
+    boolList openmpMoveGuardCells_;
+    label openmpMoveGuardCellCount_;
     bool openmpAdaptivePartition_;
     label openmpPartitionMinUpdateInterval_;
     scalar openmpPartitionImbalanceThreshold_;
@@ -130,6 +134,7 @@ class dsmcCloud
     scalar openmpCollisionCostActiveCellWeight_;
     bool collisionProfileEnabled_;
     bool evolveProfileEnabled_;
+    bool profilingDetailEnabled_;
     bool emitStepDiagnostics_;
     List<Random> ompRndGens_;
     labelList particleLoadStart_;
@@ -143,12 +148,17 @@ class dsmcCloud
     bool moveAppendCaptureActive_;
     DynamicList<dsmcParcel*> moveAppendedParcels_;
     DynamicList<dsmcParcel*> pendingMoveParcels_;
-    List<dsmcParcel*> occupancyOrderedParcels_;
+    DynamicList<dsmcParcel*> occupancyOrderedParcels_;
     labelList occupancyCellOffsets_;
+    labelList occupancyActiveCells_;
+    labelList occupancyCollisionCells_;
     bool occupancyOrderedParcelsValid_;
     mutable bool cellOccupancyMaterialized_;
+    List<labelList> occupancyThreadCellCounts_;
+    List<DynamicList<label>> occupancyThreadActiveCells_;
     scalarField selectedPairsPerCell_;
     labelList nCandidatesPerCell_;
+    labelList collisionCandidateCells_;
     labelList collisionLoadStart_;
     labelList collisionLoadEnd_;
     label collisionPartitionStep_;
@@ -183,15 +193,56 @@ class dsmcCloud
     scalar movePreControlWallTime_;
     scalar moveResetSetupWallTime_;
     scalar moveExtractWallTime_;
+    scalar moveExtractDeferredWallTime_;
+    scalar moveExtractOrderedReuseWallTime_;
+    scalar moveExtractFullScanWallTime_;
     scalar moveKernelWallTime_;
     scalar moveCommitWallTime_;
     scalar moveTransferFinalizeWallTime_;
     label moveProfileCalls_;
     label moveCommitCountCalls_;
+    label moveExtractDeferredPasses_;
+    label moveExtractOrderedReusePasses_;
+    label moveExtractFullScanPasses_;
     scalar moveExtractedParcelsSum_;
+    scalar moveExtractDeferredParcelsSum_;
+    scalar moveExtractOrderedReuseParcelsSum_;
+    scalar moveExtractFullScanParcelsSum_;
+    label moveFirstPassReuseChecks_;
+    label moveFirstPassHasOrderedCount_;
+    label moveFirstPassMissingOrderedCount_;
+    label moveFirstPassOffsetMismatchCount_;
+    label moveFirstPassSizeMatchCount_;
+    label moveFirstPassPriorPlusPendingMatchCount_;
+    scalar moveFirstPassCurrentSizeSum_;
+    scalar moveFirstPassPriorSizeSum_;
+    scalar moveFirstPassPendingSizeSum_;
+    scalar moveFirstPassSizeDeltaSum_;
+    scalar moveFirstPassDeltaMinusPendingSum_;
+    label previousMoveEndCloudSize_;
+    scalar moveInterStepCloudDeltaSum_;
+    label moveInterStepCloudDeltaMin_;
+    label moveInterStepCloudDeltaMax_;
+    scalar movePostStepCloudDeltaSum_;
+    label movePostStepCloudDeltaMin_;
+    label movePostStepCloudDeltaMax_;
     scalar moveSurvivorParcelsSum_;
     scalar moveTransferredParcelsSum_;
     scalar moveDeletedParcelsSum_;
+    scalar moveLoopPassesSum_;
+    label moveLoopPassesMax_;
+    scalar moveDeferredParcelsSum_;
+    label moveDeferredParcelsMax_;
+    scalar moveReceivedParcelsSum_;
+    label moveReceivedParcelsMax_;
+    scalar moveTrackWallTime_;
+    scalar moveTrackerCallbackWallTime_;
+    scalar moveBoundaryControlWallTime_;
+    scalar moveFaceHitsSum_;
+    scalar moveCyclicHitsSum_;
+    scalar moveStuckHitsSum_;
+    scalar movePatchHitsSum_;
+    scalar moveProcessorHitsSum_;
     scalar evolveMoveWallTime_;
     scalar evolveBuildWallTime_;
     scalar evolveCoordWallTime_;
@@ -201,6 +252,14 @@ class dsmcCloud
     label evolveProfileCalls_;
     labelList moveThreadParticleCounts_;
     scalarField moveThreadWallTimes_;
+    scalarField moveThreadTrackWallTimes_;
+    scalarField moveThreadTrackerWallTimes_;
+    scalarField moveThreadBoundaryWallTimes_;
+    labelList moveThreadFaceHitCounts_;
+    labelList moveThreadCyclicHitCounts_;
+    labelList moveThreadStuckHitCounts_;
+    labelList moveThreadPatchHitCounts_;
+    labelList moveThreadProcessorHitCounts_;
     labelList moveLastThreadParticleCounts_;
     scalarField moveLastThreadWallTimes_;
     labelList collisionThreadCandidateCounts_;
@@ -246,6 +305,7 @@ class dsmcCloud
     void readFieldSpecs();
     void createFields();
     void resetBoundaryForceDensity();
+    void initOpenMPMoveGuardCells();
     void collisions();
     void noTimeCounterCollisions();
     void insertInflowParcels();
@@ -256,6 +316,11 @@ class dsmcCloud
     void precomputeCollisionCandidates();
     void rebuildCollisionLoadPartition();
     void rebuildParticleLoadPartition();
+    void rebuildParticleLoadPartition
+    (
+        const labelList& currentCellLoads,
+        const label totalParticles
+    );
     scalar initialSigmaTcRMax() const;
     bool speciesSelected(const label fieldI, const label typeId) const;
 
@@ -291,18 +356,23 @@ public:
     inline bool openmpMoveEnabled() const;
     inline bool trackerActive() const;
     inline bool evolveProfileEnabled() const;
+    inline bool profilingDetailEnabled() const;
     inline void setStepDiagnosticOutput(const bool enabled);
     inline bool emitStepDiagnostics() const;
     inline label ompNumThreads() const;
     inline const word& openmpCollisionStrategy() const;
+    inline label openmpCollisionChunk() const;
     inline const word& openmpMoveSchedule() const;
     inline label openmpMoveChunk() const;
+    inline bool openmpMoveGuardCell(const label celli) const;
     inline label currentThreadId() const;
     inline const labelList& particleLoadStart() const;
     inline const labelList& particleLoadEnd() const;
     void beginMoveAppendCapture();
     void endMoveAppendCapture();
     void recordMoveAppendedParcel(dsmcParcel* pPtr);
+    void clearMoveAppendedParcels();
+    void recordPendingMoveParcel(dsmcParcel* pPtr);
     void clearPendingMoveParcels();
     void recordMoveCommitCounts
     (
@@ -311,21 +381,45 @@ public:
         const label transferred,
         const label deleted
     );
+    void recordMoveLoopPasses(const label nPasses);
+    void recordMoveDeferredParcels(const label nDeferred);
+    void recordMoveReceivedParcels(const label nReceived);
+    void recordMoveExtractDetail
+    (
+        const scalar deferredWallTime,
+        const scalar orderedReuseWallTime,
+        const scalar fullScanWallTime,
+        const label deferredParcels,
+        const label orderedReuseParcels,
+        const label fullScanParcels
+    );
+    void recordMoveFirstPassReuseCheck
+    (
+        const bool hasOrdered,
+        const bool offsetsOk,
+        const label currentSize,
+        const label priorSize,
+        const label appendedSize
+    );
     void storeMoveOrderedParcels(const List<dsmcParcel*>& parcels, const labelList& threadOffsets);
     void clearMoveOrderedParcels();
     inline bool hasMoveOrderedParcels() const;
     inline const List<dsmcParcel*>& moveOrderedParcels() const;
     inline const labelList& moveOrderedThreadOffsets() const;
+    inline const DynamicList<dsmcParcel*>& moveAppendedParcels() const;
     inline const DynamicList<dsmcParcel*>& pendingMoveParcels() const;
     inline bool hasOccupancyOrderedParcels() const;
     inline const List<dsmcParcel*>& occupancyOrderedParcels() const;
     inline const labelList& occupancyCellOffsets() const;
+    inline const labelList& occupancyActiveCells() const;
+    inline const labelList& occupancyCollisionCells() const;
     inline label occupancyStart(const label celli) const;
     inline label occupancyEnd(const label celli) const;
     inline label occupancyCount(const label celli) const;
     inline dsmcParcel* occupancyParcel(const label index) const;
     inline const scalarField& selectedPairsPerCell() const;
     inline const labelList& nCandidatesPerCell() const;
+    inline const labelList& collisionCandidateCells() const;
     inline const labelList& collisionLoadStart() const;
     inline const labelList& collisionLoadEnd() const;
     inline label randomLabel(const label min, const label max);
@@ -439,6 +533,17 @@ public:
     (
         const labelList& counts,
         const scalarField& wallTimes
+    );
+    void recordMoveInnerProfile
+    (
+        const scalarField& trackWallTimes,
+        const scalarField& trackerWallTimes,
+        const scalarField& boundaryWallTimes,
+        const labelList& faceHitCounts,
+        const labelList& cyclicHitCounts,
+        const labelList& stuckHitCounts,
+        const labelList& patchHitCounts,
+        const labelList& processorHitCounts
     );
     void recordMovePhaseProfile
     (

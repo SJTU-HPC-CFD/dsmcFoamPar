@@ -57,9 +57,16 @@ noTimeCounter::noTimeCounter
 )
 :
     collisionPartnerSelection(mesh, cloud, dict),
-    infoCounter_(0)
+    infoCounter_(0),
+    threadWhichSubCell_(),
+    threadSubCells_(),
+    threadParcelPtrs_(),
+    threadVelocities_(),
+    threadTypeIds_(),
+    threadCharges_()
 //     propsDict_(dict.subDict(typeName + "Properties"))
-{}
+{
+}
 
 
 
@@ -86,9 +93,6 @@ void noTimeCounter::collide()
         return;
     }
 
-    // Temporary storage for subCells
-    List<DynamicList<label>> subCells(8);
-
     const label statsThreads =
         cloud_.openmpEnabled() ? max(cloud_.ompNumThreads(), label(1)) : label(1);
     labelList threadCandidateCounts(statsThreads, 0);
@@ -103,12 +107,31 @@ void noTimeCounter::collide()
 
     const polyMesh& mesh = cloud_.mesh();
     const label nCells = mesh.nCells();
+    const label collisionChunk = max(cloud_.openmpCollisionChunk(), label(1));
+
+    if (threadWhichSubCell_.size() != statsThreads)
+    {
+        threadWhichSubCell_.setSize(statsThreads);
+        threadSubCells_.setSize(statsThreads);
+        threadParcelPtrs_.setSize(statsThreads);
+        threadVelocities_.setSize(statsThreads);
+        threadTypeIds_.setSize(statsThreads);
+        threadCharges_.setSize(statsThreads);
+    }
+
+    for (label threadI = 0; threadI < statsThreads; ++threadI)
+    {
+        if (threadSubCells_[threadI].size() != 8)
+        {
+            threadSubCells_[threadI].setSize(8);
+        }
+    }
 
     auto processCell =
     [&]
     (
         const label cellI,
-        List<DynamicList<label>>& subCells,
+        const label threadI,
         label& activeCellCount,
         label& reactionHitCount
     )
@@ -125,39 +148,52 @@ void noTimeCounter::collide()
         if (nC > 1 && nCandidates > 0)
         {
             ++activeCellCount;
-
-            // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-            // Assign particles to one of 8 Cartesian subCells
-
-            // Clear temporary lists
-            forAll(subCells, i)
-            {
-                subCells[i].clear();
-            }
-
-            // Inverse addressing specifying which subCell a parcel is in
-            List<label> whichSubCell(nC);
+            DynamicList<label>& whichSubCell = threadWhichSubCell_[threadI];
+            List<DynamicList<label>>& subCells = threadSubCells_[threadI];
+            DynamicList<dsmcParcel*>& parcelPtrs = threadParcelPtrs_[threadI];
+            DynamicList<vector>& velocities = threadVelocities_[threadI];
+            DynamicList<label>& typeIds = threadTypeIds_[threadI];
+            DynamicList<label>& charges = threadCharges_[threadI];
 
             const point& cC = mesh.cellCentres()[cellI];
+            label subCellCounts[8] = {0, 0, 0, 0, 0, 0, 0, 0};
+            label subCellOffsets[8] = {0, 0, 0, 0, 0, 0, 0, 0};
+
+            whichSubCell.setSize(nC);
+            parcelPtrs.setSize(nC);
+            velocities.setSize(nC);
+            typeIds.setSize(nC);
+            charges.setSize(nC);
 
             for (label i = 0; i < nC; ++i)
             {
-                const dsmcParcel& p =
+                dsmcParcel* pPtr =
                     useFlatOccupancy
-                  ? *cloud_.occupancyParcel(occStart + i)
-                  : *(*cellParcelsPtr)[i];
-
-                vector relPos = p.position() - cC;
-
-                label subCell =
+                  ? cloud_.occupancyParcel(occStart + i)
+                  : (*cellParcelsPtr)[i];
+                const label typeId = pPtr->typeId();
+                const vector relPos = pPtr->position() - cC;
+                const label subCell =
                     pos(relPos.x()) + 2*pos(relPos.y()) + 4*pos(relPos.z());
 
-                subCells[subCell].append(i);
-
+                parcelPtrs[i] = pPtr;
+                velocities[i] = pPtr->U();
+                typeIds[i] = typeId;
+                charges[i] = cloud_.constProps(typeId).charge();
                 whichSubCell[i] = subCell;
+                ++subCellCounts[subCell];
             }
 
-            // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            for (label subCellI = 0; subCellI < 8; ++subCellI)
+            {
+                subCells[subCellI].setSize(subCellCounts[subCellI]);
+            }
+
+            for (label i = 0; i < nC; ++i)
+            {
+                const label subCell = whichSubCell[i];
+                subCells[subCell][subCellOffsets[subCell]++] = i;
+            }
 
             scalar sigmaTcRMax = cloud_.sigmaTcRMax()[cellI];
 
@@ -221,30 +257,30 @@ void noTimeCounter::collide()
 
                 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-                dsmcParcel& parcelP =
-                    useFlatOccupancy
-                  ? *cloud_.occupancyParcel(occStart + candidateP)
-                  : *(*cellParcelsPtr)[candidateP];
-                dsmcParcel& parcelQ =
-                    useFlatOccupancy
-                  ? *cloud_.occupancyParcel(occStart + candidateQ)
-                  : *(*cellParcelsPtr)[candidateQ];
+                const label typeIdP = typeIds[candidateP];
+                const label typeIdQ = typeIds[candidateQ];
+                label chargeP = charges[candidateP];
+                label chargeQ = charges[candidateQ];
 
-                label chargeP = -2;
-                label chargeQ = -2;
+                if (chargeP == -2)
+                {
+                    chargeP = cloud_.constProps(typeIdP).charge();
+                }
 
-                chargeP = cloud_.constProps(parcelP.typeId()).charge();
-                chargeQ = cloud_.constProps(parcelQ.typeId()).charge();
+                if (chargeQ == -2)
+                {
+                    chargeQ = cloud_.constProps(typeIdQ).charge();
+                }
 
                 //do not allow electron-electron collisions
 
                 if(!(chargeP == -1 && chargeQ == -1))
                 {
 
-                    scalar sigmaTcR = cloud_.binaryCollision().sigmaTcR
+                    const scalar sigmaTcR = cloud_.binaryCollision().sigmaTcR
                     (
-                        parcelP,
-                        parcelQ
+                        *parcelPtrs[candidateP],
+                        *parcelPtrs[candidateQ]
                     );
 
 
@@ -263,7 +299,13 @@ void noTimeCounter::collide()
                         // chemical reactions
 
                         // find which reaction model parcel p and q should use
-                        label rMId = cloud_.reactions().returnModelId(parcelP, parcelQ);
+                        const label rMId =
+                            cloud_.reactionsActive()
+                          ? cloud_.reactions().pairModelAddressing()[typeIdP][typeIdQ]
+                          : -1;
+
+                        dsmcParcel& parcelP = *parcelPtrs[candidateP];
+                        dsmcParcel& parcelQ = *parcelPtrs[candidateQ];
 
     //                             Info << " parcelP id: " <<  parcelP.typeId()
     //                                 << " parcelQ id: " << parcelQ.typeId()
@@ -317,6 +359,15 @@ void noTimeCounter::collide()
                         }
 
                         acceptedCollisions++;
+
+                        velocities[candidateP] = parcelP.U();
+                        velocities[candidateQ] = parcelQ.U();
+                        typeIds[candidateP] = parcelP.typeId();
+                        typeIds[candidateQ] = parcelQ.typeId();
+                        charges[candidateP] =
+                            cloud_.constProps(typeIds[candidateP]).charge();
+                        charges[candidateQ] =
+                            cloud_.constProps(typeIds[candidateQ]).charge();
                     }
                 }
             }
@@ -333,7 +384,6 @@ void noTimeCounter::collide()
             {
                 using clock_type = std::chrono::steady_clock;
                 const auto tBegin = clock_type::now();
-                List<DynamicList<label>> subCells(8);
                 const label threadI = cloud_.currentThreadId();
                 const label startCell = cloud_.collisionLoadStart()[threadI];
                 const label endCell = cloud_.collisionLoadEnd()[threadI];
@@ -348,7 +398,7 @@ void noTimeCounter::collide()
                     localCollisions += processCell
                     (
                         cellI,
-                        subCells,
+                        threadI,
                         localActiveCells,
                         localReactionHits
                     );
@@ -368,21 +418,20 @@ void noTimeCounter::collide()
             {
                 using clock_type = std::chrono::steady_clock;
                 const auto tBegin = clock_type::now();
-                List<DynamicList<label>> subCells(8);
                 const label threadI = cloud_.currentThreadId();
                 label localCandidates = 0;
                 label localCollisions = 0;
                 label localActiveCells = 0;
                 label localReactionHits = 0;
 
-                #pragma omp for schedule(dynamic, 1)
+                #pragma omp for schedule(dynamic, collisionChunk)
                 for (label cellI = 0; cellI < nCells; ++cellI)
                 {
                     localCandidates += cloud_.nCandidatesPerCell()[cellI];
                     localCollisions += processCell
                     (
                         cellI,
-                        subCells,
+                        threadI,
                         localActiveCells,
                         localReactionHits
                     );
@@ -402,7 +451,6 @@ void noTimeCounter::collide()
     {
         using clock_type = std::chrono::steady_clock;
         const auto tBegin = clock_type::now();
-        List<DynamicList<label>> subCells(8);
         label localActiveCells = 0;
         label localReactionHits = 0;
 
@@ -412,7 +460,7 @@ void noTimeCounter::collide()
             threadAcceptedCounts[0] += processCell
             (
                 cellI,
-                subCells,
+                0,
                 localActiveCells,
                 localReactionHits
             );

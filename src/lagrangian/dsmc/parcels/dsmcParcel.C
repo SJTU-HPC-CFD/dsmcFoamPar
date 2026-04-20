@@ -26,18 +26,42 @@ License
 #include "dsmcParcel.H"
 #include "dsmcCloud.H"
 #include "meshTools.H"
+#include "Pstream.H"
 
 #ifdef _OPENMP
     #include <omp.h>
 #endif
 
+#include <chrono>
+
 namespace
 {
+using clock_type = std::chrono::steady_clock;
+
 inline bool useOpenMPMoveCriticals(const Foam::dsmcCloud& cloud)
 {
     #ifdef _OPENMP
     return cloud.openmpMoveEnabled() && omp_in_parallel();
     #else
+    return false;
+    #endif
+}
+
+inline bool useOpenMPMoveTrackCriticals
+(
+    const Foam::dsmcCloud& cloud,
+    const Foam::label celli
+)
+{
+    #ifdef _OPENMP
+    return
+        cloud.openmpMoveEnabled()
+     && omp_in_parallel()
+     && Foam::Pstream::parRun()
+     && cloud.openmpMoveGuardCell(celli);
+    #else
+    (void)cloud;
+    (void)celli;
     return false;
     #endif
 }
@@ -117,6 +141,7 @@ bool Foam::dsmcParcel::move
 {
     td.switchProcessor = false;
     td.keepParticle = true;
+    const bool recordMoveDetail = cloud.profilingDetailEnabled();
 
     if (isFree())
     {
@@ -130,40 +155,142 @@ bool Foam::dsmcParcel::move
 
         while (td.keepParticle && !td.switchProcessor && stepFraction() < 1)
         {
-            Utracking = U_;
-            meshTools::constrainDirection(mesh(), mesh().solutionD(), Utracking);
-
-            const vector d = deviationFromMeshCentre();
-            const scalar f = 1 - stepFraction();
-            trackToAndHitFace(f*trackTime*Utracking - d, f, cloud, td);
-
-            if (face() != -1)
+            auto moveTrackStep = [&]()
             {
-                if (cloud.trackerActive())
+                Utracking = U_;
+                meshTools::constrainDirection(mesh(), mesh().solutionD(), Utracking);
+
+                const vector d = deviationFromMeshCentre();
+                const scalar f = 1 - stepFraction();
+                if (recordMoveDetail)
                 {
-                    trackParcelFaceTransitionThreadSafe(cloud, *this);
+                    const auto tTrackBegin = clock_type::now();
+                    trackToAndHitFace(f*trackTime*Utracking - d, f, cloud, td);
+                    td.moveTrackWallTime +=
+                        std::chrono::duration<scalar>(clock_type::now() - tTrackBegin).count();
+                }
+                else
+                {
+                    trackToAndHitFace(f*trackTime*Utracking - d, f, cloud, td);
                 }
 
-                forAll(cloud.boundaries().cyclicBoundaryModels(), c)
+                if (face() != -1)
                 {
-                    const labelList& faces = cloud.boundaries().cyclicBoundaryModels()[c]->allFaces();
-
-                    if (Foam::hyCompat::indexOf(faces, face()) != -1)
+                    if (recordMoveDetail)
                     {
-                        controlCyclicBoundaryThreadSafe(cloud, c, *this, td);
+                        ++td.moveFaceHitCount;
+                    }
+
+                    if (cloud.trackerActive())
+                    {
+                        if (recordMoveDetail)
+                        {
+                            const auto tTrackerBegin = clock_type::now();
+                            trackParcelFaceTransitionThreadSafe(cloud, *this);
+                            td.moveTrackerWallTime +=
+                                std::chrono::duration<scalar>(clock_type::now() - tTrackerBegin).count();
+                        }
+                        else
+                        {
+                            trackParcelFaceTransitionThreadSafe(cloud, *this);
+                        }
+                    }
+
+                    const label patchIndex = patch();
+
+                    if
+                    (
+                        patchIndex >= 0
+                     && patchIndex
+                      < cloud.boundaries().cyclicBoundaryToModelIds().size()
+                    )
+                    {
+                        const label cyclicModelId =
+                            cloud.boundaries().cyclicBoundaryToModelIds()[patchIndex];
+
+                        if (cyclicModelId >= 0)
+                        {
+                            if (recordMoveDetail)
+                            {
+                                const auto tBoundaryBegin = clock_type::now();
+                                controlCyclicBoundaryThreadSafe
+                                (
+                                    cloud,
+                                    cyclicModelId,
+                                    *this,
+                                    td
+                                );
+                                td.moveBoundaryWallTime +=
+                                    std::chrono::duration<scalar>(clock_type::now() - tBoundaryBegin).count();
+                                ++td.moveCyclicHitCount;
+                            }
+                            else
+                            {
+                                controlCyclicBoundaryThreadSafe
+                                (
+                                    cloud,
+                                    cyclicModelId,
+                                    *this,
+                                    td
+                                );
+                            }
+                        }
                     }
                 }
+            };
+
+            if (useOpenMPMoveTrackCriticals(cloud, cell()))
+            {
+                #pragma omp critical(dsmcMoveTrack)
+                {
+                    moveTrackStep();
+                }
+            }
+            else
+            {
+                moveTrackStep();
             }
         }
     }
     else
     {
-        forAll(cloud.boundaries().patchBoundaryModels(), c)
+        const label patchIndex = stuck().wallTemperature()[1];
+
+        if
+        (
+            patchIndex >= 0
+         && patchIndex < cloud.boundaries().patchToModelIds().size()
+        )
         {
-            if (cloud.boundaries().patchBoundaryModels()[c]->patchId() == stuck().wallTemperature()[1])
+            const label patchModelId =
+                cloud.boundaries().patchToModelIds()[patchIndex];
+
+            if (patchModelId >= 0)
             {
-                controlPatchBoundaryThreadSafe(cloud, c, *this, td);
-                break;
+                if (recordMoveDetail)
+                {
+                    const auto tBoundaryBegin = clock_type::now();
+                    controlPatchBoundaryThreadSafe
+                    (
+                        cloud,
+                        patchModelId,
+                        *this,
+                        td
+                    );
+                    td.moveBoundaryWallTime +=
+                        std::chrono::duration<scalar>(clock_type::now() - tBoundaryBegin).count();
+                    ++td.moveStuckHitCount;
+                }
+                else
+                {
+                    controlPatchBoundaryThreadSafe
+                    (
+                        cloud,
+                        patchModelId,
+                        *this,
+                        td
+                    );
+                }
             }
         }
     }
@@ -181,16 +308,31 @@ bool Foam::dsmcParcel::hitPatch(dsmcCloud& cloud, trackingData& td)
 
         if (patchModelId >= 0)
         {
-            controlPatchBoundaryThreadSafe(cloud, patchModelId, *this, td);
+            if (cloud.profilingDetailEnabled())
+            {
+                const auto tBoundaryBegin = clock_type::now();
+                controlPatchBoundaryThreadSafe(cloud, patchModelId, *this, td);
+                td.moveBoundaryWallTime +=
+                    std::chrono::duration<scalar>(clock_type::now() - tBoundaryBegin).count();
+                ++td.movePatchHitCount;
+            }
+            else
+            {
+                controlPatchBoundaryThreadSafe(cloud, patchModelId, *this, td);
+            }
         }
     }
 
     return false;
 }
 
-void Foam::dsmcParcel::hitProcessorPatch(dsmcCloud&, trackingData& td)
+void Foam::dsmcParcel::hitProcessorPatch(dsmcCloud& cloud, trackingData& td)
 {
     td.switchProcessor = true;
+    if (cloud.profilingDetailEnabled())
+    {
+        ++td.moveProcessorHitCount;
+    }
 }
 
 void Foam::dsmcParcel::hitWallPatch(dsmcCloud& cloud, trackingData& td)
@@ -203,7 +345,18 @@ void Foam::dsmcParcel::hitWallPatch(dsmcCloud& cloud, trackingData& td)
 
         if (patchModelId >= 0)
         {
-            controlPatchBoundaryThreadSafe(cloud, patchModelId, *this, td);
+            if (cloud.profilingDetailEnabled())
+            {
+                const auto tBoundaryBegin = clock_type::now();
+                controlPatchBoundaryThreadSafe(cloud, patchModelId, *this, td);
+                td.moveBoundaryWallTime +=
+                    std::chrono::duration<scalar>(clock_type::now() - tBoundaryBegin).count();
+                ++td.movePatchHitCount;
+            }
+            else
+            {
+                controlPatchBoundaryThreadSafe(cloud, patchModelId, *this, td);
+            }
             return;
         }
     }

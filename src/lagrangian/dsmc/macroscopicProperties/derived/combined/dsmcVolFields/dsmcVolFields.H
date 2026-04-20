@@ -198,6 +198,8 @@ protected:
         bool writeRotationalTemperature_;
         bool writeVibrationalTemperature_;
         bool writeElectronicTemperature_;
+        bool profileSummaryEnabled_;
+        bool profileDetailEnabled_;
         scalar profileSampleAccumWallTime_;
         scalar profileSharedCacheBuildWallTime_;
         scalar profileSharedCacheAllocateWallTime_;

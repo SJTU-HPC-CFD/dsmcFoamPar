@@ -66,6 +66,10 @@ struct dsmcVolSharedSampleCache
     label nCells = 0;
     label nTypes = 0;
     bool built = false;
+    bool supportsVibrational = false;
+    bool supportsElectronic = false;
+    bool supportsClassification = false;
+    bool supportsHeatFluxShearStress = false;
 
     List<scalarField> dsmcN;
     List<scalarField> dsmcM;
@@ -100,20 +104,43 @@ struct dsmcVolSharedSampleCache
     List<scalarField> dsmcNClassIII;
     List<List<scalarField>> dsmcSpeciesEvibMod;
 
-    bool validFor(const dsmcCloud& cloud, const scalar currentTime) const
+    bool validFor
+    (
+        const dsmcCloud& cloud,
+        const scalar currentTime,
+        const bool needVibrational,
+        const bool needElectronic,
+        const bool needClassification,
+        const bool needHeatFluxShearStress
+    ) const
     {
         return cloudPtr == &cloud
             && mag(timeValue - currentTime) < SMALL
             && nCells == cloud.mesh().nCells()
-            && nTypes == cloud.constProps().size();
+            && nTypes == cloud.constProps().size()
+            && (!needVibrational || supportsVibrational)
+            && (!needElectronic || supportsElectronic)
+            && (!needClassification || supportsClassification)
+            && (!needHeatFluxShearStress || supportsHeatFluxShearStress);
     }
 
-    void allocateFields(const dsmcCloud& cloud)
+    void allocateFields
+    (
+        const dsmcCloud& cloud,
+        const bool needVibrational,
+        const bool needElectronic,
+        const bool needClassification,
+        const bool needHeatFluxShearStress
+    )
     {
         cloudPtr = &cloud;
         nCells = cloud.mesh().nCells();
         nTypes = cloud.constProps().size();
         built = false;
+        supportsVibrational = needVibrational;
+        supportsElectronic = needElectronic;
+        supportsClassification = needClassification;
+        supportsHeatFluxShearStress = needHeatFluxShearStress;
 
         auto initScalarFields =
             [this](List<scalarField>& fields)
@@ -141,42 +168,91 @@ struct dsmcVolSharedSampleCache
         initVectorFields(dsmcMomentum);
         initScalarFields(dsmcErot);
         initScalarFields(dsmcZetaRot);
-        initScalarFields(dsmcSpeciesEelec);
-        initScalarFields(dsmcNElecLvl);
-        initScalarFields(nGrndElecLvl);
-        initScalarFields(n1stElecLvl);
         initScalarFields(nReal);
         initScalarFields(mReal);
         initVectorFields(momentumReal);
         initScalarFields(linearKEReal);
-        initScalarFields(dsmcMuu);
-        initScalarFields(dsmcMuv);
-        initScalarFields(dsmcMuw);
-        initScalarFields(dsmcMvv);
-        initScalarFields(dsmcMvw);
-        initScalarFields(dsmcMww);
-        initScalarFields(dsmcMcc);
-        initScalarFields(dsmcMccu);
-        initScalarFields(dsmcMccv);
-        initScalarFields(dsmcMccw);
-        initScalarFields(dsmcEu);
-        initScalarFields(dsmcEv);
-        initScalarFields(dsmcEw);
-        initScalarFields(dsmcECum);
-        initScalarFields(dsmcNClassI);
-        initScalarFields(dsmcNClassII);
-        initScalarFields(dsmcNClassIII);
 
-        dsmcSpeciesEvibMod.setSize(nTypes);
-        for (label typei = 0; typei < nTypes; ++typei)
+        if (supportsElectronic)
         {
-            const label nMods = cloud.constProps(typei).thetaV().size();
-            dsmcSpeciesEvibMod[typei].setSize(nMods);
+            initScalarFields(dsmcSpeciesEelec);
+            initScalarFields(dsmcNElecLvl);
+            initScalarFields(nGrndElecLvl);
+            initScalarFields(n1stElecLvl);
+        }
+        else
+        {
+            dsmcSpeciesEelec.clear();
+            dsmcNElecLvl.clear();
+            nGrndElecLvl.clear();
+            n1stElecLvl.clear();
+        }
 
-            for (label mod = 0; mod < nMods; ++mod)
+        if (supportsHeatFluxShearStress)
+        {
+            initScalarFields(dsmcMuu);
+            initScalarFields(dsmcMuv);
+            initScalarFields(dsmcMuw);
+            initScalarFields(dsmcMvv);
+            initScalarFields(dsmcMvw);
+            initScalarFields(dsmcMww);
+            initScalarFields(dsmcMcc);
+            initScalarFields(dsmcMccu);
+            initScalarFields(dsmcMccv);
+            initScalarFields(dsmcMccw);
+            initScalarFields(dsmcEu);
+            initScalarFields(dsmcEv);
+            initScalarFields(dsmcEw);
+            initScalarFields(dsmcECum);
+        }
+        else
+        {
+            dsmcMuu.clear();
+            dsmcMuv.clear();
+            dsmcMuw.clear();
+            dsmcMvv.clear();
+            dsmcMvw.clear();
+            dsmcMww.clear();
+            dsmcMcc.clear();
+            dsmcMccu.clear();
+            dsmcMccv.clear();
+            dsmcMccw.clear();
+            dsmcEu.clear();
+            dsmcEv.clear();
+            dsmcEw.clear();
+            dsmcECum.clear();
+        }
+
+        if (supportsClassification)
+        {
+            initScalarFields(dsmcNClassI);
+            initScalarFields(dsmcNClassII);
+            initScalarFields(dsmcNClassIII);
+        }
+        else
+        {
+            dsmcNClassI.clear();
+            dsmcNClassII.clear();
+            dsmcNClassIII.clear();
+        }
+
+        if (supportsVibrational)
+        {
+            dsmcSpeciesEvibMod.setSize(nTypes);
+            for (label typei = 0; typei < nTypes; ++typei)
             {
-                dsmcSpeciesEvibMod[typei][mod].setSize(nCells, 0.0);
+                const label nMods = cloud.constProps(typei).thetaV().size();
+                dsmcSpeciesEvibMod[typei].setSize(nMods);
+
+                for (label mod = 0; mod < nMods; ++mod)
+                {
+                    dsmcSpeciesEvibMod[typei][mod].setSize(nCells, 0.0);
+                }
             }
+        }
+        else
+        {
+            dsmcSpeciesEvibMod.clear();
         }
     }
 
@@ -191,11 +267,13 @@ struct dsmcVolSharedSampleCache
         const bool needElectronic,
         const bool needClassification,
         const bool needHeatFluxShearStress,
-        BuildProfile* buildProfile = nullptr
+        BuildProfile* buildProfile = nullptr,
+        const bool doDetailProfile = false
     )
     {
         const scalar kBoltzmann = constant::physicoChemical::k.value();
         const bool doProfile = (buildProfile != nullptr);
+        const bool doDetailedProfile = doProfile && doDetailProfile;
         const bool useFlatOccupancy =
             occupancyOrderedParcelsPtr
          && occupancyCellOffsetsPtr
@@ -222,16 +300,46 @@ struct dsmcVolSharedSampleCache
                 return std::chrono::duration<scalar>(end - start).count();
             };
 
-        if (validFor(cloud, currentTime) && built)
+        if
+        (
+            validFor
+            (
+                cloud,
+                currentTime,
+                needVibrational,
+                needElectronic,
+                needClassification,
+                needHeatFluxShearStress
+            )
+         && built
+        )
         {
             return;
         }
 
-        if (!validFor(cloud, currentTime))
+        if
+        (
+            !validFor
+            (
+                cloud,
+                currentTime,
+                needVibrational,
+                needElectronic,
+                needClassification,
+                needHeatFluxShearStress
+            )
+        )
         {
             const auto allocateStart =
                 doProfile ? wallClockNow() : std::chrono::steady_clock::time_point();
-            allocateFields(cloud);
+            allocateFields
+            (
+                cloud,
+                needVibrational,
+                needElectronic,
+                needClassification,
+                needHeatFluxShearStress
+            );
             if (doProfile)
             {
                 buildProfile->allocateWallTime +=
@@ -250,35 +358,50 @@ struct dsmcVolSharedSampleCache
                 dsmcMomentum[typei] = vector::zero;
                 dsmcErot[typei] = 0.0;
                 dsmcZetaRot[typei] = 0.0;
-                dsmcSpeciesEelec[typei] = 0.0;
-                dsmcNElecLvl[typei] = 0.0;
-                nGrndElecLvl[typei] = 0.0;
-                n1stElecLvl[typei] = 0.0;
                 nReal[typei] = 0.0;
                 mReal[typei] = 0.0;
                 momentumReal[typei] = vector::zero;
                 linearKEReal[typei] = 0.0;
-                dsmcMuu[typei] = 0.0;
-                dsmcMuv[typei] = 0.0;
-                dsmcMuw[typei] = 0.0;
-                dsmcMvv[typei] = 0.0;
-                dsmcMvw[typei] = 0.0;
-                dsmcMww[typei] = 0.0;
-                dsmcMcc[typei] = 0.0;
-                dsmcMccu[typei] = 0.0;
-                dsmcMccv[typei] = 0.0;
-                dsmcMccw[typei] = 0.0;
-                dsmcEu[typei] = 0.0;
-                dsmcEv[typei] = 0.0;
-                dsmcEw[typei] = 0.0;
-                dsmcECum[typei] = 0.0;
-                dsmcNClassI[typei] = 0.0;
-                dsmcNClassII[typei] = 0.0;
-                dsmcNClassIII[typei] = 0.0;
 
-                forAll(dsmcSpeciesEvibMod[typei], mod)
+                if (supportsElectronic)
                 {
-                    dsmcSpeciesEvibMod[typei][mod] = 0.0;
+                    dsmcSpeciesEelec[typei] = 0.0;
+                    dsmcNElecLvl[typei] = 0.0;
+                    nGrndElecLvl[typei] = 0.0;
+                    n1stElecLvl[typei] = 0.0;
+                }
+
+                if (supportsHeatFluxShearStress)
+                {
+                    dsmcMuu[typei] = 0.0;
+                    dsmcMuv[typei] = 0.0;
+                    dsmcMuw[typei] = 0.0;
+                    dsmcMvv[typei] = 0.0;
+                    dsmcMvw[typei] = 0.0;
+                    dsmcMww[typei] = 0.0;
+                    dsmcMcc[typei] = 0.0;
+                    dsmcMccu[typei] = 0.0;
+                    dsmcMccv[typei] = 0.0;
+                    dsmcMccw[typei] = 0.0;
+                    dsmcEu[typei] = 0.0;
+                    dsmcEv[typei] = 0.0;
+                    dsmcEw[typei] = 0.0;
+                    dsmcECum[typei] = 0.0;
+                }
+
+                if (supportsClassification)
+                {
+                    dsmcNClassI[typei] = 0.0;
+                    dsmcNClassII[typei] = 0.0;
+                    dsmcNClassIII[typei] = 0.0;
+                }
+
+                if (supportsVibrational)
+                {
+                    forAll(dsmcSpeciesEvibMod[typei], mod)
+                    {
+                        dsmcSpeciesEvibMod[typei][mod] = 0.0;
+                    }
                 }
             }
 
@@ -314,7 +437,7 @@ struct dsmcVolSharedSampleCache
                 const label parcelCount =
                     useFlatOccupancy ? (parcelEnd - parcelBegin) : parcelsPtr->size();
                 const bool profileCellDetail =
-                    doProfile && parcelCount > 0 && (celli % 32 == 0);
+                    doDetailedProfile && parcelCount > 0 && (celli % 32 == 0);
 
                 if (profileCellDetail)
                 {
@@ -509,17 +632,413 @@ struct dsmcVolSharedSampleCache
             };
 
         #ifdef _OPENMP
-        #pragma omp parallel for schedule(static) if (cloud.openmpEnabled())
-        for (label celli = 0; celli < cloud.mesh().nCells(); ++celli)
+        if (cloud.openmpEnabled())
         {
-            accumulateCell(celli);
+            #pragma omp parallel
+            {
+                scalarField localDsmcN(nTypes, 0.0);
+                scalarField localDsmcM(nTypes, 0.0);
+                scalarField localDsmcLinearKE(nTypes, 0.0);
+                vectorField localDsmcMomentum(nTypes, vector::zero);
+                scalarField localDsmcErot(nTypes, 0.0);
+                scalarField localDsmcZetaRot(nTypes, 0.0);
+                scalarField localNReal(nTypes, 0.0);
+                scalarField localMReal(nTypes, 0.0);
+                vectorField localMomentumReal(nTypes, vector::zero);
+                scalarField localLinearKEReal(nTypes, 0.0);
+                scalarField localSpeciesEelec;
+                scalarField localNElecLvl;
+                scalarField localNGrndElecLvl;
+                scalarField localN1stElecLvl;
+                scalarField localDsmcMuu;
+                scalarField localDsmcMuv;
+                scalarField localDsmcMuw;
+                scalarField localDsmcMvv;
+                scalarField localDsmcMvw;
+                scalarField localDsmcMww;
+                scalarField localDsmcMcc;
+                scalarField localDsmcMccu;
+                scalarField localDsmcMccv;
+                scalarField localDsmcMccw;
+                scalarField localDsmcEu;
+                scalarField localDsmcEv;
+                scalarField localDsmcEw;
+                scalarField localDsmcECum;
+                scalarField localDsmcNClassI;
+                scalarField localDsmcNClassII;
+                scalarField localDsmcNClassIII;
+                List<scalarField> localSpeciesEvibMod;
+                DynamicList<label> activeTypes;
+
+                if (supportsElectronic)
+                {
+                    localSpeciesEelec.setSize(nTypes, 0.0);
+                    localNElecLvl.setSize(nTypes, 0.0);
+                    localNGrndElecLvl.setSize(nTypes, 0.0);
+                    localN1stElecLvl.setSize(nTypes, 0.0);
+                }
+
+                if (supportsHeatFluxShearStress)
+                {
+                    localDsmcMuu.setSize(nTypes, 0.0);
+                    localDsmcMuv.setSize(nTypes, 0.0);
+                    localDsmcMuw.setSize(nTypes, 0.0);
+                    localDsmcMvv.setSize(nTypes, 0.0);
+                    localDsmcMvw.setSize(nTypes, 0.0);
+                    localDsmcMww.setSize(nTypes, 0.0);
+                    localDsmcMcc.setSize(nTypes, 0.0);
+                    localDsmcMccu.setSize(nTypes, 0.0);
+                    localDsmcMccv.setSize(nTypes, 0.0);
+                    localDsmcMccw.setSize(nTypes, 0.0);
+                    localDsmcEu.setSize(nTypes, 0.0);
+                    localDsmcEv.setSize(nTypes, 0.0);
+                    localDsmcEw.setSize(nTypes, 0.0);
+                    localDsmcECum.setSize(nTypes, 0.0);
+                }
+
+                if (supportsClassification)
+                {
+                    localDsmcNClassI.setSize(nTypes, 0.0);
+                    localDsmcNClassII.setSize(nTypes, 0.0);
+                    localDsmcNClassIII.setSize(nTypes, 0.0);
+                }
+
+                if (supportsVibrational)
+                {
+                    localSpeciesEvibMod.setSize(nTypes);
+                    for (label typei = 0; typei < nTypes; ++typei)
+                    {
+                        localSpeciesEvibMod[typei].setSize
+                        (
+                            cloud.constProps(typei).thetaV().size(),
+                            0.0
+                        );
+                    }
+                }
+
+                activeTypes.setCapacity(min(nTypes, label(64)));
+
+                #pragma omp for schedule(static)
+                for (label celli = 0; celli < cloud.mesh().nCells(); ++celli)
+                {
+                    scalar localBaseAccumWallTime = 0.0;
+                    scalar localVibAccumWallTime = 0.0;
+                    scalar localElectronicAccumWallTime = 0.0;
+                    scalar localClassAccumWallTime = 0.0;
+                    label localDetailSampleCells = 0;
+                    label localDetailSampleParcels = 0;
+                    const DynamicList<dsmcParcel*>* parcelsPtr =
+                        useFlatOccupancy ? nullptr : &(*cellOccupancyPtr)[celli];
+                    const label parcelBegin =
+                        useFlatOccupancy ? (*occupancyCellOffsetsPtr)[celli] : 0;
+                    const label parcelEnd =
+                        useFlatOccupancy
+                      ? (*occupancyCellOffsetsPtr)[celli + 1]
+                      : parcelsPtr->size();
+                    const label parcelCount =
+                        useFlatOccupancy ? (parcelEnd - parcelBegin) : parcelsPtr->size();
+                    const bool profileCellDetail =
+                        doDetailedProfile && parcelCount > 0 && (celli % 32 == 0);
+
+                    if (profileCellDetail)
+                    {
+                        localDetailSampleCells = 1;
+                        localDetailSampleParcels = parcelCount;
+                    }
+
+                    activeTypes.clear();
+
+                    for (label pi = 0; pi < parcelCount; ++pi)
+                    {
+                        const dsmcParcel& p =
+                            useFlatOccupancy
+                          ? *(*occupancyOrderedParcelsPtr)[parcelBegin + pi]
+                          : *(*parcelsPtr)[pi];
+
+                        if (!p.isFree())
+                        {
+                            continue;
+                        }
+
+                        const label typeId = p.typeId();
+                        const dsmcParcel::constantProperties& cP = cloud.constProps(typeId);
+
+                        if (localDsmcN[typeId] == 0.0)
+                        {
+                            activeTypes.append(typeId);
+                        }
+
+                        const scalar nParticles = cloud.nParticles(celli);
+                        const scalar mp = cP.mass();
+                        const vector& Up = p.U();
+                        const scalar linearKE = mp*(Up & Up);
+                        const scalar Erotp = p.ERot();
+                        const scalar zetaRotp = cP.rotationalDegreesOfFreedom();
+
+                        scalar Evibp = 0.0;
+                        std::chrono::steady_clock::time_point vibAccumStart;
+                        if (profileCellDetail)
+                        {
+                            vibAccumStart = wallClockNow();
+                        }
+                        if (needVibrational)
+                        {
+                            const labelList& vibLevels = p.vibLevel();
+                            const scalarList& thetaV = cP.thetaV();
+                            scalarField& localEvibMods = localSpeciesEvibMod[typeId];
+
+                            forAll(thetaV, mod)
+                            {
+                                const scalar EvibMod =
+                                    kBoltzmann*thetaV[mod]*(vibLevels[mod] + 0.5);
+                                localEvibMods[mod] += EvibMod;
+                                Evibp += EvibMod;
+                            }
+                        }
+                        if (profileCellDetail)
+                        {
+                            localVibAccumWallTime +=
+                                wallSeconds(vibAccumStart, wallClockNow());
+                        }
+
+                        const label nElecLevels = cP.nElectronicLevels();
+                        const label eLevel = p.ELevel();
+
+                        std::chrono::steady_clock::time_point baseAccumStart;
+                        if (profileCellDetail)
+                        {
+                            baseAccumStart = wallClockNow();
+                        }
+                        localDsmcN[typeId] += 1.0;
+                        localDsmcM[typeId] += mp;
+                        localDsmcLinearKE[typeId] += linearKE;
+                        localDsmcMomentum[typeId] += mp*Up;
+                        localDsmcErot[typeId] += Erotp;
+                        localDsmcZetaRot[typeId] += zetaRotp;
+
+                        localNReal[typeId] += nParticles;
+                        localMReal[typeId] += mp*nParticles;
+                        localMomentumReal[typeId] += mp*Up*nParticles;
+                        localLinearKEReal[typeId] += linearKE*nParticles;
+
+                        if (needHeatFluxShearStress)
+                        {
+                            const scalar Eintp = Erotp + Evibp;
+
+                            localDsmcMuu[typeId] += mp*sqr(Up.x());
+                            localDsmcMuv[typeId] += mp*Up.x()*Up.y();
+                            localDsmcMuw[typeId] += mp*Up.x()*Up.z();
+                            localDsmcMvv[typeId] += mp*sqr(Up.y());
+                            localDsmcMvw[typeId] += mp*Up.y()*Up.z();
+                            localDsmcMww[typeId] += mp*sqr(Up.z());
+
+                            localDsmcMcc[typeId] += linearKE;
+                            localDsmcMccu[typeId] += linearKE*Up.x();
+                            localDsmcMccv[typeId] += linearKE*Up.y();
+                            localDsmcMccw[typeId] += linearKE*Up.z();
+
+                            localDsmcEu[typeId] += Eintp*Up.x();
+                            localDsmcEv[typeId] += Eintp*Up.y();
+                            localDsmcEw[typeId] += Eintp*Up.z();
+                            localDsmcECum[typeId] += Eintp;
+                        }
+
+                        if (needElectronic)
+                        {
+                            localSpeciesEelec[typeId] += cP.electronicEnergyList()[eLevel];
+                        }
+                        if (profileCellDetail)
+                        {
+                            localBaseAccumWallTime +=
+                                wallSeconds(baseAccumStart, wallClockNow());
+                        }
+
+                        if (needElectronic && nElecLevels > 1)
+                        {
+                            std::chrono::steady_clock::time_point electronicAccumStart;
+                            if (profileCellDetail)
+                            {
+                                electronicAccumStart = wallClockNow();
+                            }
+                            localNElecLvl[typeId] += 1.0;
+
+                            if (eLevel == 0)
+                            {
+                                localNGrndElecLvl[typeId] += 1.0;
+                            }
+                            if (eLevel == 1)
+                            {
+                                localN1stElecLvl[typeId] += 1.0;
+                            }
+                            if (profileCellDetail)
+                            {
+                                localElectronicAccumWallTime +=
+                                    wallSeconds(electronicAccumStart, wallClockNow());
+                            }
+                        }
+
+                        std::chrono::steady_clock::time_point classAccumStart;
+                        if (profileCellDetail && needClassification)
+                        {
+                            classAccumStart = wallClockNow();
+                        }
+
+                        if (needClassification)
+                        {
+                            const label classification = p.classification();
+                            if (classification == 0)
+                            {
+                                localDsmcNClassI[typeId] += 1.0;
+                            }
+                            else if (classification == 1)
+                            {
+                                localDsmcNClassII[typeId] += 1.0;
+                            }
+                            else if (classification == 2)
+                            {
+                                localDsmcNClassIII[typeId] += 1.0;
+                            }
+                        }
+                        if (profileCellDetail && needClassification)
+                        {
+                            localClassAccumWallTime +=
+                                wallSeconds(classAccumStart, wallClockNow());
+                        }
+                    }
+
+                    forAll(activeTypes, activeI)
+                    {
+                        const label typeId = activeTypes[activeI];
+                        dsmcN[typeId][celli] = localDsmcN[typeId];
+                        dsmcM[typeId][celli] = localDsmcM[typeId];
+                        dsmcLinearKE[typeId][celli] = localDsmcLinearKE[typeId];
+                        dsmcMomentum[typeId][celli] = localDsmcMomentum[typeId];
+                        dsmcErot[typeId][celli] = localDsmcErot[typeId];
+                        dsmcZetaRot[typeId][celli] = localDsmcZetaRot[typeId];
+                        nReal[typeId][celli] = localNReal[typeId];
+                        mReal[typeId][celli] = localMReal[typeId];
+                        momentumReal[typeId][celli] = localMomentumReal[typeId];
+                        linearKEReal[typeId][celli] = localLinearKEReal[typeId];
+
+                        if (needElectronic)
+                        {
+                            dsmcSpeciesEelec[typeId][celli] = localSpeciesEelec[typeId];
+                            dsmcNElecLvl[typeId][celli] = localNElecLvl[typeId];
+                            nGrndElecLvl[typeId][celli] = localNGrndElecLvl[typeId];
+                            n1stElecLvl[typeId][celli] = localN1stElecLvl[typeId];
+                        }
+
+                        if (needHeatFluxShearStress)
+                        {
+                            dsmcMuu[typeId][celli] = localDsmcMuu[typeId];
+                            dsmcMuv[typeId][celli] = localDsmcMuv[typeId];
+                            dsmcMuw[typeId][celli] = localDsmcMuw[typeId];
+                            dsmcMvv[typeId][celli] = localDsmcMvv[typeId];
+                            dsmcMvw[typeId][celli] = localDsmcMvw[typeId];
+                            dsmcMww[typeId][celli] = localDsmcMww[typeId];
+                            dsmcMcc[typeId][celli] = localDsmcMcc[typeId];
+                            dsmcMccu[typeId][celli] = localDsmcMccu[typeId];
+                            dsmcMccv[typeId][celli] = localDsmcMccv[typeId];
+                            dsmcMccw[typeId][celli] = localDsmcMccw[typeId];
+                            dsmcEu[typeId][celli] = localDsmcEu[typeId];
+                            dsmcEv[typeId][celli] = localDsmcEv[typeId];
+                            dsmcEw[typeId][celli] = localDsmcEw[typeId];
+                            dsmcECum[typeId][celli] = localDsmcECum[typeId];
+                        }
+
+                        if (needClassification)
+                        {
+                            dsmcNClassI[typeId][celli] = localDsmcNClassI[typeId];
+                            dsmcNClassII[typeId][celli] = localDsmcNClassII[typeId];
+                            dsmcNClassIII[typeId][celli] = localDsmcNClassIII[typeId];
+                        }
+
+                        if (needVibrational)
+                        {
+                            scalarField& localEvibMods = localSpeciesEvibMod[typeId];
+                            forAll(localEvibMods, mod)
+                            {
+                                dsmcSpeciesEvibMod[typeId][mod][celli] = localEvibMods[mod];
+                                localEvibMods[mod] = 0.0;
+                            }
+                        }
+
+                        localDsmcN[typeId] = 0.0;
+                        localDsmcM[typeId] = 0.0;
+                        localDsmcLinearKE[typeId] = 0.0;
+                        localDsmcMomentum[typeId] = vector::zero;
+                        localDsmcErot[typeId] = 0.0;
+                        localDsmcZetaRot[typeId] = 0.0;
+                        localNReal[typeId] = 0.0;
+                        localMReal[typeId] = 0.0;
+                        localMomentumReal[typeId] = vector::zero;
+                        localLinearKEReal[typeId] = 0.0;
+
+                        if (needElectronic)
+                        {
+                            localSpeciesEelec[typeId] = 0.0;
+                            localNElecLvl[typeId] = 0.0;
+                            localNGrndElecLvl[typeId] = 0.0;
+                            localN1stElecLvl[typeId] = 0.0;
+                        }
+
+                        if (needHeatFluxShearStress)
+                        {
+                            localDsmcMuu[typeId] = 0.0;
+                            localDsmcMuv[typeId] = 0.0;
+                            localDsmcMuw[typeId] = 0.0;
+                            localDsmcMvv[typeId] = 0.0;
+                            localDsmcMvw[typeId] = 0.0;
+                            localDsmcMww[typeId] = 0.0;
+                            localDsmcMcc[typeId] = 0.0;
+                            localDsmcMccu[typeId] = 0.0;
+                            localDsmcMccv[typeId] = 0.0;
+                            localDsmcMccw[typeId] = 0.0;
+                            localDsmcEu[typeId] = 0.0;
+                            localDsmcEv[typeId] = 0.0;
+                            localDsmcEw[typeId] = 0.0;
+                            localDsmcECum[typeId] = 0.0;
+                        }
+
+                        if (needClassification)
+                        {
+                            localDsmcNClassI[typeId] = 0.0;
+                            localDsmcNClassII[typeId] = 0.0;
+                            localDsmcNClassIII[typeId] = 0.0;
+                        }
+                    }
+
+                    if (doProfile)
+                    {
+                        #pragma omp atomic
+                        buildProfile->baseAccumWallTime += localBaseAccumWallTime;
+
+                        #pragma omp atomic
+                        buildProfile->vibAccumWallTime += localVibAccumWallTime;
+
+                        #pragma omp atomic
+                        buildProfile->electronicAccumWallTime += localElectronicAccumWallTime;
+
+                        #pragma omp atomic
+                        buildProfile->classAccumWallTime += localClassAccumWallTime;
+
+                        #pragma omp atomic
+                        buildProfile->detailSampleCells += localDetailSampleCells;
+
+                        #pragma omp atomic
+                        buildProfile->detailSampleParcels += localDetailSampleParcels;
+                    }
+                }
+            }
         }
-        #else
-        for (label celli = 0; celli < cloud.mesh().nCells(); ++celli)
-        {
-            accumulateCell(celli);
-        }
+        else
         #endif
+        {
+            for (label celli = 0; celli < cloud.mesh().nCells(); ++celli)
+            {
+                accumulateCell(celli);
+            }
+        }
 
         if (doProfile)
         {
@@ -1159,6 +1678,8 @@ dsmcVolFields::dsmcVolFields
     writeRotationalTemperature_(false),
     writeVibrationalTemperature_(false),
     writeElectronicTemperature_(false),
+    profileSummaryEnabled_(true),
+    profileDetailEnabled_(false),
     profileSampleAccumWallTime_(0.0),
     profileSharedCacheBuildWallTime_(0.0),
     profileSharedCacheAllocateWallTime_(0.0),
@@ -1179,7 +1700,26 @@ dsmcVolFields::dsmcVolFields
     profileOutputTimeWallTime_(0.0),
     profileCalls_(0),
     finalProfilePrinted_(false)
-{}
+{
+    const dictionary& controlDict = mesh_.time().controlDict();
+    const bool globalProfileSummary =
+        controlDict.lookupOrDefault<bool>("profileSummary", true);
+    const bool globalProfileDetail =
+        controlDict.lookupOrDefault<bool>("profileDetail", false);
+
+    profileSummaryEnabled_ =
+        controlDict.lookupOrDefault<bool>
+        (
+            "profilePostSummary",
+            globalProfileSummary
+        );
+    profileDetailEnabled_ =
+        controlDict.lookupOrDefault<bool>
+        (
+            "profilePostDetail",
+            globalProfileDetail
+        );
+}
 
 
 // * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
@@ -1620,7 +2160,7 @@ void dsmcVolFields::calculateField()
 
     const scalar kB = physicoChemical::k.value();
     const scalar NAvo = physicoChemical::NA.value();
-    constexpr bool doProfile = false;
+    const bool doProfile = profileSummaryEnabled_ || profileDetailEnabled_;
 
     auto wallClockNow = []()
     {
@@ -1719,7 +2259,10 @@ void dsmcVolFields::calculateField()
         else
         {
             const bool needVibrational = writeVibrationalTemperature_;
-            const bool needElectronic = writeElectronicTemperature_;
+            // Electronic accumulation currently does not feed a non-zero
+            // post-processing output path here: Telec_ is kept at zero in the
+            // output block. Skip this cache/cumulative chain in the hot path.
+            const bool needElectronic = false;
             const bool needClassification = measureClassifications_;
             const bool needHeatFluxShearStress = measureHeatFluxShearStress_;
             const auto sharedCacheBuildStart =
@@ -1740,7 +2283,8 @@ void dsmcVolFields::calculateField()
                 needElectronic,
                 needClassification,
                 needHeatFluxShearStress,
-                doProfile ? &sharedCacheBuildProfile : nullptr
+                doProfile ? &sharedCacheBuildProfile : nullptr,
+                profileDetailEnabled_
             );
 
             if (doProfile)
@@ -1769,6 +2313,8 @@ void dsmcVolFields::calculateField()
 
             const auto fieldCombineStart =
                 doProfile ? wallClockNow() : std::chrono::steady_clock::time_point();
+            const bool singleSpeciesField = (speciesIds_.size() == 1);
+            const label onlySpId = singleSpeciesField ? speciesIds_[0] : -1;
             #ifdef _OPENMP
             #pragma omp parallel for schedule(static) if (useOpenMPSampling)
             #endif
@@ -1803,70 +2349,140 @@ void dsmcVolFields::calculateField()
                 scalar dsmcNClassIILocal = 0.0;
                 scalar dsmcNClassIIILocal = 0.0;
 
-                forAll(speciesIds_, i)
+                if (singleSpeciesField)
                 {
-                    const label spId = speciesIds_[i];
-
-                    dsmcNLocal += sharedSampleCache_.dsmcN[spId][celli];
-                    dsmcMLocal += sharedSampleCache_.dsmcM[spId][celli];
-                    dsmcLinearKELocal += sharedSampleCache_.dsmcLinearKE[spId][celli];
-                    dsmcMomentumLocal += sharedSampleCache_.dsmcMomentum[spId][celli];
-                    dsmcErotLocal += sharedSampleCache_.dsmcErot[spId][celli];
-                    dsmcZetaRotLocal += sharedSampleCache_.dsmcZetaRot[spId][celli];
-                    dsmcNElecLvlLocal += sharedSampleCache_.dsmcNElecLvl[spId][celli];
-                    nLocal += sharedSampleCache_.nReal[spId][celli];
-                    mLocal += sharedSampleCache_.mReal[spId][celli];
-                    momentumLocal += sharedSampleCache_.momentumReal[spId][celli];
-                    linearKELocal += sharedSampleCache_.linearKEReal[spId][celli];
-                    dsmcMuuLocal += sharedSampleCache_.dsmcMuu[spId][celli];
-                    dsmcMuvLocal += sharedSampleCache_.dsmcMuv[spId][celli];
-                    dsmcMuwLocal += sharedSampleCache_.dsmcMuw[spId][celli];
-                    dsmcMvvLocal += sharedSampleCache_.dsmcMvv[spId][celli];
-                    dsmcMvwLocal += sharedSampleCache_.dsmcMvw[spId][celli];
-                    dsmcMwwLocal += sharedSampleCache_.dsmcMww[spId][celli];
-                    dsmcMccLocal += sharedSampleCache_.dsmcMcc[spId][celli];
-                    dsmcMccuLocal += sharedSampleCache_.dsmcMccu[spId][celli];
-                    dsmcMccvLocal += sharedSampleCache_.dsmcMccv[spId][celli];
-                    dsmcMccwLocal += sharedSampleCache_.dsmcMccw[spId][celli];
-                    dsmcEuLocal += sharedSampleCache_.dsmcEu[spId][celli];
-                    dsmcEvLocal += sharedSampleCache_.dsmcEv[spId][celli];
-                    dsmcEwLocal += sharedSampleCache_.dsmcEw[spId][celli];
-                    dsmcEIntLocal += sharedSampleCache_.dsmcECum[spId][celli];
+                    dsmcNLocal = sharedSampleCache_.dsmcN[onlySpId][celli];
+                    dsmcMLocal = sharedSampleCache_.dsmcM[onlySpId][celli];
+                    dsmcLinearKELocal =
+                        sharedSampleCache_.dsmcLinearKE[onlySpId][celli];
+                    dsmcMomentumLocal =
+                        sharedSampleCache_.dsmcMomentum[onlySpId][celli];
+                    dsmcErotLocal = sharedSampleCache_.dsmcErot[onlySpId][celli];
+                    dsmcZetaRotLocal =
+                        sharedSampleCache_.dsmcZetaRot[onlySpId][celli];
+                    nLocal = sharedSampleCache_.nReal[onlySpId][celli];
+                    mLocal = sharedSampleCache_.mReal[onlySpId][celli];
+                    momentumLocal =
+                        sharedSampleCache_.momentumReal[onlySpId][celli];
+                    linearKELocal =
+                        sharedSampleCache_.linearKEReal[onlySpId][celli];
 
                     if (needElectronic)
                     {
-                        dsmcSpeciesEelecCum_[i][celli] +=
-                            sharedSampleCache_.dsmcSpeciesEelec[spId][celli];
+                        dsmcNElecLvlLocal =
+                            sharedSampleCache_.dsmcNElecLvl[onlySpId][celli];
+                        dsmcSpeciesEelecCum_[0][celli] +=
+                            sharedSampleCache_.dsmcSpeciesEelec[onlySpId][celli];
+                        dsmcNGrndElecLvlSpeciesCum_[0][celli] +=
+                            sharedSampleCache_.nGrndElecLvl[onlySpId][celli];
+                        dsmcN1stElecLvlSpeciesCum_[0][celli] +=
+                            sharedSampleCache_.n1stElecLvl[onlySpId][celli];
                     }
-                    dsmcNSpeciesCum_[i][celli] +=
-                        sharedSampleCache_.dsmcN[spId][celli];
-                    dsmcMccSpeciesCum_[i][celli] +=
-                        sharedSampleCache_.dsmcLinearKE[spId][celli];
-                    nSpeciesCum_[i][celli] +=
-                        sharedSampleCache_.nReal[spId][celli];
-
-                    if (needElectronic)
+                    if (needHeatFluxShearStress)
                     {
-                        dsmcNGrndElecLvlSpeciesCum_[i][celli] +=
-                            sharedSampleCache_.nGrndElecLvl[spId][celli];
-                        dsmcN1stElecLvlSpeciesCum_[i][celli] +=
-                            sharedSampleCache_.n1stElecLvl[spId][celli];
+                        dsmcMuuLocal = sharedSampleCache_.dsmcMuu[onlySpId][celli];
+                        dsmcMuvLocal = sharedSampleCache_.dsmcMuv[onlySpId][celli];
+                        dsmcMuwLocal = sharedSampleCache_.dsmcMuw[onlySpId][celli];
+                        dsmcMvvLocal = sharedSampleCache_.dsmcMvv[onlySpId][celli];
+                        dsmcMvwLocal = sharedSampleCache_.dsmcMvw[onlySpId][celli];
+                        dsmcMwwLocal = sharedSampleCache_.dsmcMww[onlySpId][celli];
+                        dsmcMccLocal = sharedSampleCache_.dsmcMcc[onlySpId][celli];
+                        dsmcMccuLocal = sharedSampleCache_.dsmcMccu[onlySpId][celli];
+                        dsmcMccvLocal = sharedSampleCache_.dsmcMccv[onlySpId][celli];
+                        dsmcMccwLocal = sharedSampleCache_.dsmcMccw[onlySpId][celli];
+                        dsmcEuLocal = sharedSampleCache_.dsmcEu[onlySpId][celli];
+                        dsmcEvLocal = sharedSampleCache_.dsmcEv[onlySpId][celli];
+                        dsmcEwLocal = sharedSampleCache_.dsmcEw[onlySpId][celli];
+                        dsmcEIntLocal = sharedSampleCache_.dsmcECum[onlySpId][celli];
                     }
+
+                    dsmcNSpeciesCum_[0][celli] +=
+                        sharedSampleCache_.dsmcN[onlySpId][celli];
+                    dsmcMccSpeciesCum_[0][celli] +=
+                        sharedSampleCache_.dsmcLinearKE[onlySpId][celli];
+                    nSpeciesCum_[0][celli] +=
+                        sharedSampleCache_.nReal[onlySpId][celli];
 
                     if (needVibrational)
-                    {
-                        forAll(dsmcSpeciesEvibModCum_[i], mod)
-                        {
-                            dsmcSpeciesEvibModCum_[i][mod][celli] +=
-                                sharedSampleCache_.dsmcSpeciesEvibMod[spId][mod][celli];
-                        }
-                    }
+                    {}
 
                     if (needClassification)
                     {
-                        dsmcNClassILocal += sharedSampleCache_.dsmcNClassI[spId][celli];
-                        dsmcNClassIILocal += sharedSampleCache_.dsmcNClassII[spId][celli];
-                        dsmcNClassIIILocal += sharedSampleCache_.dsmcNClassIII[spId][celli];
+                        dsmcNClassILocal =
+                            sharedSampleCache_.dsmcNClassI[onlySpId][celli];
+                        dsmcNClassIILocal =
+                            sharedSampleCache_.dsmcNClassII[onlySpId][celli];
+                        dsmcNClassIIILocal =
+                            sharedSampleCache_.dsmcNClassIII[onlySpId][celli];
+                    }
+                }
+                else
+                {
+                    forAll(speciesIds_, i)
+                    {
+                        const label spId = speciesIds_[i];
+
+                        dsmcNLocal += sharedSampleCache_.dsmcN[spId][celli];
+                        dsmcMLocal += sharedSampleCache_.dsmcM[spId][celli];
+                        dsmcLinearKELocal += sharedSampleCache_.dsmcLinearKE[spId][celli];
+                        dsmcMomentumLocal += sharedSampleCache_.dsmcMomentum[spId][celli];
+                        dsmcErotLocal += sharedSampleCache_.dsmcErot[spId][celli];
+                        dsmcZetaRotLocal += sharedSampleCache_.dsmcZetaRot[spId][celli];
+                        nLocal += sharedSampleCache_.nReal[spId][celli];
+                        mLocal += sharedSampleCache_.mReal[spId][celli];
+                        momentumLocal += sharedSampleCache_.momentumReal[spId][celli];
+                        linearKELocal += sharedSampleCache_.linearKEReal[spId][celli];
+                        if (needElectronic)
+                        {
+                            dsmcNElecLvlLocal += sharedSampleCache_.dsmcNElecLvl[spId][celli];
+                        }
+                        if (needHeatFluxShearStress)
+                        {
+                            dsmcMuuLocal += sharedSampleCache_.dsmcMuu[spId][celli];
+                            dsmcMuvLocal += sharedSampleCache_.dsmcMuv[spId][celli];
+                            dsmcMuwLocal += sharedSampleCache_.dsmcMuw[spId][celli];
+                            dsmcMvvLocal += sharedSampleCache_.dsmcMvv[spId][celli];
+                            dsmcMvwLocal += sharedSampleCache_.dsmcMvw[spId][celli];
+                            dsmcMwwLocal += sharedSampleCache_.dsmcMww[spId][celli];
+                            dsmcMccLocal += sharedSampleCache_.dsmcMcc[spId][celli];
+                            dsmcMccuLocal += sharedSampleCache_.dsmcMccu[spId][celli];
+                            dsmcMccvLocal += sharedSampleCache_.dsmcMccv[spId][celli];
+                            dsmcMccwLocal += sharedSampleCache_.dsmcMccw[spId][celli];
+                            dsmcEuLocal += sharedSampleCache_.dsmcEu[spId][celli];
+                            dsmcEvLocal += sharedSampleCache_.dsmcEv[spId][celli];
+                            dsmcEwLocal += sharedSampleCache_.dsmcEw[spId][celli];
+                            dsmcEIntLocal += sharedSampleCache_.dsmcECum[spId][celli];
+                        }
+
+                        if (needElectronic)
+                        {
+                            dsmcSpeciesEelecCum_[i][celli] +=
+                                sharedSampleCache_.dsmcSpeciesEelec[spId][celli];
+                        }
+                        dsmcNSpeciesCum_[i][celli] +=
+                            sharedSampleCache_.dsmcN[spId][celli];
+                        dsmcMccSpeciesCum_[i][celli] +=
+                            sharedSampleCache_.dsmcLinearKE[spId][celli];
+                        nSpeciesCum_[i][celli] +=
+                            sharedSampleCache_.nReal[spId][celli];
+
+                        if (needElectronic)
+                        {
+                            dsmcNGrndElecLvlSpeciesCum_[i][celli] +=
+                                sharedSampleCache_.nGrndElecLvl[spId][celli];
+                            dsmcN1stElecLvlSpeciesCum_[i][celli] +=
+                                sharedSampleCache_.n1stElecLvl[spId][celli];
+                        }
+
+                        if (needVibrational)
+                        {}
+
+                        if (needClassification)
+                        {
+                            dsmcNClassILocal += sharedSampleCache_.dsmcNClassI[spId][celli];
+                            dsmcNClassIILocal += sharedSampleCache_.dsmcNClassII[spId][celli];
+                            dsmcNClassIIILocal += sharedSampleCache_.dsmcNClassIII[spId][celli];
+                        }
                     }
                 }
 
@@ -1877,31 +2493,79 @@ void dsmcVolFields::calculateField()
                 dsmcMomentumCum_[celli] += dsmcMomentumLocal;
                 dsmcErotCum_[celli] += dsmcErotLocal;
                 dsmcZetaRotCum_[celli] += dsmcZetaRotLocal;
-                dsmcNElecLvlCum_[celli] += dsmcNElecLvlLocal;
                 nCum_[celli] += nLocal;
                 mCum_[celli] += mLocal;
                 momentumCum_[celli] += momentumLocal;
                 linearKECum_[celli] += linearKELocal;
-                dsmcMuuCum_[celli] += dsmcMuuLocal;
-                dsmcMuvCum_[celli] += dsmcMuvLocal;
-                dsmcMuwCum_[celli] += dsmcMuwLocal;
-                dsmcMvvCum_[celli] += dsmcMvvLocal;
-                dsmcMvwCum_[celli] += dsmcMvwLocal;
-                dsmcMwwCum_[celli] += dsmcMwwLocal;
-                dsmcMccCum_[celli] += dsmcMccLocal;
-                dsmcMccuCum_[celli] += dsmcMccuLocal;
-                dsmcMccvCum_[celli] += dsmcMccvLocal;
-                dsmcMccwCum_[celli] += dsmcMccwLocal;
-                dsmcEuCum_[celli] += dsmcEuLocal;
-                dsmcEvCum_[celli] += dsmcEvLocal;
-                dsmcEwCum_[celli] += dsmcEwLocal;
-                dsmcECum_[celli] += dsmcEIntLocal;
+                if (needElectronic)
+                {
+                    dsmcNElecLvlCum_[celli] += dsmcNElecLvlLocal;
+                }
+                if (needHeatFluxShearStress)
+                {
+                    dsmcMuuCum_[celli] += dsmcMuuLocal;
+                    dsmcMuvCum_[celli] += dsmcMuvLocal;
+                    dsmcMuwCum_[celli] += dsmcMuwLocal;
+                    dsmcMvvCum_[celli] += dsmcMvvLocal;
+                    dsmcMvwCum_[celli] += dsmcMvwLocal;
+                    dsmcMwwCum_[celli] += dsmcMwwLocal;
+                    dsmcMccCum_[celli] += dsmcMccLocal;
+                    dsmcMccuCum_[celli] += dsmcMccuLocal;
+                    dsmcMccvCum_[celli] += dsmcMccvLocal;
+                    dsmcMccwCum_[celli] += dsmcMccwLocal;
+                    dsmcEuCum_[celli] += dsmcEuLocal;
+                    dsmcEvCum_[celli] += dsmcEvLocal;
+                    dsmcEwCum_[celli] += dsmcEwLocal;
+                    dsmcECum_[celli] += dsmcEIntLocal;
+                }
 
                 if (needClassification)
                 {
                     dsmcNClassICum_[celli] += dsmcNClassILocal;
                     dsmcNClassIICum_[celli] += dsmcNClassIILocal;
                     dsmcNClassIIICum_[celli] += dsmcNClassIIILocal;
+                }
+            }
+
+            if (needVibrational)
+            {
+                label totalVibTasks = 0;
+
+                forAll(speciesIds_, i)
+                {
+                    totalVibTasks += dsmcSpeciesEvibModCum_[i].size();
+                }
+
+                List<label> vibTaskSpecies(totalVibTasks);
+                List<label> vibTaskModes(totalVibTasks);
+                label vibTaski = 0;
+
+                forAll(speciesIds_, i)
+                {
+                    forAll(dsmcSpeciesEvibModCum_[i], mod)
+                    {
+                        vibTaskSpecies[vibTaski] = i;
+                        vibTaskModes[vibTaski] = mod;
+                        ++vibTaski;
+                    }
+                }
+
+                #ifdef _OPENMP
+                #pragma omp parallel for schedule(static) if (useOpenMPSampling)
+                #endif
+                for (label taski = 0; taski < totalVibTasks; ++taski)
+                {
+                    const label speciesi = vibTaskSpecies[taski];
+                    const label mod = vibTaskModes[taski];
+                    const label spId = speciesIds_[speciesi];
+                    scalarField& evibCum = dsmcSpeciesEvibModCum_[speciesi][mod];
+                    const scalarField& evibCache =
+                        sharedSampleCache_.dsmcSpeciesEvibMod[spId][mod];
+
+                    forAll(evibCum, celli)
+                    {
+                        evibCum[celli] += evibCache[celli];
+                    }
                 }
             }
 
@@ -3446,20 +4110,25 @@ void dsmcVolFields::calculateField()
             << "      cache allocate      = " << profileSharedCacheAllocateWallTime_ << " s" << nl
             << "      cache reset         = " << profileSharedCacheResetWallTime_ << " s" << nl
             << "      parcel accumulate   = " << profileSharedCacheParcelAccumWallTime_ << " s" << nl
-            << "      detail sample cells = " << profileSharedCacheDetailSampleCells_ << nl
-            << "      detail sample parcels = " << profileSharedCacheDetailSampleParcels_ << nl
-            << "      base accum (sampled)= " << profileSharedCacheBaseAccumWallTime_ << " s" << nl
-            << "      vib accum (sampled) = " << profileSharedCacheVibAccumWallTime_ << " s" << nl
-            << "      electronic (sampled)= " << profileSharedCacheElectronicAccumWallTime_ << " s" << nl
-            << "      class accum (sampled)= " << profileSharedCacheClassAccumWallTime_ << " s" << nl
             << "    field combine         = " << profileFieldCombineWallTime_ << " s" << nl
             << "    cell reduction        = " << profileCellReduceWallTime_ << " s" << nl
             << "    boundary accumulation = " << profileBoundaryAccumWallTime_ << " s" << nl
             << "    output compute        = " << profileOutputComputeWallTime_ << " s" << nl
             << "    field writes          = " << profileFieldWriteWallTime_ << " s" << nl
             << "    output reset          = " << profileOutputResetWallTime_ << " s" << nl
-            << "    output-time block     = " << profileOutputTimeWallTime_ << " s" << nl
-            << endl;
+            << "    output-time block     = " << profileOutputTimeWallTime_ << " s" << nl;
+
+        if (profileDetailEnabled_)
+        {
+            Info<< "      detail sample cells = " << profileSharedCacheDetailSampleCells_ << nl
+                << "      detail sample parcels = " << profileSharedCacheDetailSampleParcels_ << nl
+                << "      base accum (sampled)= " << profileSharedCacheBaseAccumWallTime_ << " s" << nl
+                << "      vib accum (sampled) = " << profileSharedCacheVibAccumWallTime_ << " s" << nl
+                << "      electronic (sampled)= " << profileSharedCacheElectronicAccumWallTime_ << " s" << nl
+                << "      class accum (sampled)= " << profileSharedCacheClassAccumWallTime_ << " s" << nl;
+        }
+
+        Info<< endl;
     }
 }
 

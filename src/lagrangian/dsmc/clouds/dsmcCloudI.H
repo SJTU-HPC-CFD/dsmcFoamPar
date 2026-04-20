@@ -113,6 +113,11 @@ inline bool Foam::dsmcCloud::evolveProfileEnabled() const
     return evolveProfileEnabled_;
 }
 
+inline bool Foam::dsmcCloud::profilingDetailEnabled() const
+{
+    return profilingDetailEnabled_;
+}
+
 inline void Foam::dsmcCloud::setStepDiagnosticOutput(const bool enabled)
 {
     emitStepDiagnostics_ = enabled;
@@ -133,6 +138,11 @@ inline const Foam::word& Foam::dsmcCloud::openmpCollisionStrategy() const
     return openmpCollisionStrategy_;
 }
 
+inline Foam::label Foam::dsmcCloud::openmpCollisionChunk() const
+{
+    return openmpCollisionChunk_;
+}
+
 inline const Foam::word& Foam::dsmcCloud::openmpMoveSchedule() const
 {
     return openmpMoveSchedule_;
@@ -141,6 +151,14 @@ inline const Foam::word& Foam::dsmcCloud::openmpMoveSchedule() const
 inline Foam::label Foam::dsmcCloud::openmpMoveChunk() const
 {
     return openmpMoveChunk_;
+}
+
+inline bool Foam::dsmcCloud::openmpMoveGuardCell(const label celli) const
+{
+    return
+        celli >= 0
+     && celli < openmpMoveGuardCells_.size()
+     && openmpMoveGuardCells_[celli];
 }
 
 inline Foam::label Foam::dsmcCloud::currentThreadId() const
@@ -181,6 +199,12 @@ inline const Foam::labelList& Foam::dsmcCloud::moveOrderedThreadOffsets() const
 }
 
 inline const Foam::DynamicList<Foam::dsmcParcel*>&
+Foam::dsmcCloud::moveAppendedParcels() const
+{
+    return moveAppendedParcels_;
+}
+
+inline const Foam::DynamicList<Foam::dsmcParcel*>&
 Foam::dsmcCloud::pendingMoveParcels() const
 {
     return pendingMoveParcels_;
@@ -199,6 +223,16 @@ inline const Foam::List<Foam::dsmcParcel*>& Foam::dsmcCloud::occupancyOrderedPar
 inline const Foam::labelList& Foam::dsmcCloud::occupancyCellOffsets() const
 {
     return occupancyCellOffsets_;
+}
+
+inline const Foam::labelList& Foam::dsmcCloud::occupancyActiveCells() const
+{
+    return occupancyActiveCells_;
+}
+
+inline const Foam::labelList& Foam::dsmcCloud::occupancyCollisionCells() const
+{
+    return occupancyCollisionCells_;
 }
 
 inline Foam::label Foam::dsmcCloud::occupancyStart(const label celli) const
@@ -244,6 +278,11 @@ inline const Foam::scalarField& Foam::dsmcCloud::selectedPairsPerCell() const
 inline const Foam::labelList& Foam::dsmcCloud::nCandidatesPerCell() const
 {
     return nCandidatesPerCell_;
+}
+
+inline const Foam::labelList& Foam::dsmcCloud::collisionCandidateCells() const
+{
+    return collisionCandidateCells_;
 }
 
 inline const Foam::labelList& Foam::dsmcCloud::collisionLoadStart() const
