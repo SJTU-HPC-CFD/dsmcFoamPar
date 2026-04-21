@@ -1,0 +1,1590 @@
+nohup: ignoring input
+/*---------------------------------------------------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  2506                                  |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+Build  : 95a5dfacc7-20250714 OPENFOAM=2506 version=v2506
+Arch   : "LSB;label=32;scalar=64"
+Exec   : /home/superxcx/code/DSMC/dsmcFoam++/hyStrath_xcx/platforms/linux64IcxDPInt32Opt/bin/dsmcFoam+
+Date   : Apr 13 2026
+Time   : 14:48:03
+Host   : SuperXCX-ROG
+PID    : 53594
+I/O    : uncollated
+Case   : /home/superxcx/code/DSMC/dsmcFoam++/hyStrath_xcx/case/cylinder_react/schedule_sweep_300step_20260404/omp2
+nProcs : 1
+trapFpe: Floating point exception trapping enabled (FOAM_SIGFPE).
+fileModificationChecking : Monitoring run-time modified files using timeStampMaster (fileModificationSkew 5, maxFileModificationPolls 20)
+allowSystemOperations : Allowing user-supplied system call operations
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+Create time
+
+--> FOAM Warning : 
+    From static Foam::IOstreamOption::compressionType Foam::IOstreamOption::compressionEnum(const word &, const compressionType)
+    in file db/options/IOstreamOption.C at line 189
+    Unknown compression specifier 'uncompressed' using compression off
+Create mesh for time = 0
+
+
+Constructing dsmcCloud
+Selecting the coordinate system model:	dsmcCartesian
+
+Selecting the time-step model:	dsmcConstantTimeStepModel
+
+Constant time-step model:
+- time-step [sec]	6.640048894e-08
+
+Selecting the porous measurement model:	dsmcNoPorousMediumMeasurements
+
+
+Creating dsmcControllers
+
+Creating fields: 
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+Resetting fields at output until time: 2.456818091e-06
+ measurement option: write
+ nSamples: 1, time interval: 6.640048894e-08
+ nAverages: 300, time interval: 1.992014668e-05
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+Resetting fields at output until time: 2.456818091e-06
+ measurement option: write
+ nSamples: 1, time interval: 6.640048894e-08
+ nAverages: 300, time interval: 1.992014668e-05
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+Resetting fields at output until time: 2.456818091e-06
+ measurement option: write
+ nSamples: 1, time interval: 6.640048894e-08
+ nAverages: 300, time interval: 1.992014668e-05
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+Resetting fields at output until time: 2.456818091e-06
+ measurement option: write
+ nSamples: 1, time interval: 6.640048894e-08
+ nAverages: 300, time interval: 1.992014668e-05
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+Resetting fields at output until time: 2.456818091e-06
+ measurement option: write
+ nSamples: 1, time interval: 6.640048894e-08
+ nAverages: 300, time interval: 1.992014668e-05
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+Resetting fields at output until time: 2.456818091e-06
+ measurement option: write
+ nSamples: 1, time interval: 6.640048894e-08
+ nAverages: 300, time interval: 1.992014668e-05
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Creating the boundary models: 
+
+Selecting dsmcPatchBoundaryModel dsmcDeletionPatch
+Selecting dsmcPatchBoundaryModel dsmcDeletionPatch
+Selecting dsmcPatchBoundaryModel dsmcDiffuseWallPatch
+Selecting dsmcGeneralBoundaryModel dsmcFreeStreamInflowPatch
+Selecting BinaryCollisionModel LarsenBorgnakkeVariableHardSphere
+OpenMP enabled for dsmcCloud with 2 thread-local RNG streams using collision strategy 'dynamic', move kernel enabled (static, chunk 64), adaptive partition enabled (interval 5, imbalance 1.1, drift 0.1), collision partition cost (candidate x1, active-cell x0)
+
+Constructing constant properties for
+    N2
+    O2
+    NO
+    N
+    O
+
+Creating dsmcReactions
+
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationExchangeQK
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationExchangeQK
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationExchangeQK
+Selecting the reaction model dissociationExchangeQK
+Selecting the reaction model dissociationQK
+Number of reactions created: 12
+Selecting collisionPartnerSelectionModel noTimeCounter
+
+Initialising the measurement fields
+
+Initialising dsmcVolFields field
+Initialising dsmcVolFields field
+Initialising dsmcVolFields field
+Initialising dsmcVolFields field
+Initialising dsmcVolFields field
+Initialising dsmcVolFields field
+
+Starting time loop
+
+ExecutionTime = 11.07 s  ClockTime = 8 s
+
+ExecutionTime = 13.21 s  ClockTime = 9 s
+
+ExecutionTime = 15.44 s  ClockTime = 10 s
+
+ExecutionTime = 17.62 s  ClockTime = 11 s
+
+ExecutionTime = 19.82 s  ClockTime = 12 s
+
+ExecutionTime = 22.06 s  ClockTime = 13 s
+
+ExecutionTime = 24.29 s  ClockTime = 14 s
+
+ExecutionTime = 26.54 s  ClockTime = 16 s
+
+ExecutionTime = 28.81 s  ClockTime = 17 s
+
+Time = 6.640048894e-07
+
+    Collisions                      = 27848
+
+Load balance summary:
+    move particles avg/max/min    = 6586797.5 / 13173595 / 13173595
+    move imbalance max/avg        = 2
+    collision cand avg/max/min    = 449249.5 / 898499 / 898499
+    collision cand imbalance      = 2
+    accepted coll avg/max/min     = 122292 / 244584 / 244584
+    accepted coll imbalance       = 2
+    thread move particles         = 2(6483235 6690360)
+    thread collision candidates   = 2(440687 457812)
+    thread accepted collisions    = 2(119753 124831)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1330364
+    Number of molecules             = 7.982184e+15
+    Mass in system                  = 3.82812217e-10
+    Average linear kinetic energy   = 1.893608985e-19
+    Average rotational energy       = 1.339582181e-21
+    Average vibrational energy      = 2.157537276e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.122758535e-19
+ExecutionTime = 31.32 s  ClockTime = 18 s
+
+ExecutionTime = 33.6 s  ClockTime = 19 s
+
+ExecutionTime = 35.85 s  ClockTime = 21 s
+
+ExecutionTime = 38.18 s  ClockTime = 22 s
+
+ExecutionTime = 40.45 s  ClockTime = 23 s
+
+ExecutionTime = 42.84 s  ClockTime = 24 s
+
+ExecutionTime = 45.24 s  ClockTime = 26 s
+
+ExecutionTime = 47.65 s  ClockTime = 27 s
+
+ExecutionTime = 49.93 s  ClockTime = 28 s
+
+ExecutionTime = 52.37 s  ClockTime = 30 s
+
+Time = 1.328009779e-06
+
+    Collisions                      = 36929
+
+Load balance summary:
+    move particles avg/max/min    = 13291930.5 / 26583861 / 26583861
+    move imbalance max/avg        = 2
+    collision cand avg/max/min    = 980279 / 1960558 / 1960558
+    collision cand imbalance      = 2
+    accepted coll avg/max/min     = 285518.5 / 571037 / 571037
+    accepted coll imbalance       = 2
+    thread move particles         = 2(13118239 13465622)
+    thread collision candidates   = 2(963955 996603)
+    thread accepted collisions    = 2(280926 290111)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1354094
+    Number of molecules             = 8.124564e+15
+    Mass in system                  = 3.896403048e-10
+    Average linear kinetic energy   = 1.866270716e-19
+    Average rotational energy       = 1.56922694e-21
+    Average vibrational energy      = 2.157535588e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.097716544e-19
+ExecutionTime = 55.01 s  ClockTime = 31 s
+
+ExecutionTime = 57.4 s  ClockTime = 32 s
+
+ExecutionTime = 59.78 s  ClockTime = 34 s
+
+ExecutionTime = 62.2 s  ClockTime = 35 s
+
+ExecutionTime = 64.73 s  ClockTime = 36 s
+
+ExecutionTime = 67.16 s  ClockTime = 36 s
+
+ExecutionTime = 69.61 s  ClockTime = 37 s
+
+ExecutionTime = 72.18 s  ClockTime = 38 s
+
+ExecutionTime = 74.77 s  ClockTime = 40 s
+
+ExecutionTime = 77.28 s  ClockTime = 41 s
+
+Time = 1.992014668e-06
+
+    Collisions                      = 46860
+
+Load balance summary:
+    move particles avg/max/min    = 20115290 / 40230580 / 40230580
+    move imbalance max/avg        = 2
+    collision cand avg/max/min    = 1605804 / 3211608 / 3211608
+    collision cand imbalance      = 2
+    accepted coll avg/max/min     = 497702 / 995404 / 995404
+    accepted coll imbalance       = 2
+    thread move particles         = 2(19823492 20407088)
+    thread collision candidates   = 2(1580600 1631008)
+    thread accepted collisions    = 2(490789 504615)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1377613
+    Number of molecules             = 8.265678e+15
+    Mass in system                  = 3.964093251e-10
+    Average linear kinetic energy   = 1.841663938e-19
+    Average rotational energy       = 1.895995472e-21
+    Average vibrational energy      = 2.157526609e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.076376554e-19
+ExecutionTime = 80.01 s  ClockTime = 42 s
+
+ExecutionTime = 82.55 s  ClockTime = 44 s
+
+ExecutionTime = 85.06 s  ClockTime = 45 s
+
+ExecutionTime = 87.63 s  ClockTime = 46 s
+
+ExecutionTime = 90.29 s  ClockTime = 48 s
+
+ExecutionTime = 93.02 s  ClockTime = 49 s
+
+ExecutionTime = 95.63 s  ClockTime = 51 s
+
+
+Start sample at time 2.456818091e-06 and step 37
+
+
+Start sample at time 2.456818091e-06 and step 37
+
+
+Start sample at time 2.456818091e-06 and step 37
+
+
+Start sample at time 2.456818091e-06 and step 37
+
+
+Start sample at time 2.456818091e-06 and step 37
+
+
+Start sample at time 2.456818091e-06 and step 37
+
+ExecutionTime = 98.29 s  ClockTime = 52 s
+
+ExecutionTime = 100.93 s  ClockTime = 54 s
+
+ExecutionTime = 103.57 s  ClockTime = 55 s
+
+Time = 2.656019558e-06
+
+    Collisions                      = 57134
+
+Load balance summary:
+    move particles avg/max/min    = 27056914 / 54113828 / 54113828
+    move imbalance max/avg        = 2
+    collision cand avg/max/min    = 2328727 / 4657454 / 4657454
+    collision cand imbalance      = 2
+    accepted coll avg/max/min     = 761341 / 1522682 / 1522682
+    accepted coll imbalance       = 2
+    thread move particles         = 2(26662654 27451174)
+    thread collision candidates   = 2(2299095 2358359)
+    thread accepted collisions    = 2(753471 769211)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1401289
+    Number of molecules             = 8.407734e+15
+    Mass in system                  = 4.032213936e-10
+    Average linear kinetic energy   = 1.819646155e-19
+    Average rotational energy       = 2.288980906e-21
+    Average vibrational energy      = 2.157569594e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.058292923e-19
+ExecutionTime = 106.54 s  ClockTime = 57 s
+
+ExecutionTime = 109.16 s  ClockTime = 58 s
+
+ExecutionTime = 111.83 s  ClockTime = 59 s
+
+ExecutionTime = 114.46 s  ClockTime = 61 s
+
+ExecutionTime = 117.1 s  ClockTime = 62 s
+
+ExecutionTime = 119.74 s  ClockTime = 64 s
+
+ExecutionTime = 122.44 s  ClockTime = 65 s
+
+ExecutionTime = 125.16 s  ClockTime = 66 s
+
+ExecutionTime = 127.94 s  ClockTime = 66 s
+
+ExecutionTime = 130.76 s  ClockTime = 67 s
+
+Time = 3.320024447e-06
+
+    Collisions                      = 67064
+
+Load balance summary:
+    move particles avg/max/min    = 34116051 / 68232102 / 68232102
+    move imbalance max/avg        = 2
+    collision cand avg/max/min    = 3149628.5 / 6299257 / 6299257
+    collision cand imbalance      = 2
+    accepted coll avg/max/min     = 1074691 / 2149382 / 2149382
+    accepted coll imbalance       = 2
+    thread move particles         = 2(33627418 34604684)
+    thread collision candidates   = 2(3112689 3186568)
+    thread accepted collisions    = 2(1066016 1083366)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1424792
+    Number of molecules             = 8.548752e+15
+    Mass in system                  = 4.09984083e-10
+    Average linear kinetic energy   = 1.799484425e-19
+    Average rotational energy       = 2.719850596e-21
+    Average vibrational energy      = 2.157571802e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.042440111e-19
+ExecutionTime = 133.8 s  ClockTime = 69 s
+
+ExecutionTime = 136.52 s  ClockTime = 71 s
+
+ExecutionTime = 139.28 s  ClockTime = 72 s
+
+ExecutionTime = 142.06 s  ClockTime = 73 s
+
+ExecutionTime = 144.94 s  ClockTime = 75 s
+
+ExecutionTime = 147.67 s  ClockTime = 76 s
+
+ExecutionTime = 150.44 s  ClockTime = 78 s
+
+ExecutionTime = 153.27 s  ClockTime = 79 s
+
+ExecutionTime = 156.08 s  ClockTime = 81 s
+
+ExecutionTime = 158.99 s  ClockTime = 82 s
+
+Time = 3.984029336e-06
+
+    Collisions                      = 77212
+
+Load balance summary:
+    move particles avg/max/min    = 41292447 / 82584894 / 82584894
+    move imbalance max/avg        = 2
+    collision cand avg/max/min    = 4063922 / 8127844 / 8127844
+    collision cand imbalance      = 2
+    accepted coll avg/max/min     = 1436889.5 / 2873779 / 2873779
+    accepted coll imbalance       = 2
+    thread move particles         = 2(40670491 41914403)
+    thread collision candidates   = 2(4020776 4107068)
+    thread accepted collisions    = 2(1426698 1447081)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1448214
+    Number of molecules             = 8.689284e+15
+    Mass in system                  = 4.167232996e-10
+    Average linear kinetic energy   = 1.780572669e-19
+    Average rotational energy       = 3.214984404e-21
+    Average vibrational energy      = 2.157600871e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.0284826e-19
+ExecutionTime = 162.33 s  ClockTime = 84 s
+
+ExecutionTime = 165.2 s  ClockTime = 86 s
+
+ExecutionTime = 168.15 s  ClockTime = 87 s
+
+ExecutionTime = 171.01 s  ClockTime = 89 s
+
+ExecutionTime = 173.89 s  ClockTime = 90 s
+
+ExecutionTime = 176.87 s  ClockTime = 92 s
+
+ExecutionTime = 179.83 s  ClockTime = 93 s
+
+ExecutionTime = 182.71 s  ClockTime = 95 s
+
+ExecutionTime = 185.59 s  ClockTime = 96 s
+
+ExecutionTime = 188.58 s  ClockTime = 98 s
+
+Time = 4.648034226e-06
+
+    Collisions                      = 86300
+
+Load balance summary:
+    move particles avg/max/min    = 48585950.5 / 97171901 / 97171901
+    move imbalance max/avg        = 2
+    collision cand avg/max/min    = 5073065 / 10146130 / 10146130
+    collision cand imbalance      = 2
+    accepted coll avg/max/min     = 1847635.5 / 3695271 / 3695271
+    accepted coll imbalance       = 2
+    thread move particles         = 2(47849382 49322519)
+    thread collision candidates   = 2(5017335 5128795)
+    thread accepted collisions    = 2(1833723 1861548)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1471547
+    Number of molecules             = 8.829282e+15
+    Mass in system                  = 4.234349842e-10
+    Average linear kinetic energy   = 1.763327833e-19
+    Average rotational energy       = 3.697655846e-21
+    Average vibrational energy      = 2.15766066e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.016070457e-19
+ExecutionTime = 191.93 s  ClockTime = 98 s
+
+ExecutionTime = 194.88 s  ClockTime = 100 s
+
+ExecutionTime = 198 s  ClockTime = 101 s
+
+ExecutionTime = 201.07 s  ClockTime = 103 s
+
+ExecutionTime = 204.08 s  ClockTime = 104 s
+
+ExecutionTime = 207.16 s  ClockTime = 106 s
+
+ExecutionTime = 210.19 s  ClockTime = 108 s
+
+ExecutionTime = 213.36 s  ClockTime = 109 s
+
+ExecutionTime = 216.42 s  ClockTime = 111 s
+
+ExecutionTime = 219.55 s  ClockTime = 113 s
+
+Time = 5.312039115e-06
+
+    Collisions                      = 95097
+
+Load balance summary:
+    move particles avg/max/min    = 55996768.5 / 111993537 / 111993537
+    move imbalance max/avg        = 2
+    collision cand avg/max/min    = 6171153 / 12342306 / 12342306
+    collision cand imbalance      = 2
+    accepted coll avg/max/min     = 2303005 / 4606010 / 4606010
+    accepted coll imbalance       = 2
+    thread move particles         = 2(55184708 56808829)
+    thread collision candidates   = 2(6101979 6240327)
+    thread accepted collisions    = 2(2285046 2320964)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1494932
+    Number of molecules             = 8.969592e+15
+    Mass in system                  = 4.301607399e-10
+    Average linear kinetic energy   = 1.747197824e-19
+    Average rotational energy       = 4.207421559e-21
+    Average vibrational energy      = 2.157773892e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.005049429e-19
+ExecutionTime = 223.03 s  ClockTime = 115 s
+
+ExecutionTime = 226.14 s  ClockTime = 116 s
+
+ExecutionTime = 229.23 s  ClockTime = 118 s
+
+ExecutionTime = 232.32 s  ClockTime = 119 s
+
+ExecutionTime = 235.51 s  ClockTime = 121 s
+
+ExecutionTime = 238.58 s  ClockTime = 123 s
+
+ExecutionTime = 241.73 s  ClockTime = 124 s
+
+ExecutionTime = 244.95 s  ClockTime = 126 s
+
+ExecutionTime = 248.13 s  ClockTime = 128 s
+
+ExecutionTime = 251.37 s  ClockTime = 128 s
+
+Time = 5.976044005e-06
+
+    Collisions                      = 103651
+
+Load balance summary:
+    move particles avg/max/min    = 63523724 / 127047448 / 127047448
+    move imbalance max/avg        = 2
+    collision cand avg/max/min    = 7356398 / 14712796 / 14712796
+    collision cand imbalance      = 2
+    accepted coll avg/max/min     = 2801719 / 5603438 / 5603438
+    accepted coll imbalance       = 2
+    thread move particles         = 2(62600803 64446645)
+    thread collision candidates   = 2(7275015 7437781)
+    thread accepted collisions    = 2(2781044 2822394)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1518223
+    Number of molecules             = 9.109338e+15
+    Mass in system                  = 4.368650359e-10
+    Average linear kinetic energy   = 1.731904888e-19
+    Average rotational energy       = 4.734566621e-21
+    Average vibrational energy      = 2.157869553e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.99503751e-19
+ExecutionTime = 254.98 s  ClockTime = 130 s
+
+ExecutionTime = 258.16 s  ClockTime = 131 s
+
+ExecutionTime = 261.42 s  ClockTime = 133 s
+
+ExecutionTime = 264.72 s  ClockTime = 135 s
+
+ExecutionTime = 267.87 s  ClockTime = 136 s
+
+ExecutionTime = 271.14 s  ClockTime = 138 s
+
+ExecutionTime = 274.32 s  ClockTime = 140 s
+
+ExecutionTime = 277.61 s  ClockTime = 142 s
+
+ExecutionTime = 280.9 s  ClockTime = 143 s
+
+ExecutionTime = 284.15 s  ClockTime = 145 s
+
+Time = 6.640048894e-06
+
+    Collisions                      = 112371
+
+Load balance summary:
+    move particles avg/max/min    = 71167661 / 142335322 / 142335322
+    move imbalance max/avg        = 2
+    collision cand avg/max/min    = 8627600.5 / 17255201 / 17255201
+    collision cand imbalance      = 2
+    accepted coll avg/max/min     = 3343564.5 / 6687129 / 6687129
+    accepted coll imbalance       = 2
+    thread move particles         = 2(70110914 72224408)
+    thread collision candidates   = 2(8535967 8719234)
+    thread accepted collisions    = 2(3320086 3367043)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1541500
+    Number of molecules             = 9.249e+15
+    Mass in system                  = 4.435562507e-10
+    Average linear kinetic energy   = 1.717629297e-19
+    Average rotational energy       = 5.243739873e-21
+    Average vibrational energy      = 2.157991523e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.985865848e-19
+ExecutionTime = 287.91 s  ClockTime = 147 s
+
+ExecutionTime = 291.13 s  ClockTime = 149 s
+
+ExecutionTime = 294.55 s  ClockTime = 151 s
+
+ExecutionTime = 297.88 s  ClockTime = 152 s
+
+ExecutionTime = 301.19 s  ClockTime = 154 s
+
+ExecutionTime = 304.46 s  ClockTime = 156 s
+
+ExecutionTime = 307.91 s  ClockTime = 158 s
+
+ExecutionTime = 311.3 s  ClockTime = 160 s
+
+ExecutionTime = 314.65 s  ClockTime = 159 s
+
+ExecutionTime = 317.96 s  ClockTime = 161 s
+
+Time = 7.304053783e-06
+
+    Collisions                      = 120701
+
+Load balance summary:
+    move particles avg/max/min    = 78926885 / 157853770 / 157853770
+    move imbalance max/avg        = 2
+    collision cand avg/max/min    = 9985062.5 / 19970125 / 19970125
+    collision cand imbalance      = 2
+    accepted coll avg/max/min     = 3928350 / 7856700 / 7856700
+    accepted coll imbalance       = 2
+    thread move particles         = 2(77788931 80064839)
+    thread collision candidates   = 2(9885893 10084232)
+    thread accepted collisions    = 2(3903227 3953473)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1564536
+    Number of molecules             = 9.387216e+15
+    Mass in system                  = 4.501903153e-10
+    Average linear kinetic energy   = 1.703890796e-19
+    Average rotational energy       = 5.757232887e-21
+    Average vibrational energy      = 2.157973817e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.977260507e-19
+ExecutionTime = 321.84 s  ClockTime = 163 s
+
+ExecutionTime = 325.23 s  ClockTime = 165 s
+
+ExecutionTime = 328.62 s  ClockTime = 167 s
+
+ExecutionTime = 332.07 s  ClockTime = 169 s
+
+ExecutionTime = 335.55 s  ClockTime = 170 s
+
+ExecutionTime = 339.03 s  ClockTime = 172 s
+
+ExecutionTime = 342.39 s  ClockTime = 174 s
+
+ExecutionTime = 345.91 s  ClockTime = 176 s
+
+ExecutionTime = 349.45 s  ClockTime = 178 s
+
+ExecutionTime = 352.92 s  ClockTime = 180 s
+
+Time = 7.968058673e-06
+
+    Collisions                      = 127633
+
+Load balance summary:
+    move particles avg/max/min    = 86801226 / 173602452 / 173602452
+    move imbalance max/avg        = 2
+    collision cand avg/max/min    = 11419994.5 / 22839989 / 22839989
+    collision cand imbalance      = 2
+    accepted coll avg/max/min     = 4550896 / 9101792 / 9101792
+    accepted coll imbalance       = 2
+    thread move particles         = 2(85585734 88016718)
+    thread collision candidates   = 2(11313115 11526874)
+    thread accepted collisions    = 2(4523889 4577903)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1587344
+    Number of molecules             = 9.524064e+15
+    Mass in system                  = 4.567527048e-10
+    Average linear kinetic energy   = 1.691410464e-19
+    Average rotational energy       = 6.222114242e-21
+    Average vibrational energy      = 2.158040533e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.969435659e-19
+ExecutionTime = 356.87 s  ClockTime = 182 s
+
+ExecutionTime = 360.41 s  ClockTime = 184 s
+
+ExecutionTime = 363.98 s  ClockTime = 186 s
+
+ExecutionTime = 367.41 s  ClockTime = 187 s
+
+ExecutionTime = 370.95 s  ClockTime = 189 s
+
+ExecutionTime = 374.48 s  ClockTime = 189 s
+
+ExecutionTime = 378.05 s  ClockTime = 191 s
+
+ExecutionTime = 381.59 s  ClockTime = 193 s
+
+ExecutionTime = 385.11 s  ClockTime = 195 s
+
+ExecutionTime = 388.62 s  ClockTime = 197 s
+
+Time = 8.632063562e-06
+
+    Collisions                      = 135043
+
+Load balance summary:
+    move particles avg/max/min    = 94788672.5 / 189577345 / 189577345
+    move imbalance max/avg        = 2
+    collision cand avg/max/min    = 12930473 / 25860946 / 25860946
+    collision cand imbalance      = 2
+    accepted coll avg/max/min     = 5211060 / 10422120 / 10422120
+    accepted coll imbalance       = 2
+    thread move particles         = 2(93450714 96126631)
+    thread collision candidates   = 2(12808007 13052939)
+    thread accepted collisions    = 2(5179466 5242654)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1609812
+    Number of molecules             = 9.658872e+15
+    Mass in system                  = 4.632236105e-10
+    Average linear kinetic energy   = 1.679599177e-19
+    Average rotational energy       = 6.70609619e-21
+    Average vibrational energy      = 2.158075376e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.962467677e-19
+ExecutionTime = 392.76 s  ClockTime = 199 s
+
+ExecutionTime = 396.35 s  ClockTime = 201 s
+
+ExecutionTime = 400.06 s  ClockTime = 203 s
+
+ExecutionTime = 403.67 s  ClockTime = 205 s
+
+ExecutionTime = 407.29 s  ClockTime = 207 s
+
+ExecutionTime = 410.9 s  ClockTime = 209 s
+
+ExecutionTime = 414.58 s  ClockTime = 210 s
+
+ExecutionTime = 418.28 s  ClockTime = 212 s
+
+ExecutionTime = 421.88 s  ClockTime = 214 s
+
+ExecutionTime = 425.58 s  ClockTime = 216 s
+
+Time = 9.296068452e-06
+
+    Collisions                      = 142124
+
+Load balance summary:
+    move particles avg/max/min    = 102888668.5 / 205777337 / 205777337
+    move imbalance max/avg        = 2
+    collision cand avg/max/min    = 14512328 / 29024656 / 29024656
+    collision cand imbalance      = 2
+    accepted coll avg/max/min     = 5906338.5 / 11812677 / 11812677
+    accepted coll imbalance       = 2
+    thread move particles         = 2(101428578 104348759)
+    thread collision candidates   = 2(14379371 14645285)
+    thread accepted collisions    = 2(5869474 5943203)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1632563
+    Number of molecules             = 9.795378e+15
+    Mass in system                  = 4.697618749e-10
+    Average linear kinetic energy   = 1.66830643e-19
+    Average rotational energy       = 7.175805776e-21
+    Average vibrational energy      = 2.158210388e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.955885527e-19
+ExecutionTime = 429.91 s  ClockTime = 219 s
+
+ExecutionTime = 433.58 s  ClockTime = 221 s
+
+ExecutionTime = 437.12 s  ClockTime = 221 s
+
+ExecutionTime = 440.72 s  ClockTime = 223 s
+
+ExecutionTime = 444.43 s  ClockTime = 225 s
+
+ExecutionTime = 448.23 s  ClockTime = 227 s
+
+ExecutionTime = 451.81 s  ClockTime = 228 s
+
+ExecutionTime = 455.62 s  ClockTime = 230 s
+
+ExecutionTime = 459.25 s  ClockTime = 232 s
+
+ExecutionTime = 463.05 s  ClockTime = 234 s
+
+Time = 9.960073341e-06
+
+    Collisions                      = 148429
+
+Load balance summary:
+    move particles avg/max/min    = 111101390 / 222202780 / 222202780
+    move imbalance max/avg        = 2
+    collision cand avg/max/min    = 16161086.5 / 32322173 / 32322173
+    collision cand imbalance      = 2
+    accepted coll avg/max/min     = 6634771 / 13269542 / 13269542
+    accepted coll imbalance       = 2
+    thread move particles         = 2(109515474 112687306)
+    thread collision candidates   = 2(16011896 16310277)
+    thread accepted collisions    = 2(6591829 6677713)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1654599
+    Number of molecules             = 9.927594e+15
+    Mass in system                  = 4.761051427e-10
+    Average linear kinetic energy   = 1.657743843e-19
+    Average rotational energy       = 7.624468256e-21
+    Average vibrational energy      = 2.158326143e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.949821139e-19
+ExecutionTime = 467.47 s  ClockTime = 237 s
+
+ExecutionTime = 471.25 s  ClockTime = 239 s
+
+ExecutionTime = 475.08 s  ClockTime = 241 s
+
+ExecutionTime = 478.89 s  ClockTime = 243 s
+
+ExecutionTime = 482.6 s  ClockTime = 245 s
+
+ExecutionTime = 486.29 s  ClockTime = 247 s
+
+ExecutionTime = 490.22 s  ClockTime = 249 s
+
+ExecutionTime = 494.12 s  ClockTime = 251 s
+
+ExecutionTime = 497.96 s  ClockTime = 251 s
+
+ExecutionTime = 501.77 s  ClockTime = 253 s
+
+Time = 1.062407823e-05
+
+    Collisions                      = 155187
+
+Load balance summary:
+    move particles avg/max/min    = 119424895.5 / 238849791 / 238849791
+    move imbalance max/avg        = 2
+    collision cand avg/max/min    = 17873848.5 / 35747697 / 35747697
+    collision cand imbalance      = 2
+    accepted coll avg/max/min     = 7395014 / 14790028 / 14790028
+    accepted coll imbalance       = 2
+    thread move particles         = 2(117706972 121142819)
+    thread collision candidates   = 2(17714498 18033199)
+    thread accepted collisions    = 2(7349658 7440370)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1676968
+    Number of molecules             = 1.0061808e+16
+    Mass in system                  = 4.825415161e-10
+    Average linear kinetic energy   = 1.647517479e-19
+    Average rotational energy       = 8.088849434e-21
+    Average vibrational energy      = 2.15837003e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.944242976e-19
+ExecutionTime = 506.17 s  ClockTime = 255 s
+
+ExecutionTime = 510.07 s  ClockTime = 257 s
+
+ExecutionTime = 513.81 s  ClockTime = 259 s
+
+ExecutionTime = 517.49 s  ClockTime = 261 s
+
+ExecutionTime = 521.2 s  ClockTime = 263 s
+
+ExecutionTime = 525 s  ClockTime = 265 s
+
+ExecutionTime = 528.96 s  ClockTime = 268 s
+
+ExecutionTime = 532.81 s  ClockTime = 270 s
+
+ExecutionTime = 536.67 s  ClockTime = 272 s
+
+ExecutionTime = 540.6 s  ClockTime = 274 s
+
+Time = 1.128808312e-05
+
+    Collisions                      = 161288
+
+Load balance summary:
+    move particles avg/max/min    = 127858542.5 / 255717085 / 255717085
+    move imbalance max/avg        = 2
+    collision cand avg/max/min    = 19650433.5 / 39300867 / 39300867
+    collision cand imbalance      = 2
+    accepted coll avg/max/min     = 8187098 / 16374196 / 16374196
+    accepted coll imbalance       = 2
+    thread move particles         = 2(126045852 129671233)
+    thread collision candidates   = 2(19482383 19818484)
+    thread accepted collisions    = 2(8139081 8235115)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1698683
+    Number of molecules             = 1.0192098e+16
+    Mass in system                  = 4.887879165e-10
+    Average linear kinetic energy   = 1.637687248e-19
+    Average rotational energy       = 8.552609791e-21
+    Average vibrational energy      = 2.158483686e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.939061714e-19
+ExecutionTime = 545.09 s  ClockTime = 276 s
+
+ExecutionTime = 549.06 s  ClockTime = 278 s
+
+ExecutionTime = 553.11 s  ClockTime = 280 s
+
+ExecutionTime = 556.97 s  ClockTime = 281 s
+
+ExecutionTime = 560.88 s  ClockTime = 283 s
+
+ExecutionTime = 564.91 s  ClockTime = 285 s
+
+ExecutionTime = 568.93 s  ClockTime = 287 s
+
+ExecutionTime = 572.94 s  ClockTime = 289 s
+
+ExecutionTime = 576.89 s  ClockTime = 291 s
+
+ExecutionTime = 580.74 s  ClockTime = 293 s
+
+Time = 1.195208801e-05
+
+    Collisions                      = 167869
+
+Load balance summary:
+    move particles avg/max/min    = 136400360 / 272800720 / 272800720
+    move imbalance max/avg        = 2
+    collision cand avg/max/min    = 21492169 / 42984338 / 42984338
+    collision cand imbalance      = 2
+    accepted coll avg/max/min     = 9011848.5 / 18023697 / 18023697
+    accepted coll imbalance       = 2
+    thread move particles         = 2(134457817 138342903)
+    thread collision candidates   = 2(21309124 21675214)
+    thread accepted collisions    = 2(8958115 9065582)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1720393
+    Number of molecules             = 1.0322358e+16
+    Mass in system                  = 4.950342723e-10
+    Average linear kinetic energy   = 1.628308084e-19
+    Average rotational energy       = 8.999142625e-21
+    Average vibrational energy      = 2.158540023e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.934153513e-19
+ExecutionTime = 585.46 s  ClockTime = 296 s
+
+ExecutionTime = 589.55 s  ClockTime = 298 s
+
+ExecutionTime = 593.6 s  ClockTime = 300 s
+
+ExecutionTime = 597.85 s  ClockTime = 302 s
+
+ExecutionTime = 601.79 s  ClockTime = 304 s
+
+ExecutionTime = 605.91 s  ClockTime = 306 s
+
+ExecutionTime = 610 s  ClockTime = 309 s
+
+ExecutionTime = 614.14 s  ClockTime = 311 s
+
+ExecutionTime = 618.16 s  ClockTime = 311 s
+
+ExecutionTime = 622.22 s  ClockTime = 313 s
+
+Time = 1.26160929e-05
+
+    Collisions                      = 175337
+
+Load balance summary:
+    move particles avg/max/min    = 145050800 / 290101600 / 290101600
+    move imbalance max/avg        = 2
+    collision cand avg/max/min    = 23400088.5 / 46800177 / 46800177
+    collision cand imbalance      = 2
+    accepted coll avg/max/min     = 9870447.5 / 19740895 / 19740895
+    accepted coll imbalance       = 2
+    thread move particles         = 2(142965953 147135647)
+    thread collision candidates   = 2(23203969 23596208)
+    thread accepted collisions    = 2(9812068 9928827)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1741972
+    Number of molecules             = 1.0451832e+16
+    Mass in system                  = 5.012449529e-10
+    Average linear kinetic energy   = 1.618940962e-19
+    Average rotational energy       = 9.461019682e-21
+    Average vibrational energy      = 2.158541304e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.929405289e-19
+ExecutionTime = 627.08 s  ClockTime = 316 s
+
+ExecutionTime = 631.05 s  ClockTime = 318 s
+
+ExecutionTime = 635.06 s  ClockTime = 320 s
+
+ExecutionTime = 639.24 s  ClockTime = 322 s
+
+ExecutionTime = 643.39 s  ClockTime = 324 s
+
+ExecutionTime = 647.54 s  ClockTime = 327 s
+
+ExecutionTime = 651.59 s  ClockTime = 329 s
+
+ExecutionTime = 655.63 s  ClockTime = 331 s
+
+ExecutionTime = 659.78 s  ClockTime = 333 s
+
+ExecutionTime = 663.91 s  ClockTime = 335 s
+
+Time = 1.328009779e-05
+
+    Collisions                      = 181410
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 1
+Load balance summary:
+    move particles avg/max/min    = 153808634 / 307617268 / 307617268
+    move imbalance max/avg        = 2
+    collision cand avg/max/min    = 25374765.5 / 50749531 / 50749531
+    collision cand imbalance      = 2
+    accepted coll avg/max/min     = 10763158.5 / 21526317 / 21526317
+    accepted coll imbalance       = 2
+    thread move particles         = 2(151621561 155995707)
+    thread collision candidates   = 2(25161353 25588178)
+    thread accepted collisions    = 2(10699493 10826824)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1763213
+    Number of molecules             = 1.0579278e+16
+    Mass in system                  = 5.073547371e-10
+    Average linear kinetic energy   = 1.609862183e-19
+    Average rotational energy       = 9.909678568e-21
+    Average vibrational energy      = 2.158764437e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.924835412e-19
+ExecutionTime = 668.85 s  ClockTime = 338 s
+
+ExecutionTime = 673.06 s  ClockTime = 340 s
+
+ExecutionTime = 677.31 s  ClockTime = 343 s
+
+ExecutionTime = 681.59 s  ClockTime = 343 s
+
+ExecutionTime = 685.89 s  ClockTime = 345 s
+
+ExecutionTime = 690.3 s  ClockTime = 348 s
+
+ExecutionTime = 694.78 s  ClockTime = 350 s
+
+ExecutionTime = 699.24 s  ClockTime = 352 s
+
+ExecutionTime = 703.81 s  ClockTime = 355 s
+
+ExecutionTime = 708.3 s  ClockTime = 357 s
+
+Time = 1.394410268e-05
+
+    Collisions                      = 188008
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Load balance summary:
+    move particles avg/max/min    = 162672021.5 / 325344043 / 325344043
+    move imbalance max/avg        = 2
+    collision cand avg/max/min    = 27413506.5 / 54827013 / 54827013
+    collision cand imbalance      = 2
+    accepted coll avg/max/min     = 11688303 / 23376606 / 23376606
+    accepted coll imbalance       = 2
+    thread move particles         = 2(160323654 165020389)
+    thread collision candidates   = 2(27189591 27637422)
+    thread accepted collisions    = 2(11621300 11755306)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1784096
+    Number of molecules             = 1.0704576e+16
+    Mass in system                  = 5.133650771e-10
+    Average linear kinetic energy   = 1.601509354e-19
+    Average rotational energy       = 1.031111285e-20
+    Average vibrational energy      = 2.158899252e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.920510407e-19
+ExecutionTime = 713.57 s  ClockTime = 360 s
+
+ExecutionTime = 718.03 s  ClockTime = 362 s
+
+ExecutionTime = 722.67 s  ClockTime = 365 s
+
+ExecutionTime = 727.32 s  ClockTime = 367 s
+
+ExecutionTime = 732.04 s  ClockTime = 370 s
+
+ExecutionTime = 736.35 s  ClockTime = 372 s
+
+ExecutionTime = 741.05 s  ClockTime = 373 s
+
+ExecutionTime = 745.42 s  ClockTime = 375 s
+
+ExecutionTime = 749.91 s  ClockTime = 377 s
+
+ExecutionTime = 754.45 s  ClockTime = 380 s
+
+Time = 1.460810757e-05
+
+    Collisions                      = 194060
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Load balance summary:
+    move particles avg/max/min    = 171638572 / 343277144 / 343277144
+    move imbalance max/avg        = 2
+    collision cand avg/max/min    = 29514208.5 / 59028417 / 59028417
+    collision cand imbalance      = 2
+    accepted coll avg/max/min     = 12643908 / 25287816 / 25287816
+    accepted coll imbalance       = 2
+    thread move particles         = 2(169206656 174070488)
+    thread collision candidates   = 2(29278157 29750260)
+    thread accepted collisions    = 2(12574465 12713351)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1804587
+    Number of molecules             = 1.0827522e+16
+    Mass in system                  = 5.192601308e-10
+    Average linear kinetic energy   = 1.593115815e-19
+    Average rotational energy       = 1.072482801e-20
+    Average vibrational energy      = 2.159079739e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.916272069e-19
+ExecutionTime = 759.82 s  ClockTime = 383 s
+
+ExecutionTime = 764.17 s  ClockTime = 385 s
+
+ExecutionTime = 768.7 s  ClockTime = 387 s
+
+ExecutionTime = 773.29 s  ClockTime = 390 s
+
+ExecutionTime = 777.84 s  ClockTime = 392 s
+
+ExecutionTime = 782.18 s  ClockTime = 395 s
+
+ExecutionTime = 786.7 s  ClockTime = 397 s
+
+ExecutionTime = 791.16 s  ClockTime = 399 s
+
+ExecutionTime = 795.63 s  ClockTime = 402 s
+
+ExecutionTime = 799.94 s  ClockTime = 404 s
+
+Time = 1.527211246e-05
+
+    Collisions                      = 199457
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Load balance summary:
+    move particles avg/max/min    = 180707661.5 / 361415323 / 361415323
+    move imbalance max/avg        = 2
+    collision cand avg/max/min    = 31672649.5 / 63345299 / 63345299
+    collision cand imbalance      = 2
+    accepted coll avg/max/min     = 13627416 / 27254832 / 27254832
+    accepted coll imbalance       = 2
+    thread move particles         = 2(178159304 183256019)
+    thread collision candidates   = 2(31431901 31913398)
+    thread accepted collisions    = 2(13559002 13695830)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1824973
+    Number of molecules             = 1.0949838e+16
+    Mass in system                  = 5.251242611e-10
+    Average linear kinetic energy   = 1.585625374e-19
+    Average rotational energy       = 1.108153376e-20
+    Average vibrational energy      = 2.159239758e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.912364687e-19
+ExecutionTime = 805.23 s  ClockTime = 405 s
+
+ExecutionTime = 809.65 s  ClockTime = 407 s
+
+ExecutionTime = 814.17 s  ClockTime = 410 s
+
+ExecutionTime = 818.71 s  ClockTime = 412 s
+
+ExecutionTime = 823.1 s  ClockTime = 414 s
+
+ExecutionTime = 827.51 s  ClockTime = 417 s
+
+ExecutionTime = 831.98 s  ClockTime = 419 s
+
+ExecutionTime = 836.56 s  ClockTime = 422 s
+
+ExecutionTime = 840.94 s  ClockTime = 424 s
+
+ExecutionTime = 845.37 s  ClockTime = 426 s
+
+Time = 1.593611735e-05
+
+    Collisions                      = 205726
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Load balance summary:
+    move particles avg/max/min    = 189877051.5 / 379754103 / 379754103
+    move imbalance max/avg        = 2
+    collision cand avg/max/min    = 33888838.5 / 67777677 / 67777677
+    collision cand imbalance      = 2
+    accepted coll avg/max/min     = 14642238.5 / 29284477 / 29284477
+    accepted coll imbalance       = 2
+    thread move particles         = 2(187223077 192531026)
+    thread collision candidates   = 2(33639286 34138391)
+    thread accepted collisions    = 2(14571524 14712953)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1844843
+    Number of molecules             = 1.1069058e+16
+    Mass in system                  = 5.308415278e-10
+    Average linear kinetic energy   = 1.577928313e-19
+    Average rotational energy       = 1.147153674e-20
+    Average vibrational energy      = 2.159421035e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.908585784e-19
+ExecutionTime = 850.72 s  ClockTime = 429 s
+
+ExecutionTime = 855.1 s  ClockTime = 431 s
+
+ExecutionTime = 859.5 s  ClockTime = 434 s
+
+ExecutionTime = 864 s  ClockTime = 434 s
+
+ExecutionTime = 868.48 s  ClockTime = 437 s
+
+ExecutionTime = 872.96 s  ClockTime = 439 s
+
+ExecutionTime = 877.41 s  ClockTime = 441 s
+
+ExecutionTime = 881.94 s  ClockTime = 444 s
+
+ExecutionTime = 886.34 s  ClockTime = 446 s
+
+ExecutionTime = 891 s  ClockTime = 449 s
+
+Time = 1.660012224e-05
+
+    Collisions                      = 211332
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Load balance summary:
+    move particles avg/max/min    = 199146101.5 / 398292203 / 398292203
+    move imbalance max/avg        = 2
+    collision cand avg/max/min    = 36165054 / 72330108 / 72330108
+    collision cand imbalance      = 2
+    accepted coll avg/max/min     = 15686886 / 31373772 / 31373772
+    accepted coll imbalance       = 2
+    thread move particles         = 2(196344036 201948167)
+    thread collision candidates   = 2(35906566 36423542)
+    thread accepted collisions    = 2(15614272 15759500)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1864786
+    Number of molecules             = 1.1188716e+16
+    Mass in system                  = 5.365816241e-10
+    Average linear kinetic energy   = 1.57027218e-19
+    Average rotational energy       = 1.186011668e-20
+    Average vibrational energy      = 2.159577897e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.904831137e-19
+ExecutionTime = 896.36 s  ClockTime = 452 s
+
+ExecutionTime = 900.93 s  ClockTime = 454 s
+
+ExecutionTime = 905.51 s  ClockTime = 456 s
+
+ExecutionTime = 910.03 s  ClockTime = 459 s
+
+ExecutionTime = 914.59 s  ClockTime = 461 s
+
+ExecutionTime = 919.33 s  ClockTime = 464 s
+
+ExecutionTime = 924.1 s  ClockTime = 464 s
+
+ExecutionTime = 928.93 s  ClockTime = 467 s
+
+ExecutionTime = 933.86 s  ClockTime = 470 s
+
+ExecutionTime = 938.67 s  ClockTime = 472 s
+
+Time = 1.726412712e-05
+
+    Collisions                      = 217593
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 1
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Load balance summary:
+    move particles avg/max/min    = 208515764 / 417031528 / 417031528
+    move imbalance max/avg        = 2
+    collision cand avg/max/min    = 38502831 / 77005662 / 77005662
+    collision cand imbalance      = 2
+    accepted coll avg/max/min     = 16761688.5 / 33523377 / 33523377
+    accepted coll imbalance       = 2
+    thread move particles         = 2(205598406 211433122)
+    thread collision candidates   = 2(38226534 38779128)
+    thread accepted collisions    = 2(16683791 16839586)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1884806
+    Number of molecules             = 1.1308836e+16
+    Mass in system                  = 5.423379197e-10
+    Average linear kinetic energy   = 1.562833503e-19
+    Average rotational energy       = 1.224316331e-20
+    Average vibrational energy      = 2.159843839e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.90124952e-19
+ExecutionTime = 944.2 s  ClockTime = 475 s
+
+ExecutionTime = 949.17 s  ClockTime = 478 s
+
+ExecutionTime = 954.13 s  ClockTime = 480 s
+
+ExecutionTime = 959.12 s  ClockTime = 483 s
+
+ExecutionTime = 964.03 s  ClockTime = 486 s
+
+ExecutionTime = 968.93 s  ClockTime = 488 s
+
+ExecutionTime = 973.8 s  ClockTime = 491 s
+
+ExecutionTime = 978.74 s  ClockTime = 494 s
+
+ExecutionTime = 983.71 s  ClockTime = 496 s
+
+ExecutionTime = 988.58 s  ClockTime = 497 s
+
+Time = 1.792813201e-05
+
+    Collisions                      = 223344
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 2
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Load balance summary:
+    move particles avg/max/min    = 217983590.5 / 435967181 / 435967181
+    move imbalance max/avg        = 2
+    collision cand avg/max/min    = 40900240 / 81800480 / 81800480
+    collision cand imbalance      = 2
+    accepted coll avg/max/min     = 17866692.5 / 35733385 / 35733385
+    accepted coll imbalance       = 2
+    thread move particles         = 2(214890346 221076835)
+    thread collision candidates   = 2(40611837 41188643)
+    thread accepted collisions    = 2(17784812 17948573)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1904347
+    Number of molecules             = 1.1426082e+16
+    Mass in system                  = 5.4796105e-10
+    Average linear kinetic energy   = 1.556076964e-19
+    Average rotational energy       = 1.256345107e-20
+    Average vibrational energy      = 2.160004268e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.897711901e-19
+ExecutionTime = 994.35 s  ClockTime = 500 s
+
+ExecutionTime = 999.13 s  ClockTime = 503 s
+
+ExecutionTime = 1004.06 s  ClockTime = 505 s
+
+ExecutionTime = 1008.95 s  ClockTime = 508 s
+
+ExecutionTime = 1013.83 s  ClockTime = 510 s
+
+ExecutionTime = 1018.78 s  ClockTime = 513 s
+
+ExecutionTime = 1023.56 s  ClockTime = 516 s
+
+ExecutionTime = 1028.2 s  ClockTime = 518 s
+
+ExecutionTime = 1033.03 s  ClockTime = 521 s
+
+ExecutionTime = 1037.82 s  ClockTime = 523 s
+
+Time = 1.85921369e-05
+
+    Collisions                      = 228987
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Load balance summary:
+    move particles avg/max/min    = 227548828.5 / 455097657 / 455097657
+    move imbalance max/avg        = 2
+    collision cand avg/max/min    = 43354811.5 / 86709623 / 86709623
+    collision cand imbalance      = 2
+    accepted coll avg/max/min     = 19001161 / 38002322 / 38002322
+    accepted coll imbalance       = 2
+    thread move particles         = 2(224310480 230787177)
+    thread collision candidates   = 2(43047303 43662320)
+    thread accepted collisions    = 2(18913632 19088690)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1923575
+    Number of molecules             = 1.154145e+16
+    Mass in system                  = 5.534926051e-10
+    Average linear kinetic energy   = 1.549066382e-19
+    Average rotational energy       = 1.292462369e-20
+    Average vibrational energy      = 2.160135811e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.8943262e-19
+ExecutionTime = 1043.71 s  ClockTime = 526 s
+
+ExecutionTime = 1048.42 s  ClockTime = 527 s
+
+ExecutionTime = 1053.71 s  ClockTime = 530 s
+
+ExecutionTime = 1059.62 s  ClockTime = 533 s
+
+ExecutionTime = 1064.26 s  ClockTime = 535 s
+
+ExecutionTime = 1068.85 s  ClockTime = 538 s
+
+ExecutionTime = 1073.39 s  ClockTime = 540 s
+
+ExecutionTime = 1077.93 s  ClockTime = 543 s
+
+ExecutionTime = 1082.7 s  ClockTime = 545 s
+
+ExecutionTime = 1087.22 s  ClockTime = 548 s
+
+Time = 1.925614179e-05
+
+    Collisions                      = 235177
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Load balance summary:
+    move particles avg/max/min    = 237209029 / 474418058 / 474418058
+    move imbalance max/avg        = 2
+    collision cand avg/max/min    = 45866597.5 / 91733195 / 91733195
+    collision cand imbalance      = 2
+    accepted coll avg/max/min     = 20163920.5 / 40327841 / 40327841
+    accepted coll imbalance       = 2
+    thread move particles         = 2(233818951 240599107)
+    thread collision candidates   = 2(45539926 46193269)
+    thread accepted collisions    = 2(20070732 20257109)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1942469
+    Number of molecules             = 1.1654814e+16
+    Mass in system                  = 5.589310537e-10
+    Average linear kinetic energy   = 1.542354215e-19
+    Average rotational energy       = 1.325990179e-20
+    Average vibrational energy      = 2.160269609e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.890980194e-19
+ExecutionTime = 1092.67 s  ClockTime = 551 s
+
+ExecutionTime = 1097.24 s  ClockTime = 553 s
+
+ExecutionTime = 1102 s  ClockTime = 555 s
+
+ExecutionTime = 1106.64 s  ClockTime = 556 s
+
+ExecutionTime = 1111.29 s  ClockTime = 559 s
+
+ExecutionTime = 1115.99 s  ClockTime = 561 s
+
+ExecutionTime = 1120.6 s  ClockTime = 563 s
+
+ExecutionTime = 1125.26 s  ClockTime = 566 s
+
+ExecutionTime = 1130.07 s  ClockTime = 568 s
+
+ExecutionTime = 1134.79 s  ClockTime = 571 s
+
+Time = 1.992014668e-05
+
+    Collisions                      = 240101
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 2
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Load balance summary:
+    move particles avg/max/min    = 246963765 / 493927530 / 493927530
+    move imbalance max/avg        = 2
+    collision cand avg/max/min    = 48435023 / 96870046 / 96870046
+    collision cand imbalance      = 2
+    accepted coll avg/max/min     = 21354990 / 42709980 / 42709980
+    accepted coll imbalance       = 2
+    thread move particles         = 2(243429038 250498492)
+    thread collision candidates   = 2(48088927 48781119)
+    thread accepted collisions    = 2(21254256 21455724)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1961314
+    Number of molecules             = 1.1767884e+16
+    Mass in system                  = 5.643541214e-10
+    Average linear kinetic energy   = 1.535594156e-19
+    Average rotational energy       = 1.359057537e-20
+    Average vibrational energy      = 2.160446033e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.887544513e-19
+ExecutionTime = 1140.51 s  ClockTime = 574 s
+
+
+Main loop profiling summary:
+    main loop wall time [s]      = 600.5225223
+
+Move profiling summary:
+    move calls                    = 600
+    move pre-control/partition [s]= 9.307673718
+    move reset/setup [s]          = 4.480230299
+    move extract parcels [s]      = 0.651273356
+    move parallel kernel wall [s] = 272.0854609
+    move commit/survivor rebuild [s] = 5.799372009
+    move transfer/delete finalize [s] = 0
+    avg move extracted parcels    = 1646425.1
+    avg move surviving parcels    = 1641824.71
+    avg move transferred parcels  = 0
+    avg move deleted parcels      = 4600.39
+    total profiled [s]            = 292.3240103
+
+BuildCellOccupancy profiling summary:
+    buildCellOccupancy calls      = 301
+    extract parcels [s]           = 6.110066989
+    count/reduce [s]              = 5.622583246
+    allocate/fill [s]             = 9.586311366
+    move-ordered hits             = 300
+    fallback gathers             = 1
+    fallback invalid-order       = 1
+    fallback offset-mismatch     = 0
+    fallback size-mismatch       = 0
+    avg move-ordered parcels      = 1636370.143
+    avg appended parcels          = 6759.734219
+    avg cloud size                = 1647471.223
+    size delta avg/min/max        = -4341.345515 / -1306745 / 0
+    total profiled [s]            = 21.3189616
+
+    avg cloud valid-cell parcels   = 165290.5183
+    avg cloud invalid-cell parcels = 0
+    avg move-order valid parcels   = 165290.5183
+    avg move-order invalid parcels = 0
+    avg partition assigned parcels = 165290.5183
+    avg partition gap cells        = 0
+    avg partition overlap cells    = 0
+
+Collision profiling summary:
+    collision calls               = 300
+    precompute candidates [s]     = 0.179206181
+    rebuild partition [s]         = 7.9395e-05
+    selection/collide [s]         = 215.8406435
+    total profiled [s]            = 216.0199291
+
+Evolve profiling summary:
+    evolve calls                  = 300
+    move only [s]                 = 292.5655424
+    buildCellOccupancy [s]        = 21.29626629
+    coordSystem [s]               = 0.000502971
+    collision phase [s]           = 216.0217489
+    reaction/output [s]           = 0.000596642
+    post fields/output [s]        = 66.13782357
+    total profiled [s]            = 596.0224807
+
+Load balance summary:
+    move particles avg/max/min    = 246963765 / 250498492 / 243429038
+    move imbalance max/avg        = 1.014312735
+    collision cand avg/max/min    = 48435023 / 48781119 / 48088927
+    collision cand imbalance      = 1.007145573
+    accepted coll avg/max/min     = 21354990 / 21455724 / 21254256
+    accepted coll imbalance       = 1.004717118
+    thread move particles         = 2(243429038 250498492)
+    thread move wall time [s]     = 2(269.6974267 269.6598237)
+    thread move ns/particle       = 2(1107.909841 1076.492802)
+    thread collision candidates   = 2(48088927 48781119)
+    thread accepted collisions    = 2(21254256 21455724)
+    thread collision active cells = 2(8110698 8386246)
+    thread collision reaction hits= 2(21254256 21455724)
+    thread collision wall time [s]= 2(215.8129861 215.8117085)
+    thread collision ns/candidate = 2(4487.789592 4424.082778)
+    thread collision ns/accepted  = 2(10153.87159 10058.46778)
+
+End
+

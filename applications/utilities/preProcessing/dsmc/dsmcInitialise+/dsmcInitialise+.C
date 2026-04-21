@@ -31,6 +31,73 @@ Description
 
 #include "fvCFD.H"
 #include "dsmcCloud.H"
+#include "OFstream.H"
+
+namespace
+{
+
+void ensureEmptyCloudBootstrap
+(
+    const Foam::Time& runTime,
+    const Foam::word& cloudName
+)
+{
+    using namespace Foam;
+
+    const fileName timeDir(runTime.path()/runTime.timeName());
+    const fileName lagrangianDir(timeDir/cloud::prefix/cloudName);
+    const fileName uniformDir(timeDir/"uniform");
+    const fileName uniformLagrangianDir(uniformDir/cloud::prefix/cloudName);
+
+    mkDir(timeDir);
+    mkDir(uniformDir);
+    mkDir(uniformDir/cloud::prefix);
+    mkDir(uniformLagrangianDir);
+    mkDir(timeDir/cloud::prefix);
+    mkDir(lagrangianDir);
+
+    const fileName cloudPropertiesFile(uniformLagrangianDir/"cloudProperties");
+    if (!isFile(cloudPropertiesFile))
+    {
+        OFstream os(cloudPropertiesFile);
+
+        os  << "FoamFile\n"
+            << "{\n"
+            << "    version     2.0;\n"
+            << "    format      ascii;\n"
+            << "    class       dictionary;\n"
+            << "    location    \"" << runTime.timeName()
+            << "/uniform/" << cloud::prefix << '/' << cloudName << "\";\n"
+            << "    object      cloudProperties;\n"
+            << "}\n\n"
+            << "geometry        coordinates;\n\n"
+            << "processor0\n"
+            << "{\n"
+            << "    particleCount   0;\n"
+            << "}\n";
+    }
+
+    const fileName positionsFile(lagrangianDir/"positions");
+    if (!isFile(positionsFile))
+    {
+        OFstream os(positionsFile);
+
+        os  << "FoamFile\n"
+            << "{\n"
+            << "    version     2.0;\n"
+            << "    format      ascii;\n"
+            << "    class       Cloud;\n"
+            << "    location    \"" << runTime.timeName()
+            << '/' << cloud::prefix << '/' << cloudName << "\";\n"
+            << "    object      positions;\n"
+            << "}\n\n"
+            << "0\n"
+            << "(\n"
+            << ")\n";
+    }
+}
+
+}
 
 int main(int argc, char *argv[])
 {
@@ -52,8 +119,12 @@ int main(int argc, char *argv[])
 
     Info<< "Initialising dsmc for Time = " << runTime.timeName() << nl << endl;
 
+    ensureEmptyCloudBootstrap(runTime, "dsmc");
+
     dsmcCloud dsmc(runTime, "dsmc", mesh, false);
     dsmc.initialiseFromDict(dsmcInitialiseDict);
+
+    Info<< "Initialised DSMC parcels = " << dsmc.nParcels() << nl << endl;
 
 
     if (!runTime.writeNow())
