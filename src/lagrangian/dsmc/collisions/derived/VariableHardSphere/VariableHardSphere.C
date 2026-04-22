@@ -75,6 +75,12 @@ Foam::scalar Foam::VariableHardSphere::sigmaTcR
 {
     const label typeIdP = pP.typeId();
     const label typeIdQ = pQ.typeId();
+    const scalar cR = mag(pP.U() - pQ.U());
+
+    if (cR < VSMALL)
+    {
+        return 0.0;
+    }
 
     const scalar dPQ =
         0.5
@@ -89,13 +95,6 @@ Foam::scalar Foam::VariableHardSphere::sigmaTcR
             cloud_.constProps(typeIdP).omega()
           + cloud_.constProps(typeIdQ).omega()
         );
-
-    const scalar cR = mag(pP.U() - pQ.U());
-
-    if (cR < VSMALL)
-    {
-        return 0.0;
-    }
 
     const scalar mP = cloud_.constProps(typeIdP).mass();
     const scalar mQ = cloud_.constProps(typeIdQ).mass();

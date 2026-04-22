@@ -146,6 +146,7 @@ class dsmcCloud
     labelList moveOrderedThreadOffsets_;
     bool moveOrderedParcelsValid_;
     bool moveAppendCaptureActive_;
+    bool moveAppendToPending_;
     DynamicList<dsmcParcel*> moveAppendedParcels_;
     DynamicList<dsmcParcel*> pendingMoveParcels_;
     DynamicList<dsmcParcel*> occupancyOrderedParcels_;
@@ -369,6 +370,7 @@ public:
     inline const labelList& particleLoadStart() const;
     inline const labelList& particleLoadEnd() const;
     void beginMoveAppendCapture();
+    void beginMoveDeferredAppendStage();
     void endMoveAppendCapture();
     void recordMoveAppendedParcel(dsmcParcel* pPtr);
     void clearMoveAppendedParcels();

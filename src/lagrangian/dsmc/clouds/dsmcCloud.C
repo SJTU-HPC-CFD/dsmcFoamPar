@@ -411,6 +411,8 @@ void Foam::dsmcCloud::buildCellOccupancy(const bool rebuildParticlePartition)
             }
         }
 
+        const auto t2 = clock_type::now();
+
         label activeCellCount = 0;
         label collisionCellCount = 0;
 
@@ -449,8 +451,6 @@ void Foam::dsmcCloud::buildCellOccupancy(const bool rebuildParticlePartition)
                 }
             }
         }
-
-        const auto t2 = clock_type::now();
 
         occupancyCellOffsets_.setSize(nCells + 1, 0);
         for (label celli = 0; celli < nCells; ++celli)
@@ -660,7 +660,11 @@ void Foam::dsmcCloud::buildCellOccupancy(const bool rebuildParticlePartition)
 
     if (rebuildParticlePartition)
     {
-        rebuildParticleLoadPartition(totalCounts, occupancyCellOffsets_.last());
+        rebuildParticleLoadPartition
+        (
+            totalCounts,
+            occupancyCellOffsets_.last()
+        );
     }
 
     occupancyOrderedParcelsValid_ = true;
@@ -683,15 +687,29 @@ void Foam::dsmcCloud::beginMoveAppendCapture()
     if (!moveAppendCaptureActive_)
     {
         moveAppendedParcels_.clear();
+        moveAppendToPending_ = false;
     }
 
     moveAppendCaptureActive_ = true;
 }
 
 
+void Foam::dsmcCloud::beginMoveDeferredAppendStage()
+{
+    if (!moveAppendCaptureActive_)
+    {
+        return;
+    }
+
+    moveAppendToPending_ = true;
+    moveAppendedParcels_.clear();
+}
+
+
 void Foam::dsmcCloud::endMoveAppendCapture()
 {
     moveAppendCaptureActive_ = false;
+    moveAppendToPending_ = false;
 }
 
 
@@ -704,11 +722,23 @@ void Foam::dsmcCloud::recordMoveAppendedParcel(dsmcParcel* pPtr)
 
     if (moveAppendCaptureActive_)
     {
-        #ifdef _OPENMP
-        #pragma omp critical(moveAppendedParcelsAppend)
-        #endif
+        if (moveAppendToPending_ && openmpEnabled_ && openmpMoveEnabled_ && Pstream::parRun())
         {
-            moveAppendedParcels_.append(pPtr);
+            #ifdef _OPENMP
+            #pragma omp critical(pendingMoveParcelsAppend)
+            #endif
+            {
+                pendingMoveParcels_.append(pPtr);
+            }
+        }
+        else
+        {
+            #ifdef _OPENMP
+            #pragma omp critical(moveAppendedParcelsAppend)
+            #endif
+            {
+                moveAppendedParcels_.append(pPtr);
+            }
         }
     }
     else if (openmpEnabled_ && openmpMoveEnabled_ && Pstream::parRun())
@@ -2811,6 +2841,7 @@ Foam::dsmcCloud::dsmcCloud
     moveOrderedThreadOffsets_(),
     moveOrderedParcelsValid_(false),
     moveAppendCaptureActive_(false),
+    moveAppendToPending_(false),
     moveAppendedParcels_(),
     pendingMoveParcels_(),
     occupancyOrderedParcels_(),

@@ -46,6 +46,10 @@ class LarsenBorgnakkeVariableHardSphere
     const scalar vibrationalRelaxationCollisionNumber_;
     label invZvFormulation_;
     const scalar electronicRelaxationCollisionNumber_;
+    mutable scalar detailRedistributePWallTime_;
+    mutable scalar detailRedistributeQWallTime_;
+    mutable scalar detailScatterWallTime_;
+    mutable label detailCollideCalls_;
 
 public:
 

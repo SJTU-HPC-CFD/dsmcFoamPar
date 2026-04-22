@@ -597,7 +597,7 @@ struct dsmcVolSharedSampleCache
                     }
                 }
 
-                if (doProfile)
+                if (doDetailedProfile)
                 {
                     #ifdef _OPENMP
                     #pragma omp atomic
@@ -718,315 +718,569 @@ struct dsmcVolSharedSampleCache
 
                 activeTypes.setCapacity(min(nTypes, label(64)));
 
-                #pragma omp for schedule(static)
-                for (label celli = 0; celli < cloud.mesh().nCells(); ++celli)
+                if (!doDetailedProfile)
                 {
-                    scalar localBaseAccumWallTime = 0.0;
-                    scalar localVibAccumWallTime = 0.0;
-                    scalar localElectronicAccumWallTime = 0.0;
-                    scalar localClassAccumWallTime = 0.0;
-                    label localDetailSampleCells = 0;
-                    label localDetailSampleParcels = 0;
-                    const DynamicList<dsmcParcel*>* parcelsPtr =
-                        useFlatOccupancy ? nullptr : &(*cellOccupancyPtr)[celli];
-                    const label parcelBegin =
-                        useFlatOccupancy ? (*occupancyCellOffsetsPtr)[celli] : 0;
-                    const label parcelEnd =
-                        useFlatOccupancy
-                      ? (*occupancyCellOffsetsPtr)[celli + 1]
-                      : parcelsPtr->size();
-                    const label parcelCount =
-                        useFlatOccupancy ? (parcelEnd - parcelBegin) : parcelsPtr->size();
-                    const bool profileCellDetail =
-                        doDetailedProfile && parcelCount > 0 && (celli % 32 == 0);
-
-                    if (profileCellDetail)
+                    #pragma omp for schedule(static)
+                    for (label celli = 0; celli < cloud.mesh().nCells(); ++celli)
                     {
-                        localDetailSampleCells = 1;
-                        localDetailSampleParcels = parcelCount;
-                    }
-
-                    activeTypes.clear();
-
-                    for (label pi = 0; pi < parcelCount; ++pi)
-                    {
-                        const dsmcParcel& p =
+                        const DynamicList<dsmcParcel*>* parcelsPtr =
+                            useFlatOccupancy ? nullptr : &(*cellOccupancyPtr)[celli];
+                        const List<dsmcParcel*>* orderedParcelsPtr =
+                            useFlatOccupancy ? occupancyOrderedParcelsPtr : nullptr;
+                        const label parcelBegin =
+                            useFlatOccupancy ? (*occupancyCellOffsetsPtr)[celli] : 0;
+                        const label parcelEnd =
                             useFlatOccupancy
-                          ? *(*occupancyOrderedParcelsPtr)[parcelBegin + pi]
-                          : *(*parcelsPtr)[pi];
+                          ? (*occupancyCellOffsetsPtr)[celli + 1]
+                          : parcelsPtr->size();
+                        const label parcelCount =
+                            useFlatOccupancy ? (parcelEnd - parcelBegin) : parcelsPtr->size();
 
-                        if (!p.isFree())
+                        const scalar nParticles = cloud.nParticles(celli);
+                        activeTypes.clear();
+
+                        for (label pi = 0; pi < parcelCount; ++pi)
                         {
-                            continue;
+                            const dsmcParcel& p =
+                                useFlatOccupancy
+                              ? *(*orderedParcelsPtr)[parcelBegin + pi]
+                              : *(*parcelsPtr)[pi];
+
+                            if (!p.isFree())
+                            {
+                                continue;
+                            }
+
+                            const label typeId = p.typeId();
+                            const dsmcParcel::constantProperties& cP = cloud.constProps(typeId);
+
+                            if (localDsmcN[typeId] == 0.0)
+                            {
+                                activeTypes.append(typeId);
+                            }
+
+                            const scalar mp = cP.mass();
+                            const vector& Up = p.U();
+                            const scalar Upx = Up.x();
+                            const scalar Upy = Up.y();
+                            const scalar Upz = Up.z();
+                            const vector mpUp = mp*Up;
+                            const scalar mpNParticles = mp*nParticles;
+                            const vector mpUpNParticles = mpUp*nParticles;
+                            const scalar linearKE = mp*(Up & Up);
+                            const scalar Erotp = p.ERot();
+                            const scalar zetaRotp = cP.rotationalDegreesOfFreedom();
+
+                            scalar Evibp = 0.0;
+                            if (needVibrational)
+                            {
+                                const labelList& vibLevels = p.vibLevel();
+                                const scalarList& thetaV = cP.thetaV();
+                                scalarField& localEvibMods = localSpeciesEvibMod[typeId];
+
+                                forAll(thetaV, mod)
+                                {
+                                    const scalar EvibMod =
+                                        kBoltzmann*thetaV[mod]*(vibLevels[mod] + 0.5);
+                                    localEvibMods[mod] += EvibMod;
+                                    Evibp += EvibMod;
+                                }
+                            }
+
+                            localDsmcN[typeId] += 1.0;
+                            localDsmcM[typeId] += mp;
+                            localDsmcLinearKE[typeId] += linearKE;
+                            localDsmcMomentum[typeId] += mpUp;
+                            localDsmcErot[typeId] += Erotp;
+                            localDsmcZetaRot[typeId] += zetaRotp;
+
+                            localNReal[typeId] += nParticles;
+                            localMReal[typeId] += mpNParticles;
+                            localMomentumReal[typeId] += mpUpNParticles;
+                            localLinearKEReal[typeId] += linearKE*nParticles;
+
+                            if (needHeatFluxShearStress)
+                            {
+                                const scalar Eintp = Erotp + Evibp;
+
+                                localDsmcMuu[typeId] += mp*sqr(Upx);
+                                localDsmcMuv[typeId] += mp*Upx*Upy;
+                                localDsmcMuw[typeId] += mp*Upx*Upz;
+                                localDsmcMvv[typeId] += mp*sqr(Upy);
+                                localDsmcMvw[typeId] += mp*Upy*Upz;
+                                localDsmcMww[typeId] += mp*sqr(Upz);
+
+                                localDsmcMcc[typeId] += linearKE;
+                                localDsmcMccu[typeId] += linearKE*Upx;
+                                localDsmcMccv[typeId] += linearKE*Upy;
+                                localDsmcMccw[typeId] += linearKE*Upz;
+
+                                localDsmcEu[typeId] += Eintp*Upx;
+                                localDsmcEv[typeId] += Eintp*Upy;
+                                localDsmcEw[typeId] += Eintp*Upz;
+                                localDsmcECum[typeId] += Eintp;
+                            }
+
+                            if (needElectronic)
+                            {
+                                const label eLevel = p.ELevel();
+                                localSpeciesEelec[typeId] += cP.electronicEnergyList()[eLevel];
+
+                                if (cP.nElectronicLevels() > 1)
+                                {
+                                    localNElecLvl[typeId] += 1.0;
+
+                                    if (eLevel == 0)
+                                    {
+                                        localNGrndElecLvl[typeId] += 1.0;
+                                    }
+                                    if (eLevel == 1)
+                                    {
+                                        localN1stElecLvl[typeId] += 1.0;
+                                    }
+                                }
+                            }
+
+                            if (needClassification)
+                            {
+                                const label classification = p.classification();
+                                if (classification == 0)
+                                {
+                                    localDsmcNClassI[typeId] += 1.0;
+                                }
+                                else if (classification == 1)
+                                {
+                                    localDsmcNClassII[typeId] += 1.0;
+                                }
+                                else if (classification == 2)
+                                {
+                                    localDsmcNClassIII[typeId] += 1.0;
+                                }
+                            }
                         }
 
-                        const label typeId = p.typeId();
-                        const dsmcParcel::constantProperties& cP = cloud.constProps(typeId);
-
-                        if (localDsmcN[typeId] == 0.0)
+                        forAll(activeTypes, activeI)
                         {
-                            activeTypes.append(typeId);
+                            const label typeId = activeTypes[activeI];
+                            dsmcN[typeId][celli] = localDsmcN[typeId];
+                            dsmcM[typeId][celli] = localDsmcM[typeId];
+                            dsmcLinearKE[typeId][celli] = localDsmcLinearKE[typeId];
+                            dsmcMomentum[typeId][celli] = localDsmcMomentum[typeId];
+                            dsmcErot[typeId][celli] = localDsmcErot[typeId];
+                            dsmcZetaRot[typeId][celli] = localDsmcZetaRot[typeId];
+                            nReal[typeId][celli] = localNReal[typeId];
+                            mReal[typeId][celli] = localMReal[typeId];
+                            momentumReal[typeId][celli] = localMomentumReal[typeId];
+                            linearKEReal[typeId][celli] = localLinearKEReal[typeId];
+
+                            if (needElectronic)
+                            {
+                                dsmcSpeciesEelec[typeId][celli] = localSpeciesEelec[typeId];
+                                dsmcNElecLvl[typeId][celli] = localNElecLvl[typeId];
+                                nGrndElecLvl[typeId][celli] = localNGrndElecLvl[typeId];
+                                n1stElecLvl[typeId][celli] = localN1stElecLvl[typeId];
+                            }
+
+                            if (needHeatFluxShearStress)
+                            {
+                                dsmcMuu[typeId][celli] = localDsmcMuu[typeId];
+                                dsmcMuv[typeId][celli] = localDsmcMuv[typeId];
+                                dsmcMuw[typeId][celli] = localDsmcMuw[typeId];
+                                dsmcMvv[typeId][celli] = localDsmcMvv[typeId];
+                                dsmcMvw[typeId][celli] = localDsmcMvw[typeId];
+                                dsmcMww[typeId][celli] = localDsmcMww[typeId];
+                                dsmcMcc[typeId][celli] = localDsmcMcc[typeId];
+                                dsmcMccu[typeId][celli] = localDsmcMccu[typeId];
+                                dsmcMccv[typeId][celli] = localDsmcMccv[typeId];
+                                dsmcMccw[typeId][celli] = localDsmcMccw[typeId];
+                                dsmcEu[typeId][celli] = localDsmcEu[typeId];
+                                dsmcEv[typeId][celli] = localDsmcEv[typeId];
+                                dsmcEw[typeId][celli] = localDsmcEw[typeId];
+                                dsmcECum[typeId][celli] = localDsmcECum[typeId];
+                            }
+
+                            if (needClassification)
+                            {
+                                dsmcNClassI[typeId][celli] = localDsmcNClassI[typeId];
+                                dsmcNClassII[typeId][celli] = localDsmcNClassII[typeId];
+                                dsmcNClassIII[typeId][celli] = localDsmcNClassIII[typeId];
+                            }
+
+                            if (needVibrational)
+                            {
+                                scalarField& localEvibMods = localSpeciesEvibMod[typeId];
+                                forAll(localEvibMods, mod)
+                                {
+                                    dsmcSpeciesEvibMod[typeId][mod][celli] = localEvibMods[mod];
+                                    localEvibMods[mod] = 0.0;
+                                }
+                            }
+
+                            localDsmcN[typeId] = 0.0;
+                            localDsmcM[typeId] = 0.0;
+                            localDsmcLinearKE[typeId] = 0.0;
+                            localDsmcMomentum[typeId] = vector::zero;
+                            localDsmcErot[typeId] = 0.0;
+                            localDsmcZetaRot[typeId] = 0.0;
+                            localNReal[typeId] = 0.0;
+                            localMReal[typeId] = 0.0;
+                            localMomentumReal[typeId] = vector::zero;
+                            localLinearKEReal[typeId] = 0.0;
+
+                            if (needElectronic)
+                            {
+                                localSpeciesEelec[typeId] = 0.0;
+                                localNElecLvl[typeId] = 0.0;
+                                localNGrndElecLvl[typeId] = 0.0;
+                                localN1stElecLvl[typeId] = 0.0;
+                            }
+
+                            if (needHeatFluxShearStress)
+                            {
+                                localDsmcMuu[typeId] = 0.0;
+                                localDsmcMuv[typeId] = 0.0;
+                                localDsmcMuw[typeId] = 0.0;
+                                localDsmcMvv[typeId] = 0.0;
+                                localDsmcMvw[typeId] = 0.0;
+                                localDsmcMww[typeId] = 0.0;
+                                localDsmcMcc[typeId] = 0.0;
+                                localDsmcMccu[typeId] = 0.0;
+                                localDsmcMccv[typeId] = 0.0;
+                                localDsmcMccw[typeId] = 0.0;
+                                localDsmcEu[typeId] = 0.0;
+                                localDsmcEv[typeId] = 0.0;
+                                localDsmcEw[typeId] = 0.0;
+                                localDsmcECum[typeId] = 0.0;
+                            }
+
+                            if (needClassification)
+                            {
+                                localDsmcNClassI[typeId] = 0.0;
+                                localDsmcNClassII[typeId] = 0.0;
+                                localDsmcNClassIII[typeId] = 0.0;
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    #pragma omp for schedule(static)
+                    for (label celli = 0; celli < cloud.mesh().nCells(); ++celli)
+                    {
+                        scalar localBaseAccumWallTime = 0.0;
+                        scalar localVibAccumWallTime = 0.0;
+                        scalar localElectronicAccumWallTime = 0.0;
+                        scalar localClassAccumWallTime = 0.0;
+                        label localDetailSampleCells = 0;
+                        label localDetailSampleParcels = 0;
+                        const DynamicList<dsmcParcel*>* parcelsPtr =
+                            useFlatOccupancy ? nullptr : &(*cellOccupancyPtr)[celli];
+                        const List<dsmcParcel*>* orderedParcelsPtr =
+                            useFlatOccupancy ? occupancyOrderedParcelsPtr : nullptr;
+                        const label parcelBegin =
+                            useFlatOccupancy ? (*occupancyCellOffsetsPtr)[celli] : 0;
+                        const label parcelEnd =
+                            useFlatOccupancy
+                          ? (*occupancyCellOffsetsPtr)[celli + 1]
+                          : parcelsPtr->size();
+                        const label parcelCount =
+                            useFlatOccupancy ? (parcelEnd - parcelBegin) : parcelsPtr->size();
+                        const bool profileCellDetail =
+                            parcelCount > 0 && (celli % 32 == 0);
+
+                        if (profileCellDetail)
+                        {
+                            localDetailSampleCells = 1;
+                            localDetailSampleParcels = parcelCount;
                         }
 
                         const scalar nParticles = cloud.nParticles(celli);
-                        const scalar mp = cP.mass();
-                        const vector& Up = p.U();
-                        const scalar linearKE = mp*(Up & Up);
-                        const scalar Erotp = p.ERot();
-                        const scalar zetaRotp = cP.rotationalDegreesOfFreedom();
+                        activeTypes.clear();
 
-                        scalar Evibp = 0.0;
-                        std::chrono::steady_clock::time_point vibAccumStart;
-                        if (profileCellDetail)
+                        for (label pi = 0; pi < parcelCount; ++pi)
                         {
-                            vibAccumStart = wallClockNow();
-                        }
-                        if (needVibrational)
-                        {
-                            const labelList& vibLevels = p.vibLevel();
-                            const scalarList& thetaV = cP.thetaV();
-                            scalarField& localEvibMods = localSpeciesEvibMod[typeId];
+                            const dsmcParcel& p =
+                                useFlatOccupancy
+                              ? *(*orderedParcelsPtr)[parcelBegin + pi]
+                              : *(*parcelsPtr)[pi];
 
-                            forAll(thetaV, mod)
+                            if (!p.isFree())
                             {
-                                const scalar EvibMod =
-                                    kBoltzmann*thetaV[mod]*(vibLevels[mod] + 0.5);
-                                localEvibMods[mod] += EvibMod;
-                                Evibp += EvibMod;
+                                continue;
                             }
-                        }
-                        if (profileCellDetail)
-                        {
-                            localVibAccumWallTime +=
-                                wallSeconds(vibAccumStart, wallClockNow());
-                        }
 
-                        const label nElecLevels = cP.nElectronicLevels();
-                        const label eLevel = p.ELevel();
+                            const label typeId = p.typeId();
+                            const dsmcParcel::constantProperties& cP = cloud.constProps(typeId);
 
-                        std::chrono::steady_clock::time_point baseAccumStart;
-                        if (profileCellDetail)
-                        {
-                            baseAccumStart = wallClockNow();
-                        }
-                        localDsmcN[typeId] += 1.0;
-                        localDsmcM[typeId] += mp;
-                        localDsmcLinearKE[typeId] += linearKE;
-                        localDsmcMomentum[typeId] += mp*Up;
-                        localDsmcErot[typeId] += Erotp;
-                        localDsmcZetaRot[typeId] += zetaRotp;
+                            if (localDsmcN[typeId] == 0.0)
+                            {
+                                activeTypes.append(typeId);
+                            }
 
-                        localNReal[typeId] += nParticles;
-                        localMReal[typeId] += mp*nParticles;
-                        localMomentumReal[typeId] += mp*Up*nParticles;
-                        localLinearKEReal[typeId] += linearKE*nParticles;
+                            const scalar mp = cP.mass();
+                            const vector& Up = p.U();
+                            const scalar Upx = Up.x();
+                            const scalar Upy = Up.y();
+                            const scalar Upz = Up.z();
+                            const vector mpUp = mp*Up;
+                            const scalar mpNParticles = mp*nParticles;
+                            const vector mpUpNParticles = mpUp*nParticles;
+                            const scalar linearKE = mp*(Up & Up);
+                            const scalar Erotp = p.ERot();
+                            const scalar zetaRotp = cP.rotationalDegreesOfFreedom();
 
-                        if (needHeatFluxShearStress)
-                        {
-                            const scalar Eintp = Erotp + Evibp;
-
-                            localDsmcMuu[typeId] += mp*sqr(Up.x());
-                            localDsmcMuv[typeId] += mp*Up.x()*Up.y();
-                            localDsmcMuw[typeId] += mp*Up.x()*Up.z();
-                            localDsmcMvv[typeId] += mp*sqr(Up.y());
-                            localDsmcMvw[typeId] += mp*Up.y()*Up.z();
-                            localDsmcMww[typeId] += mp*sqr(Up.z());
-
-                            localDsmcMcc[typeId] += linearKE;
-                            localDsmcMccu[typeId] += linearKE*Up.x();
-                            localDsmcMccv[typeId] += linearKE*Up.y();
-                            localDsmcMccw[typeId] += linearKE*Up.z();
-
-                            localDsmcEu[typeId] += Eintp*Up.x();
-                            localDsmcEv[typeId] += Eintp*Up.y();
-                            localDsmcEw[typeId] += Eintp*Up.z();
-                            localDsmcECum[typeId] += Eintp;
-                        }
-
-                        if (needElectronic)
-                        {
-                            localSpeciesEelec[typeId] += cP.electronicEnergyList()[eLevel];
-                        }
-                        if (profileCellDetail)
-                        {
-                            localBaseAccumWallTime +=
-                                wallSeconds(baseAccumStart, wallClockNow());
-                        }
-
-                        if (needElectronic && nElecLevels > 1)
-                        {
-                            std::chrono::steady_clock::time_point electronicAccumStart;
+                            scalar Evibp = 0.0;
+                            std::chrono::steady_clock::time_point vibAccumStart;
                             if (profileCellDetail)
                             {
-                                electronicAccumStart = wallClockNow();
+                                vibAccumStart = wallClockNow();
                             }
-                            localNElecLvl[typeId] += 1.0;
+                            if (needVibrational)
+                            {
+                                const labelList& vibLevels = p.vibLevel();
+                                const scalarList& thetaV = cP.thetaV();
+                                scalarField& localEvibMods = localSpeciesEvibMod[typeId];
 
-                            if (eLevel == 0)
-                            {
-                                localNGrndElecLvl[typeId] += 1.0;
-                            }
-                            if (eLevel == 1)
-                            {
-                                localN1stElecLvl[typeId] += 1.0;
+                                forAll(thetaV, mod)
+                                {
+                                    const scalar EvibMod =
+                                        kBoltzmann*thetaV[mod]*(vibLevels[mod] + 0.5);
+                                    localEvibMods[mod] += EvibMod;
+                                    Evibp += EvibMod;
+                                }
                             }
                             if (profileCellDetail)
                             {
-                                localElectronicAccumWallTime +=
-                                    wallSeconds(electronicAccumStart, wallClockNow());
+                                localVibAccumWallTime +=
+                                    wallSeconds(vibAccumStart, wallClockNow());
                             }
-                        }
 
-                        std::chrono::steady_clock::time_point classAccumStart;
-                        if (profileCellDetail && needClassification)
-                        {
-                            classAccumStart = wallClockNow();
-                        }
-
-                        if (needClassification)
-                        {
-                            const label classification = p.classification();
-                            if (classification == 0)
+                            std::chrono::steady_clock::time_point baseAccumStart;
+                            if (profileCellDetail)
                             {
-                                localDsmcNClassI[typeId] += 1.0;
+                                baseAccumStart = wallClockNow();
                             }
-                            else if (classification == 1)
+                            localDsmcN[typeId] += 1.0;
+                            localDsmcM[typeId] += mp;
+                            localDsmcLinearKE[typeId] += linearKE;
+                            localDsmcMomentum[typeId] += mpUp;
+                            localDsmcErot[typeId] += Erotp;
+                            localDsmcZetaRot[typeId] += zetaRotp;
+
+                            localNReal[typeId] += nParticles;
+                            localMReal[typeId] += mpNParticles;
+                            localMomentumReal[typeId] += mpUpNParticles;
+                            localLinearKEReal[typeId] += linearKE*nParticles;
+
+                            if (needHeatFluxShearStress)
                             {
-                                localDsmcNClassII[typeId] += 1.0;
+                                const scalar Eintp = Erotp + Evibp;
+
+                                localDsmcMuu[typeId] += mp*sqr(Upx);
+                                localDsmcMuv[typeId] += mp*Upx*Upy;
+                                localDsmcMuw[typeId] += mp*Upx*Upz;
+                                localDsmcMvv[typeId] += mp*sqr(Upy);
+                                localDsmcMvw[typeId] += mp*Upy*Upz;
+                                localDsmcMww[typeId] += mp*sqr(Upz);
+
+                                localDsmcMcc[typeId] += linearKE;
+                                localDsmcMccu[typeId] += linearKE*Upx;
+                                localDsmcMccv[typeId] += linearKE*Upy;
+                                localDsmcMccw[typeId] += linearKE*Upz;
+
+                                localDsmcEu[typeId] += Eintp*Upx;
+                                localDsmcEv[typeId] += Eintp*Upy;
+                                localDsmcEw[typeId] += Eintp*Upz;
+                                localDsmcECum[typeId] += Eintp;
                             }
-                            else if (classification == 2)
+
+                            if (needElectronic)
                             {
-                                localDsmcNClassIII[typeId] += 1.0;
+                                const label eLevel = p.ELevel();
+                                localSpeciesEelec[typeId] += cP.electronicEnergyList()[eLevel];
                             }
-                        }
-                        if (profileCellDetail && needClassification)
-                        {
-                            localClassAccumWallTime +=
-                                wallSeconds(classAccumStart, wallClockNow());
-                        }
-                    }
-
-                    forAll(activeTypes, activeI)
-                    {
-                        const label typeId = activeTypes[activeI];
-                        dsmcN[typeId][celli] = localDsmcN[typeId];
-                        dsmcM[typeId][celli] = localDsmcM[typeId];
-                        dsmcLinearKE[typeId][celli] = localDsmcLinearKE[typeId];
-                        dsmcMomentum[typeId][celli] = localDsmcMomentum[typeId];
-                        dsmcErot[typeId][celli] = localDsmcErot[typeId];
-                        dsmcZetaRot[typeId][celli] = localDsmcZetaRot[typeId];
-                        nReal[typeId][celli] = localNReal[typeId];
-                        mReal[typeId][celli] = localMReal[typeId];
-                        momentumReal[typeId][celli] = localMomentumReal[typeId];
-                        linearKEReal[typeId][celli] = localLinearKEReal[typeId];
-
-                        if (needElectronic)
-                        {
-                            dsmcSpeciesEelec[typeId][celli] = localSpeciesEelec[typeId];
-                            dsmcNElecLvl[typeId][celli] = localNElecLvl[typeId];
-                            nGrndElecLvl[typeId][celli] = localNGrndElecLvl[typeId];
-                            n1stElecLvl[typeId][celli] = localN1stElecLvl[typeId];
-                        }
-
-                        if (needHeatFluxShearStress)
-                        {
-                            dsmcMuu[typeId][celli] = localDsmcMuu[typeId];
-                            dsmcMuv[typeId][celli] = localDsmcMuv[typeId];
-                            dsmcMuw[typeId][celli] = localDsmcMuw[typeId];
-                            dsmcMvv[typeId][celli] = localDsmcMvv[typeId];
-                            dsmcMvw[typeId][celli] = localDsmcMvw[typeId];
-                            dsmcMww[typeId][celli] = localDsmcMww[typeId];
-                            dsmcMcc[typeId][celli] = localDsmcMcc[typeId];
-                            dsmcMccu[typeId][celli] = localDsmcMccu[typeId];
-                            dsmcMccv[typeId][celli] = localDsmcMccv[typeId];
-                            dsmcMccw[typeId][celli] = localDsmcMccw[typeId];
-                            dsmcEu[typeId][celli] = localDsmcEu[typeId];
-                            dsmcEv[typeId][celli] = localDsmcEv[typeId];
-                            dsmcEw[typeId][celli] = localDsmcEw[typeId];
-                            dsmcECum[typeId][celli] = localDsmcECum[typeId];
-                        }
-
-                        if (needClassification)
-                        {
-                            dsmcNClassI[typeId][celli] = localDsmcNClassI[typeId];
-                            dsmcNClassII[typeId][celli] = localDsmcNClassII[typeId];
-                            dsmcNClassIII[typeId][celli] = localDsmcNClassIII[typeId];
-                        }
-
-                        if (needVibrational)
-                        {
-                            scalarField& localEvibMods = localSpeciesEvibMod[typeId];
-                            forAll(localEvibMods, mod)
+                            if (profileCellDetail)
                             {
-                                dsmcSpeciesEvibMod[typeId][mod][celli] = localEvibMods[mod];
-                                localEvibMods[mod] = 0.0;
+                                localBaseAccumWallTime +=
+                                    wallSeconds(baseAccumStart, wallClockNow());
+                            }
+
+                            if (needElectronic && cP.nElectronicLevels() > 1)
+                            {
+                                std::chrono::steady_clock::time_point electronicAccumStart;
+                                if (profileCellDetail)
+                                {
+                                    electronicAccumStart = wallClockNow();
+                                }
+                                const label eLevel = p.ELevel();
+                                localNElecLvl[typeId] += 1.0;
+
+                                if (eLevel == 0)
+                                {
+                                    localNGrndElecLvl[typeId] += 1.0;
+                                }
+                                if (eLevel == 1)
+                                {
+                                    localN1stElecLvl[typeId] += 1.0;
+                                }
+                                if (profileCellDetail)
+                                {
+                                    localElectronicAccumWallTime +=
+                                        wallSeconds(electronicAccumStart, wallClockNow());
+                                }
+                            }
+
+                            std::chrono::steady_clock::time_point classAccumStart;
+                            if (profileCellDetail && needClassification)
+                            {
+                                classAccumStart = wallClockNow();
+                            }
+
+                            if (needClassification)
+                            {
+                                const label classification = p.classification();
+                                if (classification == 0)
+                                {
+                                    localDsmcNClassI[typeId] += 1.0;
+                                }
+                                else if (classification == 1)
+                                {
+                                    localDsmcNClassII[typeId] += 1.0;
+                                }
+                                else if (classification == 2)
+                                {
+                                    localDsmcNClassIII[typeId] += 1.0;
+                                }
+                            }
+                            if (profileCellDetail && needClassification)
+                            {
+                                localClassAccumWallTime +=
+                                    wallSeconds(classAccumStart, wallClockNow());
                             }
                         }
 
-                        localDsmcN[typeId] = 0.0;
-                        localDsmcM[typeId] = 0.0;
-                        localDsmcLinearKE[typeId] = 0.0;
-                        localDsmcMomentum[typeId] = vector::zero;
-                        localDsmcErot[typeId] = 0.0;
-                        localDsmcZetaRot[typeId] = 0.0;
-                        localNReal[typeId] = 0.0;
-                        localMReal[typeId] = 0.0;
-                        localMomentumReal[typeId] = vector::zero;
-                        localLinearKEReal[typeId] = 0.0;
-
-                        if (needElectronic)
+                        forAll(activeTypes, activeI)
                         {
-                            localSpeciesEelec[typeId] = 0.0;
-                            localNElecLvl[typeId] = 0.0;
-                            localNGrndElecLvl[typeId] = 0.0;
-                            localN1stElecLvl[typeId] = 0.0;
+                            const label typeId = activeTypes[activeI];
+                            dsmcN[typeId][celli] = localDsmcN[typeId];
+                            dsmcM[typeId][celli] = localDsmcM[typeId];
+                            dsmcLinearKE[typeId][celli] = localDsmcLinearKE[typeId];
+                            dsmcMomentum[typeId][celli] = localDsmcMomentum[typeId];
+                            dsmcErot[typeId][celli] = localDsmcErot[typeId];
+                            dsmcZetaRot[typeId][celli] = localDsmcZetaRot[typeId];
+                            nReal[typeId][celli] = localNReal[typeId];
+                            mReal[typeId][celli] = localMReal[typeId];
+                            momentumReal[typeId][celli] = localMomentumReal[typeId];
+                            linearKEReal[typeId][celli] = localLinearKEReal[typeId];
+
+                            if (needElectronic)
+                            {
+                                dsmcSpeciesEelec[typeId][celli] = localSpeciesEelec[typeId];
+                                dsmcNElecLvl[typeId][celli] = localNElecLvl[typeId];
+                                nGrndElecLvl[typeId][celli] = localNGrndElecLvl[typeId];
+                                n1stElecLvl[typeId][celli] = localN1stElecLvl[typeId];
+                            }
+
+                            if (needHeatFluxShearStress)
+                            {
+                                dsmcMuu[typeId][celli] = localDsmcMuu[typeId];
+                                dsmcMuv[typeId][celli] = localDsmcMuv[typeId];
+                                dsmcMuw[typeId][celli] = localDsmcMuw[typeId];
+                                dsmcMvv[typeId][celli] = localDsmcMvv[typeId];
+                                dsmcMvw[typeId][celli] = localDsmcMvw[typeId];
+                                dsmcMww[typeId][celli] = localDsmcMww[typeId];
+                                dsmcMcc[typeId][celli] = localDsmcMcc[typeId];
+                                dsmcMccu[typeId][celli] = localDsmcMccu[typeId];
+                                dsmcMccv[typeId][celli] = localDsmcMccv[typeId];
+                                dsmcMccw[typeId][celli] = localDsmcMccw[typeId];
+                                dsmcEu[typeId][celli] = localDsmcEu[typeId];
+                                dsmcEv[typeId][celli] = localDsmcEv[typeId];
+                                dsmcEw[typeId][celli] = localDsmcEw[typeId];
+                                dsmcECum[typeId][celli] = localDsmcECum[typeId];
+                            }
+
+                            if (needClassification)
+                            {
+                                dsmcNClassI[typeId][celli] = localDsmcNClassI[typeId];
+                                dsmcNClassII[typeId][celli] = localDsmcNClassII[typeId];
+                                dsmcNClassIII[typeId][celli] = localDsmcNClassIII[typeId];
+                            }
+
+                            if (needVibrational)
+                            {
+                                scalarField& localEvibMods = localSpeciesEvibMod[typeId];
+                                forAll(localEvibMods, mod)
+                                {
+                                    dsmcSpeciesEvibMod[typeId][mod][celli] = localEvibMods[mod];
+                                    localEvibMods[mod] = 0.0;
+                                }
+                            }
+
+                            localDsmcN[typeId] = 0.0;
+                            localDsmcM[typeId] = 0.0;
+                            localDsmcLinearKE[typeId] = 0.0;
+                            localDsmcMomentum[typeId] = vector::zero;
+                            localDsmcErot[typeId] = 0.0;
+                            localDsmcZetaRot[typeId] = 0.0;
+                            localNReal[typeId] = 0.0;
+                            localMReal[typeId] = 0.0;
+                            localMomentumReal[typeId] = vector::zero;
+                            localLinearKEReal[typeId] = 0.0;
+
+                            if (needElectronic)
+                            {
+                                localSpeciesEelec[typeId] = 0.0;
+                                localNElecLvl[typeId] = 0.0;
+                                localNGrndElecLvl[typeId] = 0.0;
+                                localN1stElecLvl[typeId] = 0.0;
+                            }
+
+                            if (needHeatFluxShearStress)
+                            {
+                                localDsmcMuu[typeId] = 0.0;
+                                localDsmcMuv[typeId] = 0.0;
+                                localDsmcMuw[typeId] = 0.0;
+                                localDsmcMvv[typeId] = 0.0;
+                                localDsmcMvw[typeId] = 0.0;
+                                localDsmcMww[typeId] = 0.0;
+                                localDsmcMcc[typeId] = 0.0;
+                                localDsmcMccu[typeId] = 0.0;
+                                localDsmcMccv[typeId] = 0.0;
+                                localDsmcMccw[typeId] = 0.0;
+                                localDsmcEu[typeId] = 0.0;
+                                localDsmcEv[typeId] = 0.0;
+                                localDsmcEw[typeId] = 0.0;
+                                localDsmcECum[typeId] = 0.0;
+                            }
+
+                            if (needClassification)
+                            {
+                                localDsmcNClassI[typeId] = 0.0;
+                                localDsmcNClassII[typeId] = 0.0;
+                                localDsmcNClassIII[typeId] = 0.0;
+                            }
                         }
 
-                        if (needHeatFluxShearStress)
+                        if (doDetailedProfile)
                         {
-                            localDsmcMuu[typeId] = 0.0;
-                            localDsmcMuv[typeId] = 0.0;
-                            localDsmcMuw[typeId] = 0.0;
-                            localDsmcMvv[typeId] = 0.0;
-                            localDsmcMvw[typeId] = 0.0;
-                            localDsmcMww[typeId] = 0.0;
-                            localDsmcMcc[typeId] = 0.0;
-                            localDsmcMccu[typeId] = 0.0;
-                            localDsmcMccv[typeId] = 0.0;
-                            localDsmcMccw[typeId] = 0.0;
-                            localDsmcEu[typeId] = 0.0;
-                            localDsmcEv[typeId] = 0.0;
-                            localDsmcEw[typeId] = 0.0;
-                            localDsmcECum[typeId] = 0.0;
+                            #pragma omp atomic
+                            buildProfile->baseAccumWallTime += localBaseAccumWallTime;
+
+                            #pragma omp atomic
+                            buildProfile->vibAccumWallTime += localVibAccumWallTime;
+
+                            #pragma omp atomic
+                            buildProfile->electronicAccumWallTime += localElectronicAccumWallTime;
+
+                            #pragma omp atomic
+                            buildProfile->classAccumWallTime += localClassAccumWallTime;
+
+                            #pragma omp atomic
+                            buildProfile->detailSampleCells += localDetailSampleCells;
+
+                            #pragma omp atomic
+                            buildProfile->detailSampleParcels += localDetailSampleParcels;
                         }
-
-                        if (needClassification)
-                        {
-                            localDsmcNClassI[typeId] = 0.0;
-                            localDsmcNClassII[typeId] = 0.0;
-                            localDsmcNClassIII[typeId] = 0.0;
-                        }
-                    }
-
-                    if (doProfile)
-                    {
-                        #pragma omp atomic
-                        buildProfile->baseAccumWallTime += localBaseAccumWallTime;
-
-                        #pragma omp atomic
-                        buildProfile->vibAccumWallTime += localVibAccumWallTime;
-
-                        #pragma omp atomic
-                        buildProfile->electronicAccumWallTime += localElectronicAccumWallTime;
-
-                        #pragma omp atomic
-                        buildProfile->classAccumWallTime += localClassAccumWallTime;
-
-                        #pragma omp atomic
-                        buildProfile->detailSampleCells += localDetailSampleCells;
-
-                        #pragma omp atomic
-                        buildProfile->detailSampleParcels += localDetailSampleParcels;
                     }
                 }
             }

@@ -232,6 +232,17 @@ template<class TrackCloudType>
 inline void endMoveAppendCapture(TrackCloudType&, long)
 {}
 
+template<class TrackCloudType>
+inline auto beginMoveDeferredAppendStage(TrackCloudType& cloud, int)
+-> decltype(cloud.beginMoveDeferredAppendStage(), void())
+{
+    cloud.beginMoveDeferredAppendStage();
+}
+
+template<class TrackCloudType>
+inline void beginMoveDeferredAppendStage(TrackCloudType&, long)
+{}
+
 template<class TrackCloudType, class ParticleType>
 inline auto pendingMoveParcels(const TrackCloudType& cloud, int)
 -> decltype(cloud.pendingMoveParcels())
@@ -974,6 +985,7 @@ void Foam::Cloud<ParticleType>::move
                     const label threadI = ownerThreadForCell(deferredParcels[i]->cell(), i);
                     particles[deferredWriteOffsets[threadI]++] = deferredParcels[i];
                 }
+
             }
             else
             {
@@ -1085,7 +1097,7 @@ void Foam::Cloud<ParticleType>::move
 
                 if (accumulateMixedMoveOrdered && moveLoopPasses == 1)
                 {
-                    cloudOpenMP::clearMoveAppendedParcels(cloud, 0);
+                    cloudOpenMP::beginMoveDeferredAppendStage(cloud, 0);
                 }
             }
 

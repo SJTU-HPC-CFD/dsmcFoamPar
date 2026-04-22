@@ -26,6 +26,24 @@ License
 #include "LarsenBorgnakkeVariableHardSphere.H"
 #include "constants.H"
 #include "addToRunTimeSelectionTable.H"
+#include <chrono>
+
+namespace
+{
+    inline std::chrono::steady_clock::time_point wallClockNowLBVHS()
+    {
+        return std::chrono::steady_clock::now();
+    }
+
+    inline Foam::scalar wallSecondsLBVHS
+    (
+        const std::chrono::steady_clock::time_point& start,
+        const std::chrono::steady_clock::time_point& stop
+    )
+    {
+        return std::chrono::duration<Foam::scalar>(stop - start).count();
+    }
+}
 
 namespace Foam
 {
@@ -44,7 +62,11 @@ Foam::LarsenBorgnakkeVariableHardSphere::LarsenBorgnakkeVariableHardSphere
     rotationalRelaxationCollisionNumber_(coeffDictLB_.lookupOrDefault<scalar>("rotationalRelaxationCollisionNumber", 5.0)),
     vibrationalRelaxationCollisionNumber_(coeffDictLB_.lookupOrDefault<scalar>("vibrationalRelaxationCollisionNumber", 0.0)),
     invZvFormulation_(2),
-    electronicRelaxationCollisionNumber_(coeffDictLB_.lookupOrDefault<scalar>("electronicRelaxationCollisionNumber", 500.0))
+    electronicRelaxationCollisionNumber_(coeffDictLB_.lookupOrDefault<scalar>("electronicRelaxationCollisionNumber", 500.0)),
+    detailRedistributePWallTime_(0.0),
+    detailRedistributeQWallTime_(0.0),
+    detailScatterWallTime_(0.0),
+    detailCollideCalls_(0)
 {
     const word inverseZvFormulationVersion(coeffDictLB_.lookupOrDefault<word>("inverseZvFormulation", word::null));
 
@@ -59,7 +81,18 @@ Foam::LarsenBorgnakkeVariableHardSphere::LarsenBorgnakkeVariableHardSphere
 }
 
 Foam::LarsenBorgnakkeVariableHardSphere::~LarsenBorgnakkeVariableHardSphere()
-{}
+{
+    if (cloud_.profilingDetailEnabled() && detailCollideCalls_ > 0)
+    {
+        Info<< nl
+            << "LarsenBorgnakkeVariableHardSphere detail profile:" << nl
+            << "    collide calls             = " << detailCollideCalls_ << nl
+            << "    redistribute P wall [s]  = " << detailRedistributePWallTime_ << nl
+            << "    redistribute Q wall [s]  = " << detailRedistributeQWallTime_ << nl
+            << "    scatter wall [s]         = " << detailScatterWallTime_ << nl
+            << endl;
+    }
+}
 
 void Foam::LarsenBorgnakkeVariableHardSphere::collide
 (
@@ -69,6 +102,7 @@ void Foam::LarsenBorgnakkeVariableHardSphere::collide
     scalar cR
 )
 {
+    const bool profileDetail = cloud_.profilingDetailEnabled();
     const label typeIdP = pP.typeId();
     const label typeIdQ = pQ.typeId();
     vector& UP = pP.U();
@@ -79,12 +113,38 @@ void Foam::LarsenBorgnakkeVariableHardSphere::collide
     scalar translationalEnergy = 0.5*mR*magSqr(UP - UQ);
     const scalar omegaPQ = 0.5*(cloud_.constProps(typeIdP).omega() + cloud_.constProps(typeIdQ).omega());
 
-    redistribute(pP, translationalEnergy, omegaPQ);
-    redistribute(pQ, translationalEnergy, omegaPQ);
+    if (profileDetail)
+    {
+        const auto redistributePStart = wallClockNowLBVHS();
+        redistribute(pP, translationalEnergy, omegaPQ);
+        detailRedistributePWallTime_ +=
+            wallSecondsLBVHS(redistributePStart, wallClockNowLBVHS());
+
+        const auto redistributeQStart = wallClockNowLBVHS();
+        redistribute(pQ, translationalEnergy, omegaPQ);
+        detailRedistributeQWallTime_ +=
+            wallSecondsLBVHS(redistributeQStart, wallClockNowLBVHS());
+    }
+    else
+    {
+        redistribute(pP, translationalEnergy, omegaPQ);
+        redistribute(pQ, translationalEnergy, omegaPQ);
+    }
 
     translationalEnergy = max(translationalEnergy, 0.0);
     cR = translationalEnergy > VSMALL ? sqrt(2.0*translationalEnergy/mR) : 0.0;
-    VariableHardSphere::scatter(pP, pQ, cellI, cR);
+
+    if (profileDetail)
+    {
+        const auto scatterStart = wallClockNowLBVHS();
+        VariableHardSphere::scatter(pP, pQ, cellI, cR);
+        detailScatterWallTime_ += wallSecondsLBVHS(scatterStart, wallClockNowLBVHS());
+        ++detailCollideCalls_;
+    }
+    else
+    {
+        VariableHardSphere::scatter(pP, pQ, cellI, cR);
+    }
 }
 
 void Foam::LarsenBorgnakkeVariableHardSphere::redistribute
