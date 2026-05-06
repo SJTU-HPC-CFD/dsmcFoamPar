@@ -66,11 +66,17 @@ class dsmcDynamicLoadBalancing
 
         bool enableBalancing_;
 
+        bool reportTiming_;
+
         scalar balanceUntilTime_;
 
         scalar originalEndTime_;
 
         scalar maxImbalance_;
+
+        label balanceCheckInterval_;
+
+        label lastBalanceCheckTimeIndex_;
 
         // allow specifying a limit for the number of time directories that will
         // be backuped up in the resultFolders directory.
@@ -78,6 +84,16 @@ class dsmcDynamicLoadBalancing
         //  - N >= 0: backup the N most recent time directories and delete
         //            oldest directories in case the limit is exceeded.
         label limitTimeDirBackups_;
+
+        static scalar totalBalanceWallTime_;
+        static scalar totalPrepareWallTime_;
+        static scalar totalReconstructMeshWallTime_;
+        static scalar totalReconstructFieldsWallTime_;
+        static scalar totalDecomposeWallTime_;
+        static scalar totalProcessorMeshSyncWallTime_;
+        static scalar totalBackupWallTime_;
+        static label totalBalanceCount_;
+        static bool reportTimingEnabled_;
 
     // Private Member Functions
 
@@ -108,13 +124,67 @@ public:
 
         void copyPolyMeshToLatestTimeFolder() const;
 
+        void writeParticleWeightField() const;
+
         void updateProperties();
+
+        static void resetTiming();
+
+        static bool reportTiming()
+        {
+            return reportTimingEnabled_;
+        }
+
+        static scalar totalBalanceWallTime()
+        {
+            return totalBalanceWallTime_;
+        }
+
+        static scalar totalPrepareWallTime()
+        {
+            return totalPrepareWallTime_;
+        }
+
+        static scalar totalReconstructMeshWallTime()
+        {
+            return totalReconstructMeshWallTime_;
+        }
+
+        static scalar totalReconstructFieldsWallTime()
+        {
+            return totalReconstructFieldsWallTime_;
+        }
+
+        static scalar totalDecomposeWallTime()
+        {
+            return totalDecomposeWallTime_;
+        }
+
+        static scalar totalProcessorMeshSyncWallTime()
+        {
+            return totalProcessorMeshSyncWallTime_;
+        }
+
+        static scalar totalBackupWallTime()
+        {
+            return totalBackupWallTime_;
+        }
+
+        static label totalBalanceCount()
+        {
+            return totalBalanceCount_;
+        }
 
         // Access
 
           inline bool performBalance() const
           {
               return performBalance_;
+          }
+
+          inline bool enabled() const
+          {
+              return enableBalancing_;
           }
 
 };

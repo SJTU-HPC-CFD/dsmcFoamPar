@@ -34,10 +34,43 @@ Description
 #include "wallPolyPatch.H"
 #include "dsmcCloud.H"
 
+#include <chrono>
+
 namespace Foam
 {
 
+namespace
+{
+scalar elapsedSeconds(const std::chrono::steady_clock::time_point& start)
+{
+    return std::chrono::duration_cast<std::chrono::duration<scalar>>
+    (
+        std::chrono::steady_clock::now() - start
+    ).count();
+}
+
+scalar lookupBalanceUntilTime(const dictionary& dict)
+{
+    if (dict.found("balanceUntilTime"))
+    {
+        return dict.lookupOrDefault<scalar>("balanceUntilTime", VGREAT);
+    }
+
+    return dict.lookupOrDefault<scalar>("loadBalancingUntilTime", VGREAT);
+}
+}
+
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
+
+scalar dsmcDynamicLoadBalancing::totalBalanceWallTime_ = 0.0;
+scalar dsmcDynamicLoadBalancing::totalPrepareWallTime_ = 0.0;
+scalar dsmcDynamicLoadBalancing::totalReconstructMeshWallTime_ = 0.0;
+scalar dsmcDynamicLoadBalancing::totalReconstructFieldsWallTime_ = 0.0;
+scalar dsmcDynamicLoadBalancing::totalDecomposeWallTime_ = 0.0;
+scalar dsmcDynamicLoadBalancing::totalProcessorMeshSyncWallTime_ = 0.0;
+scalar dsmcDynamicLoadBalancing::totalBackupWallTime_ = 0.0;
+label dsmcDynamicLoadBalancing::totalBalanceCount_ = 0;
+bool dsmcDynamicLoadBalancing::reportTimingEnabled_ = false;
 
 // * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
 
@@ -67,19 +100,33 @@ dsmcDynamicLoadBalancing::dsmcDynamicLoadBalancing
     ),
     performBalance_(false),
     enableBalancing_(Switch(Foam::hyCompat::lookup(dsmcLoadBalanceDict_, "enableBalancing"))),
-    balanceUntilTime_
+    reportTiming_
     (
-        dsmcLoadBalanceDict_.lookupOrDefault<scalar>
+        dsmcLoadBalanceDict_.lookupOrDefault<Switch>
         (
-            "balanceUntilTime",
-            VGREAT
+            "reportBalancingTiming",
+            enableBalancing_
         )
     ),
+    balanceUntilTime_(lookupBalanceUntilTime(dsmcLoadBalanceDict_)),
     originalEndTime_(time_.time().endTime().value()),
     maxImbalance_(Foam::hyCompat::toScalar
     (
         dsmcLoadBalanceDict_, "maximumAllowableImbalance"
     )),
+    balanceCheckInterval_
+    (
+        max
+        (
+            dsmcLoadBalanceDict_.lookupOrDefault<label>
+            (
+                "balanceCheckInterval",
+                1
+            ),
+            label(1)
+        )
+    ),
+    lastBalanceCheckTimeIndex_(-1),
     limitTimeDirBackups_
     (
         dsmcLoadBalanceDict_.lookupOrDefault<label>
@@ -88,7 +135,9 @@ dsmcDynamicLoadBalancing::dsmcDynamicLoadBalancing
             -1
         )
     )
-{}
+{
+    reportTimingEnabled_ = reportTimingEnabled_ || reportTiming_;
+}
 
 // * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
 
@@ -99,109 +148,223 @@ dsmcDynamicLoadBalancing::~dsmcDynamicLoadBalancing()
 
 void dsmcDynamicLoadBalancing::update()
 {
-    if (time_.time().outputTime())
+    updateProperties();
+
+    if (!enableBalancing_)
     {
-        updateProperties();
+        performBalance_ = false;
+        return;
+    }
 
-        //- Load Balancing
-        if (Pstream::parRun())
-        {
-            const scalar& allowableImbalance = maxImbalance_;
+    if (!Pstream::parRun())
+    {
+        return;
+    }
 
-            // First determine current level of imbalance - do this for all
-            // parallel runs, even if balancing is disabled
-            scalar nGlobalParticles = cloud_.size();
-            Foam::reduce(nGlobalParticles, sumOp<scalar>());
+    const label currentTimeIndex = time_.timeIndex();
 
-            scalar idealNParticles =
-                scalar(nGlobalParticles)/scalar(Pstream::nProcs());
+    if
+    (
+        currentTimeIndex == lastBalanceCheckTimeIndex_
+     || (currentTimeIndex % balanceCheckInterval_) != 0
+    )
+    {
+        return;
+    }
 
-            scalar nParticles = cloud_.size();
-            scalar localImbalance = mag(nParticles - idealNParticles);
-            Foam::reduce(localImbalance, maxOp<scalar>());
-            scalar maxImbalance = localImbalance/idealNParticles;
+    lastBalanceCheckTimeIndex_ = currentTimeIndex;
 
-            Info<< "    Maximum imbalance = " << 100*maxImbalance << "%" << nl
-                << endl;
+    const scalar& allowableImbalance = maxImbalance_;
 
-            // explanation of modes:
-            // 1. enableBalancing = true:
-            //   1. if time <= balanceUntilTime -> load balance
-            //   2. if time > balanceUntilTime -> do not load balance
-            // 2. enableBalancing = false -> do not load balance
-            if
-            (
-                   enableBalancing_
-                && time_.time().value() <= balanceUntilTime_
-                && maxImbalance > allowableImbalance
-            )
-            {
-                performBalance_ = true;
+    // First determine current level of imbalance - do this for all
+    // parallel runs, even if balancing is disabled.
+    scalar nGlobalParticles = cloud_.size();
+    Foam::reduce(nGlobalParticles, sumOp<scalar>());
 
-                originalEndTime_ = time_.time().endTime().value();
+    scalar idealNParticles =
+        scalar(nGlobalParticles)/scalar(Pstream::nProcs());
 
-                scalar currentTime = time_.time().value();
+    scalar nParticles = cloud_.size();
+    scalar localImbalance = mag(nParticles - idealNParticles);
+    Foam::reduce(localImbalance, maxOp<scalar>());
+    scalar maxImbalance = localImbalance/idealNParticles;
 
-                time_.setEndTime(currentTime);
-            }
-        }
+    Info<< "    DLB imbalance check at time " << time_.timeName()
+        << " (timeIndex " << currentTimeIndex
+        << ", interval " << balanceCheckInterval_ << ")" << nl
+        << "    Maximum imbalance = " << 100*maxImbalance << "%" << nl
+        << endl;
+
+    // explanation of modes:
+    // 1. enableBalancing = true:
+    //   1. if time <= balanceUntilTime -> load balance
+    //   2. if time > balanceUntilTime -> do not load balance
+    // 2. enableBalancing = false -> do not load balance
+    if
+    (
+           enableBalancing_
+        && time_.time().value() <= balanceUntilTime_
+        && maxImbalance > allowableImbalance
+    )
+    {
+        Info<< "    DLB trigger: forcing write of current time before "
+            << "mesh repartition" << nl << endl;
+
+        writeParticleWeightField();
+        time_.writeNow();
+
+        performBalance_ = true;
+
+        originalEndTime_ = time_.time().endTime().value();
+
+        scalar currentTime = time_.time().value();
+
+        time_.setEndTime(currentTime);
     }
 }
 
 
 void dsmcDynamicLoadBalancing::copyPolyMeshToLatestTimeFolder() const
 {
-    const fileName constantInProcessor0 = "processor0/constant";
-
-    if (not isDir(constantInProcessor0))
+    for (label i=0; i<Pstream::nProcs(); i++)
     {
-        for (label i=0; i<Pstream::nProcs(); i++)
+        const word processorName = "processor" + name(i) + "/";
+        const word copyPolyMesh =
+            word("latest=$(find ")
+          + processorName
+          + word(" -mindepth 1 -maxdepth 1 -type d | sed 's#.*/##' | ")
+          + word("grep -E '^[0-9.+-eE]+$' | sort -g | tail -n 1);")
+          + word("starting=$(find ")
+          + processorName
+          + word(" -mindepth 1 -maxdepth 1 -type d | sed 's#.*/##' | ")
+          + word("grep -E '^[0-9.+-eE]+$' | sort -g | head -n 1);")
+          + word("if [ -n \"$latest\" ] && [ -n \"$starting\" ] && ")
+          + word("[ ! -d ")
+          + processorName
+          + word("$latest/polyMesh ]; then meshSource=")
+          + processorName
+          + word("$starting/polyMesh; ")
+          + word("if [ ! -d \"$meshSource\" ]; then meshSource=")
+          + processorName
+          + word("constant/polyMesh; fi; mkdir -p ")
+          + processorName
+          + word("$latest; cp -r \"$meshSource\" ")
+          + processorName
+          + word("$latest/; fi");
+
+        Foam::system(copyPolyMesh);
+    }
+}
+
+
+void dsmcDynamicLoadBalancing::writeParticleWeightField() const
+{
+    volScalarField particleWeights
+    (
+        IOobject
+        (
+            "dsmcParticleCount",
+            time_.timeName(),
+            mesh_,
+            IOobject::NO_READ,
+            IOobject::NO_WRITE
+        ),
+        mesh_,
+        dimensionedScalar(dimless, Zero)
+    );
+
+    forAllConstIter(dsmcCloud, cloud_, iter)
+    {
+        const label celli = iter().cell();
+
+        if (celli >= 0 && celli < particleWeights.size())
         {
-            const word findStartTime =
-                "starting=$(foamListTimes -processor -withZero -startTime);";
-
-            if (findStartTime != "0")
-            {
-                const word findLatestTime =
-                    "latest=$(foamListTimes -processor -withZero -latestTime);";
-                const word findTimes = findStartTime + findLatestTime;
-                const word processorName = "processor" + name(i) + "/";
-                const word copyPolyMesh = findTimes + "cp -r "
-                    + processorName + "$starting" + "/polyMesh "
-                    + processorName + "$latest/";
-
-                Foam::system(copyPolyMesh);
-            }
+            particleWeights[celli] += 1.0;
         }
     }
+
+    particleWeights.correctBoundaryConditions();
+    particleWeights.write();
 }
 
 
 void dsmcDynamicLoadBalancing::perform(const label noRefinement)
 {
-    if (performBalance_)
+    if (enableBalancing_ && performBalance_)
     {
+        const auto balanceStart = std::chrono::steady_clock::now();
+        scalar prepareWallTime = 0.0;
+        scalar reconstructMeshWallTime = 0.0;
+        scalar reconstructFieldsWallTime = 0.0;
+        scalar decomposeWallTime = 0.0;
+        scalar processorMeshSyncWallTime = 0.0;
+        scalar backupWallTime = 0.0;
+
         if (Pstream::master())
         {
             if (noRefinement == 0)
             {
+                const auto sectionStart = std::chrono::steady_clock::now();
                 copyPolyMeshToLatestTimeFolder();
+                prepareWallTime += elapsedSeconds(sectionStart);
             }
-            Foam::system("reconstructParMesh -latestTime");
-            Foam::system("reconstructPar -latestTime");
-            Foam::system("rm -r processor*");
+
+            {
+                const auto sectionStart = std::chrono::steady_clock::now();
+                Foam::system("reconstructParMesh -latestTime");
+                reconstructMeshWallTime = elapsedSeconds(sectionStart);
+            }
+
+            {
+                const auto sectionStart = std::chrono::steady_clock::now();
+                Foam::system("reconstructPar -latestTime");
+                reconstructFieldsWallTime = elapsedSeconds(sectionStart);
+            }
+
+            {
+                const auto sectionStart = std::chrono::steady_clock::now();
+                Foam::system
+                (
+                    "latest=$(foamListTimes -latestTime);"
+                    "if [ ! -d $latest/polyMesh ]; then cp -r constant/polyMesh $latest/; fi"
+                );
+                Foam::system("rm -r processor*");
+                prepareWallTime += elapsedSeconds(sectionStart);
+            }
 
             const word decomposePar =
                 word("timeDirs=$(foamListTimes -noZero);")
                 // check if there are any time dirs, if not this indicates a
                 // fatal error
-                + word("if [ -z ${timeDirs+x} ];")
-                + word("then echo \"error\";")
+                + word("if [ -z \"$timeDirs\" ];")
+                + word("then echo \"error: no time directories to decompose\";")
                 // decompose the latest time dir
-                + word("else decomposeDSMCLoadBalancePar ")
-                + word("-force -latestTime -copyUniform;")
+                + word("else decomposeTool=\"${FOAM_USER_APPBIN}/decomposeDSMCLoadBalancePar\";")
+                + word("if [ ! -x \"$decomposeTool\" ]; then ")
+                + word("decomposeTool=decomposeDSMCLoadBalancePar; fi;")
+                + word("\"$decomposeTool\" -force -latestTime -copyUniform;")
                 + word("fi");
-            Foam::system(decomposePar);
+            {
+                const auto sectionStart = std::chrono::steady_clock::now();
+                Foam::system(decomposePar);
+                decomposeWallTime = elapsedSeconds(sectionStart);
+            }
+
+            {
+                const auto sectionStart = std::chrono::steady_clock::now();
+                Foam::system
+                (
+                    "latest=$(foamListTimes -processor -latestTime); "
+                    "for procDir in processor*; do "
+                    "if [ -d \"$procDir/$latest/polyMesh\" ]; then "
+                    "mkdir -p \"$procDir/constant\"; "
+                    "rm -rf \"$procDir/constant/polyMesh\"; "
+                    "cp -r \"$procDir/$latest/polyMesh\" \"$procDir/constant/\"; "
+                    "fi; "
+                    "done"
+                );
+                processorMeshSyncWallTime = elapsedSeconds(sectionStart);
+            }
 
             // backup time dirs must be stored in resultFolders to prevent them
             // from being cleared. They can be moved back when the simulation
@@ -241,39 +404,101 @@ void dsmcDynamicLoadBalancing::perform(const label noRefinement)
                     + word("mv $timeDirs resultFolders/;")
                     // clear all other time dirs
                     + word("foamListTimes -rm");
+                const auto sectionStart = std::chrono::steady_clock::now();
                 Foam::system(backupTimeDirsWithLimit);
+                backupWallTime = elapsedSeconds(sectionStart);
             }
             else
             {
                 // keep all time dirs in the backup dir
+                const auto sectionStart = std::chrono::steady_clock::now();
                 Foam::system
                 (
                     "timeDirs=$(foamListTimes); mv $timeDirs resultFolders/"
                 );
+                backupWallTime = elapsedSeconds(sectionStart);
             }
 
             performBalance_ = false;
+        }
+
+        reduce(prepareWallTime, maxOp<scalar>());
+        reduce(reconstructMeshWallTime, maxOp<scalar>());
+        reduce(reconstructFieldsWallTime, maxOp<scalar>());
+        reduce(decomposeWallTime, maxOp<scalar>());
+        reduce(processorMeshSyncWallTime, maxOp<scalar>());
+        reduce(backupWallTime, maxOp<scalar>());
+
+        const scalar balanceWallTime = elapsedSeconds(balanceStart);
+
+        totalBalanceWallTime_ += balanceWallTime;
+        totalPrepareWallTime_ += prepareWallTime;
+        totalReconstructMeshWallTime_ += reconstructMeshWallTime;
+        totalReconstructFieldsWallTime_ += reconstructFieldsWallTime;
+        totalDecomposeWallTime_ += decomposeWallTime;
+        totalProcessorMeshSyncWallTime_ += processorMeshSyncWallTime;
+        totalBackupWallTime_ += backupWallTime;
+        totalBalanceCount_++;
+
+        if (reportTiming_ && Pstream::master())
+        {
+            Info<< "DLB wall-time summary [s]:" << nl
+                << "    total              = " << balanceWallTime << nl
+                << "    prepare            = " << prepareWallTime << nl
+                << "    reconstruct mesh   = " << reconstructMeshWallTime << nl
+                << "    reconstruct fields = " << reconstructFieldsWallTime << nl
+                << "    decompose          = " << decomposeWallTime << nl
+                << "    processor mesh sync= " << processorMeshSyncWallTime << nl
+                << "    backup             = " << backupWallTime << nl
+                << endl;
         }
 
         time_.setEndTime(originalEndTime_);
     }
 }
 
+
+void dsmcDynamicLoadBalancing::resetTiming()
+{
+    totalBalanceWallTime_ = 0.0;
+    totalPrepareWallTime_ = 0.0;
+    totalReconstructMeshWallTime_ = 0.0;
+    totalReconstructFieldsWallTime_ = 0.0;
+    totalDecomposeWallTime_ = 0.0;
+    totalProcessorMeshSyncWallTime_ = 0.0;
+    totalBackupWallTime_ = 0.0;
+    totalBalanceCount_ = 0;
+    reportTimingEnabled_ = false;
+}
+
 void dsmcDynamicLoadBalancing::updateProperties()
 {
     enableBalancing_ = Switch(Foam::hyCompat::lookup(Foam::hyCompat::lookup(dsmcLoadBalanceDict_, "enableBalancing")));
+    reportTiming_ =
+        dsmcLoadBalanceDict_.lookupOrDefault<Switch>
+        (
+            "reportBalancingTiming",
+            enableBalancing_
+        );
+    reportTimingEnabled_ = reportTimingEnabled_ || reportTiming_;
+
     // if balancing is active this additional option allows to specify a time
     // after which balancing is deactivated (this is useful in conjunction with
     // resetAtOutput / resetAtOutputUntilTime and averaging across solver
     // restarts)
-    balanceUntilTime_ = dsmcLoadBalanceDict_.lookupOrDefault<scalar>
-    (
-        "balanceUntilTime",
-        VGREAT
-    );
+    balanceUntilTime_ = lookupBalanceUntilTime(dsmcLoadBalanceDict_);
     maxImbalance_ = Foam::hyCompat::toScalar
     (
         dsmcLoadBalanceDict_, "maximumAllowableImbalance"
+    );
+    balanceCheckInterval_ = max
+    (
+        dsmcLoadBalanceDict_.lookupOrDefault<label>
+        (
+            "balanceCheckInterval",
+            1
+        ),
+        label(1)
     );
     limitTimeDirBackups_ = dsmcLoadBalanceDict_.lookupOrDefault<label>
     (
