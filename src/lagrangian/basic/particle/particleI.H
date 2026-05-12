@@ -174,6 +174,30 @@ inline Foam::label& Foam::particle::face() noexcept
 }
 
 
+inline Foam::scalar Foam::particle::behind() const noexcept
+{
+    return behind_;
+}
+
+
+inline Foam::scalar& Foam::particle::behind() noexcept
+{
+    return behind_;
+}
+
+
+inline Foam::label Foam::particle::nBehind() const noexcept
+{
+    return nBehind_;
+}
+
+
+inline Foam::label& Foam::particle::nBehind() noexcept
+{
+    return nBehind_;
+}
+
+
 inline Foam::scalar Foam::particle::stepFraction() const noexcept
 {
     return stepFraction_;

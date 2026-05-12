@@ -112,6 +112,7 @@ void Foam::dsmcCloud::buildCellOccupancy(const bool rebuildParticlePartition)
     const bool moveOrderedReady =
         openmpEnabled_
      && openmpMoveEnabled_
+     && !moveOrderedReuseDisabled_
      && moveOrderedParcelsValid_
      && moveOrderedThreadOffsets_.size() == ompNumThreads_ + 1;
     DynamicList<dsmcParcel*> filteredAppendedParcels;
@@ -325,6 +326,13 @@ void Foam::dsmcCloud::buildCellOccupancy(const bool rebuildParticlePartition)
             {
                 localCounts.setSize(nCells, 0);
             }
+            else if (!useMoveOrderedParcels)
+            {
+                forAll(localCounts, celli)
+                {
+                    localCounts[celli] = 0;
+                }
+            }
             else
             {
                 forAll(localActiveCells, activeI)
@@ -347,7 +355,7 @@ void Foam::dsmcCloud::buildCellOccupancy(const bool rebuildParticlePartition)
             );
         }
 
-        #pragma omp parallel
+        #pragma omp parallel num_threads(ompNumThreads_)
         {
             const label threadI = currentThreadId();
             labelList& localCounts = occupancyThreadCellCounts_[threadI];
@@ -526,7 +534,7 @@ void Foam::dsmcCloud::buildCellOccupancy(const bool rebuildParticlePartition)
             }
         }
 
-        #pragma omp parallel
+        #pragma omp parallel num_threads(ompNumThreads_)
         {
             const label threadI = currentThreadId();
             labelList& localOffsets = occupancyThreadCellCounts_[threadI];
@@ -568,6 +576,58 @@ void Foam::dsmcCloud::buildCellOccupancy(const bool rebuildParticlePartition)
 
         const auto t3 = clock_type::now();
         occupancyOrderedParcelsValid_ = true;
+
+        if (emitOccupancyDiagnostics)
+        {
+            scalar localPairPotential = 0.0;
+
+            for (label celli = 0; celli < nCells; ++celli)
+            {
+                const scalar nC = scalar(totalCounts[celli]);
+
+                if (nC > 1.0)
+                {
+                    localPairPotential += 0.5*nC*(nC - 1.0);
+                }
+            }
+
+            label globalOccupancyParcels = occupancyCellOffsets_.last();
+            label globalActiveCells = occupancyActiveCells_.size();
+            label globalCollisionCells = occupancyCollisionCells_.size();
+            scalar globalPairPotential = localPairPotential;
+
+            if (Pstream::parRun())
+            {
+                reduce(globalOccupancyParcels, sumOp<label>());
+                reduce(globalActiveCells, sumOp<label>());
+                reduce(globalCollisionCells, sumOp<label>());
+                reduce(globalPairPotential, sumOp<scalar>());
+            }
+
+            if (Pstream::master())
+            {
+                Info<< "    BuildCellOccupancy step summary:" << nl
+                    << "        source                    = "
+                    << (useMoveOrderedParcels ? "moveOrdered" : "fallbackGather") << nl
+                    << "        cloud valid parcels       = "
+                    << cloudValidCellParcels << nl
+                    << "        cloud invalid parcels     = "
+                    << cloudInvalidCellParcels << nl
+                    << "        move-order valid parcels  = "
+                    << moveOrderedValidCellParcels << nl
+                    << "        move-order invalid parcels= "
+                    << moveOrderedInvalidCellParcels << nl
+                    << "        occupancy parcels global  = "
+                    << globalOccupancyParcels << nl
+                    << "        active cells global       = "
+                    << globalActiveCells << nl
+                    << "        collision cells global    = "
+                    << globalCollisionCells << nl
+                    << "        pair potential global     = "
+                    << globalPairPotential << nl
+                    << endl;
+            }
+        }
 
         if (evolveProfileEnabled_)
         {
@@ -670,6 +730,57 @@ void Foam::dsmcCloud::buildCellOccupancy(const bool rebuildParticlePartition)
     occupancyOrderedParcelsValid_ = true;
     cellOccupancyMaterialized_ = true;
     pendingMoveParcels_.clear();
+
+    if (emitOccupancyDiagnostics)
+    {
+        scalar localPairPotential = 0.0;
+
+        for (label celli = 0; celli < nCells; ++celli)
+        {
+            const scalar nC = scalar(totalCounts[celli]);
+
+            if (nC > 1.0)
+            {
+                localPairPotential += 0.5*nC*(nC - 1.0);
+            }
+        }
+
+        label globalOccupancyParcels = occupancyCellOffsets_.last();
+        label globalActiveCells = occupancyActiveCells_.size();
+        label globalCollisionCells = occupancyCollisionCells_.size();
+        scalar globalPairPotential = localPairPotential;
+
+        if (Pstream::parRun())
+        {
+            reduce(globalOccupancyParcels, sumOp<label>());
+            reduce(globalActiveCells, sumOp<label>());
+            reduce(globalCollisionCells, sumOp<label>());
+            reduce(globalPairPotential, sumOp<scalar>());
+        }
+
+        if (Pstream::master())
+        {
+            Info<< "    BuildCellOccupancy step summary:" << nl
+                << "        source                    = fallbackSerial" << nl
+                << "        cloud valid parcels       = "
+                << cloudValidCellParcels << nl
+                << "        cloud invalid parcels     = "
+                << cloudInvalidCellParcels << nl
+                << "        move-order valid parcels  = "
+                << moveOrderedValidCellParcels << nl
+                << "        move-order invalid parcels= "
+                << moveOrderedInvalidCellParcels << nl
+                << "        occupancy parcels global  = "
+                << globalOccupancyParcels << nl
+                << "        active cells global       = "
+                << globalActiveCells << nl
+                << "        collision cells global    = "
+                << globalCollisionCells << nl
+                << "        pair potential global     = "
+                << globalPairPotential << nl
+                << endl;
+        }
+    }
 
     const auto t1 = clock_type::now();
 
@@ -958,6 +1069,83 @@ void Foam::dsmcCloud::materializeCellOccupancy()
     }
 
     cellOccupancyMaterialized_ = true;
+}
+
+
+void Foam::dsmcCloud::resetAfterMeshDistribution()
+{
+    const label nCells = mesh_.nCells();
+
+    cellOccupancy_.setSize(nCells);
+    forAll(cellOccupancy_, celli)
+    {
+        cellOccupancy_[celli].clear();
+    }
+
+    collisionSelectionRemainder_.setSize(nCells);
+    forAll(collisionSelectionRemainder_, celli)
+    {
+        collisionSelectionRemainder_[celli] = rndGen_.sample01<scalar>();
+    }
+
+    selectedPairsPerCell_.setSize(nCells, 0.0);
+    nCandidatesPerCell_.setSize(nCells, 0);
+    collisionCandidateCells_.clear();
+
+    clearMoveOrderedParcels();
+    clearMoveAppendedParcels();
+    clearPendingMoveParcels();
+    moveOrderedReuseDisabled_ = false;
+
+    occupancyOrderedParcels_.clear();
+    occupancyCellOffsets_.setSize(nCells + 1, 0);
+    occupancyActiveCells_.clear();
+    occupancyCollisionCells_.clear();
+    occupancyOrderedParcelsValid_ = false;
+    cellOccupancyMaterialized_ = true;
+    occupancyThreadCellCounts_.clear();
+    occupancyThreadActiveCells_.clear();
+
+    particleLoadStart_.setSize(max(ompNumThreads_, label(1)), 0);
+    particleLoadEnd_.setSize(max(ompNumThreads_, label(1)), nCells);
+    collisionLoadStart_.setSize(max(ompNumThreads_, label(1)), 0);
+    collisionLoadEnd_.setSize(max(ompNumThreads_, label(1)), nCells);
+    particlePartitionStep_ = 0;
+    particlePartitionLastRebuildStep_ = -1;
+    particlePartitionReferenceLoad_.clear();
+    collisionPartitionStep_ = 0;
+    collisionPartitionLastRebuildStep_ = -1;
+    collisionPartitionReferenceLoad_.clear();
+
+    initOpenMPMoveGuardCells();
+}
+
+
+void Foam::dsmcCloud::rebuildCellOccupancyAfterMeshDistribution()
+{
+    buildCellOccupancy();
+}
+
+
+void Foam::dsmcCloud::refreshAfterMeshDistribution()
+{
+    refreshTrackerUsage();
+    trackingInfo_.reset();
+    boundaryMeas_.setInitialConfig();
+    cellMeas_.reset();
+    fields_.refreshAfterMeshDistribution();
+    boundaries_.refreshAfterMeshDistribution();
+    controllers_.refreshAfterMeshDistribution();
+
+    if (reactions_)
+    {
+        reactions_->initialConfiguration();
+    }
+
+    if (collisionPartnerSelectionPtr_)
+    {
+        collisionPartnerSelectionPtr_->initialConfiguration();
+    }
 }
 
 
@@ -2048,6 +2236,10 @@ void Foam::dsmcCloud::initOpenMP()
         );
     const bool detailProfileEnabled =
         controlDict.lookupOrDefault<bool>("profileDetail", false);
+    evolveStageProbe_ =
+        controlDict.lookupOrDefault<bool>("evolveStageProbe", false);
+    moveStageProbe_ =
+        controlDict.lookupOrDefault<bool>("moveStageProbe", false);
     collisionProfileEnabled_ = summaryProfileEnabled || detailProfileEnabled;
     evolveProfileEnabled_ = summaryProfileEnabled || detailProfileEnabled;
     profilingDetailEnabled_ = detailProfileEnabled;
@@ -2831,6 +3023,8 @@ Foam::dsmcCloud::dsmcCloud
     evolveProfileEnabled_(false),
     profilingDetailEnabled_(false),
     emitStepDiagnostics_(false),
+    evolveStageProbe_(false),
+    moveStageProbe_(false),
     ompRndGens_(),
     particleLoadStart_(),
     particleLoadEnd_(),
@@ -2840,6 +3034,7 @@ Foam::dsmcCloud::dsmcCloud
     moveOrderedParcels_(),
     moveOrderedThreadOffsets_(),
     moveOrderedParcelsValid_(false),
+    moveOrderedReuseDisabled_(false),
     moveAppendCaptureActive_(false),
     moveAppendToPending_(false),
     moveAppendedParcels_(),
@@ -3467,6 +3662,16 @@ void Foam::dsmcCloud::initialiseFromDict(const dictionary& dsmcInitialiseDict)
 void Foam::dsmcCloud::evolve()
 {
     using clock_type = std::chrono::steady_clock;
+    const auto logEvolveStage = [&](const char* stage)
+    {
+        if (evolveStageProbe_)
+        {
+            Pout<< "Evolve stage rank " << Pstream::myProcNo()
+                << " timeIndex " << mesh_.time().timeIndex()
+                << " time " << mesh_.time().value()
+                << ": " << stage << nl << endl;
+        }
+    };
 
     boundaries_.updateTimeInfo();
     fields_.updateTimeInfo();
@@ -3479,8 +3684,11 @@ void Foam::dsmcCloud::evolve()
     {
         beginMoveAppendCapture();
     }
+    logEvolveStage("before controlBeforeMove");
     controllers_.controlBeforeMove();
+    logEvolveStage("after controllers controlBeforeMove");
     boundaries_.controlBeforeMove();
+    logEvolveStage("after boundaries controlBeforeMove");
     if
     (
         openmpEnabled_
@@ -3512,7 +3720,9 @@ void Foam::dsmcCloud::evolve()
         0.0
     );
 
+    logEvolveStage("before move");
     Cloud<dsmcParcel>::move(*this, td, mesh_.time().deltaTValue());
+    logEvolveStage("after move");
     if (openmpEnabled_ && openmpMoveEnabled_)
     {
         endMoveAppendCapture();
@@ -3520,27 +3730,42 @@ void Foam::dsmcCloud::evolve()
     const label moveEndCloudSize = this->size();
     const auto t1 = clock_type::now();
 
+    logEvolveStage("before buildCellOccupancy");
     buildCellOccupancy();
+    logEvolveStage("after buildCellOccupancy");
     const auto t2 = clock_type::now();
 
+    logEvolveStage("before coordSystem evolve");
     coordSystem().evolve();
+    logEvolveStage("after coordSystem evolve");
     const auto t3 = clock_type::now();
 
+    logEvolveStage("before controlBeforeCollisions");
     controllers_.controlBeforeCollisions();
+    logEvolveStage("after controllers controlBeforeCollisions");
     boundaries_.controlBeforeCollisions();
+    logEvolveStage("after boundaries controlBeforeCollisions");
 
+    logEvolveStage("before collisions");
     collisions();
+    logEvolveStage("after collisions");
     const auto t4 = clock_type::now();
 
     if (reactionsActive() && emitStepDiagnostics_)
     {
+        logEvolveStage("before reaction output");
         reactions().outputData();
+        logEvolveStage("after reaction output");
     }
     const auto t5 = clock_type::now();
 
+    logEvolveStage("before controlAfterCollisions");
     controllers_.controlAfterCollisions();
+    logEvolveStage("after controllers controlAfterCollisions");
     boundaries_.controlAfterCollisions();
+    logEvolveStage("after boundaries controlAfterCollisions");
 
+    logEvolveStage("before fields/output");
     fields_.calculateFields();
     fields_.writeFields();
 
@@ -3551,10 +3776,12 @@ void Foam::dsmcCloud::evolve()
     boundaries_.outputResults();
 
     boundaryMeas_.outputResults();
+    logEvolveStage("after fields/output");
 
     trackingInfo_.clean();
     boundaryMeas_.clean();
     cellMeas_.clean();
+    logEvolveStage("after cleanup");
     const label endStepCloudSize = this->size();
 
     if (profilingDetailEnabled_)
@@ -4381,20 +4608,5 @@ void Foam::dsmcCloud::reportProfiling() const
 }
 
 // ************************************************************************* //
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 

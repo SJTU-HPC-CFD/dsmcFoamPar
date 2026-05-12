@@ -388,6 +388,22 @@ void dsmcFluxController::updateFluxControllerProperties
 {
     controllerDict_ = newDict.subDict("controllerProperties");
 
+    if (controllerDict_.found("zoneName"))
+    {
+        regionName_ = controllerDict_.get<word>("zoneName");
+    }
+
+    const faceZoneMesh& faceZones = mesh_.faceZones();
+    regionId_ = faceZones.findZoneID(regionName_);
+
+    if (regionId_ == -1)
+    {
+        FatalErrorIn("dsmcFluxController::updateFluxControllerProperties()")
+            << "Cannot find region (faceZone): " << regionName_ << nl
+            << "in: " << time_.time().system()/"controllersDict"
+            << exit(FatalError);
+    }
+
     //- you can reset the controlling zone from here. This essentially
     //  means that the coupling zone can infact move arbitrarily. To make
     //  this happen we probably need to devise a technique for automatically
@@ -403,6 +419,11 @@ void dsmcFluxController::updateFluxControllerProperties
     {
         readStateFromFile_ = Switch(Foam::hyCompat::lookup(Foam::hyCompat::lookup(controllerDict_, "readStateFromFile")));
     }
+
+    zoneSurfaceArea_ = 0.0;
+    internalFaces_.clear();
+    processorFaces_.clear();
+    setFacesInfo();
 }
 
 const labelList& dsmcFluxController::controlZone() const

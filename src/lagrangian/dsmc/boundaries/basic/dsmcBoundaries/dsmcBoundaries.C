@@ -567,6 +567,13 @@ void dsmcBoundaries::setNewConfig()
 }
 
 
+void dsmcBoundaries::refreshAfterMeshDistribution()
+{
+    setNewConfig();
+    setInitialConfig();
+}
+
+
 void dsmcBoundaries::calculateProps()
 {
     forAll(patchBoundaryModels_, p)

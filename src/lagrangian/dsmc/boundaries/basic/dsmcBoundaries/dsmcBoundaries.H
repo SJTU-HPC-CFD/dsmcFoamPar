@@ -136,6 +136,7 @@ class dsmcBoundaries
 
       void setInitialConfig();
       void setNewConfig();
+      void refreshAfterMeshDistribution();
 
       void controlBeforeMove();
       void controlBeforeCollisions();

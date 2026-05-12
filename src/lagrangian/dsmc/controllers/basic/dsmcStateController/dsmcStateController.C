@@ -260,6 +260,22 @@ void dsmcStateController::updateStateControllerProperties
 {
     controllerDict_ = newDict.subDict("controllerProperties");
 
+    if (controllerDict_.found("zoneName"))
+    {
+        regionName_ = controllerDict_.get<word>("zoneName");
+    }
+
+    const cellZoneMesh& cellZones = mesh_.cellZones();
+    regionId_ = cellZones.findZoneID(regionName_);
+
+    if (regionId_ == -1)
+    {
+        FatalErrorIn("dsmcStateController::updateStateControllerProperties()")
+            << "Cannot find region: " << regionName_ << nl
+            << "in: " << time_.time().system()/"controllersDict"
+            << exit(FatalError);
+    }
+
     //- you can reset the controlling zone from here. This essentially
     //  means that the coupling zone can infact move arbitrarily. To make
     //  this happen we probably need to devise a technique for automatically

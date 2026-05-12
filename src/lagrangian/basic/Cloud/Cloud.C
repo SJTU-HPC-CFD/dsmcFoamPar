@@ -36,6 +36,7 @@ License
 #include "wallPolyPatch.H"
 #include "cyclicAMIPolyPatch.H"
 #include <chrono>
+#include <unordered_set>
 
 #ifdef _OPENMP
     #include <omp.h>
@@ -95,6 +96,19 @@ template<class TrackCloudType>
 inline label moveChunk(const TrackCloudType&, long)
 {
     return 64;
+}
+
+template<class TrackCloudType>
+inline auto moveStageProbeEnabled(const TrackCloudType& cloud, int)
+-> decltype(cloud.moveStageProbeEnabled(), bool())
+{
+    return cloud.moveStageProbeEnabled();
+}
+
+template<class TrackCloudType>
+inline bool moveStageProbeEnabled(const TrackCloudType&, long)
+{
+    return false;
 }
 
 template<class TrackCloudType>
@@ -795,8 +809,15 @@ void Foam::Cloud<ParticleType>::move
      && cloudOpenMP::moveThreads(cloud, 0) > 1
      && this->size() > 1;
     const label moveThreads = cloudOpenMP::moveThreads(cloud, 0);
+    const bool moveStageProbe = cloudOpenMP::moveStageProbeEnabled(cloud, 0);
     const word moveSchedule = cloudOpenMP::moveSchedule(cloud, 0);
     const label moveChunk = max(cloudOpenMP::moveChunk(cloud, 0), label(1));
+    const bool moveOrderedReuse =
+        cloud.mesh().time().controlDict().template lookupOrDefault<bool>
+        (
+            "openmpMoveOrderedReuse",
+            true
+        );
     const bool useParticlePartition =
         useOpenMPMove && cloudOpenMP::hasParticlePartition(cloud, 0);
     const bool useMoveParticlePartition =
@@ -804,8 +825,10 @@ void Foam::Cloud<ParticleType>::move
     #else
     const bool useOpenMPMove = false;
     const label moveThreads = 1;
+    const bool moveStageProbe = false;
     const word moveSchedule = "static";
     const label moveChunk = 64;
+    const bool moveOrderedReuse = false;
     const bool useParticlePartition = false;
     const bool useMoveParticlePartition = false;
     #endif
@@ -818,7 +841,10 @@ void Foam::Cloud<ParticleType>::move
     bool resetPending = true;
     label moveLoopPasses = 0;
     const bool accumulateMixedMoveOrdered =
-        useOpenMPMove && Pstream::parRun() && !useMoveParticlePartition;
+        moveOrderedReuse
+     && useOpenMPMove
+     && Pstream::parRun()
+     && !useMoveParticlePartition;
     DynamicList<ParticleType*> accumulatedMoveOrdered;
 
     if (accumulateMixedMoveOrdered)
@@ -843,7 +869,7 @@ void Foam::Cloud<ParticleType>::move
         ++moveLoopPasses;
         const auto tLoopSetupBegin = clock_type::now();
 
-        if (useOpenMPMove && !useMoveParticlePartition)
+        if (moveOrderedReuse && useOpenMPMove && !useMoveParticlePartition)
         {
             cloudOpenMP::beginMoveAppendCapture(cloud, 0);
         }
@@ -868,10 +894,36 @@ void Foam::Cloud<ParticleType>::move
         {
             List<ParticleType*> particles;
             labelList threadOffsets(moveThreads + 1, 0);
-            const auto deferredParcels =
+            const auto rawDeferredParcels =
                 cloudOpenMP::pendingMoveParcels<TrackCloudType, ParticleType>(cloud, 0);
+            DynamicList<ParticleType*> filteredDeferredParcels;
+            const DynamicList<ParticleType*>* deferredParcelsPtr = &rawDeferredParcels;
             const auto appendedParcels =
                 cloudOpenMP::moveAppendedParcels<TrackCloudType, ParticleType>(cloud, 0);
+
+            if (rawDeferredParcels.size() > 1)
+            {
+                std::unordered_set<ParticleType*> seenDeferred;
+                seenDeferred.reserve(rawDeferredParcels.size()*2);
+                filteredDeferredParcels.setCapacity(rawDeferredParcels.size());
+
+                forAll(rawDeferredParcels, i)
+                {
+                    ParticleType* pPtr = rawDeferredParcels[i];
+
+                    if (pPtr && seenDeferred.insert(pPtr).second)
+                    {
+                        filteredDeferredParcels.append(pPtr);
+                    }
+                }
+
+                if (filteredDeferredParcels.size() != rawDeferredParcels.size())
+                {
+                    deferredParcelsPtr = &filteredDeferredParcels;
+                }
+            }
+
+            const DynamicList<ParticleType*>& deferredParcels = *deferredParcelsPtr;
             cloudOpenMP::recordMoveDeferredParcels(cloud, deferredParcels.size(), 0);
             const auto tExtractBegin = clock_type::now();
             scalar deferredExtractWallTime = 0.0;
@@ -1105,6 +1157,42 @@ void Foam::Cloud<ParticleType>::move
 
             moveExtractWallTime +=
                 std::chrono::duration<scalar>(clock_type::now() - tExtractBegin).count();
+
+            if (moveStageProbe)
+            {
+                label invalidStartCount = 0;
+                label sampleInvalidCell = -1;
+
+                forAll(particles, i)
+                {
+                    const label celli = particles[i]->cell();
+
+                    if (celli < 0 || celli >= polyMesh_.nCells())
+                    {
+                        ++invalidStartCount;
+
+                        if (sampleInvalidCell == -1)
+                        {
+                            sampleInvalidCell = celli;
+                        }
+                    }
+                }
+
+                Pout<< "Move stage rank " << Pstream::myProcNo()
+                    << " pass " << moveLoopPasses
+                    << ": after extract particles=" << particles.size()
+                    << " deferred=" << deferredParcels.size()
+                    << " appended=" << appendedParcels.size()
+                    << " invalidStart=" << invalidStartCount;
+
+                if (sampleInvalidCell != -1)
+                {
+                    Pout<< " sampleInvalidCell=" << sampleInvalidCell;
+                }
+
+                Pout<< nl << endl;
+            }
+
             cloudOpenMP::recordMoveExtractDetail
             (
                 cloud,
@@ -1149,6 +1237,14 @@ void Foam::Cloud<ParticleType>::move
             #endif
 
             const auto tKernelBegin = clock_type::now();
+            if (moveStageProbe)
+            {
+                Pout<< "Move stage rank " << Pstream::myProcNo()
+                    << " pass " << moveLoopPasses
+                    << ": before move kernel particles=" << particles.size()
+                    << nl << endl;
+            }
+
             #pragma omp parallel num_threads(moveThreads)
             {
                 typename ParticleType::trackingData localTd(cloud);
@@ -1188,6 +1284,23 @@ void Foam::Cloud<ParticleType>::move
                     {
                         ParticleType& p = *particles[i];
 
+                        if (moveStageProbe && (i % 25000 == 0))
+                        {
+                            #pragma omp critical(dsmcMoveProbe)
+                            {
+                                Pout<< "Move stage rank " << Pstream::myProcNo()
+                                    << " pass " << moveLoopPasses
+                                    << " thread " << threadI
+                                    << ": moving i=" << i
+                                    << " cell=" << p.cell()
+                                    << " face=" << p.face()
+                                    << " stepFraction=" << p.stepFraction()
+                                    << " orig=" << p.origProc()
+                                    << ':' << p.origId()
+                                    << nl << endl;
+                            }
+                        }
+
                         if (inlineReset)
                         {
                             p.reset();
@@ -1216,6 +1329,53 @@ void Foam::Cloud<ParticleType>::move
             }
             moveKernelWallTime +=
                 std::chrono::duration<scalar>(clock_type::now() - tKernelBegin).count();
+
+            if (moveStageProbe)
+            {
+                label processedTotal = 0;
+                label processorHitTotal = 0;
+                label invalidKeepTotal = 0;
+                label sampleInvalidKeepCell = -1;
+
+                forAll(processedParticleCounts, threadI)
+                {
+                    processedTotal += processedParticleCounts[threadI];
+                    processorHitTotal += moveThreadProcessorHitCounts[threadI];
+                }
+
+                forAll(particles, i)
+                {
+                    if (!keepParticleFlags[i])
+                    {
+                        continue;
+                    }
+
+                    const label celli = particles[i]->cell();
+
+                    if (celli < 0 || celli >= polyMesh_.nCells())
+                    {
+                        ++invalidKeepTotal;
+
+                        if (sampleInvalidKeepCell == -1)
+                        {
+                            sampleInvalidKeepCell = celli;
+                        }
+                    }
+                }
+
+                Pout<< "Move stage rank " << Pstream::myProcNo()
+                    << " pass " << moveLoopPasses
+                    << ": after move kernel processed=" << processedTotal
+                    << " processorHits=" << processorHitTotal
+                    << " invalidKeep=" << invalidKeepTotal;
+
+                if (sampleInvalidKeepCell != -1)
+                {
+                    Pout<< " sampleInvalidKeepCell=" << sampleInvalidKeepCell;
+                }
+
+                Pout<< nl << endl;
+            }
 
             cloudOpenMP::recordMoveThreadProfile
             (
@@ -1423,6 +1583,66 @@ void Foam::Cloud<ParticleType>::move
             );
             moveCommitWallTime +=
                 std::chrono::duration<scalar>(clock_type::now() - tCommitBegin).count();
+
+            if (moveStageProbe)
+            {
+                label invalidSurvivorCount = 0;
+                label invalidTransferCount = 0;
+                label sampleInvalidSurvivorCell = -1;
+                label sampleInvalidTransferCell = -1;
+
+                forAll(survivingList, i)
+                {
+                    const label celli = survivingList[i]->cell();
+
+                    if (celli < 0 || celli >= polyMesh_.nCells())
+                    {
+                        ++invalidSurvivorCount;
+
+                        if (sampleInvalidSurvivorCell == -1)
+                        {
+                            sampleInvalidSurvivorCell = celli;
+                        }
+                    }
+                }
+
+                forAll(transferList, i)
+                {
+                    const label celli = transferList[i]->cell();
+
+                    if (celli < 0 || celli >= polyMesh_.nCells())
+                    {
+                        ++invalidTransferCount;
+
+                        if (sampleInvalidTransferCell == -1)
+                        {
+                            sampleInvalidTransferCell = celli;
+                        }
+                    }
+                }
+
+                Pout<< "Move stage rank " << Pstream::myProcNo()
+                    << " pass " << moveLoopPasses
+                    << ": after commit survivors=" << survivingList.size()
+                    << " transfers=" << transferList.size()
+                    << " deletes=" << deleteList.size()
+                    << " invalidSurvivors=" << invalidSurvivorCount
+                    << " invalidTransfers=" << invalidTransferCount;
+
+                if (sampleInvalidSurvivorCell != -1)
+                {
+                    Pout<< " sampleInvalidSurvivorCell="
+                        << sampleInvalidSurvivorCell;
+                }
+
+                if (sampleInvalidTransferCell != -1)
+                {
+                    Pout<< " sampleInvalidTransferCell="
+                        << sampleInvalidTransferCell;
+                }
+
+                Pout<< nl << endl;
+            }
         }
         else
         {
@@ -1431,8 +1651,18 @@ void Foam::Cloud<ParticleType>::move
 
             const auto tBegin = clock_type::now();
             label processedParticleCount = 0;
+            List<ParticleType*> particles(this->size());
+            label particlei = 0;
+
             for (ParticleType& p : *this)
             {
+                particles[particlei++] = &p;
+            }
+
+            forAll(particles, i)
+            {
+                ParticleType& p = *particles[i];
+
                 if (inlineReset)
                 {
                     p.reset();
@@ -1512,8 +1742,26 @@ void Foam::Cloud<ParticleType>::move
         }
 
         const auto tTransferBegin = clock_type::now();
+        if (moveStageProbe)
+        {
+            Pout<< "Move stage rank " << Pstream::myProcNo()
+                << " pass " << moveLoopPasses
+                << ": before finishedNeighbourSends" << nl << endl;
+        }
         pBufs.finishedNeighbourSends(neighbourProcs);
+        if (moveStageProbe)
+        {
+            Pout<< "Move stage rank " << Pstream::myProcNo()
+                << " pass " << moveLoopPasses
+                << ": after finishedNeighbourSends" << nl << endl;
+        }
 
+        if (moveStageProbe)
+        {
+            Pout<< "Move stage rank " << Pstream::myProcNo()
+                << " pass " << moveLoopPasses
+                << ": before hasRecvData reduce" << nl << endl;
+        }
         if (!returnReduceOr(pBufs.hasRecvData()))
         {
             // No parcels to transfer
@@ -1521,9 +1769,23 @@ void Foam::Cloud<ParticleType>::move
                 std::chrono::duration<scalar>(clock_type::now() - tTransferBegin).count();
             break;
         }
+        if (moveStageProbe)
+        {
+            Pout<< "Move stage rank " << Pstream::myProcNo()
+                << " pass " << moveLoopPasses
+                << ": after hasRecvData reduce" << nl << endl;
+        }
 
         // Retrieve from receive buffers
         label receivedCount = 0;
+        label invalidReceivedCount = 0;
+        label sampleInvalidReceivedCell = -1;
+        if (moveStageProbe)
+        {
+            Pout<< "Move stage rank " << Pstream::myProcNo()
+                << " pass " << moveLoopPasses
+                << ": before recv loop" << nl << endl;
+        }
         for (const label proci : neighbourProcs)
         {
             if (pBufs.recvDataCount(proci))
@@ -1540,11 +1802,38 @@ void Foam::Cloud<ParticleType>::move
                     patchi = procPatches[patchi];
 
                     (*newp).correctAfterParallelTransfer(patchi, td);
+
+                    const label correctedCell = newp->cell();
+
+                    if (correctedCell < 0 || correctedCell >= polyMesh_.nCells())
+                    {
+                        ++invalidReceivedCount;
+
+                        if (sampleInvalidReceivedCell == -1)
+                        {
+                            sampleInvalidReceivedCell = correctedCell;
+                        }
+                    }
+
                     addParticle(newp);
                     cloudOpenMP::recordPendingMoveParcel(cloud, newp, 0);
                     ++receivedCount;
                 }
             }
+        }
+        if (moveStageProbe)
+        {
+            Pout<< "Move stage rank " << Pstream::myProcNo()
+                << " pass " << moveLoopPasses
+                << ": after recv loop received=" << receivedCount
+                << " invalidReceived=" << invalidReceivedCount;
+
+            if (sampleInvalidReceivedCell != -1)
+            {
+                Pout<< " sampleInvalidReceivedCell=" << sampleInvalidReceivedCell;
+            }
+
+            Pout<< nl << endl;
         }
 
         cloudOpenMP::recordMoveReceivedParcels(cloud, receivedCount, 0);

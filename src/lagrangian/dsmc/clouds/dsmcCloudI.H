@@ -118,6 +118,26 @@ inline bool Foam::dsmcCloud::profilingDetailEnabled() const
     return profilingDetailEnabled_;
 }
 
+inline Foam::scalar Foam::dsmcCloud::evolveMoveWallTime() const
+{
+    return evolveMoveWallTime_;
+}
+
+inline Foam::scalar Foam::dsmcCloud::evolveCollisionWallTime() const
+{
+    return evolveCollisionWallTime_;
+}
+
+inline Foam::label Foam::dsmcCloud::evolveProfileCalls() const
+{
+    return evolveProfileCalls_;
+}
+
+inline bool Foam::dsmcCloud::moveStageProbeEnabled() const
+{
+    return moveStageProbe_;
+}
+
 inline void Foam::dsmcCloud::setStepDiagnosticOutput(const bool enabled)
 {
     emitStepDiagnostics_ = enabled;

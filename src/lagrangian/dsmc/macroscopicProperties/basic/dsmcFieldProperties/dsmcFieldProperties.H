@@ -111,6 +111,8 @@ public:
         //reset the measurement set up when the mesh has changed
         void resetFields();
 
+        void refreshAfterMeshDistribution();
+
         void writeFields();
 
 

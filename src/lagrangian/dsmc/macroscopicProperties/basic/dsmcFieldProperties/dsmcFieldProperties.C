@@ -179,6 +179,28 @@ void dsmcFieldProperties::resetFields()
 }
 
 
+void dsmcFieldProperties::refreshAfterMeshDistribution()
+{
+    if (fields_.empty())
+    {
+        return;
+    }
+
+    fieldList_.clear();
+    fieldList_ = Foam::hyCompat::lookup(dsmcFieldPropertiesDict_, "dsmcFields");
+
+    forAll(fields_, f)
+    {
+        const entry& fieldI = fieldList_[f];
+        const dictionary& fieldIDict = fieldI.dict();
+
+        fields_[f]->updateProperties(fieldIDict);
+        fields_[f]->createField();
+        fields_[f]->resetField();
+    }
+}
+
+
 
 //- Note, not all fields automatically write out to hard disc.
 void dsmcFieldProperties::writeFields()

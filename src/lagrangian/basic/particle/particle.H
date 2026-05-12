@@ -506,6 +506,18 @@ public:
             //- Return current face particle is on for manipulation
             inline label& face() noexcept;
 
+            //- Return the track-back distance state
+            inline scalar behind() const noexcept;
+
+            //- Return the track-back distance state for manipulation
+            inline scalar& behind() noexcept;
+
+            //- Return the track-back iteration state
+            inline label nBehind() const noexcept;
+
+            //- Return the track-back iteration state for manipulation
+            inline label& nBehind() noexcept;
+
             //- Return the fraction of time-step completed
             inline scalar stepFraction() const noexcept;
 

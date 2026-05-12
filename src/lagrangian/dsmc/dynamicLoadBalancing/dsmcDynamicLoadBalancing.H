@@ -68,6 +68,18 @@ class dsmcDynamicLoadBalancing
 
         bool reportTiming_;
 
+        bool inMemoryBalancing_;
+
+        scalar inMemoryMigrationFraction_;
+
+        label inMemoryMinLocalCells_;
+
+        bool inMemoryUseTimerGate_;
+
+        scalar inMemoryRequiredGainFactor_;
+
+        scalar inMemoryAssumedBalanceCost_;
+
         scalar balanceUntilTime_;
 
         scalar originalEndTime_;
@@ -77,6 +89,15 @@ class dsmcDynamicLoadBalancing
         label balanceCheckInterval_;
 
         label lastBalanceCheckTimeIndex_;
+
+        label balanceCooldownSteps_;
+
+        label lastBalancePerformTimeIndex_;
+
+        scalar lastCheckCollisionWallTime_;
+        scalar lastCheckMoveWallTime_;
+
+        label lastCheckEvolveProfileCalls_;
 
         // allow specifying a limit for the number of time directories that will
         // be backuped up in the resultFolders directory.
@@ -96,6 +117,8 @@ class dsmcDynamicLoadBalancing
         static bool reportTimingEnabled_;
 
     // Private Member Functions
+
+        bool performInMemory();
 
 
 public:

@@ -113,6 +113,7 @@ public:
 
         //- initial configuration
         void initialConfig();
+        void refreshAfterMeshDistribution();
 
         //- update time information
         void updateTimeInfo();

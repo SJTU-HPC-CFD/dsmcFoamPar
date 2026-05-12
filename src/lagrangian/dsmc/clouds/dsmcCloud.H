@@ -136,6 +136,8 @@ class dsmcCloud
     bool evolveProfileEnabled_;
     bool profilingDetailEnabled_;
     bool emitStepDiagnostics_;
+    bool evolveStageProbe_;
+    bool moveStageProbe_;
     List<Random> ompRndGens_;
     labelList particleLoadStart_;
     labelList particleLoadEnd_;
@@ -145,6 +147,7 @@ class dsmcCloud
     List<dsmcParcel*> moveOrderedParcels_;
     labelList moveOrderedThreadOffsets_;
     bool moveOrderedParcelsValid_;
+    bool moveOrderedReuseDisabled_;
     bool moveAppendCaptureActive_;
     bool moveAppendToPending_;
     DynamicList<dsmcParcel*> moveAppendedParcels_;
@@ -358,6 +361,10 @@ public:
     inline bool trackerActive() const;
     inline bool evolveProfileEnabled() const;
     inline bool profilingDetailEnabled() const;
+    inline scalar evolveMoveWallTime() const;
+    inline scalar evolveCollisionWallTime() const;
+    inline label evolveProfileCalls() const;
+    inline bool moveStageProbeEnabled() const;
     inline void setStepDiagnosticOutput(const bool enabled);
     inline bool emitStepDiagnostics() const;
     inline label ompNumThreads() const;
@@ -376,6 +383,9 @@ public:
     void clearMoveAppendedParcels();
     void recordPendingMoveParcel(dsmcParcel* pPtr);
     void clearPendingMoveParcels();
+    void resetAfterMeshDistribution();
+    void rebuildCellOccupancyAfterMeshDistribution();
+    void refreshAfterMeshDistribution();
     void recordMoveCommitCounts
     (
         const label extracted,
@@ -634,12 +644,4 @@ public:
 #endif
 
 // ************************************************************************* //
-
-
-
-
-
-
-
-
 

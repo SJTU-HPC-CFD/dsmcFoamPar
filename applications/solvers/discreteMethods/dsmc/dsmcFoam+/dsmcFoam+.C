@@ -31,6 +31,7 @@ Description
 
 #include "fvCFD.H"
 #include "dsmcCloud.H"
+#include "dsmcDynamicLoadBalancing.H"
 
 #include <cstdlib>
 #include <chrono>
@@ -43,10 +44,13 @@ int main(int argc, char *argv[])
 
     Info<< nl << "Constructing dsmcCloud" << endl;
     dsmcCloud dsmc(runTime, "dsmc", mesh);
+    dsmcDynamicLoadBalancing loadBalancer(runTime, mesh, dsmc);
 
     Info<< "\nStarting time loop\n" << endl;
 
     label infoCounter = 0;
+    const bool solverStageProbe =
+        runTime.controlDict().lookupOrDefault<bool>("solverStageProbe", false);
     const auto loopStart = std::chrono::steady_clock::now();
 
     while (runTime.loop())
@@ -60,7 +64,52 @@ int main(int argc, char *argv[])
             Info<< "Time = " << runTime.timeName() << nl << endl;
         }
 
+        if (solverStageProbe)
+        {
+            Pout<< "Solver stage rank " << Pstream::myProcNo()
+                << " timeIndex " << runTime.timeIndex()
+                << " time " << runTime.timeName()
+                << ": before evolve" << nl << endl;
+        }
         dsmc.evolve();
+
+        if (solverStageProbe)
+        {
+            Pout<< "Solver stage rank " << Pstream::myProcNo()
+                << " timeIndex " << runTime.timeIndex()
+                << " time " << runTime.timeName()
+                << ": after evolve" << nl << endl;
+        }
+        if (solverStageProbe)
+        {
+            Pout<< "Solver stage rank " << Pstream::myProcNo()
+                << " timeIndex " << runTime.timeIndex()
+                << " time " << runTime.timeName()
+                << ": before loadBalancer.update" << nl << endl;
+        }
+        loadBalancer.update();
+        if (solverStageProbe)
+        {
+            Pout<< "Solver stage rank " << Pstream::myProcNo()
+                << " timeIndex " << runTime.timeIndex()
+                << " time " << runTime.timeName()
+                << ": after loadBalancer.update" << nl << endl;
+        }
+        if (solverStageProbe)
+        {
+            Pout<< "Solver stage rank " << Pstream::myProcNo()
+                << " timeIndex " << runTime.timeIndex()
+                << " time " << runTime.timeName()
+                << ": before loadBalancer.perform" << nl << endl;
+        }
+        loadBalancer.perform();
+        if (solverStageProbe)
+        {
+            Pout<< "Solver stage rank " << Pstream::myProcNo()
+                << " timeIndex " << runTime.timeIndex()
+                << " time " << runTime.timeName()
+                << ": after loadBalancer.perform" << nl << endl;
+        }
 
         if (emitStepDiagnostics)
         {
@@ -68,7 +117,21 @@ int main(int argc, char *argv[])
             infoCounter = 0;
         }
 
+        if (solverStageProbe)
+        {
+            Pout<< "Solver stage rank " << Pstream::myProcNo()
+                << " timeIndex " << runTime.timeIndex()
+                << " time " << runTime.timeName()
+                << ": before runTime.write" << nl << endl;
+        }
         runTime.write();
+        if (solverStageProbe)
+        {
+            Pout<< "Solver stage rank " << Pstream::myProcNo()
+                << " timeIndex " << runTime.timeIndex()
+                << " time " << runTime.timeName()
+                << ": after runTime.write" << nl << endl;
+        }
         runTime.printExecutionTime(Info);
     }
 

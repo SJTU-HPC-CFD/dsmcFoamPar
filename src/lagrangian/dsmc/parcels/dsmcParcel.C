@@ -152,9 +152,31 @@ bool Foam::dsmcParcel::move
         }
 
         vector Utracking = U_;
+        label moveLoopI = 0;
 
         while (td.keepParticle && !td.switchProcessor && stepFraction() < 1)
         {
+            ++moveLoopI;
+            const bool probeStuckParticle =
+                cloud.moveStageProbeEnabled()
+             && Pstream::parRun()
+             && Pstream::myProcNo() == 1
+             && origProc() == 0
+             && origId() == 1;
+
+            if (probeStuckParticle && (moveLoopI == 1 || moveLoopI % 1000 == 0))
+            {
+                Pout<< "dsmcParcel move probe rank " << Pstream::myProcNo()
+                    << " orig=" << origProc() << ':' << origId()
+                    << " loop=" << moveLoopI
+                    << " cell=" << cell()
+                    << " face=" << face()
+                    << " stepFraction=" << stepFraction()
+                    << " keep=" << td.keepParticle
+                    << " switch=" << td.switchProcessor
+                    << nl << endl;
+            }
+
             auto moveTrackStep = [&]()
             {
                 Utracking = U_;

@@ -274,6 +274,42 @@ void dsmcControllers::initialConfig()
     }
 }
 
+
+void dsmcControllers::refreshAfterMeshDistribution()
+{
+    if (stateControllers_.size() > 0)
+    {
+        stateControllersList_.clear();
+        stateControllersList_ =
+            Foam::hyCompat::lookup(dsmcControllersDict_, "dsmcStateControllers");
+
+        forAll(stateControllers_, sC)
+        {
+            const entry& dsmcControllersI = stateControllersList_[sC];
+            const dictionary& dsmcControllersIDict = dsmcControllersI.dict();
+
+            stateControllers_[sC]->updateProperties(dsmcControllersIDict);
+            stateControllers_[sC]->initialConfiguration();
+        }
+    }
+
+    if (fluxControllers_.size() > 0)
+    {
+        fluxControllersList_.clear();
+        fluxControllersList_ =
+            Foam::hyCompat::lookup(dsmcControllersDict_, "dsmcFluxControllers");
+
+        forAll(fluxControllers_, fC)
+        {
+            const entry& dsmcControllersI = fluxControllersList_[fC];
+            const dictionary& dsmcControllersIDict = dsmcControllersI.dict();
+
+            fluxControllers_[fC]->updateProperties(dsmcControllersIDict);
+            fluxControllers_[fC]->initialConfiguration();
+        }
+    }
+}
+
         //- different control stages
 void dsmcControllers::controlBeforeMove()
 {

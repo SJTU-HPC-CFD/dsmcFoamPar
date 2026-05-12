@@ -176,6 +176,17 @@ void dsmcPatchBoundary::setBoundaryFields()
 
 void dsmcPatchBoundary::setNewBoundaryFields()
 {
+    patchName_ = boundaryDict_.get<word>("patchName");
+    patchId_ = mesh_.boundaryMesh().findPatchID(patchName_);
+
+    if (patchId_ == -1)
+    {
+        FatalErrorIn("dsmcPatchBoundary::setNewBoundaryFields()")
+            << "Cannot find patch: " << patchName_ << nl
+            << "in: " << time_.system()/"boundariesDict"
+            << exit(FatalError);
+    }
+
     const polyPatch& patch = mesh_.boundaryMesh()[patchId_];
 
     //- initialise data members
