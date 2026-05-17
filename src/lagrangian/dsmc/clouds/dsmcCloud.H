@@ -56,6 +56,7 @@ SourceFiles
 #include "dsmcFaceTracker.H"
 #include "collisionPartnerSelection.H"
 #include "porousMeasurements.H"
+#include "dsmcReplicatedMesh.H"
 
 #ifdef _OPENMP
     #include <omp.h>
@@ -153,6 +154,7 @@ class dsmcCloud
     DynamicList<dsmcParcel*> moveAppendedParcels_;
     DynamicList<dsmcParcel*> pendingMoveParcels_;
     DynamicList<dsmcParcel*> occupancyOrderedParcels_;
+    DynamicList<dsmcParcel*> pendingMigration_;
     labelList occupancyCellOffsets_;
     labelList occupancyActiveCells_;
     labelList occupancyCollisionCells_;
@@ -280,6 +282,9 @@ class dsmcCloud
     autoPtr<BinaryCollisionModel> binaryCollisionModel_;
     autoPtr<collisionPartnerSelection> collisionPartnerSelectionPtr_;
     autoPtr<dsmcReactions> reactions_;
+
+    // Replicated mesh DLB (Phase A)
+    autoPtr<dsmcReplicatedMesh> replicatedMesh_;
     cellMeasurements cellMeas_;
 
     List<diffuseWallSpec> diffuseWalls_;
@@ -356,6 +361,8 @@ public:
     inline scalar nParticles(const label patchi, const label facei) const;
     inline scalar deltaTValue(const label celli = 0) const;
     inline label nTerminalOutputs() const;
+    inline bool replicatedMeshActive() const;
+    inline const dsmcReplicatedMesh& replicatedMesh() const;
     inline bool openmpEnabled() const;
     inline bool openmpMoveEnabled() const;
     inline bool trackerActive() const;
@@ -415,11 +422,18 @@ public:
     );
     void storeMoveOrderedParcels(const List<dsmcParcel*>& parcels, const labelList& threadOffsets);
     void clearMoveOrderedParcels();
+    void rebuildMoveOrderedParcels();
+    void setMoveOrderedParcels(const DynamicList<dsmcParcel*>& parcels);
+    void appendToMoveOrdered(dsmcParcel* p);
+    void appendBatchToMoveOrdered(const DynamicList<dsmcParcel*>& parcels);
     inline bool hasMoveOrderedParcels() const;
     inline const List<dsmcParcel*>& moveOrderedParcels() const;
     inline const labelList& moveOrderedThreadOffsets() const;
     inline const DynamicList<dsmcParcel*>& moveAppendedParcels() const;
     inline const DynamicList<dsmcParcel*>& pendingMoveParcels() const;
+    inline void recordPendingMigration(dsmcParcel* p);
+    inline const DynamicList<dsmcParcel*>& pendingMigration() const;
+    inline void clearPendingMigration();
     inline bool hasOccupancyOrderedParcels() const;
     inline const List<dsmcParcel*>& occupancyOrderedParcels() const;
     inline const labelList& occupancyCellOffsets() const;
@@ -436,6 +450,7 @@ public:
     inline const labelList& collisionLoadEnd() const;
     inline label randomLabel(const label min, const label max);
     inline const List<DynamicList<dsmcParcel*>>& cellOccupancy() const;
+    inline bool isCellOccupancyValid() const;
     inline volScalarField& sigmaTcRMax();
     inline scalarField& collisionSelectionRemainder();
     inline const List<dsmcParcel::constantProperties>& constProps() const;
@@ -540,6 +555,9 @@ public:
 
     void info() const;
     void reportProfiling() const;
+
+    // Remove and delete a parcel (resolves IDLList erase ambiguity)
+    void deleteParcel(dsmcParcel* p);
     void recordMoveThreadCounts(const labelList& counts);
     void recordMoveThreadProfile
     (

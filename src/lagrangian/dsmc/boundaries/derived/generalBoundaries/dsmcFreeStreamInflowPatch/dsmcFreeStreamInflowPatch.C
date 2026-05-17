@@ -121,6 +121,16 @@ void dsmcFreeStreamInflowPatch::controlParcelsBeforeMove()
 
         forAll(accumulatedParcelsToInsert_[i], f)
         {
+            // Replicated mesh: only the rank that owns the adjacent cell
+            // processes this boundary face (avoids duplicate injection)
+            if (cloud_.replicatedMeshActive())
+            {
+                const label adjCell =
+                    mesh_.boundaryMesh()[patchId_].faceCells()[f];
+                if (!cloud_.replicatedMesh().isMyCell(adjCell))
+                    continue;
+            }
+
             const label faceI = faces_[f];
             const vector sF = mesh_.faceAreas()[faceI];
             const scalar fA = mag(sF);

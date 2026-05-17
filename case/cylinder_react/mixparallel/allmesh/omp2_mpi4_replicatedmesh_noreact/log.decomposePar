@@ -1,0 +1,61 @@
+/*---------------------------------------------------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  2506                                  |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+Build  : 95a5dfacc7-20250714 OPENFOAM=2506 version=v2506
+Arch   : "LSB;label=32;scalar=64"
+Exec   : decomposePar
+Date   : May 16 2026
+Time   : 16:08:57
+Host   : SuperXCX-ROG
+PID    : 1442363
+I/O    : uncollated
+Case   : /home/superxcx/code/DSMC/dsmcFoam++/hyStrath_xcx/case/cylinder_react/mixparallel/allmesh/omp4_mpi2_replicatedmesh_noreact
+nProcs : 1
+trapFpe: Floating point exception trapping enabled (FOAM_SIGFPE).
+fileModificationChecking : Monitoring run-time modified files using timeStampMaster (fileModificationSkew 5, maxFileModificationPolls 20)
+allowSystemOperations : Allowing user-supplied system call operations
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+Create time
+
+Overriding OptimisationSwitches according to controlDict
+    fileHandler (unregistered)
+Overriding fileHandler to masterUncollated
+I/O    : masterUncollated (maxMasterFileBufferSize 1e+09)
+--> FOAM Warning : 
+    From void Foam::fileOperations::masterUncollatedFileOperation::init(bool)
+    in file global/fileOperations/masterUncollatedFileOperation/masterUncollatedFileOperation.C at line 646
+    Resetting fileModificationChecking to timeStamp
+--> FOAM Warning : 
+    From static Foam::IOstreamOption::compressionType Foam::IOstreamOption::compressionEnum(const word &, const compressionType)
+    in file db/options/IOstreamOption.C at line 189
+    Unknown compression specifier 'uncompressed' using compression off
+
+
+Decomposing mesh
+
+Create mesh
+
+Calculating distribution of cells
+Decomposition method metis [2] (region region0)
+
+--> FOAM FATAL ERROR: (openfoam-2506)
+Attempted to use <metis> without the metisDecomp library loaded.
+This message is from the dummy metisDecomp stub library instead.
+
+Please install <metis> and ensure libmetis.so is in LD_LIBRARY_PATH.
+The metisDecomp library can then be built from src/parallel/decompose/metisDecomp.
+Dynamically loading or linking this library will add <metis> as a decomposition method.
+
+
+    From virtual Foam::label Foam::metisDecomp::decomposeSerial(const labelList &, const labelList &, const List<scalar> &, labelList &) const
+    in file dummyMetisDecomp.cxx at line 65.
+
+FOAM exiting
+
+free(): double free detected in tcache 2
+Aborted (core dumped)

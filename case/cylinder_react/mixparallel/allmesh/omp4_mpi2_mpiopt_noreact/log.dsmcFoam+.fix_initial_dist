@@ -1,0 +1,2503 @@
+/*---------------------------------------------------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  2506                                  |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+Build  : 95a5dfacc7-20250714 OPENFOAM=2506 version=v2506
+Arch   : "LSB;label=32;scalar=64"
+Exec   : dsmcFoam+ -parallel
+Date   : May 16 2026
+Time   : 05:00:51
+Host   : SuperXCX-ROG
+PID    : 1291188
+I/O    : uncollated
+Case   : /home/superxcx/code/DSMC/dsmcFoam++/hyStrath_xcx/case/cylinder_react/mixparallel/allmesh/omp4_mpi2_mpiopt_noreact
+nProcs : 2
+Hosts  :
+(
+    (SuperXCX-ROG 2)
+)
+Pstream initialized with:
+    node communication : off [type=host] (2 ranks, 1 nodes)
+    topology controls  : none
+    consensus exchange : 0 (tuning: 0)
+    exchange algorithm : 0
+    commsType          : nonBlocking
+    polling iterations : 0
+trapFpe: Floating point exception trapping enabled (FOAM_SIGFPE).
+fileModificationChecking : Monitoring run-time modified files using timeStampMaster (fileModificationSkew 5, maxFileModificationPolls 20)
+allowSystemOperations : Allowing user-supplied system call operations
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+Create time
+
+Overriding OptimisationSwitches according to controlDict
+    fileHandler (unregistered)
+Overriding fileHandler to masterUncollated
+I/O    : masterUncollated (maxMasterFileBufferSize 1e+09)
+--> FOAM Warning : 
+    From void Foam::fileOperations::masterUncollatedFileOperation::init(bool)
+    in file global/fileOperations/masterUncollatedFileOperation/masterUncollatedFileOperation.C at line 646
+    Resetting fileModificationChecking to timeStamp
+--> FOAM Warning : 
+    From static Foam::IOstreamOption::compressionType Foam::IOstreamOption::compressionEnum(const word &, const compressionType)
+    in file db/options/IOstreamOption.C at line 189
+    Unknown compression specifier 'uncompressed' using compression off
+Create mesh for time = 0
+
+
+Constructing dsmcCloud
+Selecting the coordinate system model:	dsmcCartesian
+
+Selecting the time-step model:	dsmcConstantTimeStepModel
+
+Constant time-step model:
+- time-step [sec]	6.640048894e-08
+
+Selecting the porous measurement model:	dsmcNoPorousMediumMeasurements
+
+
+Creating dsmcControllers
+
+Creating fields: 
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+Resetting fields at output until time: 2.456818091e-06
+ measurement option: write
+ nSamples: 1, time interval: 6.640048894e-08
+ nAverages: 300, time interval: 1.992014668e-05
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Creating the boundary models: 
+
+Selecting dsmcPatchBoundaryModel dsmcDeletionPatch
+Selecting dsmcPatchBoundaryModel dsmcDeletionPatch
+Selecting dsmcPatchBoundaryModel dsmcDiffuseWallPatch
+Selecting dsmcGeneralBoundaryModel dsmcFreeStreamInflowPatch
+Selecting BinaryCollisionModel LarsenBorgnakkeVariableHardSphere
+OpenMP enabled for dsmcCloud with 4 thread-local RNG streams using collision strategy 'dynamic' (chunk 8)', move kernel enabled (static, chunk 64), adaptive partition enabled (interval 5, imbalance 1.1, drift 0.1), collision partition cost (candidate x1, active-cell x0)
+OpenMP mixed-move guard cells enabled on 0 / 60000 cells (processor halo layers 2)
+
+Constructing constant properties for
+    N2
+Replicated mesh: METIS decomposition complete, 60000 cells -> 2 ranks
+Replicated mesh: rank 0 owns 30000 / 60000 cells
+Local mesh: 30000 owned + 446 halo = 30446 / 60000 cells
+Phase C auto DLB: enabled (SCOTCH remap), imbalanceThreshold=0.15, cooldownSteps=20
+Replicated mesh: initialized with 2 MPI ranks, migrate interval 1
+Replicated mesh: rank 0 starts with 1306469 parcels (decomposed mesh)
+
+Creating dsmcReactions
+
+There are no chemical reactions defined.
+Selecting collisionPartnerSelectionModel noTimeCounter
+
+Initialising the measurement fields
+
+Initialising dsmcVolFields field
+DSMC dynamic load balancing: enabled, mode in-memory, check interval 10, cooldown 30, max imbalance 0.16, timer gate off
+
+Starting time loop
+
+Replicated mesh: rank 0 kept 569508 parcels, deleted 736961 non-owned parcels
+Replicated mesh migration[2]: rank 0 sent 127 parcels, received 5013 (global 5140) wall 0.029864559s [pack 4.6531e-05s MPI 0.008625491s deser 0.006167812s]
+ExecutionTime = 5.98 s  ClockTime = 3 s
+
+Replicated mesh migration[3]: rank 0 sent 109 parcels, received 5139 (global 5248) wall 0.025490377s [pack 3.6643e-05s MPI 0.005281197s deser 0.005390833s]
+ExecutionTime = 7.17 s  ClockTime = 3 s
+
+ExecutionTime = 8.44 s  ClockTime = 3 s
+
+ExecutionTime = 9.93 s  ClockTime = 4 s
+
+ExecutionTime = 11.27 s  ClockTime = 4 s
+
+ExecutionTime = 12.37 s  ClockTime = 4 s
+
+ExecutionTime = 13.39 s  ClockTime = 5 s
+
+ExecutionTime = 14.33 s  ClockTime = 5 s
+
+ExecutionTime = 15.37 s  ClockTime = 5 s
+
+Time = 6.640048894e-07
+
+    BuildCellOccupancy step summary:
+        source                    = fallbackGather
+        cloud valid parcels       = 592919
+        cloud invalid parcels     = 0
+        move-order valid parcels  = 0
+        move-order invalid parcels= 0
+        occupancy parcels global  = 1329967
+        active cells global       = 60000
+        collision cells global    = 60000
+        pair potential global     = 16780608
+
+    Collisions                      = 28116
+    Collision candidates           = 95852
+    Collision acceptance rate      = 0.2933272128
+    Candidate-cell sigmaTcRMax avg/max/min = 1.000000378e-15 / 1.013356576e-15 / 1e-15
+
+[0] Load stats rank 0:
+[0]     move particles processed      = 5800520
+[0]     collision candidates          = 416676
+[0]     accepted collisions           = 123670
+[0] 
+[1] Load stats rank 1:Load balance summary:
+    move particles avg/max/min    = 6619134 / 7437748 / 5800520
+
+[1]     move particles processed      = 7437748
+[1]     collision candidates          = 475584
+[1]     accepted collisions           = 124460
+[1] 
+    move imbalance max/avg        = 1.123673882
+    collision cand avg/max/min    = 446130 / 475584 / 416676
+    collision cand imbalance      = 1.066021115
+    accepted coll avg/max/min     = 124065 / 124460 / 123670
+    accepted coll imbalance       = 1.003183815
+
+    DLB imbalance check at time 6.640048894e-07 (timeIndex 10, interval 10)
+    Particle imbalance = 10.83703581%
+    Candidates imbalance = 0.06050995284%
+    Rank candidates = 2(47955 47897)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1329967
+    Number of molecules             = 7.979802e+15
+    Mass in system                  = 3.71060793e-10
+    Average linear kinetic energy   = 1.836337075e-19
+    Average rotational energy       = 1.340757417e-21
+    Average vibrational energy      = 2.327085575e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.082453206e-19
+ExecutionTime = 16.76 s  ClockTime = 6 s
+
+ExecutionTime = 18 s  ClockTime = 6 s
+
+ExecutionTime = 19.04 s  ClockTime = 6 s
+
+ExecutionTime = 20.23 s  ClockTime = 7 s
+
+ExecutionTime = 21.51 s  ClockTime = 7 s
+
+ExecutionTime = 22.66 s  ClockTime = 7 s
+
+ExecutionTime = 23.78 s  ClockTime = 7 s
+
+ExecutionTime = 24.96 s  ClockTime = 8 s
+
+ExecutionTime = 26.29 s  ClockTime = 8 s
+
+ExecutionTime = 27.6 s  ClockTime = 9 s
+
+Time = 1.328009779e-06
+
+    BuildCellOccupancy step summary:
+        source                    = fallbackGather
+        cloud valid parcels       = 616553
+        cloud invalid parcels     = 0
+        move-order valid parcels  = 0
+        move-order invalid parcels= 0
+        occupancy parcels global  = 1353574
+        active cells global       = 60000
+        collision cells global    = 59998
+        pair potential global     = 18342556
+
+    Collisions                      = 37402
+    Collision candidates           = 113758
+    Collision acceptance rate      = 0.3287856678
+    Candidate-cell sigmaTcRMax avg/max/min = 1.000019124e-15 / 1.107588875e-15 / 1e-15
+
+[0] Load stats rank 0:
+[0]     move particles processed      = 11836114
+[0]     collision candidates          = 991572
+[0]     accepted collisions           = 330457
+[0] 
+[1] Load stats rank 1:
+[1]     move particles processed      = 14875463
+[1]     collision candidates          = 955928
+[1]     accepted collisions           = 250429
+[1] 
+Load balance summary:
+    move particles avg/max/min    = 13355788.5 / 14875463 / 11836114
+    move imbalance max/avg        = 1.11378396
+    collision cand avg/max/min    = 973750 / 991572 / 955928
+    collision cand imbalance      = 1.018302439
+    accepted coll avg/max/min     = 290443 / 330457 / 250429
+    accepted coll imbalance       = 1.137768857
+
+    DLB imbalance check at time 1.328009779e-06 (timeIndex 20, interval 10)
+    Particle imbalance = 8.899993646%
+    Candidates imbalance = 15.3870497%
+    Rank candidates = 2(65631 48127)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1353574
+    Number of molecules             = 8.121444e+15
+    Mass in system                  = 3.77647146e-10
+    Average linear kinetic energy   = 1.810020437e-19
+    Average rotational energy       = 1.57580098e-21
+    Average vibrational energy      = 2.327085575e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.058487004e-19
+ExecutionTime = 29 s  ClockTime = 9 s
+
+ExecutionTime = 30.27 s  ClockTime = 9 s
+
+ExecutionTime = 31.65 s  ClockTime = 10 s
+
+ExecutionTime = 33.11 s  ClockTime = 10 s
+
+ExecutionTime = 34.36 s  ClockTime = 10 s
+
+ExecutionTime = 35.73 s  ClockTime = 11 s
+
+ExecutionTime = 37.05 s  ClockTime = 11 s
+
+ExecutionTime = 38.82 s  ClockTime = 12 s
+
+ExecutionTime = 40.21 s  ClockTime = 12 s
+
+ExecutionTime = 41.49 s  ClockTime = 12 s
+
+Time = 1.992014668e-06
+
+    BuildCellOccupancy step summary:
+        source                    = fallbackGather
+        cloud valid parcels       = 639978
+        cloud invalid parcels     = 0
+        move-order valid parcels  = 0
+        move-order invalid parcels= 0
+        occupancy parcels global  = 1377108
+        active cells global       = 60000
+        collision cells global    = 60000
+        pair potential global     = 19983008
+
+    Collisions                      = 47864
+    Collision candidates           = 132836
+    Collision acceptance rate      = 0.3603240086
+    Candidate-cell sigmaTcRMax avg/max/min = 1.000097693e-15 / 1.107588875e-15 / 1e-15
+
+[0] Load stats rank 0:
+[0]     move particles processed      = 18107382
+[0]     collision candidates          = 1752462
+[0]     accepted collisions           = 637482
+[0] 
+[1] Load stats rank 1:
+[1]     move particles processed      = 22313430
+[1]     collision candidates          = 1437517
+[1]     accepted collisions           = 376587
+[1] 
+Load balance summary:
+    move particles avg/max/min    = 20210406 / 22313430 / 18107382
+    move imbalance max/avg        = 1.104056494
+    collision cand avg/max/min    = 1594989.5 / 1752462 / 1437517
+    collision cand imbalance      = 1.09872949
+    accepted coll avg/max/min     = 507034.5 / 637482 / 376587
+    accepted coll imbalance       = 1.257275393
+
+    DLB imbalance check at time 1.992014668e-06 (timeIndex 30, interval 10)
+    Particle imbalance = 7.054784374%
+    Candidates imbalance = 27.68376043%
+    Rank candidates = 2(84805 48031)
+
+    DLB trigger: in-memory ownership migration
+
+    In-memory DLB: no boundary cells selected for local ownership migration
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1377108
+    Number of molecules             = 8.262648e+15
+    Mass in system                  = 3.84213132e-10
+    Average linear kinetic energy   = 1.786422074e-19
+    Average rotational energy       = 1.89904217e-21
+    Average vibrational energy      = 2.327085575e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.038121053e-19
+ExecutionTime = 43.57 s  ClockTime = 13 s
+
+ExecutionTime = 45.04 s  ClockTime = 13 s
+
+ExecutionTime = 46.37 s  ClockTime = 14 s
+
+ExecutionTime = 47.8 s  ClockTime = 14 s
+
+ExecutionTime = 49.13 s  ClockTime = 14 s
+
+ExecutionTime = 50.66 s  ClockTime = 15 s
+
+ExecutionTime = 52.1 s  ClockTime = 15 s
+
+
+Start sample at time 2.456818091e-06 and step 37
+
+ExecutionTime = 53.51 s  ClockTime = 16 s
+
+ExecutionTime = 55.22 s  ClockTime = 16 s
+
+ExecutionTime = 56.85 s  ClockTime = 16 s
+
+Time = 2.656019558e-06
+
+    BuildCellOccupancy step summary:
+        source                    = fallbackGather
+        cloud valid parcels       = 663721
+        cloud invalid parcels     = 0
+        move-order valid parcels  = 0
+        move-order invalid parcels= 0
+        occupancy parcels global  = 1400608
+        active cells global       = 60000
+        collision cells global    = 59998
+        pair potential global     = 21553587
+
+    Collisions                      = 58001
+    Collision candidates           = 151913
+    Collision acceptance rate      = 0.3818040589
+    Candidate-cell sigmaTcRMax avg/max/min = 1.000357377e-15 / 1.132064119e-15 / 1e-15
+
+[0] Load stats rank 0:
+[0]     move particles processed      = 24615318
+[0]     collision candidates          = 2704809
+[0]     accepted collisions           = 1046646
+[0] 
+Load balance summary:
+    move particles avg/max/min    = 27182768 / 29750218 / 24615318
+    move imbalance max/avg        = 1.094451382
+    collision cand avg/max/min    = 2312186.5 / 2704809 / 1919564
+    collision cand imbalance      = 1.169805723
+    accepted coll avg/max/min     = 774768 / 1046646 / 502890
+    accepted coll imbalance       = 1.350915371
+
+[1] Load stats rank 1:
+[1]     move particles processed      = 29750218
+[1]     collision candidates          = 1919564
+[1]     accepted collisions           = 502890
+[1] 
+    DLB imbalance check at time 2.656019558e-06 (timeIndex 40, interval 10)
+    Particle imbalance = 5.223874203%
+    Candidates imbalance = 36.51761205%
+    Rank candidates = 2(103694 48219)
+
+    DLB trigger: in-memory ownership migration
+
+    In-memory DLB: no boundary cells selected for local ownership migration
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1400608
+    Number of molecules             = 8.403648e+15
+    Mass in system                  = 3.90769632e-10
+    Average linear kinetic energy   = 1.765179846e-19
+    Average rotational energy       = 2.287056126e-21
+    Average vibrational energy      = 2.327092221e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.02075963e-19
+ExecutionTime = 59.07 s  ClockTime = 17 s
+
+ExecutionTime = 60.53 s  ClockTime = 17 s
+
+ExecutionTime = 62.02 s  ClockTime = 18 s
+
+ExecutionTime = 63.7 s  ClockTime = 18 s
+
+ExecutionTime = 65.13 s  ClockTime = 19 s
+
+ExecutionTime = 66.77 s  ClockTime = 19 s
+
+ExecutionTime = 68.5 s  ClockTime = 20 s
+
+ExecutionTime = 70.12 s  ClockTime = 20 s
+
+ExecutionTime = 71.68 s  ClockTime = 20 s
+
+ExecutionTime = 73.28 s  ClockTime = 21 s
+
+Time = 3.320024447e-06
+
+    BuildCellOccupancy step summary:
+        source                    = fallbackGather
+        cloud valid parcels       = 687112
+        cloud invalid parcels     = 0
+        move-order valid parcels  = 0
+        move-order invalid parcels= 0
+        occupancy parcels global  = 1424112
+        active cells global       = 60000
+        collision cells global    = 59999
+        pair potential global     = 23195794
+
+    Collisions                      = 68525
+    Collision candidates           = 171892
+    Collision acceptance rate      = 0.3986514788
+    Candidate-cell sigmaTcRMax avg/max/min = 1.000851001e-15 / 1.171435014e-15 / 1e-15
+
+[0] Load stats rank 0:
+[0]     move particles processed      = 31358237
+[0]     collision candidates          = 3851897
+[0]     accepted collisions           = 1560137
+[0] 
+Load balance summary:
+    move particles avg/max/min    = [1] Load stats rank 1:
+[1]     move particles processed      = 37187190
+[1]     collision candidates          = 2401729
+[1]     accepted collisions           = 628846
+[1] 
+34272713.5 / 37187190 / 31358237
+    move imbalance max/avg        = 1.08503781
+    collision cand avg/max/min    = 3126813 / 3851897 / 2401729
+    collision cand imbalance      = 1.231892345
+    accepted coll avg/max/min     = 1094491.5 / 1560137 / 628846
+    accepted coll imbalance       = 1.425444601
+
+    DLB imbalance check at time 3.320024447e-06 (timeIndex 50, interval 10)
+    Particle imbalance = 3.503095262%
+    Candidates imbalance = 43.88802271%
+    Rank candidates = 2(123666 48226)
+
+    DLB trigger: in-memory ownership migration
+
+    In-memory DLB: no boundary cells selected for local ownership migration
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1424112
+    Number of molecules             = 8.544672e+15
+    Mass in system                  = 3.97327248e-10
+    Average linear kinetic energy   = 1.745736025e-19
+    Average rotational energy       = 2.72920426e-21
+    Average vibrational energy      = 2.327095379e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.005737605e-19
+ExecutionTime = 75.88 s  ClockTime = 22 s
+
+ExecutionTime = 77.36 s  ClockTime = 22 s
+
+ExecutionTime = 78.86 s  ClockTime = 22 s
+
+ExecutionTime = 80.59 s  ClockTime = 23 s
+
+ExecutionTime = 82.33 s  ClockTime = 23 s
+
+ExecutionTime = 84.01 s  ClockTime = 24 s
+
+ExecutionTime = 85.72 s  ClockTime = 24 s
+
+ExecutionTime = 87.35 s  ClockTime = 25 s
+
+ExecutionTime = 89.21 s  ClockTime = 25 s
+
+ExecutionTime = 91.07 s  ClockTime = 26 s
+
+Time = 3.984029336e-06
+
+    BuildCellOccupancy step summary:
+        source                    = fallbackGather
+        cloud valid parcels       = 710549
+        cloud invalid parcels     = 0
+        move-order valid parcels  = 0
+        move-order invalid parcels= 0
+        occupancy parcels global  = 1447325
+        active cells global       = 60000
+        collision cells global    = 59999
+        pair potential global     = 24723260
+
+    Collisions                      = 78578
+    Collision candidates           = 190452
+    Collision acceptance rate      = 0.4125868985
+    Candidate-cell sigmaTcRMax avg/max/min = 1.001465092e-15 / 1.197224955e-15 / 1e-15
+
+[0] Load stats rank 0:
+[0]     move particles processed      = 38335395
+[0]     collision candidates          = 5191467
+[0]     accepted collisions           = 2174537
+[0] 
+Load balance summary:
+    move particles avg/max/min    = 41479471 / 44623547 / 38335395
+    move imbalance max/avg        = 1.075798363
+    collision cand avg/max/min    = 4037660.5 / 5191467 / 2883854
+    collision cand imbalance      = 1.285761148
+    accepted coll avg/max/min     = 1464958.5 / 2174537 / 755380
+    accepted coll imbalance       = 1.484367646
+
+    DLB imbalance check at time 3.984029336e-06 (timeIndex 60, interval 10)[1] Load stats rank 1:
+[1]     move particles processed      = 44623547
+[1]     collision candidates          = 2883854
+[1]     accepted collisions           = 755380
+[1] 
+
+    Particle imbalance = 1.812101636%
+    Candidates imbalance = 49.54844265%
+    Rank candidates = 2(142409 48043)
+
+    DLB trigger: in-memory ownership migration
+
+    In-memory DLB: no boundary cells selected for local ownership migration
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1447325
+    Number of molecules             = 8.68395e+15
+    Mass in system                  = 4.03803675e-10
+    Average linear kinetic energy   = 1.727833714e-19
+    Average rotational energy       = 3.197779769e-21
+    Average vibrational energy      = 2.327104869e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.992521999e-19
+ExecutionTime = 93.71 s  ClockTime = 26 s
+
+ExecutionTime = 95.61 s  ClockTime = 27 s
+
+ExecutionTime = 97.46 s  ClockTime = 27 s
+
+ExecutionTime = 99.15 s  ClockTime = 28 s
+
+ExecutionTime = 100.98 s  ClockTime = 28 s
+
+ExecutionTime = 103 s  ClockTime = 29 s
+
+ExecutionTime = 104.73 s  ClockTime = 29 s
+
+ExecutionTime = 106.59 s  ClockTime = 30 s
+
+ExecutionTime = 108.67 s  ClockTime = 31 s
+
+ExecutionTime = 110.43 s  ClockTime = 31 s
+
+Time = 4.648034226e-06
+
+    BuildCellOccupancy step summary:
+        source                    = fallbackGather
+        cloud valid parcels       = 734187
+        cloud invalid parcels     = 0
+        move-order valid parcels  = 0
+        move-order invalid parcels= 0
+        occupancy parcels global  = 1470811
+        active cells global       = 60000
+        collision cells global    = 60000
+        pair potential global     = 26221954
+
+    Collisions                      = 87909
+    Collision candidates           = 209265
+    Collision acceptance rate      = 0.4200845818
+    Candidate-cell sigmaTcRMax avg/max/min = 1.002341395e-15 / 1.238479759e-15 / 1e-15
+
+[0] Load stats rank 0:
+[0]     move particles processed      = 45549094
+[0]     collision candidates          = 6720333
+[0]     accepted collisions           = 2886219
+[0] 
+[1] Load stats rank 1:
+[1]     move particles processed      = 52057915
+[1]     collision candidates          = 3365595
+[1]     accepted collisions           = 880995
+[1] 
+Load balance summary:
+    move particles avg/max/min    = 48803504.5 / 52057915 / 45549094
+    move imbalance max/avg        = 1.066683951
+    collision cand avg/max/min    = 5042964 / 6720333 / 3365595
+    collision cand imbalance      = 1.3326157
+    accepted coll avg/max/min     = 1883607 / 2886219 / 880995
+    accepted coll imbalance       = 1.532283008
+
+    DLB imbalance check at time 4.648034226e-06 (timeIndex 70, interval 10)
+    Particle imbalance = 0.1656909011%
+    Candidates imbalance = 53.96172317%
+    Rank candidates = 2(161094 48171)
+
+    DLB trigger: in-memory ownership migration
+
+    In-memory DLB: no boundary cells selected for local ownership migration
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1470811
+    Number of molecules             = 8.824866e+15
+    Mass in system                  = 4.10356269e-10
+    Average linear kinetic energy   = 1.711001192e-19
+    Average rotational energy       = 3.69158567e-21
+    Average vibrational energy      = 2.327104561e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.980627505e-19
+ExecutionTime = 113.65 s  ClockTime = 32 s
+
+ExecutionTime = 115.52 s  ClockTime = 30 s
+
+ExecutionTime = 117.4 s  ClockTime = 30 s
+
+ExecutionTime = 119.4 s  ClockTime = 31 s
+
+ExecutionTime = 121.46 s  ClockTime = 32 s
+
+ExecutionTime = 123.29 s  ClockTime = 32 s
+
+ExecutionTime = 125.43 s  ClockTime = 33 s
+
+ExecutionTime = 127.33 s  ClockTime = 33 s
+
+ExecutionTime = 129.26 s  ClockTime = 34 s
+
+ExecutionTime = 131.49 s  ClockTime = 34 s
+
+Time = 5.312039115e-06
+
+    BuildCellOccupancy step summary:
+        source                    = fallbackGather
+        cloud valid parcels       = 757598
+        cloud invalid parcels     = 0
+        move-order valid parcels  = 0
+        move-order invalid parcels= 0
+        occupancy parcels global  = 1494356
+        active cells global       = 60000
+        collision cells global    = 59999
+        pair potential global     = 27660104
+
+    Collisions                      = 97229
+    Collision candidates           = 227019
+    Collision acceptance rate      = 0.4282857382
+    Candidate-cell sigmaTcRMax avg/max/min = 1.003305329e-15 / 1.242155724e-15 / 1e-15
+
+[0] Load stats rank 0:
+[0]     move particles processed      = 52995806
+[0]     collision candidates          = 8431246
+[0]     accepted collisions           = 3692413
+[0] 
+[1] Load stats rank 1:
+[1]     move particles processed      = 59492639
+[1]     collision candidates          = 3847666
+[1]     accepted collisions           = 1007008
+[1] 
+Load balance summary:
+    move particles avg/max/min    = 56244222.5 / 59492639 / 52995806
+    move imbalance max/avg        = 1.057755559
+    collision cand avg/max/min    = 6139456 / 8431246 / 3847666
+    collision cand imbalance      = 1.373288773
+    accepted coll avg/max/min     = 2349710.5 / 3692413 / 1007008
+    accepted coll imbalance       = 1.571433162
+
+    DLB imbalance check at time 5.312039115e-06 (timeIndex 80, interval 10)
+    Particle imbalance = 1.394580676%
+    Candidates imbalance = 57.51985517%
+    Rank candidates = 2(178800 48219)
+
+    DLB trigger: in-memory ownership migration
+
+    In-memory DLB: no boundary cells selected for local ownership migration
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1494356
+    Number of molecules             = 8.966136e+15
+    Mass in system                  = 4.16925324e-10
+    Average linear kinetic energy   = 1.695552387e-19
+    Average rotational energy       = 4.180699625e-21
+    Average vibrational energy      = 2.327126064e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.970071989e-19
+ExecutionTime = 134.68 s  ClockTime = 35 s
+
+ExecutionTime = 136.76 s  ClockTime = 36 s
+
+ExecutionTime = 138.84 s  ClockTime = 36 s
+
+ExecutionTime = 140.69 s  ClockTime = 37 s
+
+ExecutionTime = 142.75 s  ClockTime = 38 s
+
+ExecutionTime = 144.72 s  ClockTime = 38 s
+
+ExecutionTime = 146.8 s  ClockTime = 39 s
+
+ExecutionTime = 148.76 s  ClockTime = 39 s
+
+ExecutionTime = 150.9 s  ClockTime = 40 s
+
+ExecutionTime = 153.12 s  ClockTime = 40 s
+
+Time = 5.976044005e-06
+
+    BuildCellOccupancy step summary:
+        source                    = fallbackGather
+        cloud valid parcels       = 780856
+        cloud invalid parcels     = 0
+        move-order valid parcels  = 0
+        move-order invalid parcels= 0
+        occupancy parcels global  = 1517645
+        active cells global       = 60000
+        collision cells global    = 60000
+        pair potential global     = 29055488
+
+    Collisions                      = 105657
+    Collision candidates           = 244260
+    Collision acceptance rate      = 0.4325595677
+    Candidate-cell sigmaTcRMax avg/max/min = 1.004347553e-15 / 1.28980731e-15 / 1e-15
+
+[1] Load stats rank 1:
+[1]     move particles processed      = 66928255
+[1]     collision candidates          = 4329839
+[1]     accepted collisions           = 1133812
+[1] 
+[0] Load stats rank 0:
+[0]     move particles processed      = 60676364
+[0]     collision candidates          = 10314860
+[0]     accepted collisions           = 4586347
+[0] 
+Load balance summary:
+    move particles avg/max/min    = 63802309.5 / 66928255 / 60676364
+    move imbalance max/avg        = 1.048994237
+    collision cand avg/max/min    = 7322349.5 / 10314860 / 4329839
+    collision cand imbalance      = 1.408681735
+    accepted coll avg/max/min     = 2860079.5 / 4586347 / 1133812
+    accepted coll imbalance       = 1.603573257
+
+    DLB imbalance check at time 5.976044005e-06 (timeIndex 90, interval 10)
+    Particle imbalance = 2.903643474%
+    Candidates imbalance = 60.52894457%
+    Rank candidates = 2(196054 48206)
+
+    DLB trigger: in-memory ownership migration
+
+    In-memory DLB: no boundary cells selected for local ownership migration
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1517645
+    Number of molecules             = 9.10587e+15
+    Mass in system                  = 4.23422955e-10
+    Average linear kinetic energy   = 1.68073732e-19
+    Average rotational energy       = 4.682355926e-21
+    Average vibrational energy      = 2.327125442e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.960273423e-19
+ExecutionTime = 156.46 s  ClockTime = 41 s
+
+ExecutionTime = 158.62 s  ClockTime = 42 s
+
+ExecutionTime = 160.61 s  ClockTime = 43 s
+
+ExecutionTime = 162.74 s  ClockTime = 43 s
+
+ExecutionTime = 164.76 s  ClockTime = 44 s
+
+ExecutionTime = 166.86 s  ClockTime = 44 s
+
+ExecutionTime = 169.14 s  ClockTime = 45 s
+
+ExecutionTime = 171.22 s  ClockTime = 45 s
+
+ExecutionTime = 173.39 s  ClockTime = 46 s
+
+ExecutionTime = 175.66 s  ClockTime = 47 s
+
+Time = 6.640048894e-06
+
+    BuildCellOccupancy step summary:
+        source                    = fallbackGather
+        cloud valid parcels       = 804050
+        cloud invalid parcels     = 0
+        move-order valid parcels  = 0
+        move-order invalid parcels= 0
+        occupancy parcels global  = 1540700
+        active cells global       = 60000
+        collision cells global    = 60000
+        pair potential global     = 30461870
+
+    Collisions                      = 114849
+    Collision candidates           = 261617
+    Collision acceptance rate      = 0.4389967013
+    Candidate-cell sigmaTcRMax avg/max/min = 1.005434392e-15 / 1.28980731e-15 / 1e-15
+
+[1] Load stats rank 1:
+[1]     move particles processed      = 74365369
+[1]     collision candidates          = 4812264
+[1]     accepted collisions           = 1259679
+[1] 
+[0] Load stats rank 0:
+[0]     move particles processed      = 68587033
+[0]     collision candidates          = 12369719
+[0]     accepted collisions           = 5568465
+[0] 
+Load balance summary:
+    move particles avg/max/min    = 71476201 / 74365369 / 68587033
+    move imbalance max/avg        = 1.040421398
+    collision cand avg/max/min    = 8590991.5 / 12369719 / 4812264
+    collision cand imbalance      = 1.439847659
+    accepted coll avg/max/min     = 3414072 / 5568465 / 1259679
+    accepted coll imbalance       = 1.631033265
+
+    DLB imbalance check at time 6.640048894e-06 (timeIndex 100, interval 10)
+    Particle imbalance = 4.374634906%
+    Candidates imbalance = 62.98635028%
+    Rank candidates = 2(213200 48417)
+
+    DLB trigger: in-memory ownership migration
+
+    In-memory DLB: no boundary cells selected for local ownership migration
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1540700
+    Number of molecules             = 9.2442e+15
+    Mass in system                  = 4.298553e-10
+    Average linear kinetic energy   = 1.667003049e-19
+    Average rotational energy       = 5.184663226e-21
+    Average vibrational energy      = 2.327155054e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.951565186e-19
+ExecutionTime = 179.21 s  ClockTime = 48 s
+
+ExecutionTime = 181.28 s  ClockTime = 48 s
+
+ExecutionTime = 183.64 s  ClockTime = 49 s
+
+ExecutionTime = 185.9 s  ClockTime = 50 s
+
+ExecutionTime = 188.05 s  ClockTime = 50 s
+
+ExecutionTime = 190.34 s  ClockTime = 51 s
+
+ExecutionTime = 192.55 s  ClockTime = 52 s
+
+ExecutionTime = 194.89 s  ClockTime = 52 s
+
+ExecutionTime = 197.18 s  ClockTime = 53 s
+
+ExecutionTime = 199.29 s  ClockTime = 53 s
+
+Time = 7.304053783e-06
+
+    BuildCellOccupancy step summary:
+        source                    = fallbackGather
+        cloud valid parcels       = 826661
+        cloud invalid parcels     = 0
+        move-order valid parcels  = 0
+        move-order invalid parcels= 0
+        occupancy parcels global  = 1563489
+        active cells global       = 60000
+        collision cells global    = 60000
+        pair potential global     = 31788932
+
+    Collisions                      = 123105
+    Collision candidates           = 277857
+    Collision acceptance rate      = 0.4430516417
+    Candidate-cell sigmaTcRMax avg/max/min = 1.00662484e-15 / 1.395239258e-15 / 1e-15
+
+[1] Load stats rank 1:
+[1]     move particles processed      = 81800263
+[1]     collision candidates          = 5294177
+[1]     accepted collisions           = 1386028
+[1] 
+[0] Load stats rank 0:
+[0]     move particles processed      = 76730397
+[0]     collision candidates          = 14594573
+[0]     accepted collisions           = 6636744
+[0] 
+Load balance summary:
+    move particles avg/max/min    = 79265330 / 81800263 / 76730397
+    move imbalance max/avg        = 1.03198035
+    collision cand avg/max/min    = 9944375 / 14594573 / 5294177
+    collision cand imbalance      = 1.467620941
+    accepted coll avg/max/min     = 4011386 / 6636744 / 1386028
+    accepted coll imbalance       = 1.654476533
+
+    DLB imbalance check at time 7.304053783e-06 (timeIndex 110, interval 10)
+    Particle imbalance = 5.745675217%
+    Candidates imbalance = 65.29509784%
+    Rank candidates = 2(229642 48215)
+
+    DLB trigger: in-memory ownership migration
+
+    In-memory DLB: no boundary cells selected for local ownership migration
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1563489
+    Number of molecules             = 9.380934e+15
+    Mass in system                  = 4.36213431e-10
+    Average linear kinetic energy   = 1.65418924e-19
+    Average rotational energy       = 5.66966468e-21
+    Average vibrational energy      = 2.327174879e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.943603375e-19
+ExecutionTime = 202.95 s  ClockTime = 55 s
+
+ExecutionTime = 205.08 s  ClockTime = 55 s
+
+ExecutionTime = 207.27 s  ClockTime = 56 s
+
+ExecutionTime = 209.53 s  ClockTime = 56 s
+
+ExecutionTime = 212.02 s  ClockTime = 57 s
+
+ExecutionTime = 214.22 s  ClockTime = 58 s
+
+ExecutionTime = 216.63 s  ClockTime = 58 s
+
+ExecutionTime = 218.95 s  ClockTime = 59 s
+
+ExecutionTime = 221.25 s  ClockTime = 60 s
+
+ExecutionTime = 223.57 s  ClockTime = 60 s
+
+Time = 7.968058673e-06
+
+    BuildCellOccupancy step summary:
+        source                    = fallbackGather
+        cloud valid parcels       = 849402
+        cloud invalid parcels     = 0
+        move-order valid parcels  = 0
+        move-order invalid parcels= 0
+        occupancy parcels global  = 1586503
+        active cells global       = 60000
+        collision cells global    = 60000
+        pair potential global     = 33066844
+
+    Collisions                      = 131091
+    Collision candidates           = 293591
+    Collision acceptance rate      = 0.4465089189
+    Candidate-cell sigmaTcRMax avg/max/min = 1.007733176e-15 / 1.395239258e-15 / 1e-15
+
+[1] Load stats rank 1:
+[1]     move particles processed      = 89237440
+[1]     collision candidates          = [0] Load stats rank 0:
+[0]     move particles processed      = 85099836
+[0]     collision candidates          = 16978135
+[0]     accepted collisions           = 7786647
+[0] 
+Load balance summary:
+    move particles avg/max/min    = 87168638 / 89237440 / 85099836
+    move imbalance max/avg        = 1.023733329
+    collision cand avg/max/min    = 11377308.5 / 16978135 / 5776482
+    collision cand imbalance      = 1.492280446
+    accepted coll avg/max/min     = 4649246 / 7786647 / 1511845
+    accepted coll imbalance       = 1.674819315
+
+    DLB imbalance check at time 7.968058673e-06 (timeIndex 120, interval 10)
+    Particle imbalance = 7.078524276%
+    Candidates imbalance = 67.11615819%
+    Rank candidates = 2(245319 48272)
+
+    DLB trigger: in-memory ownership migration
+
+5776482
+[1]     accepted collisions           = 1511845
+[1] 
+    In-memory DLB: no boundary cells selected for local ownership migration
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1586503
+    Number of molecules             = 9.519018e+15
+    Mass in system                  = 4.42634337e-10
+    Average linear kinetic energy   = 1.641729045e-19
+    Average rotational energy       = 6.168739535e-21
+    Average vibrational energy      = 2.32721172e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.936137613e-19
+ExecutionTime = 227.44 s  ClockTime = 62 s
+
+ExecutionTime = 229.49 s  ClockTime = 60 s
+
+ExecutionTime = 231.96 s  ClockTime = 60 s
+
+ExecutionTime = 234.22 s  ClockTime = 61 s
+
+ExecutionTime = 236.59 s  ClockTime = 62 s
+
+ExecutionTime = 239.09 s  ClockTime = 62 s
+
+ExecutionTime = 241.28 s  ClockTime = 63 s
+
+ExecutionTime = 243.75 s  ClockTime = 64 s
+
+ExecutionTime = 246.1 s  ClockTime = 64 s
+
+ExecutionTime = 248.47 s  ClockTime = 65 s
+
+Time = 8.632063562e-06
+
+    BuildCellOccupancy step summary:
+        source                    = fallbackGather
+        cloud valid parcels       = 871795
+        cloud invalid parcels     = 0
+        move-order valid parcels  = 0
+        move-order invalid parcels= 0
+        occupancy parcels global  = 1608706
+        active cells global       = 60000
+        collision cells global    = 60000
+        pair potential global     = 34271616
+
+    Collisions                      = 138352
+    Collision candidates           = 308103
+    Collision acceptance rate      = 0.4490446377
+    Candidate-cell sigmaTcRMax avg/max/min = 1.008741498e-15 / 1.395239258e-15 / 1e-15
+
+[1] Load stats rank 1:
+[1]     move particles processed      = 96675037
+[1]     collision candidates          = 6258869
+[1]     accepted collisions           = 1638064
+[1] 
+[0] Load stats rank 0:
+[0]     move particles processed      = 93694850
+[0]     collision candidates          = 19511157
+[0]     accepted collisions           = 9011037
+[0] 
+Load balance summary:
+    move particles avg/max/min    = 95184943.5 / 96675037 / 93694850
+    move imbalance max/avg        = 1.015654719
+    collision cand avg/max/min    = 12885013 / 19511157 / 6258869
+    collision cand imbalance      = 1.514252023
+    accepted coll avg/max/min     = 5324550.5 / 9011037 / 1638064
+    accepted coll imbalance       = 1.692356378
+
+    DLB imbalance check at time 8.632063562e-06 (timeIndex 130, interval 10)
+    Particle imbalance = 8.384627148%
+    Candidates imbalance = 68.71111284%
+    Rank candidates = 2(259902 48201)
+
+    DLB trigger: in-memory ownership migration
+
+    In-memory DLB: no boundary cells selected for local ownership migration
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1608706
+    Number of molecules             = 9.652236e+15
+    Mass in system                  = 4.48828974e-10
+    Average linear kinetic energy   = 1.630132128e-19
+    Average rotational energy       = 6.63876385e-21
+    Average vibrational energy      = 2.327256269e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.929245393e-19
+ExecutionTime = 252.27 s  ClockTime = 66 s
+
+ExecutionTime = 254.55 s  ClockTime = 67 s
+
+ExecutionTime = 256.82 s  ClockTime = 67 s
+
+ExecutionTime = 259.09 s  ClockTime = 68 s
+
+ExecutionTime = 261.4 s  ClockTime = 69 s
+
+ExecutionTime = 263.73 s  ClockTime = 69 s
+
+ExecutionTime = 266 s  ClockTime = 70 s
+
+ExecutionTime = 268.48 s  ClockTime = 71 s
+
+ExecutionTime = 270.81 s  ClockTime = 72 s
+
+ExecutionTime = 273.27 s  ClockTime = 72 s
+
+Time = 9.296068452e-06
+
+    BuildCellOccupancy step summary:
+        source                    = fallbackGather
+        cloud valid parcels       = 894204
+        cloud invalid parcels     = 0
+        move-order valid parcels  = 0
+        move-order invalid parcels= 0
+        occupancy parcels global  = 1631268
+        active cells global       = 60000
+        collision cells global    = 60000
+        pair potential global     = 35492593
+
+    Collisions                      = 146270
+    Collision candidates           = 322517
+    Collision acceptance rate      = 0.4535264808
+    Candidate-cell sigmaTcRMax avg/max/min = 1.009831008e-15 / 1.395239258e-15 / 1e-15
+
+[1] Load stats rank 1:
+[1]     move particles processed      = 104112920
+[1]     collision candidates          = 6741310
+[1]     accepted collisions           = 1764253
+[1] 
+[0] Load stats rank 0:
+[0]     move particles processed      = 102513962
+[0]     collision candidates          = 22188685
+[0]     accepted collisions           = 10310339
+[0] 
+Load balance summary:
+    move particles avg/max/min    = 103313441 / 104112920 / 102513962
+    move imbalance max/avg        = 1.007738383
+    collision cand avg/max/min    = 14464997.5 / 22188685 / 6741310
+    collision cand imbalance      = 1.533957057
+    accepted coll avg/max/min     = 6037296 / 10310339 / 1764253
+    accepted coll imbalance       = 1.707774308
+
+    DLB imbalance check at time 9.296068452e-06 (timeIndex 140, interval 10)
+    Particle imbalance = 9.632997153%
+    Candidates imbalance = 70.12994664%
+    Rank candidates = 2(274349 48168)
+
+    DLB trigger: in-memory ownership migration
+
+    In-memory DLB: no boundary cells selected for local ownership migration
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1631268
+    Number of molecules             = 9.787608e+15
+    Mass in system                  = 4.55123772e-10
+    Average linear kinetic energy   = 1.619210743e-19
+    Average rotational energy       = 7.098209342e-21
+    Average vibrational energy      = 2.327276733e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.92292051e-19
+ExecutionTime = 277.17 s  ClockTime = 73 s
+
+ExecutionTime = 279.49 s  ClockTime = 74 s
+
+ExecutionTime = 281.87 s  ClockTime = 75 s
+
+ExecutionTime = 284.48 s  ClockTime = 76 s
+
+ExecutionTime = 286.95 s  ClockTime = 76 s
+
+ExecutionTime = 289.43 s  ClockTime = 77 s
+
+ExecutionTime = 291.86 s  ClockTime = 78 s
+
+ExecutionTime = 294.41 s  ClockTime = 78 s
+
+ExecutionTime = 296.81 s  ClockTime = 79 s
+
+ExecutionTime = 299.44 s  ClockTime = 80 s
+
+Time = 9.960073341e-06
+
+    BuildCellOccupancy step summary:
+        source                    = fallbackGather
+        cloud valid parcels       = 916349
+        cloud invalid parcels     = 0
+        move-order valid parcels  = 0
+        move-order invalid parcels= 0
+        occupancy parcels global  = 1653365
+        active cells global       = 60000
+        collision cells global    = 60000
+        pair potential global     = 36660770
+
+    Collisions                      = 152734
+    Collision candidates           = 336263
+    Collision acceptance rate      = 0.4542099488
+    Candidate-cell sigmaTcRMax avg/max/min = 1.010972486e-15 / 1.402816957e-15 / 1e-15
+
+[1] Load stats rank 1:
+[1]     move particles processed      = 111551313
+[1]     collision candidates          = 7223583
+[1]     accepted collisions           = 1890415
+[1] 
+[0] Load stats rank 0:
+[0]     move particles processed      = 111555465
+[0]     collision candidates          = 25009014
+[0]     accepted collisions           = 11682669
+[0] 
+Load balance summary:
+    move particles avg/max/min    = 111553389 / 111555465 / 111551313
+    move imbalance max/avg        = 1.00001861
+    collision cand avg/max/min    = 16116298.5 / 25009014 / 7223583
+    collision cand imbalance      = 1.551783991
+    accepted coll avg/max/min     = 6786542 / 11682669 / 1890415
+    accepted coll imbalance       = 1.721446504
+
+    DLB imbalance check at time 9.960073341e-06 (timeIndex 150, interval 10)
+    Particle imbalance = 10.84654629%
+    Candidates imbalance = 71.35813337%
+    Rank candidates = 2(288107 48156)
+
+    DLB trigger: in-memory ownership migration
+
+    In-memory DLB: no boundary cells selected for local ownership migration
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1653365
+    Number of molecules             = 9.92019e+15
+    Mass in system                  = 4.61288835e-10
+    Average linear kinetic energy   = 1.608869301e-19
+    Average rotational energy       = 7.572427386e-21
+    Average vibrational energy      = 2.327316403e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.917325215e-19
+ExecutionTime = 303.52 s  ClockTime = 81 s
+
+ExecutionTime = 306.08 s  ClockTime = 82 s
+
+ExecutionTime = 308.5 s  ClockTime = 83 s
+
+ExecutionTime = 311.16 s  ClockTime = 83 s
+
+ExecutionTime = 313.53 s  ClockTime = 84 s
+
+ExecutionTime = 316 s  ClockTime = 85 s
+
+ExecutionTime = 318.58 s  ClockTime = 86 s
+
+ExecutionTime = 321.28 s  ClockTime = 86 s
+
+ExecutionTime = 323.87 s  ClockTime = 87 s
+
+ExecutionTime = 326.59 s  ClockTime = 88 s
+
+Time = 1.062407823e-05
+
+    BuildCellOccupancy step summary:
+        source                    = fallbackGather
+        cloud valid parcels       = 938460
+        cloud invalid parcels     = 0
+        move-order valid parcels  = 0
+        move-order invalid parcels= 0
+        occupancy parcels global  = 1675253
+        active cells global       = 60000
+        collision cells global    = 60000
+        pair potential global     = 37891999
+
+    Collisions                      = 160593
+    Collision candidates           = 350715
+    Collision acceptance rate      = 0.4579017151
+    Candidate-cell sigmaTcRMax avg/max/min = 1.012108686e-15 / 1.402816957e-15 / 1e-15
+
+[1] Load stats rank 1:
+[1]     move particles processed      = 118986864
+[1]     collision candidates          = 7705670
+[1]     accepted collisions           = 2016535
+[1] 
+[0] Load stats rank 0:
+[0]     move particles processed      = 120820145
+[0]     collision candidates          = 27969698
+[0]     accepted collisions           = 13127508
+[0] 
+Load balance summary:
+    move particles avg/max/min    = 119903504.5 / 120820145 / 118986864
+    move imbalance max/avg        = 1.007644818
+    collision cand avg/max/min    = 17837684 / 27969698 / 7705670
+    collision cand imbalance      = 1.568011744
+    accepted coll avg/max/min     = 7572021.5 / 13127508 / 2016535
+    accepted coll imbalance       = 1.733686044
+
+    DLB imbalance check at time 1.062407823e-05 (timeIndex 160, interval 10)
+    Particle imbalance = 12.03800262%
+    Candidates imbalance = 72.51329427%
+    Rank candidates = 2(302515 48200)
+
+    DLB trigger: in-memory ownership migration
+
+    In-memory DLB: no boundary cells selected for local ownership migration
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1675253
+    Number of molecules             = 1.0051518e+16
+    Mass in system                  = 4.67395587e-10
+    Average linear kinetic energy   = 1.598524711e-19
+    Average rotational energy       = 8.052304652e-21
+    Average vibrational energy      = 2.327341169e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.911781875e-19
+ExecutionTime = 330.59 s  ClockTime = 89 s
+
+ExecutionTime = 332.92 s  ClockTime = 90 s
+
+ExecutionTime = 335.5 s  ClockTime = 91 s
+
+ExecutionTime = 338 s  ClockTime = 91 s
+
+ExecutionTime = 340.67 s  ClockTime = 92 s
+
+ExecutionTime = 343.23 s  ClockTime = 90 s
+
+ExecutionTime = 345.93 s  ClockTime = 91 s
+
+ExecutionTime = 348.74 s  ClockTime = 92 s
+
+ExecutionTime = 351.37 s  ClockTime = 93 s
+
+ExecutionTime = 353.98 s  ClockTime = 93 s
+
+Time = 1.128808312e-05
+
+    BuildCellOccupancy step summary:
+        source                    = fallbackGather
+        cloud valid parcels       = 960174
+        cloud invalid parcels     = 0
+        move-order valid parcels  = 0
+        move-order invalid parcels= 0
+        occupancy parcels global  = 1696911
+        active cells global       = 60000
+        collision cells global    = 60000
+        pair potential global     = 39083918
+
+    Collisions                      = 166804
+    Collision candidates           = 364535
+    Collision acceptance rate      = 0.4575802049
+    Candidate-cell sigmaTcRMax avg/max/min = 1.013257329e-15 / 1.402816957e-15 / 1e-15
+
+[1] Load stats rank 1:
+[1]     move particles processed      = 126422917
+[1]     collision candidates          = 8187676
+[1]     accepted collisions           = 2142717
+[1] 
+[0] Load stats rank 0:
+[0]     move particles processed      = 130301948
+[0]     collision candidates          = 31069650
+[0]     accepted collisions           = 14643238
+[0] 
+Load balance summary:
+    move particles avg/max/min    = 128362432.5 / 130301948 / 126422917
+    move imbalance max/avg        = 1.015109682
+    collision cand avg/max/min    = 19628663 / 31069650 / 8187676
+    collision cand imbalance      = 1.582871437
+    accepted coll avg/max/min     = 8392977.5 / 14643238 / 2142717
+    accepted coll imbalance       = 1.74470121
+
+    DLB imbalance check at time 1.128808312e-05 (timeIndex 170, interval 10)
+    Particle imbalance = 13.16727866%
+    Candidates imbalance = 73.55974049%
+    Rank candidates = 2(316343 48192)
+
+    DLB trigger: in-memory ownership migration
+
+    In-memory DLB: no boundary cells selected for local ownership migration
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1696911
+    Number of molecules             = 1.0181466e+16
+    Mass in system                  = 4.73438169e-10
+    Average linear kinetic energy   = 1.588651903e-19
+    Average rotational energy       = 8.513987648e-21
+    Average vibrational energy      = 2.327395504e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.90653133e-19
+ExecutionTime = 358.11 s  ClockTime = 95 s
+
+ExecutionTime = 360.46 s  ClockTime = 95 s
+
+ExecutionTime = 363.2 s  ClockTime = 96 s
+
+ExecutionTime = 365.75 s  ClockTime = 97 s
+
+ExecutionTime = 368.44 s  ClockTime = 98 s
+
+ExecutionTime = 370.96 s  ClockTime = 98 s
+
+ExecutionTime = 373.53 s  ClockTime = 99 s
+
+ExecutionTime = 376.2 s  ClockTime = 100 s
+
+ExecutionTime = 379.11 s  ClockTime = 101 s
+
+ExecutionTime = 381.87 s  ClockTime = 102 s
+
+Time = 1.195208801e-05
+
+    BuildCellOccupancy step summary:
+        source                    = fallbackGather
+        cloud valid parcels       = 981649
+        cloud invalid parcels     = 0
+        move-order valid parcels  = 0
+        move-order invalid parcels= 0
+        occupancy parcels global  = 1718403
+        active cells global       = 60000
+        collision cells global    = 60000
+        pair potential global     = 40212602
+
+    Collisions                      = 173994
+    Collision candidates           = 377909
+    Collision acceptance rate      = 0.4604124273
+    Candidate-cell sigmaTcRMax avg/max/min = 1.014330179e-15 / 1.414022321e-15 / 1e-15
+
+[1] Load stats rank 1:
+[1]     move particles processed      = 133858259
+[1]     collision candidates          = 8669558
+[1]     accepted collisions           = 2268596
+[1] 
+[0] Load stats rank 0:
+[0]     move particles processed      = 140000932
+[0]     collision candidates          = 34307126
+[0]     accepted collisions           = 16228041
+[0] 
+Load balance summary:
+    move particles avg/max/min    = 136929595.5 / 140000932 / 133858259
+    move imbalance max/avg        = 1.022430041
+    collision cand avg/max/min    = 21488342 / 34307126 / 8669558
+    collision cand imbalance      = 1.596545978
+    accepted coll avg/max/min     = 9248318.5 / 16228041 / 2268596
+    accepted coll imbalance       = 1.754701787
+
+    DLB imbalance check at time 1.195208801e-05 (timeIndex 180, interval 10)
+    Particle imbalance = 14.25131357%
+    Candidates imbalance = 74.45416754%
+    Rank candidates = 2(329639 48270)
+
+    DLB trigger: in-memory ownership migration
+
+    In-memory DLB: no boundary cells selected for local ownership migration
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1718403
+    Number of molecules             = 1.0310418e+16
+    Mass in system                  = 4.79434437e-10
+    Average linear kinetic energy   = 1.579618383e-19
+    Average rotational energy       = 8.932439821e-21
+    Average vibrational energy      = 2.327440379e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.901686819e-19
+ExecutionTime = 386.2 s  ClockTime = 103 s
+
+ExecutionTime = 388.74 s  ClockTime = 104 s
+
+ExecutionTime = 391.26 s  ClockTime = 104 s
+
+ExecutionTime = 394.07 s  ClockTime = 105 s
+
+ExecutionTime = 396.66 s  ClockTime = 106 s
+
+ExecutionTime = 399.32 s  ClockTime = 107 s
+
+ExecutionTime = 401.88 s  ClockTime = 107 s
+
+ExecutionTime = 404.58 s  ClockTime = 108 s
+
+ExecutionTime = 407.17 s  ClockTime = 109 s
+
+ExecutionTime = 410.11 s  ClockTime = 110 s
+
+Time = 1.26160929e-05
+
+    BuildCellOccupancy step summary:
+        source                    = fallbackGather
+        cloud valid parcels       = 1002529
+        cloud invalid parcels     = 0
+        move-order valid parcels  = 0
+        move-order invalid parcels= 0
+        occupancy parcels global  = 1739429
+        active cells global       = 60000
+        collision cells global    = 60000
+        pair potential global     = 41292151
+
+    Collisions                      = 180547
+    Collision candidates           = 389903
+    Collision acceptance rate      = 0.463056196
+    Candidate-cell sigmaTcRMax avg/max/min = 1.015444667e-15 / 1.414022321e-15 / 1e-15
+
+[1] Load stats rank 1:
+[1]     move particles processed      = 141293852
+[1]     collision candidates          = 9151578[0] Load stats rank 0:
+[0]     move particles processed      = 149912111
+[0]     collision candidates          = 37671028
+[0]     accepted collisions           = 17878340
+[0] 
+
+[1]     accepted collisions           = 2394617
+[1] 
+Load balance summary:
+    move particles avg/max/min    = 145602981.5 / 149912111 / 141293852
+    move imbalance max/avg        = 1.029595064
+    collision cand avg/max/min    = 23411303 / 37671028 / 9151578
+    collision cand imbalance      = 1.609095743
+    accepted coll avg/max/min     = 10136478.5 / 17878340 / 2394617
+    accepted coll imbalance       = 1.763762435
+
+    DLB imbalance check at time 1.26160929e-05 (timeIndex 190, interval 10)
+    Particle imbalance = 15.27104584%
+    Candidates imbalance = 75.30821768%
+    Rank candidates = 2(341766 48137)
+
+    DLB trigger: in-memory ownership migration
+
+    In-memory DLB: no boundary cells selected for local ownership migration
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1739429
+    Number of molecules             = 1.0436574e+16
+    Mass in system                  = 4.85300691e-10
+    Average linear kinetic energy   = 1.570559753e-19
+    Average rotational energy       = 9.37433345e-21
+    Average vibrational energy      = 2.327478901e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.897050978e-19
+ExecutionTime = 414.27 s  ClockTime = 111 s
+
+ExecutionTime = 416.85 s  ClockTime = 112 s
+
+ExecutionTime = 419.76 s  ClockTime = 113 s
+
+ExecutionTime = 422.46 s  ClockTime = 114 s
+
+ExecutionTime = 425.24 s  ClockTime = 114 s
+
+ExecutionTime = 427.89 s  ClockTime = 115 s
+
+ExecutionTime = 430.61 s  ClockTime = 116 s
+
+ExecutionTime = 433.39 s  ClockTime = 117 s
+
+ExecutionTime = 435.88 s  ClockTime = 117 s
+
+ExecutionTime = 438.38 s  ClockTime = 118 s
+
+Time = 1.328009779e-05
+
+    BuildCellOccupancy step summary:
+        source                    = fallbackGather
+        cloud valid parcels       = 1023477
+        cloud invalid parcels     = 0
+        move-order valid parcels  = 0
+        move-order invalid parcels= 0
+        occupancy parcels global  = 1760312
+        active cells global       = 60000
+        collision cells global    = 60000
+        pair potential global     = 42434822
+
+    Collisions                      = 187081
+    Collision candidates           = 403220
+    Collision acceptance rate      = 0.4639675611
+    Candidate-cell sigmaTcRMax avg/max/min = 1.016481534e-15 / 1.414022321e-15 / 1e-15
+
+[0] Load stats rank 0:
+[0]     move particles processed      = 160031737
+[0]     collision candidates          = 41161145
+[0]     accepted collisions           = 19593135
+[0] 
+[1] Load stats rank 1:
+[1]     move particles processed      = 148729718
+[1]     collision candidates          = 9633647
+[1]     accepted collisions           = 2520570
+[1] 
+Load balance summary:
+    move particles avg/max/min    = 154380727.5 / 160031737 / 148729718
+    move imbalance max/avg        = 1.036604371
+    collision cand avg/max/min    = 25397396 / 41161145 / 9633647
+    collision cand imbalance      = 1.620683672
+    accepted coll avg/max/min     = 11056852.5 / 19593135 / 2520570
+    accepted coll imbalance       = 1.772035487
+
+    DLB imbalance check at time 1.328009779e-05 (timeIndex 200, interval 10)
+    Particle imbalance = 16.28359064%
+    Candidates imbalance = 76.10138386%
+    Rank candidates = 2(355038 48182)
+
+    DLB trigger: in-memory ownership migration
+
+    In-memory DLB: no boundary cells selected for local ownership migration
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1760312
+    Number of molecules             = 1.0561872e+16
+    Mass in system                  = 4.91127048e-10
+    Average linear kinetic energy   = 1.562171897e-19
+    Average rotational energy       = 9.780928799e-21
+    Average vibrational energy      = 2.327484811e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.892729666e-19
+ExecutionTime = 442.25 s  ClockTime = 119 s
+
+ExecutionTime = 444.57 s  ClockTime = 120 s
+
+ExecutionTime = 447.09 s  ClockTime = 121 s
+
+ExecutionTime = 449.6 s  ClockTime = 121 s
+
+ExecutionTime = 452.18 s  ClockTime = 122 s
+
+ExecutionTime = 454.75 s  ClockTime = 120 s
+
+ExecutionTime = 457.28 s  ClockTime = 121 s
+
+ExecutionTime = 459.81 s  ClockTime = 122 s
+
+ExecutionTime = 462.37 s  ClockTime = 122 s
+
+ExecutionTime = 464.9 s  ClockTime = 123 s
+
+Time = 1.394410268e-05
+
+    BuildCellOccupancy step summary:
+        source                    = fallbackGather
+        cloud valid parcels       = 1044115
+        cloud invalid parcels     = 0
+        move-order valid parcels  = 0
+        move-order invalid parcels= 0
+        occupancy parcels global  = 1781033
+        active cells global       = 60000
+        collision cells global    = 60000
+        pair potential global     = 43572720
+
+    Collisions                      = 194115
+    Collision candidates           = 416069
+    Collision acceptance rate      = 0.4665452125
+    Candidate-cell sigmaTcRMax avg/max/min = 1.017473503e-15 / 1.414022321e-15 / 1e-15
+
+[1] Load stats rank 1:
+[1]     move particles processed      = 156167371
+[1]     collision candidates          = 10115725
+[1]     accepted collisions           = 2646761
+[1] 
+[0] Load stats rank 0:
+[0]     move particles processed      = 170359564
+[0]     collision candidates          = 44780115
+[0]     accepted collisions           = 21375548
+[0] 
+Load balance summary:
+    move particles avg/max/min    = 163263467.5 / 170359564 / 156167371
+    move imbalance max/avg        = 1.043464081
+    collision cand avg/max/min    = 27447920 / 44780115 / 10115725
+    collision cand imbalance      = 1.631457502
+    accepted coll avg/max/min     = 12011154.5 / 21375548 / 2646761
+    accepted coll imbalance       = 1.779641416
+
+    DLB imbalance check at time 1.394410268e-05 (timeIndex 210, interval 10)
+    Particle imbalance = 17.24824863%
+    Candidates imbalance = 76.83365019%
+    Rank candidates = 2(367875 48194)
+
+    DLB trigger: in-memory ownership migration
+
+    In-memory DLB: no boundary cells selected for local ownership migration
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1781033
+    Number of molecules             = 1.0686198e+16
+    Mass in system                  = 4.96908207e-10
+    Average linear kinetic energy   = 1.553881802e-19
+    Average rotational energy       = 1.019874835e-20
+    Average vibrational energy      = 2.327527204e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.888622006e-19
+ExecutionTime = 468.8 s  ClockTime = 124 s
+
+ExecutionTime = 471.15 s  ClockTime = 125 s
+
+ExecutionTime = 473.72 s  ClockTime = 126 s
+
+ExecutionTime = 476.31 s  ClockTime = 127 s
+
+ExecutionTime = 478.87 s  ClockTime = 127 s
+
+ExecutionTime = 481.46 s  ClockTime = 128 s
+
+ExecutionTime = 484.11 s  ClockTime = 129 s
+
+ExecutionTime = 486.63 s  ClockTime = 129 s
+
+ExecutionTime = 489.19 s  ClockTime = 130 s
+
+ExecutionTime = 491.74 s  ClockTime = 131 s
+
+Time = 1.460810757e-05
+
+    BuildCellOccupancy step summary:
+        source                    = fallbackGather
+        cloud valid parcels       = 1064903
+        cloud invalid parcels     = 0
+        move-order valid parcels  = 0
+        move-order invalid parcels= 0
+        occupancy parcels global  = 1801626
+        active cells global       = 60000
+        collision cells global    = 60000
+        pair potential global     = 44716868
+
+    Collisions                      = 200583
+    Collision candidates           = 429118
+    Collision acceptance rate      = 0.4674308698
+    Candidate-cell sigmaTcRMax avg/max/min = 1.018587392e-15 / 1.414022321e-15 / 1e-15
+
+[1] Load stats rank 1:
+[1]     move particles processed      = 163604725
+[1]     collision candidates          = 10597994
+[1]     accepted collisions           = 2773124
+[1] 
+[0] Load stats rank 0:
+[0]     move particles processed      = 180893058
+[0]     collision candidates          = 48529697
+[0]     accepted collisions           = 23225270
+[0] 
+Load balance summary:
+    move particles avg/max/min    = 172248891.5 / 180893058 / 163604725
+    move imbalance max/avg        = 1.050184163
+    collision cand avg/max/min    = 29563845.5 / 48529697 / 10597994
+    collision cand imbalance      = 1.641521804
+    accepted coll avg/max/min     = 12999197 / 23225270 / 2773124
+    accepted coll imbalance       = 1.786669592
+
+    DLB imbalance check at time 1.460810757e-05 (timeIndex 220, interval 10)
+    Particle imbalance = 18.21576731%
+    Candidates imbalance = 77.51014872%
+    Rank candidates = 2(380864 48254)
+
+    DLB trigger: in-memory ownership migration
+
+    In-memory DLB: no boundary cells selected for local ownership migration
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1801626
+    Number of molecules             = 1.0809756e+16
+    Mass in system                  = 5.02653654e-10
+    Average linear kinetic energy   = 1.545822494e-19
+    Average rotational energy       = 1.060389331e-20
+    Average vibrational energy      = 2.327555739e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.884617001e-19
+ExecutionTime = 495.69 s  ClockTime = 132 s
+
+ExecutionTime = 498.09 s  ClockTime = 133 s
+
+ExecutionTime = 500.65 s  ClockTime = 133 s
+
+ExecutionTime = 503.22 s  ClockTime = 134 s
+
+ExecutionTime = 505.82 s  ClockTime = 135 s
+
+ExecutionTime = 508.48 s  ClockTime = 136 s
+
+ExecutionTime = 511.16 s  ClockTime = 136 s
+
+ExecutionTime = 513.78 s  ClockTime = 137 s
+
+ExecutionTime = 516.4 s  ClockTime = 138 s
+
+ExecutionTime = 518.98 s  ClockTime = 139 s
+
+Time = 1.527211246e-05
+
+    BuildCellOccupancy step summary:
+        source                    = fallbackGather
+        cloud valid parcels       = 1084914
+        cloud invalid parcels     = 0
+        move-order valid parcels  = 0
+        move-order invalid parcels= 0
+        occupancy parcels global  = 1821741
+        active cells global       = 60000
+        collision cells global    = 60000
+        pair potential global     = 45786568
+
+    Collisions                      = 206806
+    Collision candidates           = 440795
+    Collision acceptance rate      = 0.4691659388
+    Candidate-cell sigmaTcRMax avg/max/min = 1.019648646e-15 / 1.414022321e-15 / 1e-15
+
+[1] Load stats rank 1:
+[1]     move particles processed      = 171042738
+[1]     collision candidates          = 11080268
+[1]     accepted collisions           = 2899214
+[1] 
+[0] Load stats rank 0:
+[0]     move particles processed      = 191630101
+[0]     collision candidates          = 52404113
+[0]     accepted collisions           = 25138526
+[0] 
+Load balance summary:
+    move particles avg/max/min    = 181336419.5 / 191630101 / 171042738
+    move imbalance max/avg        = 1.05676566
+    collision cand avg/max/min    = 31742190.5 / 52404113 / 11080268
+    collision cand imbalance      = 1.650929321
+    accepted coll avg/max/min     = 14018870 / 25138526 / 2899214
+    accepted coll imbalance       = 1.793192033
+
+    DLB imbalance check at time 1.527211246e-05 (timeIndex 230, interval 10)
+    Particle imbalance = 19.10738135%
+    Candidates imbalance = 78.1721662%
+    Rank candidates = 2(392687 48108)
+
+    DLB trigger: in-memory ownership migration
+
+    In-memory DLB: no boundary cells selected for local ownership migration
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1821741
+    Number of molecules             = 1.0930446e+16
+    Mass in system                  = 5.08265739e-10
+    Average linear kinetic energy   = 1.538311998e-19
+    Average rotational energy       = 1.096714571e-20
+    Average vibrational energy      = 2.327581205e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.880741576e-19
+ExecutionTime = 522.94 s  ClockTime = 140 s
+
+ExecutionTime = 525.4 s  ClockTime = 141 s
+
+ExecutionTime = 528.06 s  ClockTime = 141 s
+
+ExecutionTime = 530.76 s  ClockTime = 142 s
+
+ExecutionTime = 533.42 s  ClockTime = 143 s
+
+ExecutionTime = 536.05 s  ClockTime = 144 s
+
+ExecutionTime = 538.72 s  ClockTime = 144 s
+
+ExecutionTime = 541.38 s  ClockTime = 145 s
+
+ExecutionTime = 544 s  ClockTime = 146 s
+
+ExecutionTime = 546.72 s  ClockTime = 147 s
+
+Time = 1.593611735e-05
+
+    BuildCellOccupancy step summary:
+        source                    = fallbackGather
+        cloud valid parcels       = 1104962
+        cloud invalid parcels     = 0
+        move-order valid parcels  = 0
+        move-order invalid parcels= 0
+        occupancy parcels global  = 1841840
+        active cells global       = 60000
+        collision cells global    = 60000
+        pair potential global     = 46831461
+
+    Collisions                      = 213016
+    Collision candidates           = 452574
+    Collision acceptance rate      = 0.4706766186
+    Candidate-cell sigmaTcRMax avg/max/min = 1.020648335e-15 / 1.414022321e-15 / 1e-15
+
+[0] Load stats rank 0:
+[0]     move particles processed      = 202569239
+[0]     collision candidates          = 56396117
+[0]     accepted collisions           = 27112602
+[0] 
+[1] Load stats rank 1:
+[1]     move particles processed      = 178480415
+[1]     collision candidates          = 11562753
+[1]     accepted collisions           = 3024872
+[1] 
+Load balance summary:
+    move particles avg/max/min    = 190524827 / 202569239 / 178480415
+    move imbalance max/avg        = 1.063217021
+    collision cand avg/max/min    = 33979435 / 56396117 / 11562753
+    collision cand imbalance      = 1.659713206
+    accepted coll avg/max/min     = 15068737 / 27112602 / 3024872
+    accepted coll imbalance       = 1.799261743
+
+    DLB imbalance check at time 1.593611735e-05 (timeIndex 240, interval 10)
+    Particle imbalance = 19.98458064%
+    Candidates imbalance = 78.69608064%
+    Rank candidates = 2(404366 48208)
+
+    DLB trigger: in-memory ownership migration
+
+    In-memory DLB: no boundary cells selected for local ownership migration
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1841840
+    Number of molecules             = 1.105104e+16
+    Mass in system                  = 5.1387336e-10
+    Average linear kinetic energy   = 1.530712007e-19
+    Average rotational energy       = 1.1353258e-20
+    Average vibrational energy      = 2.327626335e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.87700722e-19
+ExecutionTime = 550.68 s  ClockTime = 148 s
+
+ExecutionTime = 553.12 s  ClockTime = 149 s
+
+ExecutionTime = 555.81 s  ClockTime = 149 s
+
+ExecutionTime = 558.48 s  ClockTime = 150 s
+
+ExecutionTime = 561.25 s  ClockTime = 151 s
+
+ExecutionTime = 563.98 s  ClockTime = 152 s
+
+ExecutionTime = 566.71 s  ClockTime = 150 s
+
+ExecutionTime = 569.46 s  ClockTime = 151 s
+
+ExecutionTime = 572.15 s  ClockTime = 151 s
+
+ExecutionTime = 574.83 s  ClockTime = 152 s
+
+Time = 1.660012224e-05
+
+    BuildCellOccupancy step summary:
+        source                    = fallbackGather
+        cloud valid parcels       = 1124817
+        cloud invalid parcels     = 0
+        move-order valid parcels  = 0
+        move-order invalid parcels= 0
+        occupancy parcels global  = 1861908
+        active cells global       = 60000
+        collision cells global    = 60000
+        pair potential global     = 47916545
+
+    Collisions                      = 219223
+    Collision candidates           = 464497
+    Collision acceptance rate      = 0.4719578383
+    Candidate-cell sigmaTcRMax avg/max/min = 1.021666337e-15 / 1.414022321e-15 / 1e-15
+
+[1] Load stats rank 1:
+[1]     move particles processed      = 185917567
+[1]     collision candidates          = 12045125
+[1]     accepted collisions           = 3151057
+[1] 
+[0] Load stats rank 0:
+[0]     move particles processed      = 213708933
+[0]     collision candidates          = 60505026
+[0]     accepted collisions           = 29147251
+[0] 
+Load balance summary:
+    move particles avg/max/min    = 199813250 / 213708933 / 185917567
+    move imbalance max/avg        = 1.069543351
+    collision cand avg/max/min    = 36275075.5 / 60505026 / 12045125
+    collision cand imbalance      = 1.667950381
+    accepted coll avg/max/min     = 16149154 / 29147251 / 3151057
+    accepted coll imbalance       = 1.80487789
+
+    DLB imbalance check at time 1.660012224e-05 (timeIndex 250, interval 10)
+    Particle imbalance = 20.82412235%
+    Candidates imbalance = 79.2653128%
+    Rank candidates = 2(416341 48156)
+
+    DLB trigger: in-memory ownership migration
+
+    In-memory DLB: no boundary cells selected for local ownership migration
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1861908
+    Number of molecules             = 1.1171448e+16
+    Mass in system                  = 5.19472332e-10
+    Average linear kinetic energy   = 1.523581417e-19
+    Average rotational energy       = 1.171582854e-20
+    Average vibrational energy      = 2.327685498e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.873508252e-19
+ExecutionTime = 578.88 s  ClockTime = 153 s
+
+ExecutionTime = 581.38 s  ClockTime = 154 s
+
+ExecutionTime = 584.23 s  ClockTime = 155 s
+
+ExecutionTime = 586.96 s  ClockTime = 156 s
+
+ExecutionTime = 589.69 s  ClockTime = 156 s
+
+ExecutionTime = 592.41 s  ClockTime = 157 s
+
+ExecutionTime = 595.21 s  ClockTime = 158 s
+
+ExecutionTime = 597.96 s  ClockTime = 159 s
+
+ExecutionTime = 600.7 s  ClockTime = 159 s
+
+ExecutionTime = 603.42 s  ClockTime = 160 s
+
+Time = 1.726412712e-05
+
+    BuildCellOccupancy step summary:
+        source                    = fallbackGather
+        cloud valid parcels       = 1144368
+        cloud invalid parcels     = 0
+        move-order valid parcels  = 0
+        move-order invalid parcels= 0
+        occupancy parcels global  = 1881095
+        active cells global       = 60000
+        collision cells global    = 60000
+        pair potential global     = 48837165
+
+    Collisions                      = 224438
+    Collision candidates           = 474834
+    Collision acceptance rate      = 0.472666237
+    Candidate-cell sigmaTcRMax avg/max/min = 1.02260941e-15 / 1.414022321e-15 / 1e-15
+
+[1] Load stats rank 1:
+[1]     move particles processed      = 193353598
+[1]     collision candidates          = 12527227
+[1]     accepted collisions           = 3277757
+[1] 
+[0] Load stats rank 0:
+[0]     move particles processed      = 225045610
+[0]     collision candidates          = 64725961
+[0]     accepted collisions           = 31238959
+[0] 
+Load balance summary:
+    move particles avg/max/min    = 209199604 / 225045610 / 193353598
+    move imbalance max/avg        = 1.07574587
+    collision cand avg/max/min    = 38626594 / 64725961 / 12527227
+    collision cand imbalance      = 1.675683882
+    accepted coll avg/max/min     = 17258358 / 31238959 / 3277757
+    accepted coll imbalance       = 1.810077123
+
+    DLB imbalance check at time 1.726412712e-05 (timeIndex 260, interval 10)
+    Particle imbalance = 21.67041005%
+    Candidates imbalance = 79.66447222%
+    Rank candidates = 2(426554 48280)
+
+    DLB trigger: in-memory ownership migration
+
+    In-memory DLB: no boundary cells selected for local ownership migration
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1881095
+    Number of molecules             = 1.128657e+16
+    Mass in system                  = 5.24825505e-10
+    Average linear kinetic energy   = 1.516321237e-19
+    Average rotational energy       = 1.209238185e-20
+    Average vibrational energy      = 2.327718966e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.870016952e-19
+ExecutionTime = 607.53 s  ClockTime = 162 s
+
+ExecutionTime = 610.07 s  ClockTime = 162 s
+
+ExecutionTime = 612.83 s  ClockTime = 163 s
+
+ExecutionTime = 615.58 s  ClockTime = 164 s
+
+ExecutionTime = 618.33 s  ClockTime = 165 s
+
+ExecutionTime = 621.08 s  ClockTime = 165 s
+
+ExecutionTime = 623.92 s  ClockTime = 166 s
+
+ExecutionTime = 626.67 s  ClockTime = 167 s
+
+ExecutionTime = 629.44 s  ClockTime = 168 s
+
+ExecutionTime = 632.19 s  ClockTime = 168 s
+
+Time = 1.792813201e-05
+
+    BuildCellOccupancy step summary:
+        source                    = fallbackGather
+        cloud valid parcels       = 1163498
+        cloud invalid parcels     = 0
+        move-order valid parcels  = 0
+        move-order invalid parcels= 0
+        occupancy parcels global  = 1900581
+        active cells global       = 60000
+        collision cells global    = 60000
+        pair potential global     = 49815522
+
+    Collisions                      = 230021
+    Collision candidates           = 485188
+    Collision acceptance rate      = 0.4740863335
+    Candidate-cell sigmaTcRMax avg/max/min = 1.023575815e-15 / 1.414022321e-15 / 1e-15
+
+[1] Load stats rank 1:
+[1]     move particles processed      = 200790260
+[1]     collision candidates          = 13009434
+[1]     accepted collisions           = 3404573
+[1] 
+[0] Load stats rank 0:
+[0]     move particles processed      = 236576036
+[0]     collision candidates          = 69046703
+[0]     accepted collisions           = 33385552
+[0] 
+Load balance summary:
+    move particles avg/max/min    = 218683148 / 236576036 / 200790260
+    move imbalance max/avg        = 1.081821065
+    collision cand avg/max/min    = 41028068.5 / 69046703 / 13009434
+    collision cand imbalance      = 1.682913808
+    accepted coll avg/max/min     = 18395062.5 / 33385552 / 3404573
+    accepted coll imbalance       = 1.814919194
+
+    DLB imbalance check at time 1.792813201e-05 (timeIndex 270, interval 10)
+    Particle imbalance = 22.43603403%
+    Candidates imbalance = 80.05061955%
+    Rank candidates = 2(436792 48396)
+
+    DLB trigger: in-memory ownership migration
+
+    In-memory DLB: no boundary cells selected for local ownership migration
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1900581
+    Number of molecules             = 1.1403486e+16
+    Mass in system                  = 5.30262099e-10
+    Average linear kinetic energy   = 1.509463907e-19
+    Average rotational energy       = 1.24398662e-20
+    Average vibrational energy      = 2.327758999e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.866638469e-19
+ExecutionTime = 636.32 s  ClockTime = 170 s
+
+ExecutionTime = 638.89 s  ClockTime = 171 s
+
+ExecutionTime = 641.69 s  ClockTime = 171 s
+
+ExecutionTime = 644.52 s  ClockTime = 172 s
+
+ExecutionTime = 647.3 s  ClockTime = 173 s
+
+ExecutionTime = 650.13 s  ClockTime = 174 s
+
+ExecutionTime = 652.98 s  ClockTime = 174 s
+
+ExecutionTime = 655.78 s  ClockTime = 175 s
+
+ExecutionTime = 658.64 s  ClockTime = 176 s
+
+ExecutionTime = 661.45 s  ClockTime = 177 s
+
+Time = 1.85921369e-05
+
+    BuildCellOccupancy step summary:
+        source                    = fallbackGather
+        cloud valid parcels       = 1182950
+        cloud invalid parcels     = 0
+        move-order valid parcels  = 0
+        move-order invalid parcels= 0
+        occupancy parcels global  = 1919777
+        active cells global       = 60000
+        collision cells global    = 60000
+        pair potential global     = 50780142
+
+    Collisions                      = 234940
+    Collision candidates           = 495168
+    Collision acceptance rate      = 0.474465232
+    Candidate-cell sigmaTcRMax avg/max/min = 1.024508615e-15 / 1.414022321e-15 / 1e-15
+
+[1] Load stats rank 1:
+[1]     move particles processed      = 208227318
+[1]     collision candidates          = 13491617
+[1]     accepted collisions           = 3531000
+[1] 
+[0] Load stats rank 0:
+[0]     move particles processed      = 248299513
+[0]     collision candidates          = 73467735
+[0]     accepted collisions           = 35581875
+[0] 
+Load balance summary:
+    move particles avg/max/min    = 228263415.5 / 248299513 / 208227318
+    move imbalance max/avg        = 1.08777621
+    collision cand avg/max/min    = 43479676 / 73467735 / 13491617
+    collision cand imbalance      = 1.689702909
+    accepted coll avg/max/min     = 19556437.5 / 35581875 / 3531000
+    accepted coll imbalance       = 1.819445643
+
+    DLB imbalance check at time 1.85921369e-05 (timeIndex 280, interval 10)
+    Particle imbalance = 23.23827195%
+    Candidates imbalance = 80.58517513%
+    Rank candidates = 2(447100 48068)
+
+    DLB trigger: in-memory ownership migration
+
+    In-memory DLB: no boundary cells selected for local ownership migration
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1919777
+    Number of molecules             = 1.1518662e+16
+    Mass in system                  = 5.35617783e-10
+    Average linear kinetic energy   = 1.503100957e-19
+    Average rotational energy       = 1.275607051e-20
+    Average vibrational energy      = 2.327800752e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.863441737e-19
+ExecutionTime = 665.59 s  ClockTime = 178 s
+
+ExecutionTime = 668.2 s  ClockTime = 179 s
+
+ExecutionTime = 671.02 s  ClockTime = 180 s
+
+ExecutionTime = 673.86 s  ClockTime = 180 s
+
+ExecutionTime = 676.8 s  ClockTime = 181 s
+
+ExecutionTime = 679.63 s  ClockTime = 182 s
+
+ExecutionTime = 682.55 s  ClockTime = 180 s
+
+ExecutionTime = 685.37 s  ClockTime = 181 s
+
+ExecutionTime = 688.29 s  ClockTime = 182 s
+
+ExecutionTime = 691.14 s  ClockTime = 183 s
+
+Time = 1.925614179e-05
+
+    BuildCellOccupancy step summary:
+        source                    = fallbackGather
+        cloud valid parcels       = 1201518
+        cloud invalid parcels     = 0
+        move-order valid parcels  = 0
+        move-order invalid parcels= 0
+        occupancy parcels global  = 1938511
+        active cells global       = 60000
+        collision cells global    = 60000
+        pair potential global     = 51783152
+
+    Collisions                      = 240785
+    Collision candidates           = 506206
+    Collision acceptance rate      = 0.4756660332
+    Candidate-cell sigmaTcRMax avg/max/min = 1.025499382e-15 / 1.414022321e-15 / 1e-15
+
+[1] Load stats rank 1:
+[1]     move particles processed      = 215663647
+[1]     collision candidates          = 13973988
+[1]     accepted collisions           = 3657197
+[1] 
+[0] Load stats rank 0:
+[0]     move particles processed      = 260213558
+[0]     collision candidates          = 78000913
+[0]     accepted collisions           = 37837514
+[0] 
+Load balance summary:
+    move particles avg/max/min    = 237938602.5 / 260213558 / 215663647
+    move imbalance max/avg        = 1.0936164
+    collision cand avg/max/min    = 45987450.5 / 78000913 / 13973988
+    collision cand imbalance      = 1.696134753
+    accepted coll avg/max/min     = 20747355.5 / 37837514 / 3657197
+    accepted coll imbalance       = 1.823727077
+
+    DLB imbalance check at time 1.925614179e-05 (timeIndex 290, interval 10)
+    Particle imbalance = 23.96297983%
+    Candidates imbalance = 80.93582455%
+    Rank candidates = 2(457954 48252)
+
+    DLB trigger: in-memory ownership migration
+
+    In-memory DLB: no boundary cells selected for local ownership migration
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1938511
+    Number of molecules             = 1.1631066e+16
+    Mass in system                  = 5.40844569e-10
+    Average linear kinetic energy   = 1.496356358e-19
+    Average rotational energy       = 1.31098353e-20
+    Average vibrational energy      = 2.327865868e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.860241298e-19
+ExecutionTime = 695.26 s  ClockTime = 184 s
+
+ExecutionTime = 697.9 s  ClockTime = 185 s
+
+ExecutionTime = 700.85 s  ClockTime = 186 s
+
+ExecutionTime = 703.76 s  ClockTime = 186 s
+
+ExecutionTime = 706.65 s  ClockTime = 187 s
+
+ExecutionTime = 709.6 s  ClockTime = 188 s
+
+ExecutionTime = 712.44 s  ClockTime = 189 s
+
+ExecutionTime = 715.29 s  ClockTime = 190 s
+
+ExecutionTime = 718.21 s  ClockTime = 191 s
+
+dsmcVolFields final profiling [N2]
+    calls                 = 0
+    sample accumulation   = 13.22928361 s
+    shared cache build    = 13.12470774 s
+      cache allocate      = 0.003197746 s
+      cache reset         = 0 s
+      parcel accumulate   = 13.12085646 s
+    field combine         = 0.10434941 s
+    cell reduction        = 0.069772586 s
+    boundary accumulation = 0.185417111 s
+    output compute        = 0 s
+    field writes          = 0 s
+    output reset          = 0 s
+    output-time block     = 0 s
+      detail sample cells = 279266
+      detail sample parcels = 8454113
+      base accum (sampled)= 0.24081785 s
+      vib accum (sampled) = 0.954856964 s
+      electronic (sampled)= 0 s
+      class accum (sampled)= 0 s
+
+ExecutionTime = 721.16 s  ClockTime = 191 s
+
+Time = 1.992014668e-05
+
+    BuildCellOccupancy step summary:
+        source                    = fallbackGather
+        cloud valid parcels       = 1220105
+        cloud invalid parcels     = 0
+        move-order valid parcels  = 0
+        move-order invalid parcels= 0
+        occupancy parcels global  = 1956840
+        active cells global       = 60000
+        collision cells global    = 60000
+        pair potential global     = 52678463
+
+    Collisions                      = 245801
+    Collision candidates           = 515547
+    Collision acceptance rate      = 0.4767770931
+    Candidate-cell sigmaTcRMax avg/max/min = 1.026446873e-15 / 1.414022321e-15 / 1e-15
+
+[1] Load stats rank 1:
+[1]     move particles processed      = 223101282
+[1]     collision candidates          = 14456178
+[1]     accepted collisions           = 3783928
+[1] 
+[0] Load stats rank 0:
+[0]     move particles processed      = 272312058
+[0]     collision candidates          = 82631811
+[0]     accepted collisions           = 40142673
+[0] 
+Load balance summary:
+    move particles avg/max/min    = 247706670 / 272312058 / 223101282
+    move imbalance max/avg        = 1.099332763
+    collision cand avg/max/min    = 48543994.5 / 82631811 / 14456178
+    collision cand imbalance      = 1.702204605
+    accepted coll avg/max/min     = 21963300.5 / 40142673 / 3783928
+    accepted coll imbalance       = 1.827715875
+
+
+Phase C auto DLB triggered at step 300: sar=0.0002355766238 tidl=0.6467450215 nPeriods=15 prodTimes 2(13.93753657 14.03036538)
+Phase C ParMETIS: AdaptiveRepart (60000 cells, 2 constraints)
+Replicated mesh: rank 0 owns 31890 / 60000 cells
+Local mesh: 31890 owned + 638 halo = 32528 / 60000 cells
+Phase C ParMETIS AdaptiveRepart: 58110 / 60000 cells changed (0.9685)
+Phase C auto DLB complete: rebalance #1
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1956840
+    Number of molecules             = 1.174104e+16
+    Mass in system                  = 5.4595836e-10
+    Average linear kinetic energy   = 1.489888502e-19
+    Average rotational energy       = 1.344132361e-20
+    Average vibrational energy      = 2.327903749e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.857092113e-19
+ExecutionTime = 726.67 s  ClockTime = 194 s
+
+[1] Load stats rank 1:
+[1]     move particles processed      = 223101282
+[1]     collision candidates          = 14456178
+[1]     accepted collisions           = 3783928
+[1] 
+
+Main loop profiling summary:
+    main loop wall time [s]      = 206.9401885
+
+Move profiling summary:
+    move calls                    = 600
+    move pre-control/partition [s]= 0.073103674
+    move reset/setup [s]          = 0.007733171
+    move extract parcels [s]      = 16.29723723
+    move parallel kernel wall [s] = 52.0488587
+    move commit/survivor rebuild [s] = 0.833300613
+    move transfer/delete finalize [s] = 14.1139629
+    total profiled [s]            = 83.37419629
+
+Move profiling detail:
+    move commit passes total      = 300
+    avg move passes/call          = 0.5
+    max move passes/call          = 1
+    avg move extracted parcels    = 907706.86
+    extract deferred-only [s]     = 0
+    extract ordered-reuse [s]     = 0
+    extract full-scan [s]         = 16.2969332
+    deferred extract passes       = 0
+    ordered-reuse extract passes  = 0
+    full-scan extract passes      = 300
+    avg deferred-only parcels     = 0
+    avg ordered-reuse parcels     = 0
+    avg full-scan parcels         = 907706.86
+    first-pass reuse checks       = 300
+    first-pass has ordered        = 1
+    first-pass missing ordered    = 299
+    first-pass offset mismatch    = 299
+    first-pass exact size match   = 0
+    first-pass prior+appended match= 0
+    avg first-pass current size   = 907706.86
+    avg first-pass prior size     = 1889.626667
+    avg first-pass appended size  = 0
+    avg first-pass size delta     = 905817.2333
+    avg first-pass (delta-appended)= 905817.2333
+    avg inter-step cloud delta    = 0
+    inter-step cloud delta min/max= 0 / 0
+    avg post-step cloud delta     = 2474.063333
+    post-step cloud delta min/max = 4708 / 5159
+    avg deferred parcels/pass     = 0
+    max deferred parcels/pass     = 0
+    avg received parcels/pass     = 0
+    max received parcels/pass     = 0
+    avg move surviving parcels    = 904927.39
+    avg move transferred parcels  = 0
+    avg move deleted parcels      = 2779.47
+    trackToAndHitFace total [s]   = 142.6890278
+    tracker callback total [s]    = 0
+    boundary control total [s]    = 4.609807702
+    avg face hits/call            = 266231.995
+    avg processor hits/call       = 0
+    avg patch hits/call           = 6543.221667
+    avg cyclic hits/call          = 0
+    avg stuck hits/call           = 0
+
+BuildCellOccupancy profiling summary:
+    buildCellOccupancy calls      = 301
+    extract parcels [s]           = 17.97891352
+    count/reduce [s]              = 1.26601956
+    allocate/fill [s]             = 1.358546548
+    total profiled [s]            = 20.60347963
+
+BuildCellOccupancy profiling detail:
+    move-ordered hits             = 0
+    fallback gathers             = 301
+    fallback invalid-order       = 300
+    fallback offset-mismatch     = 0
+    fallback size-mismatch       = 1
+    avg move-ordered parcels      = 1883.348837
+    avg appended parcels          = 0
+    avg cloud size                = 911193.103
+    size delta avg/min/max        = -909309.7542 / -1306469 / -4886
+
+
+    avg cloud valid-cell parcels   = 91655.72425
+    avg cloud invalid-cell parcels = 0
+    avg move-order valid parcels   = 0
+    avg move-order invalid parcels = 0
+    avg partition assigned parcels = 91655.72425
+    avg partition gap cells        = 0
+    avg partition overlap cells    = 0
+
+Collision profiling summary:
+    collision calls               = 300
+    precompute candidates [s]     = 0.082933429
+    rebuild partition [s]         = 1.8639e-05
+    selection/collide [s]         = 44.22778007
+    total profiled [s]            = 44.31073214
+
+Evolve profiling summary:
+    evolve calls                  = 300
+    move only [s]                 = 84.24585463
+    buildCellOccupancy [s]        = 57.09105235
+    coordSystem [s]               = 0.000471632
+    collision phase [s]           = 44.31227328
+    reaction/output [s]           = 3.7931e-05
+    post fields/output [s]        = 13.68002376
+    total profiled [s]            = 199.3297136
+
+[0] Load stats rank 0:
+[0]     move particles processed      = 272312058
+[0]     collision candidates          = 82631811
+[0]     accepted collisions           = 40142673
+[0] 
+Profiling detail load-balance summary:
+    move particles avg/max/min    = 247706670 / 272312058 / 223101282
+    move imbalance max/avg        = 1.099332763
+    collision cand avg/max/min    = 48543994.5 / 82631811 / 14456178
+    collision cand imbalance      = 1.702204605
+    accepted coll avg/max/min     = 21963300.5 / 40142673 / 3783928
+    accepted coll imbalance       = 1.827715875
+
+
+Replicated mesh profiling summary:
+    migration calls             = 302
+    migration wall time [s]     = 32.85623348
+    local particles (final)     = 921715
+    particles per rank          = min 921715 max 1035125 avg 978420 imbalance 1.057955684
+    rank wall time (evolve, 300 steps): min 199.4076996 max 199.4494145 avg 199.4285571 imbalance 1.000104586
+    TACF cell cost (30 samples): min 0 max 30828.4 avg 1701.283002 (move weight 3.7)
+    TACF collision cost (30 samples): min 0 max 19966 avg 140.25775 (coll weight 1)
+    Phase C auto DLB rebalances = 1
+    nSuperCells                 = 16
+
+End
+
+	Command being timed: "mpirun -np 2 dsmcFoam+ -parallel"
+	User time (seconds): 1428.49
+	System time (seconds): 17.21
+	Percent of CPU this job got: 741%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 3:14.90
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 1077460
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 122
+	Minor (reclaiming a frame) page faults: 870404
+	Voluntary context switches: 7520
+	Involuntary context switches: 17198
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 448
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0

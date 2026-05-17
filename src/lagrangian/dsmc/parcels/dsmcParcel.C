@@ -54,10 +54,12 @@ inline bool useOpenMPMoveTrackCriticals
 )
 {
     #ifdef _OPENMP
+    // Guard only boundary cells (physical boundaries for replicated mesh,
+    // processor boundaries for standard parallel).  Internal cells are
+    // fully parallel — tracking only modifies per-particle state.
     return
         cloud.openmpMoveEnabled()
      && omp_in_parallel()
-     && Foam::Pstream::parRun()
      && cloud.openmpMoveGuardCell(celli);
     #else
     (void)cloud;
@@ -108,8 +110,7 @@ inline void controlPatchBoundaryThreadSafe
         *cloud.boundaries().patchBoundaryModels()[boundaryI];
     const Foam::word& modelType = model.type();
     const bool threadSafePatchModel =
-        modelType == "dsmcDiffuseWallPatch"
-     || modelType == "dsmcSpecularWallPatch";
+        modelType == "dsmcSpecularWallPatch";
 
     if (useOpenMPMoveCriticals(cloud))
     {
@@ -143,11 +144,17 @@ bool Foam::dsmcParcel::move
     td.keepParticle = true;
     const bool recordMoveDetail = cloud.profilingDetailEnabled();
 
+    if (cloud.replicatedMeshActive() && cell() >= 0
+        && cell() < cloud.mesh().nCells())
+    {
+        localCellI_ = cloud.replicatedMesh().localMesh().toLocal(cell());
+    }
+
     if (isFree())
     {
         if (newParcel_ != -1)
         {
-            stepFraction() = cloud.rndGen().sample01<scalar>();
+            stepFraction() = td.moveRng.sample01();
             newParcel_ = -1;
         }
 
@@ -259,6 +266,7 @@ bool Foam::dsmcParcel::move
                         }
                     }
                 }
+
             };
 
             if (useOpenMPMoveTrackCriticals(cloud, cell()))
@@ -396,6 +404,38 @@ void Foam::dsmcParcel::transformProperties(const vector& separation)
 {
     particle::transformProperties(separation);
 }
+
+// Fast binary write for migration — bypasses the virtual operator<< chain
+// for the dsmcParcel-specific data.  Base particle data uses the standard
+// particle::operator<< which writes raw bytes in binary mode.
+// List/Field types are written as raw size+data to avoid operator<< overhead.
+void Foam::dsmcParcel::writeBinaryFast(Ostream& os) const
+{
+    // Base particle data: use existing operator<< (binary = raw write)
+    os << static_cast<const particle&>(*this);
+
+    // dsmcParcel fixed fields — raw writes, same format as operator<< binary path
+    os.write(reinterpret_cast<const char*>(&U_), sizeof(vector));
+    os.write(reinterpret_cast<const char*>(&RWF_), sizeof(scalar));
+    os.write(reinterpret_cast<const char*>(&ERot_), sizeof(scalar));
+    os.write(reinterpret_cast<const char*>(&ELevel_), sizeof(label));
+    os.write(reinterpret_cast<const char*>(&typeId_), sizeof(label));
+    os.write(reinterpret_cast<const char*>(&newParcel_), sizeof(label));
+    os.write(reinterpret_cast<const char*>(&classification_), sizeof(label));
+
+    // vibLevel_ — use operator<< to ensure token/format compatibility
+    os << vibLevel_;
+
+    // Stuck data — use operator<< for correct binary format
+    os << label(stuck_ != nullptr ? 1 : 0);
+    if (stuck_)
+    {
+        os << stuck_->wallTemperature() << stuck_->wallVectors();
+    }
+
+    os.check("dsmcParcel::writeBinaryFast");
+}
+
 
 #include "dsmcParcelIO.C"
 

@@ -1,0 +1,752 @@
+/*---------------------------------------------------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  2506                                  |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+Build  : 95a5dfacc7-20250714 OPENFOAM=2506 version=v2506
+Arch   : "LSB;label=32;scalar=64"
+Exec   : dsmcFoam+ -case .
+Date   : May 16 2026
+Time   : 19:47:32
+Host   : SuperXCX-ROG
+PID    : 1546757
+I/O    : uncollated
+/*---------------------------------------------------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  2506                                  |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+Build  : 95a5dfacc7-20250714 OPENFOAM=2506 version=v2506
+Arch   : "LSB;label=32;scalar=64"
+Exec   : dsmcFoam+ -case .
+Date   : May 16 2026
+Time   : 19:47:32
+Host   : SuperXCX-ROG
+PID    : 1546758
+I/O    : uncollated
+Case   : /home/superxcx/code/DSMC/dsmcFoam++/hyStrath_xcx/case/cylinder_react/mixparallel/allmesh/omp4_mpi2_replicatedmesh_noreact
+nProcs : 1
+trapFpe: Floating point exception trapping enabled (FOAM_SIGFPE).
+Case   : /home/superxcx/code/DSMC/dsmcFoam++/hyStrath_xcx/case/cylinder_react/mixparallel/allmesh/omp4_mpi2_replicatedmesh_noreact
+nProcs : 1
+trapFpe: Floating point exception trapping enabled (FOAM_SIGFPE).
+fileModificationChecking : Monitoring run-time modified files using timeStampMaster (fileModificationSkew 5, maxFileModificationPolls 20)
+allowSystemOperations : Allowing user-supplied system call operations
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+Create time
+
+fileModificationChecking : Monitoring run-time modified files using timeStampMaster (fileModificationSkew 5, maxFileModificationPolls 20)
+allowSystemOperations : Allowing user-supplied system call operations
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+Create time
+
+Overriding OptimisationSwitches according to controlDict
+    fileHandler (unregistered)
+Overriding fileHandler to masterUncollated
+I/O    : masterUncollated (maxMasterFileBufferSize 1e+09)
+--> FOAM Warning : 
+    From void Foam::fileOperations::masterUncollatedFileOperation::init(bool)
+    in file global/fileOperations/masterUncollatedFileOperation/masterUncollatedFileOperation.C at line 646
+    Resetting fileModificationChecking to timeStamp
+Overriding OptimisationSwitches according to controlDict
+    fileHandler (unregistered)
+Overriding fileHandler to masterUncollated
+I/O    : masterUncollated (maxMasterFileBufferSize 1e+09)
+--> FOAM Warning : 
+    From void Foam::fileOperations::masterUncollatedFileOperation::init(bool)
+    in file global/fileOperations/masterUncollatedFileOperation/masterUncollatedFileOperation.C at line 646
+    Resetting fileModificationChecking to timeStamp
+--> FOAM Warning : 
+    From static Foam::IOstreamOption::compressionType Foam::IOstreamOption::compressionEnum(const word &, const compressionType)
+    in file db/options/IOstreamOption.C at line 189
+    Unknown compression specifier 'uncompressed' using compression off
+Create mesh for time = 0
+
+
+Constructing dsmcCloud
+--> FOAM Warning : 
+    From static Foam::IOstreamOption::compressionType Foam::IOstreamOption::compressionEnum(const word &, const compressionType)
+    in file db/options/IOstreamOption.C at line 189
+    Unknown compression specifier 'uncompressed' using compression off
+Create mesh for time = 0
+
+
+Constructing dsmcCloud
+Selecting the coordinate system model:	dsmcCartesian
+
+Selecting the time-step model:	dsmcConstantTimeStepModel
+
+Constant time-step model:
+- time-step [sec]	6.640048894e-08
+
+Selecting the porous measurement model:	dsmcNoPorousMediumMeasurements
+
+
+Creating dsmcControllers
+
+Creating fields: 
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+Resetting fields at output until time: 2.456818091e-06
+ measurement option: write
+ nSamples: 1, time interval: 6.640048894e-08
+ nAverages: 300, time interval: 1.992014668e-05
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Selecting the coordinate system model:	dsmcCartesian
+
+Selecting the time-step model:	dsmcConstantTimeStepModel
+
+Constant time-step model:
+- time-step [sec]	6.640048894e-08
+
+Selecting the porous measurement model:	dsmcNoPorousMediumMeasurements
+
+
+Creating dsmcControllers
+
+Creating fields: 
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+Resetting fields at output until time: 2.456818091e-06
+ measurement option: write
+ nSamples: 1, time interval: 6.640048894e-08
+ nAverages: 300, time interval: 1.992014668e-05
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Creating the boundary models: 
+
+Selecting dsmcPatchBoundaryModel dsmcDeletionPatch
+Selecting dsmcPatchBoundaryModel dsmcDeletionPatch
+Selecting dsmcPatchBoundaryModel dsmcDiffuseWallPatch
+Selecting dsmcGeneralBoundaryModel dsmcFreeStreamInflowPatch
+Selecting BinaryCollisionModel LarsenBorgnakkeVariableHardSphere
+OpenMP enabled for dsmcCloud with 4 thread-local RNG streams using collision strategy 'dynamic' (chunk 8)', move kernel enabled (static, chunk 64), adaptive partition enabled (interval 5, imbalance 1.1, drift 0.1), collision partition cost (candidate x1, active-cell x0)
+
+Constructing constant properties for
+    N2
+Creating the boundary models: 
+
+Selecting dsmcPatchBoundaryModel dsmcDeletionPatch
+Selecting dsmcPatchBoundaryModel dsmcDeletionPatch
+Selecting dsmcPatchBoundaryModel dsmcDiffuseWallPatch
+Selecting dsmcGeneralBoundaryModel dsmcFreeStreamInflowPatch
+Selecting BinaryCollisionModel LarsenBorgnakkeVariableHardSphere
+OpenMP enabled for dsmcCloud with 4 thread-local RNG streams using collision strategy 'dynamic' (chunk 8)', move kernel enabled (static, chunk 64), adaptive partition enabled (interval 5, imbalance 1.1, drift 0.1), collision partition cost (candidate x1, active-cell x0)
+
+Constructing constant properties for
+    N2
+Replicated mesh: METIS decomposition complete, 60000 cells -> 2 ranks
+Replicated mesh: METIS decomposition complete, 60000 cells -> 2 ranks
+Replicated mesh: rank 1 owns 30000 / 60000 cells
+Replicated mesh: rank 0 owns 30000 / 60000 cells
+Local mesh: 30000 owned + 446 halo = 30446 / 60000 cells
+Phase C auto DLB: enabled (ParMETIS AdaptiveRepart), imbalanceThreshold=0.15, cooldownSteps=20
+Replicated mesh: initialized with 2 MPI ranks, migrate interval 1
+Replicated mesh: rank 0 starts with 1306469 parcels
+
+Creating dsmcReactions
+
+There are no chemical reactions defined.
+Selecting collisionPartnerSelectionModel noTimeCounter
+Local mesh: 30000 owned + 446 halo = 30446 / 60000 cells
+Phase C auto DLB: enabled (ParMETIS AdaptiveRepart), imbalanceThreshold=0.15, cooldownSteps=20
+Replicated mesh: initialized with 2 MPI ranks, migrate interval 1
+
+Initialising the measurement fields
+
+Initialising dsmcVolFields field
+Replicated mesh: rank 1 starts with 0 parcels
+
+Creating dsmcReactions
+
+There are no chemical reactions defined.
+Selecting collisionPartnerSelectionModel noTimeCounter
+
+Initialising the measurement fields
+
+Initialising dsmcVolFields field
+DSMC dynamic load balancing: enabled, mode in-memory, check interval 10, cooldown 30, max imbalance 0.16, timer gate off
+
+Starting time loop
+
+DSMC dynamic load balancing: enabled, mode in-memory, check interval 10, cooldown 30, max imbalance 0.16, timer gate off
+
+Starting time loop
+
+Replicated mesh migration[1]: rank 0 sent 736961 parcels, received 0 (global 736961) wall 0.375607936s [pack 0.052297048s MPI 0.013041218s deser 0.000225348s]
+Replicated mesh migration[1]: rank 1 sent 0 parcels, received 736961 (global 736961) wall 1.603033652s [pack 6.701e-06s MPI 1.602710488s deser 0.00024187s]
+Replicated mesh migration[2]: rank 0 sent 127 parcels, received 0 (global 127) wall 0.005359813s [pack 3.3518e-05s MPI 5.766e-05s deser 0.000348358s]
+Replicated mesh migration[2]: rank 1 sent 0 parcels, received 127 (global 127) wall 0.083787338s [pack 3.066e-06s MPI 0.083773524s deser 2.898e-06s]
+ExecutionTime = 4.73 s  ClockTime = 4 s
+
+ExecutionTime = 4.76 s  ClockTime = 4 s
+
+ExecutionTime = 5.37 s  ClockTime = 4 s
+
+ExecutionTime = 5.41 s  ClockTime = 4 s
+
+ExecutionTime = 6.08 s  ClockTime = 4 s
+
+ExecutionTime = 6.08 s  ClockTime = 4 s
+
+ExecutionTime = 6.84 s  ClockTime = 5 s
+
+ExecutionTime = 6.86 s  ClockTime = 5 s
+
+ExecutionTime = 7.63 s  ClockTime = 5 s
+
+ExecutionTime = 7.64 s  ClockTime = 5 s
+
+ExecutionTime = 8.47 s  ClockTime = 5 s
+
+ExecutionTime = 8.47 s  ClockTime = 5 s
+
+ExecutionTime = 9.31 s  ClockTime = 5 s
+
+ExecutionTime = 9.29 s  ClockTime = 5 s
+
+ExecutionTime = 10.1 s  ClockTime = 5 s
+
+ExecutionTime = 10.14 s  ClockTime = 6 s
+
+ExecutionTime = 10.99 s  ClockTime = 6 s
+
+Time = 6.640048894e-07
+
+ExecutionTime = 11.01 s  ClockTime = 6 s
+
+Time = 6.640048894e-07
+
+    BuildCellOccupancy step summary:
+        source                    = fallbackGather
+        cloud valid parcels       = 582997
+        cloud invalid parcels     = 0
+        move-order valid parcels  = 577933
+        move-order invalid parcels= 0
+        occupancy parcels global  = 582997
+        active cells global       = 29978
+        collision cells global    = 29926
+        pair potential global     = 6784842
+
+    BuildCellOccupancy step summary:
+        source                    = fallbackGather
+        cloud valid parcels       = 743694
+        cloud invalid parcels     = 0
+        move-order valid parcels  = 736808
+        move-order invalid parcels= 0
+        occupancy parcels global  = 743694
+        active cells global       = 30000
+        collision cells global    = 30000
+        pair potential global     = 10083853
+
+    Collisions                      = 15444
+    Collision candidates           = 47008
+    Collision acceptance rate      = 0.328539823
+    Candidate-cell sigmaTcRMax avg/max/min = 1e-15 / 1e-15 / 1e-15
+
+    Collisions                      = 12808
+    Collision candidates           = 49038
+    Collision acceptance rate      = 0.2611852033
+    Candidate-cell sigmaTcRMax avg/max/min = 1e-15 / 1e-15 / 1e-15
+
+Load balance summary:
+    move particles avg/max/min    = 1428844 / 5715376 / 5715376
+    move imbalance max/avg        = 4
+    collision cand avg/max/min    = 102092.25 / 408369 / 408369
+    collision cand imbalance      = 4
+    accepted coll avg/max/min     = 30336 / 121344 / 121344
+    accepted coll imbalance       = 4
+    thread move particles         = 4(1408464 1412817 1435658 1458437)
+    thread collision candidates   = 4(101575 99890 101906 104998)
+    thread accepted collisions    = 4(30238 29703 30236 31167)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 588059
+    Number of molecules             = 3.528354e+15
+    Mass in system                  = 1.64068461e-10
+    Average linear kinetic energy   = 1.797767761e-19
+    Average rotational energy       = 1.501457358e-21
+    Average vibrational energy      = 2.327085575e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.045490892e-19
+ExecutionTime = 12.04 s  ClockTime = 6 s
+
+Load balance summary:
+    move particles avg/max/min    = 1673400.5 / 6693602 / 6693602
+    move imbalance max/avg        = 4
+    collision cand avg/max/min    = 121492 / 485968 / 485968
+    collision cand imbalance      = 4
+    accepted coll avg/max/min     = 31838.25 / 127353 / 127353
+    accepted coll imbalance       = 4
+    thread move particles         = 4(1635067 1679549 1679884 1699102)
+    thread collision candidates   = 4(125819 115985 118186 125978)
+    thread accepted collisions    = 4(32842 30337 31007 33167)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 743800
+    Number of molecules             = 4.4628e+15
+    Mass in system                  = 2.075202e-10
+    Average linear kinetic energy   = 1.866676295e-19
+    Average rotational energy       = 1.216355583e-21
+    Average vibrational energy      = 2.327085575e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.111548408e-19
+ExecutionTime = 12.12 s  ClockTime = 6 s
+
+ExecutionTime = 13.02 s  ClockTime = 6 s
+
+ExecutionTime = 13.07 s  ClockTime = 6 s
+
+ExecutionTime = 13.95 s  ClockTime = 7 s
+
+ExecutionTime = 13.98 s  ClockTime = 7 s
+
+ExecutionTime = 14.84 s  ClockTime = 7 s
+
+ExecutionTime = 14.87 s  ClockTime = 7 s
+
+ExecutionTime = 15.77 s  ClockTime = 7 s
+
+ExecutionTime = 15.8 s  ClockTime = 7 s
+
+ExecutionTime = 16.72 s  ClockTime = 7 s
+
+ExecutionTime = 16.75 s  ClockTime = 7 s
+
+ExecutionTime = 17.67 s  ClockTime = 7 s
+
+ExecutionTime = 17.71 s  ClockTime = 8 s
+
+ExecutionTime = 18.63 s  ClockTime = 8 s
+
+ExecutionTime = 18.68 s  ClockTime = 8 s
+
+ExecutionTime = 19.66 s  ClockTime = 7 s
+
+ExecutionTime = 19.69 s  ClockTime = 7 s
+
+ExecutionTime = 20.62 s  ClockTime = 7 s
+
+Time = 1.328009779e-06
+
+ExecutionTime = 20.65 s  ClockTime = 7 s
+
+Time = 1.328009779e-06
+
+    BuildCellOccupancy step summary:
+        source                    = fallbackGather
+        cloud valid parcels       = 606691
+        cloud invalid parcels     = 0
+        move-order valid parcels  = 601720
+        move-order invalid parcels= 0
+        occupancy parcels global  = 606691
+        active cells global       = 30000
+        collision cells global    = 29994
+        pair potential global     = 8284876
+
+    BuildCellOccupancy step summary:
+        source                    = fallbackGather
+        cloud valid parcels       = 743729
+        cloud invalid parcels     = 0
+        move-order valid parcels  = 736856
+        move-order invalid parcels= 0
+        occupancy parcels global  = 743729
+        active cells global       = 30000
+        collision cells global    = 30000
+        pair potential global     = 10133502
+
+    Collisions                      = 24574
+    Collision candidates           = 64612
+    Collision acceptance rate      = 0.3803318269
+    Candidate-cell sigmaTcRMax avg/max/min = 1.000023636e-15 / 1.079693939e-15 / 1e-15
+
+Load balance summary:
+    move particles avg/max/min    = 2913152.5 / 11652610 / 11652610
+    move imbalance max/avg        = 4
+    collision cand avg/max/min    = 243321 / 973284 / 973284
+    collision cand imbalance      = 4
+    accepted coll avg/max/min     = 81376.75 / 325507 / 325507
+    accepted coll imbalance       = 4
+    thread move particles         = 4(2864441 2887423 2939283 2961463)
+    thread collision candidates   = 4(241086 241253 244346 246599)
+    thread accepted collisions    = 4(80995 80998 81230 82284)
+
+    Collisions                      = 12948
+    Collision candidates           = 49308
+    Collision acceptance rate      = 0.2625943052
+    Candidate-cell sigmaTcRMax avg/max/min = 1e-15 / 1e-15 / 1e-15
+
+Load balance summary:
+    move particles avg/max/min    = 3532439.75 / 14129759 / 14129759
+    move imbalance max/avg        = 4
+    collision cand avg/max/min    = 244422.5 / 977690 / 977690
+    collision cand imbalance      = 4
+    accepted coll avg/max/min     = 63973 / 255892 / 255892
+    accepted coll imbalance       = 4
+    thread move particles         = 4(3454205 3540403 3569943 3565208)
+    thread collision candidates   = 4(246027 236339 243018 252306)
+    thread accepted collisions    = 4(64358 61674 63574 66286)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 611704
+    Number of molecules             = 3.670224e+15
+    Mass in system                  = 1.70665416e-10
+    Average linear kinetic energy   = 1.741051248e-19
+    Average rotational energy       = 2.01140921e-21
+    Average vibrational energy      = 2.327085575e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.993873898e-19
+ExecutionTime = 21.91 s  ClockTime = 7 s
+
+Cloud name: dsmc
+    Number of dsmc particles        = 743839
+    Number of molecules             = 4.463034e+15
+    Mass in system                  = 2.07531081e-10
+    Average linear kinetic energy   = 1.866559604e-19
+    Average rotational energy       = 1.217505816e-21
+    Average vibrational energy      = 2.327085575e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.11144322e-19
+ExecutionTime = 21.93 s  ClockTime = 7 s
+
+ExecutionTime = 22.9 s  ClockTime = 8 s
+
+ExecutionTime = 22.91 s  ClockTime = 8 s
+
+ExecutionTime = 23.89 s  ClockTime = 8 s
+
+ExecutionTime = 23.9 s  ClockTime = 8 s
+
+ExecutionTime = 24.85 s  ClockTime = 8 s
+
+ExecutionTime = 24.88 s  ClockTime = 8 s
+
+ExecutionTime = 25.86 s  ClockTime = 8 s
+
+ExecutionTime = 25.86 s  ClockTime = 8 s
+
+ExecutionTime = 26.8 s  ClockTime = 9 s
+
+ExecutionTime = 26.83 s  ClockTime = 9 s
+
+ExecutionTime = 27.8 s  ClockTime = 9 s
+
+ExecutionTime = 27.85 s  ClockTime = 9 s
+
+ExecutionTime = 28.81 s  ClockTime = 9 s
+
+ExecutionTime = 28.81 s  ClockTime = 9 s
+
+ExecutionTime = 29.78 s  ClockTime = 9 s
+
+ExecutionTime = 29.79 s  ClockTime = 9 s
+
+ExecutionTime = 30.77 s  ClockTime = 10 s
+
+Time = 1.992014668e-06
+
+ExecutionTime = 30.81 s  ClockTime = 10 s
+
+Time = 1.992014668e-06
+
+    BuildCellOccupancy step summary:
+        source                    = fallbackGather
+        cloud valid parcels       = 630166
+        cloud invalid parcels     = 0
+        move-order valid parcels  = 625212
+        move-order invalid parcels= 0
+        occupancy parcels global  = 630166
+        active cells global       = 30000
+        collision cells global    = 29999
+        pair potential global     = 9890869
+
+    Collisions                      = 35030
+    Collision candidates           = 83758
+    Collision acceptance rate      = 0.4182287065
+    Candidate-cell sigmaTcRMax avg/max/min = 1.000164345e-15 / 1.097122051e-15 / 1e-15
+
+    BuildCellOccupancy step summary:
+        source                    = fallbackGather
+        cloud valid parcels       = 743812
+        cloud invalid parcels     = 0
+        move-order valid parcels  = 736905
+        move-order invalid parcels= 0
+        occupancy parcels global  = 743812
+        active cells global       = 30000
+        collision cells global    = 30000
+        pair potential global     = 10163837
+
+Load balance summary:
+    move particles avg/max/min    = 4456452.25 / 17825809 / 17825809
+    move imbalance max/avg        = 4
+    collision cand avg/max/min    = 430633.5 / 1722534 / 1722534
+    collision cand imbalance      = 4
+    accepted coll avg/max/min     = 157270.25 / 629081 / 629081
+    accepted coll imbalance       = 4
+    thread move particles         = 4(4338426 4452329 4483796 4551258)
+    thread collision candidates   = 4(429914 428121 427485 437014)
+    thread accepted collisions    = 4(157283 156762 155754 159282)
+
+    Collisions                      = 12849
+    Collision candidates           = 49509
+    Collision acceptance rate      = 0.2595285706
+    Candidate-cell sigmaTcRMax avg/max/min = 1e-15 / 1e-15 / 1e-15
+
+Cloud name: dsmc
+    Number of dsmc particles        = 635330
+    Number of molecules             = 3.81198e+15
+    Mass in system                  = 1.7725707e-10
+    Average linear kinetic energy   = 1.692605607e-19
+    Average rotational energy       = 2.714596343e-21
+    Average vibrational energy      = 2.327085575e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.952460128e-19
+ExecutionTime = 32.01 s  ClockTime = 10 s
+
+Load balance summary:
+    move particles avg/max/min    = 5391874.75 / 21567499 / 21567499
+    move imbalance max/avg        = 4
+    collision cand avg/max/min    = 367792.25 / 1471169 / 1471169
+    collision cand imbalance      = 4
+    accepted coll avg/max/min     = 96150.75 / 384603 / 384603
+    accepted coll imbalance       = 4
+    thread move particles         = 4(5311275 5406073 5426054 5424097)
+    thread collision candidates   = 4(369015 359439 364122 378593)
+    thread accepted collisions    = 4(96530 94030 94893 99150)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 743920
+    Number of molecules             = 4.46352e+15
+    Mass in system                  = 2.0755368e-10
+    Average linear kinetic energy   = 1.86663576e-19
+    Average rotational energy       = 1.217053729e-21
+    Average vibrational energy      = 2.327085575e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.111514855e-19
+ExecutionTime = 32.2 s  ClockTime = 10 s
+
+ExecutionTime = 33.18 s  ClockTime = 10 s
+
+ExecutionTime = 33.21 s  ClockTime = 10 s
+
+ExecutionTime = 34.22 s  ClockTime = 11 s
+
+ExecutionTime = 34.25 s  ClockTime = 11 s
+
+ExecutionTime = 35.27 s  ClockTime = 11 s
+
+ExecutionTime = 35.27 s  ClockTime = 11 s
+
+ExecutionTime = 36.3 s  ClockTime = 11 s
+
+ExecutionTime = 36.31 s  ClockTime = 11 s
+
+ExecutionTime = 37.38 s  ClockTime = 11 s
+
+ExecutionTime = 37.36 s  ClockTime = 11 s
+
+ExecutionTime = 38.45 s  ClockTime = 12 s
+
+ExecutionTime = 38.46 s  ClockTime = 12 s
+
+
+Start sample at time 2.456818091e-06 and step 37
+
+
+Start sample at time 2.456818091e-06 and step 37
+
+ExecutionTime = 39.55 s  ClockTime = 12 s
+
+ExecutionTime = 39.55 s  ClockTime = 12 s
+
+ExecutionTime = 40.59 s  ClockTime = 12 s
+
+ExecutionTime = 40.61 s  ClockTime = 12 s
+
+ExecutionTime = 41.68 s  ClockTime = 13 s
+
+Time = 2.656019558e-06
+
+ExecutionTime = 41.67 s  ClockTime = 13 s
+
+Time = 2.656019558e-06
+
+    BuildCellOccupancy step summary:
+        source                    = fallbackGather
+        cloud valid parcels       = 654110
+        cloud invalid parcels     = 0
+        move-order valid parcels  = 648883
+        move-order invalid parcels= 0
+        occupancy parcels global  = 654110
+        active cells global       = 30000
+        collision cells global    = 30000
+        pair potential global     = 11496625
+
+    BuildCellOccupancy step summary:
+        source                    = fallbackGather
+        cloud valid parcels       = 743674
+        cloud invalid parcels     = 0
+        move-order valid parcels  = 736775
+        move-order invalid parcels= 0
+        occupancy parcels global  = 743674
+        active cells global       = 30000
+        collision cells global    = 30000
+        pair potential global     = 10162386
+
+    Collisions                      = 45060
+    Collision candidates           = 103159
+    Collision acceptance rate      = 0.4368014424
+    Candidate-cell sigmaTcRMax avg/max/min = 1.000673367e-15 / 1.157178817e-15 / 1e-15
+
+Load balance summary:
+    move particles avg/max/min    = 6058903 / 24235612 / 24235612
+    move imbalance max/avg        = 4
+    collision cand avg/max/min    = 666732.75 / 2666931 / 2666931
+    collision cand imbalance      = 4
+    accepted coll avg/max/min     = 259143.25 / 1036573 / 1036573
+    accepted coll imbalance       = 4
+    thread move particles         = 4(5875174 6065055 6127034 6168349)
+    thread collision candidates   = 4(666265 661659 661730 677277)
+    thread accepted collisions    = 4(259226 257186 256716 263445)
+
+    Collisions                      = 12685
+    Collision candidates           = 49473
+    Collision acceptance rate      = 0.2564024822
+    Candidate-cell sigmaTcRMax avg/max/min = 1e-15 / 1e-15 / 1e-15
+
+Load balance summary:
+    move particles avg/max/min    = 7251156 / 29004624 / 29004624
+    move imbalance max/avg        = 4
+    collision cand avg/max/min    = 491263.5 / 1965054 / 1965054
+    collision cand imbalance      = 4
+    accepted coll avg/max/min     = 128399.75 / 513599 / 513599
+    accepted coll imbalance       = 
+Phase C auto DLB triggered at step 40: sar=4
+    thread move particles         = 4(7151442 7292262 7278345 7282575)
+    thread collision candidates   = 4(490267 484602 487969 502216)
+    thread accepted collisions    = 4(128055 126815 127301 131428)
+
+
+Phase C auto DLB triggered at step 40: sar=0.08637608725 tidl=0.6645304605 nPeriods=2 prodTimes 2(4.221452502 5.058735137)
+0.08637608725 tidl=0.6645304605 nPeriods=2 prodTimes 2(4.221452502 5.058735137)
+Phase C ParMETIS: AdaptiveRepart (60000 cells, 2 constraints, collScale=3.416963435)
+Phase C ParMETIS: AdaptiveRepart (60000 cells, 2 constraints, collScale=2.302673578)
+Replicated mesh: rank 0 owns 33186 / 60000 cells
+Replicated mesh: rank 1 owns 26814 / 60000 cells
+Local mesh: 26814 owned + 530 halo = 27344 / 60000 cells
+Phase C ParMETIS AdaptiveRepart: 3486 / 60000 cells changed (0.0581)
+Local mesh: 33186 owned + 495 halo = 33681 / 60000 cells
+Phase C ParMETIS AdaptiveRepart: 3486 / 60000 cells changed (0.0581)
+Phase C auto DLB complete: rebalance #1
+
+Phase C auto DLB complete: rebalance #1
+
+Cloud name: dsmc
+    Number of dsmc particles        = 706296
+    Number of molecules             = 4.237776e+15
+    Mass in system                  = 1.97056584e-10
+    Average linear kinetic energy   = 1.681639839e-19
+    Average rotational energy       = 3.202685956e-21
+    Average vibrational energy      = 2.327092165e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.946375915e-19
+ExecutionTime = 43.71 s  ClockTime = 13 s
+
+[stack trace]
+=============
+#1  Foam::sigSegv::sigHandler(int)[SuperXCX-ROG:1546757:0:1546783] Caught signal 11 (Segmentation fault: address not mapped to object at address 0x9b9)
+==== backtrace (tid:1546783) ====
+ 0  /home/superxcx/miniconda3/envs/cap/lib/libucs.so.0(ucs_handle_error+0x2fd) [0x74d11f89484d]
+ 1  /home/superxcx/miniconda3/envs/cap/lib/libucs.so.0(+0x2fa3f) [0x74d11f894a3f]
+ 2  /home/superxcx/miniconda3/envs/cap/lib/libucs.so.0(+0x2fc0a) [0x74d11f894c0a]
+ 3  /lib/x86_64-linux-gnu/libc.so.6(+0x42520) [0x74d121242520]
+ 4  /home/superxcx/code/OpenFoam/OF-2506/OpenFOAM-v2506/platforms/linux64IcxDPInt32Opt/lib/libOpenFOAM.so(_ZNK4Foam8polyMesh9solutionDEv+0x8) [0x74d12500a378]
+ 5  /home/superxcx/code/DSMC/dsmcFoam++/hyStrath_xcx/platforms/linux64IcxDPInt32Opt/lib/libdsmcFoam+.so(+0xc21f7) [0x74d121ec21f7]
+ 6  /home/superxcx/code/DSMC/dsmcFoam++/hyStrath_xcx/platforms/linux64IcxDPInt32Opt/lib/libdsmcFoam+.so(_ZN4Foam10dsmcParcel4moveERNS_9dsmcCloudERNS0_12trackingDataEd+0x3c7) [0x74d121ec1ed7]
+ 7  /home/superxcx/code/DSMC/dsmcFoam++/hyStrath_xcx/platforms/linux64IcxDPInt32Opt/lib/libdsmcFoam+.so(+0x107be0) [0x74d121f07be0]
+ 8  /home/superxcx/intel/oneapi/compiler/2025.2/lib/libiomp5.so(__kmp_invoke_microtask+0x93) [0x74d121750603]
+ 9  /home/superxcx/intel/oneapi/compiler/2025.2/lib/libiomp5.so(+0xd0fb3) [0x74d1216d0fb3]
+10  /home/superxcx/intel/oneapi/compiler/2025.2/lib/libiomp5.so(+0xcfcae) [0x74d1216cfcae]
+11  /home/superxcx/intel/oneapi/compiler/2025.2/lib/libiomp5.so(+0x151b22) [0x74d121751b22]
+12  /lib/x86_64-linux-gnu/libc.so.6(+0x94ac3) [0x74d121294ac3]
+13  /lib/x86_64-linux-gnu/libc.so.6(+0x1268d0) [0x74d1213268d0]
+=================================
+Cloud name: dsmc
+    Number of dsmc particles        = 696617
+    Number of molecules             = 4.179702e+15
+    Mass in system                  = 1.94356143e-10
+    Average linear kinetic energy   = 1.849841614e-19
+    Average rotational energy       = 1.36299556e-21
+    Average vibrational energy      = 2.327092256e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.096180795e-19
+ExecutionTime = 43.8 s  ClockTime = 13 s
+
+[stack trace]
+=============
+#1  Foam::sigSegv::sigHandler(int)[SuperXCX-ROG:1546758:0:1546779] Caught signal 11 (Segmentation fault: address not mapped to object at address 0x51)
+==== backtrace (tid:1546779) ====
+ 0  /home/superxcx/miniconda3/envs/cap/lib/libucs.so.0(ucs_handle_error+0x2fd) [0x71afdfee384d]
+ 1  /home/superxcx/miniconda3/envs/cap/lib/libucs.so.0(+0x2fa3f) [0x71afdfee3a3f]
+ 2  /home/superxcx/miniconda3/envs/cap/lib/libucs.so.0(+0x2fc0a) [0x71afdfee3c0a]
+ 3  /lib/x86_64-linux-gnu/libc.so.6(+0x42520) [0x71afe1e42520]
+ 4  /home/superxcx/code/DSMC/dsmcFoam++/hyStrath_xcx/platforms/linux64IcxDPInt32Opt/lib/libdsmcFoam+.so(_ZN4Foam10dsmcParcel4moveERNS_9dsmcCloudERNS0_12trackingDataEd+0x8f) [0x71afe2ac1b9f]
+ 5  /home/superxcx/code/DSMC/dsmcFoam++/hyStrath_xcx/platforms/linux64IcxDPInt32Opt/lib/libdsmcFoam+.so(+0x107be0) [0x71afe2b07be0]
+ 6  /home/superxcx/intel/oneapi/compiler/2025.2/lib/libiomp5.so(__kmp_invoke_microtask+0x93) [0x71afe2350603]
+ 7  /home/superxcx/intel/oneapi/compiler/2025.2/lib/libiomp5.so(+0xd0fb3) [0x71afe22d0fb3]
+ 8  /home/superxcx/intel/oneapi/compiler/2025.2/lib/libiomp5.so(+0xcfcae) [0x71afe22cfcae]
+ 9  /home/superxcx/intel/oneapi/compiler/2025.2/lib/libiomp5.so(+0x151b22) [0x71afe2351b22]
+10  /lib/x86_64-linux-gnu/libc.so.6(+0x94ac3) [0x71afe1e94ac3]
+11  /lib/x86_64-linux-gnu/libc.so.6(+0x1268d0) [0x71afe1f268d0]
+=================================
+
+===================================================================================
+=   BAD TERMINATION OF ONE OF YOUR APPLICATION PROCESSES
+=   RANK 0 PID 1546757 RUNNING AT SuperXCX-ROG
+=   KILLED BY SIGNAL: 11 (Segmentation fault)
+===================================================================================
+
+===================================================================================
+=   BAD TERMINATION OF ONE OF YOUR APPLICATION PROCESSES
+=   RANK 1 PID 1546758 RUNNING AT SuperXCX-ROG
+=   KILLED BY SIGNAL: 9 (Killed)
+===================================================================================
+Command exited with non-zero status 255
+	Command being timed: "mpirun -np 2 dsmcFoam+ -case ."
+	User time (seconds): 86.86
+	System time (seconds): 5.34
+	Percent of CPU this job got: 330%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:27.87
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 2906768
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 74
+	Minor (reclaiming a frame) page faults: 944038
+	Voluntary context switches: 150086
+	Involuntary context switches: 351
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 80
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 255

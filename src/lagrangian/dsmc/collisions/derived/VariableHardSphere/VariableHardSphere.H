@@ -58,6 +58,14 @@ protected:
         //- Reference temperature
         const scalar Tref_;
 
+        //- Lazy-init precomputed cr2 lookup tables (thread-safe)
+        mutable bool pairTablesReady_;
+        mutable label nTypes_;
+        static constexpr label cr2TableSize_ = 256;
+        mutable scalar cr2LogMin_;
+        mutable scalar cr2InvDLog_;
+        mutable scalarField pairCr2Table_;
+
 
 
 public:

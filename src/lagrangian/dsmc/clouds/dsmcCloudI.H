@@ -93,6 +93,16 @@ inline Foam::label Foam::dsmcCloud::nTerminalOutputs() const
     return nTerminalOutputs_;
 }
 
+inline bool Foam::dsmcCloud::replicatedMeshActive() const
+{
+    return replicatedMesh_.valid();
+}
+
+inline const Foam::dsmcReplicatedMesh& Foam::dsmcCloud::replicatedMesh() const
+{
+    return replicatedMesh_();
+}
+
 inline bool Foam::dsmcCloud::openmpEnabled() const
 {
     return openmpEnabled_;
@@ -230,6 +240,22 @@ Foam::dsmcCloud::pendingMoveParcels() const
     return pendingMoveParcels_;
 }
 
+inline void Foam::dsmcCloud::recordPendingMigration(dsmcParcel* p)
+{
+    pendingMigration_.append(p);
+}
+
+inline const Foam::DynamicList<Foam::dsmcParcel*>&
+Foam::dsmcCloud::pendingMigration() const
+{
+    return pendingMigration_;
+}
+
+inline void Foam::dsmcCloud::clearPendingMigration()
+{
+    pendingMigration_.clear();
+}
+
 inline bool Foam::dsmcCloud::hasOccupancyOrderedParcels() const
 {
     return occupancyOrderedParcelsValid_;
@@ -329,6 +355,11 @@ Foam::dsmcCloud::cellOccupancy() const
     }
 
     return cellOccupancy_;
+}
+
+inline bool Foam::dsmcCloud::isCellOccupancyValid() const
+{
+    return cellOccupancyMaterialized_;
 }
 
 inline Foam::volScalarField& Foam::dsmcCloud::sigmaTcRMax()

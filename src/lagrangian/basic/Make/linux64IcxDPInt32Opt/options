@@ -38,7 +38,11 @@
 
 # 8 "<command-line>" 2
 # 1 "Make/options"
+ifeq ($(WM_COMPILER),Gcc)
+OPENMP_FLAGS = -fopenmp
+else
 OPENMP_FLAGS = -qopenmp
+endif
 
 EXE_INC = $(OPENMP_FLAGS) -include $(WM_PROJECT_USER_DIR)/src/lagrangian/basic/lnInclude/hyCompatAPI.H -I$(LIB_SRC)/meshTools/lnInclude -I$(LIB_SRC)/finiteVolume/lnInclude
 

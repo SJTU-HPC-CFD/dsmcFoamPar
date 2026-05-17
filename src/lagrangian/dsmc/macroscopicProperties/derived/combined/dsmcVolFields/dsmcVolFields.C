@@ -723,6 +723,7 @@ struct dsmcVolSharedSampleCache
                     #pragma omp for schedule(static)
                     for (label celli = 0; celli < cloud.mesh().nCells(); ++celli)
                     {
+                        if (cloud.replicatedMeshActive() && !cloud.replicatedMesh().isMyCell(celli)) continue;
                         const DynamicList<dsmcParcel*>* parcelsPtr =
                             useFlatOccupancy ? nullptr : &(*cellOccupancyPtr)[celli];
                         const List<dsmcParcel*>* orderedParcelsPtr =
@@ -967,6 +968,7 @@ struct dsmcVolSharedSampleCache
                     #pragma omp for schedule(static)
                     for (label celli = 0; celli < cloud.mesh().nCells(); ++celli)
                     {
+                        if (cloud.replicatedMeshActive() && !cloud.replicatedMesh().isMyCell(celli)) continue;
                         scalar localBaseAccumWallTime = 0.0;
                         scalar localVibAccumWallTime = 0.0;
                         scalar localElectronicAccumWallTime = 0.0;
@@ -1290,6 +1292,7 @@ struct dsmcVolSharedSampleCache
         {
             for (label celli = 0; celli < cloud.mesh().nCells(); ++celli)
             {
+                if (cloud.replicatedMeshActive() && !cloud.replicatedMesh().isMyCell(celli)) continue;
                 accumulateCell(celli);
             }
         }
@@ -2574,6 +2577,7 @@ void dsmcVolFields::calculateField()
             #endif
             for (label celli = 0; celli < cloud_.mesh().nCells(); ++celli)
             {
+                if (cloud_.replicatedMeshActive() && !cloud_.replicatedMesh().isMyCell(celli)) continue;
                 scalar dsmcNLocal = 0.0;
                 scalar dsmcMLocal = 0.0;
                 scalar dsmcLinearKELocal = 0.0;

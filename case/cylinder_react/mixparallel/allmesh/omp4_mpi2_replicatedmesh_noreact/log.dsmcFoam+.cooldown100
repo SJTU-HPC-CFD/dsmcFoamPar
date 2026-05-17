@@ -1,0 +1,4259 @@
+/*---------------------------------------------------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  2506                                  |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+Build  : 95a5dfacc7-20250714 OPENFOAM=2506 version=v2506
+Arch   : "LSB;label=32;scalar=64"
+Exec   : dsmcFoam+ -case .
+Date   : May 16 2026
+Time   : 20:25:12
+Host   : SuperXCX-ROG
+PID    : 1566579
+I/O    : uncollated
+Case   : /home/superxcx/code/DSMC/dsmcFoam++/hyStrath_xcx/case/cylinder_react/mixparallel/allmesh/omp4_mpi2_replicatedmesh_noreact
+nProcs : 1
+trapFpe: Floating point exception trapping enabled (FOAM_SIGFPE).
+fileModificationChecking : Monitoring run-time modified files using timeStampMaster (fileModificationSkew 5, maxFileModificationPolls 20)
+allowSystemOperations : Allowing user-supplied system call operations
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+Create time
+
+/*---------------------------------------------------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  2506                                  |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+Build  : 95a5dfacc7-20250714 OPENFOAM=2506 version=v2506
+Arch   : "LSB;label=32;scalar=64"
+Exec   : dsmcFoam+ -case .
+Date   : May 16 2026
+Time   : 20:25:12
+Host   : SuperXCX-ROG
+PID    : 1566580
+I/O    : uncollated
+Case   : /home/superxcx/code/DSMC/dsmcFoam++/hyStrath_xcx/case/cylinder_react/mixparallel/allmesh/omp4_mpi2_replicatedmesh_noreact
+nProcs : 1
+trapFpe: Floating point exception trapping enabled (FOAM_SIGFPE).
+fileModificationChecking : Monitoring run-time modified files using timeStampMaster (fileModificationSkew 5, maxFileModificationPolls 20)
+allowSystemOperations : Allowing user-supplied system call operations
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+Create time
+
+Overriding OptimisationSwitches according to controlDict
+    fileHandler (unregistered)
+Overriding fileHandler to masterUncollated
+I/O    : masterUncollated (maxMasterFileBufferSize 1e+09)
+--> FOAM Warning : 
+    From void Foam::fileOperations::masterUncollatedFileOperation::init(bool)
+    in file global/fileOperations/masterUncollatedFileOperation/masterUncollatedFileOperation.C at line 646
+    Resetting fileModificationChecking to timeStamp
+Overriding OptimisationSwitches according to controlDict
+    fileHandler (unregistered)
+Overriding fileHandler to masterUncollated
+I/O    : masterUncollated (maxMasterFileBufferSize 1e+09)
+--> FOAM Warning : 
+    From void Foam::fileOperations::masterUncollatedFileOperation::init(bool)
+    in file global/fileOperations/masterUncollatedFileOperation/masterUncollatedFileOperation.C at line 646
+    Resetting fileModificationChecking to timeStamp
+--> FOAM Warning : 
+    From static Foam::IOstreamOption::compressionType Foam::IOstreamOption::compressionEnum(const word &, const compressionType)
+    in file db/options/IOstreamOption.C at line 189
+    Unknown compression specifier 'uncompressed' using compression off
+Create mesh for time = 0
+
+
+Constructing dsmcCloud
+--> FOAM Warning : 
+    From static Foam::IOstreamOption::compressionType Foam::IOstreamOption::compressionEnum(const word &, const compressionType)
+    in file db/options/IOstreamOption.C at line 189
+    Unknown compression specifier 'uncompressed' using compression off
+Create mesh for time = 0
+
+
+Constructing dsmcCloud
+Selecting the coordinate system model:	dsmcCartesian
+
+Selecting the time-step model:	dsmcConstantTimeStepModel
+
+Constant time-step model:
+- time-step [sec]	6.640048894e-08
+
+Selecting the coordinate system model:	dsmcCartesian
+
+Selecting the time-step model:	dsmcConstantTimeStepModel
+
+Constant time-step model:
+- time-step [sec]	6.640048894e-08
+
+Selecting the porous measurement model:	dsmcNoPorousMediumMeasurements
+
+
+Creating dsmcControllers
+
+Creating fields: 
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+Resetting fields at output until time: 2.456818091e-06
+ measurement option: write
+ nSamples: 1, time interval: 6.640048894e-08
+ nAverages: 300, time interval: 1.992014668e-05
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Selecting the porous measurement model:	dsmcNoPorousMediumMeasurements
+
+
+Creating dsmcControllers
+
+Creating fields: 
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+Resetting fields at output until time: 2.456818091e-06
+ measurement option: write
+ nSamples: 1, time interval: 6.640048894e-08
+ nAverages: 300, time interval: 1.992014668e-05
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Creating the boundary models: 
+
+Selecting dsmcPatchBoundaryModel dsmcDeletionPatch
+Selecting dsmcPatchBoundaryModel dsmcDeletionPatch
+Selecting dsmcPatchBoundaryModel dsmcDiffuseWallPatch
+Selecting dsmcGeneralBoundaryModel dsmcFreeStreamInflowPatch
+Creating the boundary models: 
+
+Selecting dsmcPatchBoundaryModel dsmcDeletionPatch
+Selecting dsmcPatchBoundaryModel dsmcDeletionPatch
+Selecting dsmcPatchBoundaryModel dsmcDiffuseWallPatch
+Selecting dsmcGeneralBoundaryModel dsmcFreeStreamInflowPatch
+Selecting BinaryCollisionModel LarsenBorgnakkeVariableHardSphere
+Selecting BinaryCollisionModel LarsenBorgnakkeVariableHardSphere
+OpenMP enabled for dsmcCloud with 4 thread-local RNG streams using collision strategy 'dynamic' (chunk 8)', move kernel enabled (static, chunk 64), adaptive partition enabled (interval 5, imbalance 1.1, drift 0.1), collision partition cost (candidate x1, active-cell x0)
+
+Constructing constant properties for
+    N2
+OpenMP enabled for dsmcCloud with 4 thread-local RNG streams using collision strategy 'dynamic' (chunk 8)', move kernel enabled (static, chunk 64), adaptive partition enabled (interval 5, imbalance 1.1, drift 0.1), collision partition cost (candidate x1, active-cell x0)
+
+Constructing constant properties for
+    N2
+Replicated mesh: METIS decomposition complete, 60000 cells -> 2 ranks
+Replicated mesh: rank 0 owns 30000 / 60000 cells
+Replicated mesh: METIS decomposition complete, 60000 cells -> 2 ranks
+Replicated mesh: rank 1 owns 30000 / 60000 cells
+Local mesh: 30000 owned + 446 halo = 30446 / 60000 cells
+Phase C auto DLB: enabled (ParMETIS AdaptiveRepart), imbalanceThreshold=0.15, cooldownSteps=100
+Replicated mesh: initialized with 2 MPI ranks, migrate interval 1
+Replicated mesh: rank 0 starts with 1306469 parcels
+
+Creating dsmcReactions
+
+There are no chemical reactions defined.
+Selecting collisionPartnerSelectionModel noTimeCounter
+Local mesh: 30000 owned + 446 halo = 30446 / 60000 cells
+Phase C auto DLB: enabled (ParMETIS AdaptiveRepart), imbalanceThreshold=0.15, cooldownSteps=100
+Replicated mesh: initialized with 2 MPI ranks, migrate interval 1
+
+Initialising the measurement fields
+
+Initialising dsmcVolFields field
+Replicated mesh: rank 1 starts with 0 parcels
+
+Creating dsmcReactions
+
+There are no chemical reactions defined.
+Selecting collisionPartnerSelectionModel noTimeCounter
+
+Initialising the measurement fields
+
+Initialising dsmcVolFields field
+DSMC dynamic load balancing: enabled, mode in-memory, check interval 10, cooldown 30, max imbalance 0.16, timer gate off
+
+Starting time loop
+
+DSMC dynamic load balancing: enabled, mode in-memory, check interval 10, cooldown 30, max imbalance 0.16, timer gate off
+
+Starting time loop
+
+Replicated mesh migration[1]: rank 0 sent 736961 parcels, received 0 (global 736961) wall 0.502625754s [pack 0.061528399s MPI 0.015322187s deser 0.000235758s]
+Replicated mesh migration[1]: rank 1 sent 0 parcels, received 736961 (global 736961) wall 2.19695941s [pack 6.619e-06s MPI 2.196637613s deser 0.000276956s]
+Replicated mesh migration[2]: rank 0 sent 127 parcels, received 5013 (global 5140) wall 0.036730709s [pack 3.6373e-05s MPI 0.031236724s deser 0.000362931s]
+Replicated mesh migration[2]: rank 1 sent 5013 parcels, received 127 (global 5140) wall 0.008935269s [pack 0.000467646s MPI 0.000808237s deser 0.000509522s]
+ExecutionTime = 5.21 s  ClockTime = 5 s
+
+ExecutionTime = 5.23 s  ClockTime = 5 s
+
+Replicated mesh migration[3]: rank 0 sent 111 parcels, received 5133 (global 5244) wall 0.060746044s [pack 3.5654e-05s MPI 0.055096208s deser 0.000390117s]
+Replicated mesh migration[3]: rank 1 sent 5133 parcels, received 111 (global 5244) wall 0.010948873s [pack 0.000491781s MPI 0.000451571s deser 0.000603707s]
+ExecutionTime = 5.94 s  ClockTime = 5 s
+
+ExecutionTime = 5.96 s  ClockTime = 5 s
+
+ExecutionTime = 6.68 s  ClockTime = 5 s
+
+ExecutionTime = 6.74 s  ClockTime = 5 s
+
+ExecutionTime = 7.42 s  ClockTime = 5 s
+
+ExecutionTime = 7.52 s  ClockTime = 5 s
+
+ExecutionTime = 8.23 s  ClockTime = 5 s
+
+ExecutionTime = 8.26 s  ClockTime = 5 s
+
+ExecutionTime = 8.97 s  ClockTime = 6 s
+
+ExecutionTime = 8.99 s  ClockTime = 6 s
+
+ExecutionTime = 9.77 s  ClockTime = 6 s
+
+ExecutionTime = 9.8 s  ClockTime = 6 s
+
+ExecutionTime = 10.55 s  ClockTime = 6 s
+
+ExecutionTime = 10.58 s  ClockTime = 6 s
+
+ExecutionTime = 11.33 s  ClockTime = 6 s
+
+Time = 6.640048894e-07
+
+ExecutionTime = 11.37 s  ClockTime = 6 s
+
+Time = 6.640048894e-07
+
+    BuildCellOccupancy step summary:
+        source                    = moveOrdered
+        cloud valid parcels       = 592924
+        cloud invalid parcels     = 0
+        move-order valid parcels  = 592924
+        move-order invalid parcels= 0
+        occupancy parcels global  = 592924
+        active cells global       = 30000
+        collision cells global    = 30000
+        pair potential global     = 6929867
+
+    BuildCellOccupancy step summary:
+        source                    = moveOrdered
+        cloud valid parcels       = 737010
+        cloud invalid parcels     = 0
+        move-order valid parcels  = 737010
+        move-order invalid parcels= 0
+        occupancy parcels global  = 737010
+        active cells global       = 30000
+        collision cells global    = 30000
+        pair potential global     = 9851093
+
+    Collisions                      = 15620
+    Collision candidates           = 48057
+    Collision acceptance rate      = 0.3250306927
+    Candidate-cell sigmaTcRMax avg/max/min = 1e-15 / 1e-15 / 1e-15
+
+    Collisions                      = 12627
+    Collision candidates           = 47840
+    Collision acceptance rate      = 0.2639423077
+    Candidate-cell sigmaTcRMax avg/max/min = 1e-15 / 1e-15 / 1e-15
+
+Load balance summary:
+    move particles avg/max/min    = 1450097.5 / 5800390 / 5800390
+    move imbalance max/avg        = 4
+    collision cand avg/max/min    = 104196.25 / 416785 / 416785
+    collision cand imbalance      = 4
+    accepted coll avg/max/min     = 30913.5 / 123654 / 123654
+    accepted coll imbalance       = 4
+    thread move particles         = 4(1450368 1450184 1450008 1449830)
+    thread collision candidates   = 4(102486 100455 105961 107883)
+    thread accepted collisions    = 4(30484 29733 31173 32264)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 592924
+    Number of molecules             = 3.557544e+15
+    Mass in system                  = 1.65425796e-10
+    Average linear kinetic energy   = 1.798584459e-19
+    Average rotational energy       = 1.494509977e-21
+    Average vibrational energy      = 2.327085575e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.046238116e-19
+ExecutionTime = 12.25 s  ClockTime = 7 s
+
+Load balance summary:
+    move particles avg/max/min    = 1859450.75 / 7437803 / 7437803
+    move imbalance max/avg        = 4
+    collision cand avg/max/min    = 118856.75 / 475427 / 475427
+    collision cand imbalance      = 4
+    accepted coll avg/max/min     = 31209.25 / 124837 / 124837
+    accepted coll imbalance       = 4
+    thread move particles         = 4(1859791 1859544 1859268 1859200)
+    thread collision candidates   = 4(121119 115425 120214 118669)
+    thread accepted collisions    = 4(31649 30335 31554 31299)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 737010
+    Number of molecules             = 4.42206e+15
+    Mass in system                  = 2.0562579e-10
+    Average linear kinetic energy   = 1.86658228e-19
+    Average rotational energy       = 1.216895982e-21
+    Average vibrational energy      = 2.327085575e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.111459798e-19
+ExecutionTime = 12.33 s  ClockTime = 7 s
+
+ExecutionTime = 13.13 s  ClockTime = 7 s
+
+ExecutionTime = 13.15 s  ClockTime = 7 s
+
+ExecutionTime = 13.98 s  ClockTime = 7 s
+
+ExecutionTime = 14 s  ClockTime = 7 s
+
+ExecutionTime = 14.82 s  ClockTime = 7 s
+
+ExecutionTime = 14.86 s  ClockTime = 7 s
+
+ExecutionTime = 15.66 s  ClockTime = 7 s
+
+ExecutionTime = 15.71 s  ClockTime = 7 s
+
+ExecutionTime = 16.51 s  ClockTime = 8 s
+
+ExecutionTime = 16.55 s  ClockTime = 8 s
+
+ExecutionTime = 17.37 s  ClockTime = 8 s
+
+ExecutionTime = 17.41 s  ClockTime = 8 s
+
+ExecutionTime = 18.23 s  ClockTime = 8 s
+
+ExecutionTime = 18.25 s  ClockTime = 8 s
+
+ExecutionTime = 19.1 s  ClockTime = 8 s
+
+ExecutionTime = 19.11 s  ClockTime = 8 s
+
+ExecutionTime = 19.96 s  ClockTime = 9 s
+
+Time = 1.328009779e-06
+
+ExecutionTime = 19.97 s  ClockTime = 9 s
+
+Time = 1.328009779e-06
+
+    BuildCellOccupancy step summary:
+        source                    = moveOrdered
+        cloud valid parcels       = 616541
+        cloud invalid parcels     = 0
+        move-order valid parcels  = 616541
+        move-order invalid parcels= 0
+        occupancy parcels global  = 616541
+        active cells global       = 30000
+        collision cells global    = 30000
+        pair potential global     = 8435780
+
+    BuildCellOccupancy step summary:
+        source                    = moveOrdered
+        cloud valid parcels       = 736980
+        cloud invalid parcels     = 0
+        move-order valid parcels  = 736980
+        move-order invalid parcels= 0
+        occupancy parcels global  = 736980
+        active cells global       = 30000
+        collision cells global    = 30000
+        pair potential global     = 9896136
+
+    Collisions                      = 24749
+    Collision candidates           = 65594
+    Collision acceptance rate      = 0.3773058511
+    Candidate-cell sigmaTcRMax avg/max/min = 1.000026826e-15 / 1.049894576e-15 / 1e-15
+
+    Collisions                      = 12576
+    Collision candidates           = 48124
+    Collision acceptance rate      = 0.2613249106
+    Candidate-cell sigmaTcRMax avg/max/min = 1e-15 / 1e-15 / 1e-15
+
+Load balance summary:
+    move particles avg/max/min    = 2959035.5 / 11836142 / 11836142
+    move imbalance max/avg        = 4
+    collision cand avg/max/min    = 247767.5 / 991070 / 991070
+    collision cand imbalance      = 4
+    accepted coll avg/max/min     = 82414.5 / 329658 / 329658
+    accepted coll imbalance       = 4
+    thread move particles         = 4(2959493 2959176 2958910 2958563)
+    thread collision candidates   = 4(245568 244614 247826 253062)
+    thread accepted collisions    = 4(81910 81551 82287 83910)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 616541
+    Number of molecules             = 3.699246e+15
+    Mass in system                  = 1.72014939e-10
+    Average linear kinetic energy   = 1.742431689e-19
+    Average rotational energy       = 2.01271712e-21
+    Average vibrational energy      = 2.327085575e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.995267418e-19
+ExecutionTime = 21.03 s  ClockTime = 9 s
+
+Load balance summary:
+    move particles avg/max/min    = 3718832 / 14875328 / 14875328
+    move imbalance max/avg        = 4
+    collision cand avg/max/min    = 238907 / 955628 / 955628
+    collision cand imbalance      = 4
+    accepted coll avg/max/min     = 62559.75 / 250239 / 250239
+    accepted coll imbalance       = 4
+    thread move particles         = 4(3719391 3718984 3718532 3718421)
+    thread collision candidates   = 4(244897 234156 238695 237880)
+    thread accepted collisions    = 4(63931 61355 62553 62400)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 736980
+    Number of molecules             = 4.42188e+15
+    Mass in system                  = 2.0561742e-10
+    Average linear kinetic energy   = 1.866487241e-19
+    Average rotational energy       = 1.216547744e-21
+    Average vibrational energy      = 2.327085575e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.111361276e-19
+ExecutionTime = 21.13 s  ClockTime = 9 s
+
+ExecutionTime = 21.96 s  ClockTime = 9 s
+
+ExecutionTime = 21.98 s  ClockTime = 9 s
+
+ExecutionTime = 22.84 s  ClockTime = 9 s
+
+ExecutionTime = 22.84 s  ClockTime = 9 s
+
+ExecutionTime = 23.71 s  ClockTime = 10 s
+
+ExecutionTime = 23.72 s  ClockTime = 10 s
+
+ExecutionTime = 24.59 s  ClockTime = 10 s
+
+ExecutionTime = 24.6 s  ClockTime = 10 s
+
+ExecutionTime = 25.48 s  ClockTime = 10 s
+
+ExecutionTime = 25.5 s  ClockTime = 10 s
+
+ExecutionTime = 26.39 s  ClockTime = 10 s
+
+ExecutionTime = 26.4 s  ClockTime = 10 s
+
+ExecutionTime = 27.28 s  ClockTime = 10 s
+
+ExecutionTime = 27.29 s  ClockTime = 10 s
+
+ExecutionTime = 28.17 s  ClockTime = 11 s
+
+ExecutionTime = 28.16 s  ClockTime = 11 s
+
+ExecutionTime = 29.06 s  ClockTime = 11 s
+
+Time = 1.992014668e-06
+
+ExecutionTime = 29.06 s  ClockTime = 11 s
+
+Time = 1.992014668e-06
+
+    BuildCellOccupancy step summary:
+        source                    = moveOrdered
+        cloud valid parcels       = 639939
+        cloud invalid parcels     = 0
+        move-order valid parcels  = 639939
+        move-order invalid parcels= 0
+        occupancy parcels global  = 639939
+        active cells global       = 30000
+        collision cells global    = 29999
+        pair potential global     = 10041032
+
+    BuildCellOccupancy step summary:
+        source                    = moveOrdered
+        cloud valid parcels       = 737178
+        cloud invalid parcels     = 0
+        move-order valid parcels  = 737178
+        move-order invalid parcels= 0
+        occupancy parcels global  = 737178
+        active cells global       = 30000
+        collision cells global    = 30000
+        pair potential global     = 9920017
+
+    Collisions                      = 34936
+    Collision candidates           = 84682
+    Collision acceptance rate      = 0.4125552065
+    Candidate-cell sigmaTcRMax avg/max/min = 1.000206806e-15 / 1.082511563e-15 / 1e-15
+
+    Collisions                      = 12472
+    Collision candidates           = 48273
+    Collision acceptance rate      = 0.2583638887
+    Candidate-cell sigmaTcRMax avg/max/min = 1e-15 / 1e-15 / 1e-15
+
+Load balance summary:
+    move particles avg/max/min    = 4526897.25 / 18107589 / 18107589
+    move imbalance max/avg        = 4
+    collision cand avg/max/min    = 438010.75 / 1752043 / 1752043
+    collision cand imbalance      = 4
+    accepted coll avg/max/min     = 158935.5 / 635742 / 635742
+    accepted coll imbalance       = 4
+    thread move particles         = 4(4527680 4527086 4526629 4526194)
+    thread collision candidates   = 4(435334 434402 440028 442279)
+    thread accepted collisions    = 4(157965 157971 159664 160142)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 639939
+    Number of molecules             = 3.839634e+15
+    Mass in system                  = 1.78542981e-10
+    Average linear kinetic energy   = 1.69419548e-19
+    Average rotational energy       = 2.694826238e-21
+    Average vibrational energy      = 2.327085575e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.9538523e-19
+ExecutionTime = 30.18 s  ClockTime = 11 s
+
+Load balance summary:
+    move particles avg/max/min    = 5578272 / 22313088 / 22313088
+    move imbalance max/avg        = 4
+    collision cand avg/max/min    = 359324.25 / 1437297 / 1437297
+    collision cand imbalance      = 4
+    accepted coll avg/max/min     = 94076.5 / 376306 / 376306
+    accepted coll imbalance       = 4
+    thread move particles         = 4(5579132 5578504 5577831 5577621)
+    thread collision candidates   = 4(364961 354985 357089 360262)
+    thread accepted collisions    = 4(95189 93125 93313 94679)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 737178
+    Number of molecules             = 4.423068e+15
+    Mass in system                  = 2.05672662e-10
+    Average linear kinetic energy   = 1.866502132e-19
+    Average rotational energy       = 1.216288825e-21
+    Average vibrational energy      = 2.327085575e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.111373578e-19
+ExecutionTime = 30.31 s  ClockTime = 11 s
+
+ExecutionTime = 31.21 s  ClockTime = 11 s
+
+ExecutionTime = 31.23 s  ClockTime = 11 s
+
+ExecutionTime = 32.08 s  ClockTime = 12 s
+
+ExecutionTime = 32.15 s  ClockTime = 12 s
+
+ExecutionTime = 32.97 s  ClockTime = 12 s
+
+ExecutionTime = 33 s  ClockTime = 12 s
+
+ExecutionTime = 33.89 s  ClockTime = 12 s
+
+ExecutionTime = 33.92 s  ClockTime = 12 s
+
+ExecutionTime = 34.81 s  ClockTime = 12 s
+
+ExecutionTime = 34.85 s  ClockTime = 12 s
+
+ExecutionTime = 35.74 s  ClockTime = 13 s
+
+ExecutionTime = 35.78 s  ClockTime = 13 s
+
+
+Start sample at time 2.456818091e-06 and step 37
+
+ExecutionTime = 36.79 s  ClockTime = 13 s
+
+
+Start sample at time 2.456818091e-06 and step 37
+
+ExecutionTime = 36.85 s  ClockTime = 13 s
+
+ExecutionTime = 37.78 s  ClockTime = 13 s
+
+ExecutionTime = 37.83 s  ClockTime = 13 s
+
+ExecutionTime = 38.7 s  ClockTime = 13 s
+
+Time = 2.656019558e-06
+
+ExecutionTime = 38.74 s  ClockTime = 13 s
+
+Time = 2.656019558e-06
+
+    BuildCellOccupancy step summary:
+        source                    = moveOrdered
+        cloud valid parcels       = 663675
+        cloud invalid parcels     = 0
+        move-order valid parcels  = 663675
+        move-order invalid parcels= 0
+        occupancy parcels global  = 663675
+        active cells global       = 30000
+        collision cells global    = 29998
+        pair potential global     = 11637439
+
+    BuildCellOccupancy step summary:
+        source                    = moveOrdered
+        cloud valid parcels       = 736858
+        cloud invalid parcels     = 0
+        move-order valid parcels  = 736858
+        move-order invalid parcels= 0
+        occupancy parcels global  = 736858
+        active cells global       = 30000
+        collision cells global    = 30000
+        pair potential global     = 9919556
+
+    Collisions                      = 45482
+    Collision candidates           = 103796
+    Collision acceptance rate      = 0.4381864426
+    Candidate-cell sigmaTcRMax avg/max/min = 1.000720896e-15 / 1.143775563e-15 / 1e-15
+
+    Collisions                      = 12609
+    Collision candidates           = 48136
+    Collision acceptance rate      = 0.2619453216
+    Candidate-cell sigmaTcRMax avg/max/min = 1e-15 / 1e-15 / 1e-15
+
+Load balance summary:
+    move particles avg/max/min    = 6153864.5 / 24615458 / 24615458
+    move imbalance max/avg        = 4
+    collision cand avg/max/min    = 676106.25 / 2704425 / 2704425
+    collision cand imbalance      = 4
+    accepted coll avg/max/min     = 261285.75 / 1045143 / 1045143
+    accepted coll imbalance       = 4
+    thread move particles         = 4(6154972 6154141 6153460 6152885)
+    thread collision candidates   = 4(677249 674747 672709 679720)
+    thread accepted collisions    = 4(261211 261051 260393 262488)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 663675
+    Number of molecules             = 3.98205e+15
+    Mass in system                  = 1.85165325e-10
+    Average linear kinetic energy   = 1.652780201e-19
+    Average rotational energy       = 3.484576777e-21
+    Average vibrational energy      = 2.327085575e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.920334526e-19
+ExecutionTime = 39.93 s  ClockTime = 14 s
+
+Load balance summary:
+    move particles avg/max/min    = 7437453.5 / 29749814 / 29749814
+    move imbalance max/avg        = 4
+    collision cand avg/max/min    = 479809.5 / 1919238 / 1919238
+    collision cand imbalance      = 4
+    accepted coll avg/max/min     = 125460.25 / 501841 / 501841
+    accepted coll imbalance       = 4
+    thread move particles         = 4(7438558 7437780 7436890 7436586)
+    thread collision candidates   = 4(484219 475869 478605 480545)
+    thread accepted collisions    = 4(126254 124783 124803 126001)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 736858
+    Number of molecules             = 4.421148e+15
+    Mass in system                  = 2.05583382e-10
+    Average linear kinetic energy   = 1.866285857e-19
+    Average rotational energy       = 1.216112617e-21
+    Average vibrational energy      = 2.327085575e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.111155541e-19
+ExecutionTime = 40.09 s  ClockTime = 14 s
+
+ExecutionTime = 41 s  ClockTime = 14 s
+
+ExecutionTime = 41.07 s  ClockTime = 14 s
+
+ExecutionTime = 41.92 s  ClockTime = 14 s
+
+ExecutionTime = 41.98 s  ClockTime = 14 s
+
+ExecutionTime = 42.84 s  ClockTime = 15 s
+
+ExecutionTime = 42.89 s  ClockTime = 15 s
+
+ExecutionTime = 43.77 s  ClockTime = 15 s
+
+ExecutionTime = 43.86 s  ClockTime = 15 s
+
+ExecutionTime = 44.7 s  ClockTime = 15 s
+
+ExecutionTime = 44.77 s  ClockTime = 15 s
+
+ExecutionTime = 45.62 s  ClockTime = 15 s
+
+ExecutionTime = 45.68 s  ClockTime = 15 s
+
+ExecutionTime = 46.55 s  ClockTime = 15 s
+
+ExecutionTime = 46.63 s  ClockTime = 16 s
+
+ExecutionTime = 47.49 s  ClockTime = 16 s
+
+ExecutionTime = 47.58 s  ClockTime = 16 s
+
+ExecutionTime = 48.43 s  ClockTime = 16 s
+
+Time = 3.320024447e-06
+
+ExecutionTime = 48.51 s  ClockTime = 16 s
+
+Time = 3.320024447e-06
+
+    BuildCellOccupancy step summary:
+        source                    = moveOrdered
+        cloud valid parcels       = 687226
+        cloud invalid parcels     = 0
+        move-order valid parcels  = 687226
+        move-order invalid parcels= 0
+        occupancy parcels global  = 687226
+        active cells global       = 30000
+        collision cells global    = 30000
+        pair potential global     = 13233737
+
+    BuildCellOccupancy step summary:
+        source                    = moveOrdered
+        cloud valid parcels       = 736883
+        cloud invalid parcels     = 0
+        move-order valid parcels  = 736883
+        move-order invalid parcels= 0
+        occupancy parcels global  = 736883
+        active cells global       = 30000
+        collision cells global    = 30000
+        pair potential global     = 9918068
+
+    Collisions                      = 56000
+    Collision candidates           = 123533
+    Collision acceptance rate      = 0.4533201655
+    Candidate-cell sigmaTcRMax avg/max/min = 1.001750231e-15 / 1.228567804e-15 / 1e-15
+
+    Collisions                      = 12580
+    Collision candidates           = 48110
+    Collision acceptance rate      = 0.2614840989
+    Candidate-cell sigmaTcRMax avg/max/min = 1e-15 / 1e-15 / 1e-15
+
+Load balance summary:
+    move particles avg/max/min    = 7839691.5 / 31358766 / 31358766
+    move imbalance max/avg        = 4
+    collision cand avg/max/min    = 962934 / 3851736 / 3851736
+    collision cand imbalance      = 4
+    accepted coll avg/max/min     = 389403.25 / 1557613 / 1557613
+    accepted coll imbalance       = 4
+    thread move particles         = 4(7841092 7840092 7839138 7838444)
+    thread collision candidates   = 4(961003 960912 961653 968168)
+    thread accepted collisions    = 4(388823 388815 388777 391198)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 687226
+    Number of molecules             = 4.123356e+15
+    Mass in system                  = 1.91736054e-10
+    Average linear kinetic energy   = 1.616154976e-19
+    Average rotational energy       = 4.374401423e-21
+    Average vibrational energy      = 2.327153299e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.89261432e-19
+ExecutionTime = 49.73 s  ClockTime = 16 s
+
+Load balance summary:
+    move particles avg/max/min    = 9296678.5 / 37186714 / 37186714
+    move imbalance max/avg        = 4
+    collision cand avg/max/min    = 600366.25 / 2401465 / 2401465
+    collision cand imbalance      = 4
+    accepted coll avg/max/min     = 156955 / 627820 / 627820
+    accepted coll imbalance       = 4
+    thread move particles         = 4(9298045 9297108 9296033 9295528)
+    thread collision candidates   = 4(602068 596704 600796 601897)
+    thread accepted collisions    = 4(157210 156082 156816 157712)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 736883
+    Number of molecules             = 4.421298e+15
+    Mass in system                  = 2.05590357e-10
+    Average linear kinetic energy   = 1.866260823e-19
+    Average rotational energy       = 1.217001259e-21
+    Average vibrational energy      = 2.327085575e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.111139393e-19
+ExecutionTime = 49.92 s  ClockTime = 16 s
+
+ExecutionTime = 50.85 s  ClockTime = 17 s
+
+ExecutionTime = 50.95 s  ClockTime = 17 s
+
+ExecutionTime = 51.75 s  ClockTime = 17 s
+
+ExecutionTime = 51.86 s  ClockTime = 17 s
+
+ExecutionTime = 52.71 s  ClockTime = 17 s
+
+ExecutionTime = 52.8 s  ClockTime = 17 s
+
+ExecutionTime = 53.64 s  ClockTime = 17 s
+
+ExecutionTime = 53.75 s  ClockTime = 17 s
+
+ExecutionTime = 54.59 s  ClockTime = 18 s
+
+ExecutionTime = 54.69 s  ClockTime = 18 s
+
+ExecutionTime = 55.57 s  ClockTime = 18 s
+
+ExecutionTime = 55.67 s  ClockTime = 18 s
+
+ExecutionTime = 56.56 s  ClockTime = 18 s
+
+ExecutionTime = 56.67 s  ClockTime = 18 s
+
+ExecutionTime = 57.56 s  ClockTime = 18 s
+
+ExecutionTime = 57.64 s  ClockTime = 18 s
+
+ExecutionTime = 58.52 s  ClockTime = 19 s
+
+Time = 3.984029336e-06
+
+ExecutionTime = 58.61 s  ClockTime = 19 s
+
+Time = 3.984029336e-06
+
+    BuildCellOccupancy step summary:
+        source                    = moveOrdered
+        cloud valid parcels       = 710622
+        cloud invalid parcels     = 0
+        move-order valid parcels  = 710622
+        move-order invalid parcels= 0
+        occupancy parcels global  = 710622
+        active cells global       = 30000
+        collision cells global    = 30000
+        pair potential global     = 14711823
+
+    BuildCellOccupancy step summary:
+        source                    = moveOrdered
+        cloud valid parcels       = 736789
+        cloud invalid parcels     = 0
+        move-order valid parcels  = 736789
+        move-order invalid parcels= 0
+        occupancy parcels global  = 736789
+        active cells global       = 30000
+        collision cells global    = 30000
+        pair potential global     = 9912271
+
+    Collisions                      = 65441
+    Collision candidates           = 141404
+    Collision acceptance rate      = 0.4627945461
+    Candidate-cell sigmaTcRMax avg/max/min = 1.003104828e-15 / 1.228567804e-15 / 1e-15
+
+    Collisions                      = 12566
+    Collision candidates           = 48142
+    Collision acceptance rate      = 0.261019484
+    Candidate-cell sigmaTcRMax avg/max/min = 1e-15 / 1e-15 / 1e-15
+
+Load balance summary:
+    move particles avg/max/min    = 9583974.75 / 38335899 / 38335899
+    move imbalance max/avg        = 4
+    collision cand avg/max/min    = 1296608.5 / 5186434 / 5186434
+    collision cand imbalance      = 4
+    accepted coll avg/max/min     = 542261.25 / 2169045 / 2169045
+    accepted coll imbalance       = 4
+    thread move particles         = 4(9585620 9584482 9583341 9582456)
+    thread collision candidates   = 4(1297937 1297961 1292339 1298197)
+    thread accepted collisions    = 4(542267 542631 541291 542856)
+
+Load balance summary:
+    move particles avg/max/min    = 11155930 / 44623720 / 44623720
+    move imbalance max/avg        = 4
+    collision cand avg/max/min    = 720938.75 / 2883755 / 2883755
+    collision cand imbalance      = 4
+    accepted coll avg/max/min     = 188502.5 / 754010 / 754010
+    accepted coll imbalance       = 4
+    thread move particles         = 4(11157488 11156412 11155216 11154604)
+    thread collision candidates   = 4(719265 717434 723500 723556)
+    thread accepted collisions    = 4(188035 187705 188790 189480)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 710622
+    Number of molecules             = 4.263732e+15
+    Mass in system                  = 1.98263538e-10
+    Average linear kinetic energy   = 1.584056244e-19
+    Average rotational energy       = 5.268358479e-21
+    Average vibrational energy      = 2.327157619e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.86945559e-19
+ExecutionTime = 59.9 s  ClockTime = 19 s
+
+Cloud name: dsmc
+    Number of dsmc particles        = 736789
+    Number of molecules             = 4.420734e+15
+    Mass in system                  = 2.05564131e-10
+    Average linear kinetic energy   = 1.866456354e-19
+    Average rotational energy       = 1.217260925e-21
+    Average vibrational energy      = 2.327085575e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.111337521e-19
+ExecutionTime = 60.07 s  ClockTime = 19 s
+
+ExecutionTime = 61 s  ClockTime = 19 s
+
+ExecutionTime = 61.13 s  ClockTime = 19 s
+
+ExecutionTime = 61.98 s  ClockTime = 20 s
+
+ExecutionTime = 62.13 s  ClockTime = 20 s
+
+ExecutionTime = 62.94 s  ClockTime = 20 s
+
+ExecutionTime = 63.08 s  ClockTime = 20 s
+
+ExecutionTime = 63.94 s  ClockTime = 20 s
+
+ExecutionTime = 64.1 s  ClockTime = 20 s
+
+ExecutionTime = 64.92 s  ClockTime = 20 s
+
+ExecutionTime = 65.07 s  ClockTime = 20 s
+
+ExecutionTime = 65.9 s  ClockTime = 21 s
+
+ExecutionTime = 66.05 s  ClockTime = 21 s
+
+ExecutionTime = 66.86 s  ClockTime = 21 s
+
+ExecutionTime = 67.02 s  ClockTime = 21 s
+
+ExecutionTime = 67.84 s  ClockTime = 21 s
+
+ExecutionTime = 67.98 s  ClockTime = 21 s
+
+ExecutionTime = 68.79 s  ClockTime = 21 s
+
+Time = 4.648034226e-06
+
+ExecutionTime = 68.97 s  ClockTime = 21 s
+
+Time = 4.648034226e-06
+
+    BuildCellOccupancy step summary:
+        source                    = moveOrdered
+        cloud valid parcels       = 734241
+        cloud invalid parcels     = 0
+        move-order valid parcels  = 734241
+        move-order invalid parcels= 0
+        occupancy parcels global  = 734241
+        active cells global       = 30000
+        collision cells global    = 30000
+        pair potential global     = 16300254
+
+    BuildCellOccupancy step summary:
+        source                    = moveOrdered
+        cloud valid parcels       = 736545
+        cloud invalid parcels     = 0
+        move-order valid parcels  = 736545
+        move-order invalid parcels= 0
+        occupancy parcels global  = 736545
+        active cells global       = 30000
+        collision cells global    = 30000
+        pair potential global     = 9911541
+
+    Collisions                      = 75315
+    Collision candidates           = 161076
+    Collision acceptance rate      = 0.4675743127
+    Candidate-cell sigmaTcRMax avg/max/min = 1.004790649e-15 / 1.282628432e-15 / 1e-15
+
+Load balance summary:
+    move particles avg/max/min    = 11387308.75 / 45549235 / 45549235
+    move imbalance max/avg        = 4
+    collision cand avg/max/min    = 1677231 / 6708924 / 6708924
+    collision cand imbalance      = 4
+    accepted coll avg/max/min     = 719531 / 2878124 / 2878124
+    accepted coll imbalance       = 4
+    thread move particles         = 4(11389205 11387906 11386588 11385536)
+    thread collision candidates   = 4(1679537 1683432 1669348 1676607)
+    thread accepted collisions    = 4(720107 721336 717949 718732)
+
+    Collisions                      = 12610
+    Collision candidates           = 48086
+    Collision acceptance rate      = 0.2622384894
+    Candidate-cell sigmaTcRMax avg/max/min = 1e-15 / 1e-15 / 1e-15
+
+Cloud name: dsmc
+    Number of dsmc particles        = 734241
+    Number of molecules             = 4.405446e+15
+    Mass in system                  = 2.04853239e-10
+    Average linear kinetic energy   = 1.554862037e-19
+    Average rotational energy       = 6.174295844e-21
+    Average vibrational energy      = 2.327206011e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.849325597e-19
+ExecutionTime = 70.24 s  ClockTime = 22 s
+
+Load balance summary:
+    move particles avg/max/min    = 13014701 / 52058804 / 52058804
+    move imbalance max/avg        = 4
+    collision cand avg/max/min    = 841405 / 3365620 / 3365620
+    collision cand imbalance      = 4
+    accepted coll avg/max/min     = 220032.5 / 880130 / 880130
+    accepted coll imbalance       = 4
+    thread move particles         = 4(13016467 13015334 13013902 13013101)
+    thread collision candidates   = 4(840842 836588 843794 844396)
+    thread accepted collisions    = 4(219627 218928 220240 221335)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 736545
+    Number of molecules             = 4.41927e+15
+    Mass in system                  = 2.05496055e-10
+    Average linear kinetic energy   = 1.86644788e-19
+    Average rotational energy       = 1.217663938e-21
+    Average vibrational energy      = 2.327085575e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.111333076e-19
+ExecutionTime = 70.53 s  ClockTime = 22 s
+
+ExecutionTime = 71.46 s  ClockTime = 21 s
+
+ExecutionTime = 71.64 s  ClockTime = 21 s
+
+ExecutionTime = 72.46 s  ClockTime = 21 s
+
+ExecutionTime = 72.64 s  ClockTime = 21 s
+
+ExecutionTime = 73.48 s  ClockTime = 21 s
+
+ExecutionTime = 73.65 s  ClockTime = 21 s
+
+ExecutionTime = 74.49 s  ClockTime = 21 s
+
+ExecutionTime = 74.68 s  ClockTime = 21 s
+
+ExecutionTime = 75.53 s  ClockTime = 22 s
+
+ExecutionTime = 75.69 s  ClockTime = 22 s
+
+ExecutionTime = 76.56 s  ClockTime = 22 s
+
+ExecutionTime = 76.76 s  ClockTime = 22 s
+
+ExecutionTime = 77.63 s  ClockTime = 22 s
+
+ExecutionTime = 77.83 s  ClockTime = 22 s
+
+ExecutionTime = 78.66 s  ClockTime = 22 s
+
+ExecutionTime = 78.84 s  ClockTime = 22 s
+
+ExecutionTime = 79.67 s  ClockTime = 23 s
+
+Time = 5.312039115e-06
+
+ExecutionTime = 79.86 s  ClockTime = 23 s
+
+Time = 5.312039115e-06
+
+    BuildCellOccupancy step summary:
+        source                    = moveOrdered
+        cloud valid parcels       = 757380
+        cloud invalid parcels     = 0
+        move-order valid parcels  = 757380
+        move-order invalid parcels= 0
+        occupancy parcels global  = 757380
+        active cells global       = 30000
+        collision cells global    = 29998
+        pair potential global     = 17774912
+
+    BuildCellOccupancy step summary:
+        source                    = moveOrdered
+        cloud valid parcels       = 736826
+        cloud invalid parcels     = 0
+        move-order valid parcels  = 736826
+        move-order invalid parcels= 0
+        occupancy parcels global  = 736826
+        active cells global       = 30000
+        collision cells global    = 30000
+        pair potential global     = 9916314
+
+    Collisions                      = 84443
+    Collision candidates           = 179211
+    Collision acceptance rate      = 0.4711931745
+    Candidate-cell sigmaTcRMax avg/max/min = 1.006753571e-15 / 1.282628432e-15 / 1e-15
+
+Load balance summary:
+    move particles avg/max/min    = 13249043.25 / 52996173 / 52996173
+    move imbalance max/avg        = 4
+    collision cand avg/max/min    = 2105214.5 / 8420858 / 8420858
+    collision cand imbalance      = 4
+    accepted coll avg/max/min     = 921116.75 / 3684467 / 3684467
+    accepted coll imbalance       = 4
+    thread move particles         = 4(13251228 13249664 13248244 13247037)
+    thread collision candidates   = 4(2111944 2111553 2096186 2101175)
+    thread accepted collisions    = 4(921887 923358 919967 919255)
+
+    Collisions                      = 12443
+    Collision candidates           = 48101
+    Collision acceptance rate      = 0.2586848506
+    Candidate-cell sigmaTcRMax avg/max/min = 1e-15 / 1e-15 / 1e-15
+
+Cloud name: dsmc
+    Number of dsmc particles        = 757380
+    Number of molecules             = 4.54428e+15
+    Mass in system                  = 2.1130902e-10
+    Average linear kinetic energy   = 1.528804219e-19
+    Average rotational energy       = 7.069657611e-21
+    Average vibrational energy      = 2.327220767e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.832222872e-19
+ExecutionTime = 81.26 s  ClockTime = 23 s
+
+Load balance summary:
+    move particles avg/max/min    = 14873402 / 59493608 / 59493608
+    move imbalance max/avg        = 4
+    collision cand avg/max/min    = 961883.25 / 3847533 / 3847533
+    collision cand imbalance      = 4
+    accepted coll avg/max/min     = 251540.25 / 1006161 / 1006161
+    accepted coll imbalance       = 4
+    thread move particles         = 4(14875395 14874109 14872557 14871547)
+    thread collision candidates   = 4(962389 958465 963842 962837)
+    thread accepted collisions    = 4(251354 250853 251444 252510)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 736826
+    Number of molecules             = 4.420956e+15
+    Mass in system                  = 2.05574454e-10
+    Average linear kinetic energy   = 1.866431179e-19
+    Average rotational energy       = 1.217665182e-21
+    Average vibrational energy      = 2.327085575e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.111316388e-19
+ExecutionTime = 81.53 s  ClockTime = 23 s
+
+ExecutionTime = 82.46 s  ClockTime = 23 s
+
+ExecutionTime = 82.67 s  ClockTime = 23 s
+
+ExecutionTime = 83.52 s  ClockTime = 24 s
+
+ExecutionTime = 83.71 s  ClockTime = 24 s
+
+ExecutionTime = 84.55 s  ClockTime = 24 s
+
+ExecutionTime = 84.76 s  ClockTime = 24 s
+
+ExecutionTime = 85.63 s  ClockTime = 24 s
+
+ExecutionTime = 85.84 s  ClockTime = 24 s
+
+ExecutionTime = 86.7 s  ClockTime = 24 s
+
+ExecutionTime = 86.89 s  ClockTime = 25 s
+
+ExecutionTime = 87.74 s  ClockTime = 25 s
+
+ExecutionTime = 87.99 s  ClockTime = 25 s
+
+ExecutionTime = 88.84 s  ClockTime = 25 s
+
+ExecutionTime = 89.07 s  ClockTime = 25 s
+
+ExecutionTime = 89.93 s  ClockTime = 25 s
+
+ExecutionTime = 90.16 s  ClockTime = 25 s
+
+ExecutionTime = 91.04 s  ClockTime = 26 s
+
+Time = 5.976044005e-06
+
+ExecutionTime = 91.24 s  ClockTime = 26 s
+
+Time = 5.976044005e-06
+
+    BuildCellOccupancy step summary:
+        source                    = moveOrdered
+        cloud valid parcels       = 780651
+        cloud invalid parcels     = 0
+        move-order valid parcels  = 780651
+        move-order invalid parcels= 0
+        occupancy parcels global  = 780651
+        active cells global       = 30000
+        collision cells global    = 29999
+        pair potential global     = 19186161
+
+    Collisions                      = 93609
+    Collision candidates           = 196721
+    Collision acceptance rate      = 0.4758465034
+    Candidate-cell sigmaTcRMax avg/max/min = 1.008747981e-15 / 1.282628432e-15 / 1e-15
+
+    BuildCellOccupancy step summary:
+        source                    = moveOrdered
+        cloud valid parcels       = 737107
+        cloud invalid parcels     = 0
+        move-order valid parcels  = 737107
+        move-order invalid parcels= 0
+        occupancy parcels global  = 737107
+        active cells global       = 30000
+        collision cells global    = 30000
+        pair potential global     = 9927105
+
+Load balance summary:
+    move particles avg/max/min    = 15168809.5 / 60675238 / 60675238
+    move imbalance max/avg        = 4
+    collision cand avg/max/min    = 2577662.5 / 10310650 / 10310650
+    collision cand imbalance      = 4
+    accepted coll avg/max/min     = 1145750.25 / 4583001 / 4583001
+    accepted coll imbalance       = 4
+    thread move particles         = 4(15171222 15169581 15167906 15166529)
+    thread collision candidates   = 4(2582488 2586723 2563941 2577498)
+    thread accepted collisions    = 4(1145460 1148478 1143640 1145423)
+
+    Collisions                      = 12822
+    Collision candidates           = 48292
+    Collision acceptance rate      = 0.2655098153
+    Candidate-cell sigmaTcRMax avg/max/min = 1e-15 / 1e-15 / 1e-15
+
+Cloud name: dsmc
+    Number of dsmc particles        = 780651
+    Number of molecules             = 4.683906e+15
+    Mass in system                  = 2.17801629e-10
+    Average linear kinetic energy   = 1.505311222e-19
+    Average rotational energy       = 7.940873738e-21
+    Average vibrational energy      = 2.327198851e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.817439845e-19
+ExecutionTime = 92.74 s  ClockTime = 26 s
+
+Load balance summary:
+    move particles avg/max/min    = 16732700.25 / 66930801 / 66930801
+    move imbalance max/avg        = 4
+    collision cand avg/max/min    = 1082464.75 / 4329859 / 4329859
+    collision cand imbalance      = 4
+    accepted coll avg/max/min     = 283193 / 1132772 / 1132772
+    accepted coll imbalance       = 4
+    thread move particles         = 4(16734912 16733488 16731816 16730585)
+    thread collision candidates   = 4(1085732 1077629 1083732 1082766)
+    thread accepted collisions    = 4(283799 282096 282839 284038)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 737107
+    Number of molecules             = 4.422642e+15
+    Mass in system                  = 2.05652853e-10
+    Average linear kinetic energy   = 1.866512426e-19
+    Average rotational energy       = 1.216611661e-21
+    Average vibrational energy      = 2.327085575e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.1113871e-19
+ExecutionTime = 93.02 s  ClockTime = 26 s
+
+ExecutionTime = 94.01 s  ClockTime = 26 s
+
+ExecutionTime = 94.27 s  ClockTime = 26 s
+
+ExecutionTime = 95.1 s  ClockTime = 27 s
+
+ExecutionTime = 95.4 s  ClockTime = 27 s
+
+ExecutionTime = 96.32 s  ClockTime = 27 s
+
+ExecutionTime = 96.61 s  ClockTime = 27 s
+
+ExecutionTime = 97.43 s  ClockTime = 27 s
+
+ExecutionTime = 97.71 s  ClockTime = 27 s
+
+ExecutionTime = 98.56 s  ClockTime = 28 s
+
+ExecutionTime = 98.84 s  ClockTime = 28 s
+
+ExecutionTime = 99.66 s  ClockTime = 28 s
+
+ExecutionTime = 99.96 s  ClockTime = 28 s
+
+ExecutionTime = 100.79 s  ClockTime = 28 s
+
+ExecutionTime = 101.07 s  ClockTime = 28 s
+
+ExecutionTime = 101.98 s  ClockTime = 28 s
+
+ExecutionTime = 102.25 s  ClockTime = 29 s
+
+ExecutionTime = 103.09 s  ClockTime = 29 s
+
+Time = 6.640048894e-06
+
+ExecutionTime = 103.37 s  ClockTime = 29 s
+
+Time = 6.640048894e-06
+
+    BuildCellOccupancy step summary:
+        source                    = moveOrdered
+        cloud valid parcels       = 803881
+        cloud invalid parcels     = 0
+        move-order valid parcels  = 803881
+        move-order invalid parcels= 0
+        occupancy parcels global  = 803881
+        active cells global       = 30000
+        collision cells global    = 29999
+        pair potential global     = 20541992
+
+    Collisions                      = 102070
+    Collision candidates           = 213718
+    Collision acceptance rate      = 0.477591967
+    Candidate-cell sigmaTcRMax avg/max/min = 1.010932254e-15 / 1.285490995e-15 / 1e-15
+
+    BuildCellOccupancy step summary:
+        source                    = moveOrdered
+        cloud valid parcels       = 736835
+        cloud invalid parcels     = 0
+        move-order valid parcels  = 736835
+        move-order invalid parcels= 0
+        occupancy parcels global  = 736835
+        active cells global       = 30000
+        collision cells global    = 30000
+        pair potential global     = 9917852
+
+Load balance summary:
+    move particles avg/max/min    = 17146660.5 / 68586642 / 68586642
+    move imbalance max/avg        = 4
+    collision cand avg/max/min    = 3093327.25 / 12373309 / 12373309
+    collision cand imbalance      = 4
+    accepted coll avg/max/min     = 1391801 / 5567204 / 5567204
+    accepted coll imbalance       = 4
+    thread move particles         = 4(17149398 17147578 17145582 17144084)
+    thread collision candidates   = 4(3100657 3105778 3080018 3086856)
+    thread accepted collisions    = 4(1393436 1394307 1390953 1388508)
+
+    Collisions                      = 12519
+    Collision candidates           = 48017
+    Collision acceptance rate      = 0.2607201616
+    Candidate-cell sigmaTcRMax avg/max/min = 1e-15 / 1e-15 / 1e-15
+
+Load balance summary:
+    move particles avg/max/min    = 18591675.25 / 74366701 / 74366701
+    move imbalance max/avg        = 4
+    collision cand avg/max/min    = 1202976.75 / 4811907 / 4811907
+    collision cand imbalance      = 4
+    accepted coll avg/max/min     = 314797.5 / 1259190 / 1259190
+    accepted coll imbalance       = 4
+    thread move particles         = 4(18594030 18592560 18590784 18589327)
+    thread collision candidates   = 4(1205233 1197182 1204878 1204614)
+    thread accepted collisions    = 4(315290 313526 314666 315708)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 803881
+    Number of molecules             = 4.823286e+15
+    Mass in system                  = 2.24282799e-10
+    Average linear kinetic energy   = 1.483481752e-19
+    Average rotational energy       = 8.833903055e-21
+    Average vibrational energy      = 2.327224526e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.804543235e-19
+ExecutionTime = 105.09 s  ClockTime = 29 s
+
+Cloud name: dsmc
+    Number of dsmc particles        = 736835
+    Number of molecules             = 4.42101e+15
+    Mass in system                  = 2.05576965e-10
+    Average linear kinetic energy   = 1.86647662e-19
+    Average rotational energy       = 1.21639853e-21
+    Average vibrational energy      = 2.327085575e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.111349162e-19
+ExecutionTime = 105.07 s  ClockTime = 29 s
+
+ExecutionTime = 106.06 s  ClockTime = 30 s
+
+ExecutionTime = 106.5 s  ClockTime = 30 s
+
+ExecutionTime = 107.21 s  ClockTime = 30 s
+
+ExecutionTime = 107.67 s  ClockTime = 30 s
+
+ExecutionTime = 108.37 s  ClockTime = 30 s
+
+ExecutionTime = 108.79 s  ClockTime = 30 s
+
+ExecutionTime = 109.52 s  ClockTime = 30 s
+
+ExecutionTime = 109.95 s  ClockTime = 31 s
+
+ExecutionTime = 110.66 s  ClockTime = 31 s
+
+ExecutionTime = 111.12 s  ClockTime = 31 s
+
+ExecutionTime = 111.85 s  ClockTime = 31 s
+
+ExecutionTime = 112.29 s  ClockTime = 31 s
+
+ExecutionTime = 113.03 s  ClockTime = 31 s
+
+ExecutionTime = 113.46 s  ClockTime = 31 s
+
+ExecutionTime = 114.21 s  ClockTime = 32 s
+
+ExecutionTime = 114.68 s  ClockTime = 32 s
+
+ExecutionTime = 115.43 s  ClockTime = 32 s
+
+Time = 7.304053783e-06
+
+ExecutionTime = 115.88 s  ClockTime = 32 s
+
+Time = 7.304053783e-06
+
+    BuildCellOccupancy step summary:
+        source                    = moveOrdered
+        cloud valid parcels       = 826438
+        cloud invalid parcels     = 0
+        move-order valid parcels  = 826438
+        move-order invalid parcels= 0
+        occupancy parcels global  = 826438
+        active cells global       = 30000
+        collision cells global    = 30000
+        pair potential global     = 21791033
+
+    BuildCellOccupancy step summary:
+        source                    = moveOrdered
+        cloud valid parcels       = 736971
+        cloud invalid parcels     = 0
+        move-order valid parcels  = 736971
+        move-order invalid parcels= 0
+        occupancy parcels global  = 736971
+        active cells global       = 30000
+        collision cells global    = 30000
+        pair potential global     = 9922573
+
+    Collisions                      = 110024
+    Collision candidates           = 228817
+    Collision acceptance rate      = 0.4808383992
+    Candidate-cell sigmaTcRMax avg/max/min = 1.013145012e-15 / 1.285490995e-15 / 1e-15
+
+Load balance summary:
+    move particles avg/max/min    = 19182093 / 76728372 / 76728372
+    move imbalance max/avg        = 4
+    collision cand avg/max/min    = 3648655.25 / 14594621 / 14594621
+    collision cand imbalance      = 4
+    accepted coll avg/max/min     = 1658295.75 / 6633183 / 6633183
+    accepted coll imbalance       = 4
+    thread move particles         = 4(19184966 19183034 19181038 19179334)
+    thread collision candidates   = 4(3657367 3665031 3632333 3639890)
+    thread accepted collisions    = 4(1661366 1661131 1656578 1654108)
+
+    Collisions                      = 12689
+    Collision candidates           = 48306
+    Collision acceptance rate      = 0.2626795843
+    Candidate-cell sigmaTcRMax avg/max/min = 1e-15 / 1e-15 / 1e-15
+
+Load balance summary:
+    move particles avg/max/min    = 20450583.75 / 81802335 / 81802335
+    move imbalance max/avg        = 4
+    collision cand avg/max/min    = 1323516 / 5294064 / 5294064
+    collision cand imbalance      = 4
+    accepted coll avg/max/min     = 346298 / 1385192 / 1385192
+    accepted coll imbalance       = 4
+    thread move particles         = 4(20453199 20451541 20449662 20447933)
+    thread collision candidates   = 4(1325439 1317928 1325419 1325278)
+    thread accepted collisions    = 4(346979 344951 346053 347209)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 826438
+    Number of molecules             = 4.958628e+15
+    Mass in system                  = 2.30576202e-10
+    Average linear kinetic energy   = 1.464052407e-19
+    Average rotational energy       = 9.643682441e-21
+    Average vibrational energy      = 2.327355892e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.793224821e-19
+ExecutionTime = 117.57 s  ClockTime = 33 s
+
+Cloud name: dsmc
+    Number of dsmc particles        = 736971
+    Number of molecules             = 4.421826e+15
+    Mass in system                  = 2.05614909e-10
+    Average linear kinetic energy   = 1.866415717e-19
+    Average rotational energy       = 1.216665622e-21
+    Average vibrational energy      = 2.327085575e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.111290931e-19
+ExecutionTime = 117.51 s  ClockTime = 33 s
+
+ExecutionTime = 118.51 s  ClockTime = 33 s
+
+ExecutionTime = 119.19 s  ClockTime = 33 s
+
+ExecutionTime = 119.73 s  ClockTime = 33 s
+
+ExecutionTime = 120.38 s  ClockTime = 33 s
+
+ExecutionTime = 120.92 s  ClockTime = 34 s
+
+ExecutionTime = 121.58 s  ClockTime = 34 s
+
+ExecutionTime = 122.12 s  ClockTime = 34 s
+
+ExecutionTime = 122.78 s  ClockTime = 34 s
+
+ExecutionTime = 123.33 s  ClockTime = 34 s
+
+ExecutionTime = 124 s  ClockTime = 34 s
+
+ExecutionTime = 124.56 s  ClockTime = 34 s
+
+ExecutionTime = 125.21 s  ClockTime = 35 s
+
+ExecutionTime = 125.74 s  ClockTime = 35 s
+
+ExecutionTime = 126.41 s  ClockTime = 35 s
+
+ExecutionTime = 126.98 s  ClockTime = 35 s
+
+ExecutionTime = 127.66 s  ClockTime = 35 s
+
+ExecutionTime = 128.18 s  ClockTime = 35 s
+
+Time = 7.968058673e-06
+
+ExecutionTime = 128.88 s  ClockTime = 35 s
+
+Time = 7.968058673e-06
+
+    BuildCellOccupancy step summary:
+        source                    = moveOrdered
+        cloud valid parcels       = 849370
+        cloud invalid parcels     = 0
+        move-order valid parcels  = 849370
+        move-order invalid parcels= 0
+        occupancy parcels global  = 849370
+        active cells global       = 30000
+        collision cells global    = 30000
+        pair potential global     = 23055512
+
+    BuildCellOccupancy step summary:
+        source                    = moveOrdered
+        cloud valid parcels       = 737017
+        cloud invalid parcels     = 0
+        move-order valid parcels  = 737017
+        move-order invalid parcels= 0
+        occupancy parcels global  = 737017
+        active cells global       = 30000
+        collision cells global    = 30000
+        pair potential global     = 9926950
+
+    Collisions                      = 117721
+    Collision candidates           = 244285
+    Collision acceptance rate      = 0.4819002395
+    Candidate-cell sigmaTcRMax avg/max/min = 1.015340824e-15 / 1.297476028e-15 / 1e-15
+
+Load balance summary:
+    move particles avg/max/min    = 21274158.5 / 85096634 / 85096634
+    move imbalance max/avg        = 4
+    collision cand avg/max/min    = 4242137.5 / 16968550 / 16968550
+    collision cand imbalance      = 4
+    accepted coll avg/max/min     = 1944238 / 7776952 / 7776952
+    accepted coll imbalance       = 4
+    thread move particles         = 4(21277282 21275138 21273013 21271201)
+    thread collision candidates   = 4(4253429 4255255 4224163 4235703)
+    thread accepted collisions    = 4(1948638 1945736 1940701 1941877)
+
+    Collisions                      = 12663
+    Collision candidates           = 48137
+    Collision acceptance rate      = 0.2630616781
+    Candidate-cell sigmaTcRMax avg/max/min = 1e-15 / 1e-15 / 1e-15
+
+Load balance summary:
+    move particles avg/max/min    = 22309971.5 / 89239886 / 89239886
+    move imbalance max/avg        = 4
+    collision cand avg/max/min    = 1444044.25 / 5776177 / 5776177
+    collision cand imbalance      = 4
+    accepted coll avg/max/min     = 377887.75 / 1511551 / 1511551
+    accepted coll imbalance       = 4
+    thread move particles         = 4(22312957 22310934 22308862 22307133)
+    thread collision candidates   = 4(1445301 1439103 1443473 1448300)
+    thread accepted collisions    = 4(378442 376658 376968 379483)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 849370
+    Number of molecules             = 5.09622e+15
+    Mass in system                  = 2.3697423e-10
+    Average linear kinetic energy   = 1.446236784e-19
+    Average rotational energy       = 1.045274652e-20
+    Average vibrational energy      = 2.32739243e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.783503492e-19
+ExecutionTime = 130.65 s  ClockTime = 36 s
+
+Cloud name: dsmc
+    Number of dsmc particles        = 737017
+    Number of molecules             = 4.422102e+15
+    Mass in system                  = 2.05627743e-10
+    Average linear kinetic energy   = 1.86651586e-19
+    Average rotational energy       = 1.215968541e-21
+    Average vibrational energy      = 2.327085575e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.111384103e-19
+ExecutionTime = 130.31 s  ClockTime = 36 s
+
+ExecutionTime = 131.29 s  ClockTime = 36 s
+
+ExecutionTime = 132.26 s  ClockTime = 36 s
+
+ExecutionTime = 132.55 s  ClockTime = 37 s
+
+ExecutionTime = 133.5 s  ClockTime = 37 s
+
+ExecutionTime = 133.76 s  ClockTime = 37 s
+
+ExecutionTime = 134.76 s  ClockTime = 37 s
+
+ExecutionTime = 135.25 s  ClockTime = 37 s
+
+ExecutionTime = 136.23 s  ClockTime = 37 s
+
+ExecutionTime = 136.51 s  ClockTime = 38 s
+
+ExecutionTime = 137.47 s  ClockTime = 38 s
+
+ExecutionTime = 137.73 s  ClockTime = 38 s
+
+ExecutionTime = 138.69 s  ClockTime = 38 s
+
+ExecutionTime = 138.97 s  ClockTime = 38 s
+
+ExecutionTime = 139.96 s  ClockTime = 38 s
+
+ExecutionTime = 140.26 s  ClockTime = 39 s
+
+ExecutionTime = 141.24 s  ClockTime = 39 s
+
+ExecutionTime = 141.54 s  ClockTime = 39 s
+
+Time = 8.632063562e-06
+
+ExecutionTime = 142.52 s  ClockTime = 39 s
+
+Time = 8.632063562e-06
+
+    BuildCellOccupancy step summary:
+        source                    = moveOrdered
+        cloud valid parcels       = 871923
+        cloud invalid parcels     = 0
+        move-order valid parcels  = 871923
+        move-order invalid parcels= 0
+        occupancy parcels global  = 871923
+        active cells global       = 30000
+        collision cells global    = 29999
+        pair potential global     = 24311578
+
+    Collisions                      = 126352
+    Collision candidates           = 259270
+    Collision acceptance rate      = 0.4873375246
+    Candidate-cell sigmaTcRMax avg/max/min = 1.017832148e-15 / 1.318081337e-15 / 1e-15
+
+    BuildCellOccupancy step summary:
+        source                    = moveOrdered
+        cloud valid parcels       = 736769
+        cloud invalid parcels     = 0
+        move-order valid parcels  = 736769
+        move-order invalid parcels= 0
+        occupancy parcels global  = 736769
+        active cells global       = 30000
+        collision cells global    = 30000
+        pair potential global     = 9912920
+
+Load balance summary:
+    move particles avg/max/min    = 23422798.5 / 93691194 / 93691194
+    move imbalance max/avg        = 4
+    collision cand avg/max/min    = 4873112.25 / 19492449 / 19492449
+    collision cand imbalance      = 4
+    accepted coll avg/max/min     = 2249270.75 / 8997083 / 8997083
+    accepted coll imbalance       = 4
+    thread move particles         = 4(23426196 23423902 23421517 23419579)
+    thread collision candidates   = 4(4876081 4887584 4850364 4878420)
+    thread accepted collisions    = 4(2250145 2251207 2243800 2251931)
+
+    Collisions                      = 12643
+    Collision candidates           = 48162
+    Collision acceptance rate      = 0.2625098625
+    Candidate-cell sigmaTcRMax avg/max/min = 1e-15 / 1e-15 / 1e-15
+
+Load balance summary:
+    move particles avg/max/min    = 24169484.5 / 96677938 / 96677938
+    move imbalance max/avg        = 4
+    collision cand avg/max/min    = 1564633.5 / 6258534 / 6258534
+    collision cand imbalance      = 4
+    accepted coll avg/max/min     = 409389.5 / 1637558 / 1637558
+    accepted coll imbalance       = 4
+    thread move particles         = 4(24172676 24170548 24168298 24166416)
+    thread collision candidates   = 4(1565224 1558255 1564814 1570241)
+    thread accepted collisions    = 4(409795 407694 408720 411349)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 871923
+    Number of molecules             = 5.231538e+15
+    Mass in system                  = 2.43266517e-10
+    Average linear kinetic energy   = 1.429642672e-19
+    Average rotational energy       = 1.124552911e-20
+    Average vibrational energy      = 2.327517939e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.774849757e-19
+ExecutionTime = 144.33 s  ClockTime = 40 s
+
+Cloud name: dsmc
+    Number of dsmc particles        = 736769
+    Number of molecules             = 4.420614e+15
+    Mass in system                  = 2.05558551e-10
+    Average linear kinetic energy   = 1.866481157e-19
+    Average rotational energy       = 1.214601809e-21
+    Average vibrational energy      = 2.327085575e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.111335733e-19
+ExecutionTime = 143.71 s  ClockTime = 40 s
+
+ExecutionTime = 144.73 s  ClockTime = 40 s
+
+ExecutionTime = 146.02 s  ClockTime = 40 s
+
+ExecutionTime = 146.01 s  ClockTime = 40 s
+
+ExecutionTime = 147.28 s  ClockTime = 40 s
+
+ExecutionTime = 147.26 s  ClockTime = 41 s
+
+ExecutionTime = 148.54 s  ClockTime = 41 s
+
+ExecutionTime = 148.51 s  ClockTime = 41 s
+
+ExecutionTime = 149.82 s  ClockTime = 41 s
+
+ExecutionTime = 149.82 s  ClockTime = 41 s
+
+ExecutionTime = 151.12 s  ClockTime = 41 s
+
+ExecutionTime = 151.09 s  ClockTime = 42 s
+
+ExecutionTime = 152.39 s  ClockTime = 42 s
+
+ExecutionTime = 152.4 s  ClockTime = 42 s
+
+ExecutionTime = 153.65 s  ClockTime = 42 s
+
+ExecutionTime = 153.75 s  ClockTime = 42 s
+
+ExecutionTime = 155.06 s  ClockTime = 42 s
+
+ExecutionTime = 155.08 s  ClockTime = 43 s
+
+Time = 9.296068452e-06
+
+ExecutionTime = 156.4 s  ClockTime = 43 s
+
+Time = 9.296068452e-06
+
+    BuildCellOccupancy step summary:
+        source                    = moveOrdered
+        cloud valid parcels       = 893965
+        cloud invalid parcels     = 0
+        move-order valid parcels  = 893965
+        move-order invalid parcels= 0
+        occupancy parcels global  = 893965
+        active cells global       = 30000
+        collision cells global    = 30000
+        pair potential global     = 25541118
+
+    BuildCellOccupancy step summary:
+        source                    = moveOrdered
+        cloud valid parcels       = 737169
+        cloud invalid parcels     = 0
+        move-order valid parcels  = 737169
+        move-order invalid parcels= 0
+        occupancy parcels global  = 737169
+        active cells global       = 30000
+        collision cells global    = 30000
+        pair potential global     = 9929754
+
+    Collisions                      = 132717
+    Collision candidates           = 274153
+    Collision acceptance rate      = 0.4840982955
+    Candidate-cell sigmaTcRMax avg/max/min = 1.019956071e-15 / 1.318081337e-15 / 1e-15
+
+    Collisions                      = 12703
+    Collision candidates           = 48195
+    Collision acceptance rate      = 0.2635750597
+    Candidate-cell sigmaTcRMax avg/max/min = 1e-15 / 1e-15 / 1e-15
+
+Load balance summary:
+    move particles avg/max/min    = 25627435.5 / 102509742 / 102509742
+    move imbalance max/avg        = 4
+    collision cand avg/max/min    = 5542113.25 / 22168453 / 22168453
+    collision cand imbalance      = 4
+    accepted coll avg/max/min     = 2573538.5 / 10294154 / 10294154
+    accepted coll imbalance       = 4
+    thread move particles         = 4(25631027 25628573 25626106 25624036)
+    thread collision candidates   = 4(5544330 5568497 5508668 5546958)
+    thread accepted collisions    = 4(2574008 2578853 2565972 2575321)
+
+Load balance summary:
+    move particles avg/max/min    = 26028773.75 / 104115095 / 104115095
+    move imbalance max/avg        = 4
+    collision cand avg/max/min    = 1685215.75 / 6740863 / 6740863
+    collision cand imbalance      = 4
+    accepted coll avg/max/min     = 441033.75 / 1764135 / 1764135
+    accepted coll imbalance       = 4
+    thread move particles         = 4(26032244 26029952 26027477 26025422)
+    thread collision candidates   = 4(1681811 1677587 1684108 1697357)
+    thread accepted collisions    = 4(440261 439126 440095 444653)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 893965
+    Number of molecules             = 5.36379e+15
+    Mass in system                  = 2.49416235e-10
+    Average linear kinetic energy   = 1.414037212e-19
+    Average rotational energy       = 1.202417984e-20
+    Average vibrational energy      = 2.327548928e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.767033904e-19
+ExecutionTime = 158.35 s  ClockTime = 43 s
+
+Cloud name: dsmc
+    Number of dsmc particles        = 737169
+    Number of molecules             = 4.423014e+15
+    Mass in system                  = 2.05670151e-10
+    Average linear kinetic energy   = 1.866379534e-19
+    Average rotational energy       = 1.215234534e-21
+    Average vibrational energy      = 2.327085575e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.111240437e-19
+ExecutionTime = 157.3 s  ClockTime = 43 s
+
+ExecutionTime = 158.31 s  ClockTime = 43 s
+
+ExecutionTime = 159.98 s  ClockTime = 44 s
+
+ExecutionTime = 159.66 s  ClockTime = 44 s
+
+ExecutionTime = 161.3 s  ClockTime = 44 s
+
+ExecutionTime = 160.98 s  ClockTime = 44 s
+
+ExecutionTime = 162.61 s  ClockTime = 44 s
+
+ExecutionTime = 162.31 s  ClockTime = 45 s
+
+ExecutionTime = 163.95 s  ClockTime = 45 s
+
+ExecutionTime = 163.63 s  ClockTime = 45 s
+
+ExecutionTime = 165.29 s  ClockTime = 45 s
+
+ExecutionTime = 164.98 s  ClockTime = 45 s
+
+ExecutionTime = 166.64 s  ClockTime = 45 s
+
+ExecutionTime = 166.31 s  ClockTime = 46 s
+
+ExecutionTime = 167.94 s  ClockTime = 46 s
+
+ExecutionTime = 167.61 s  ClockTime = 46 s
+
+ExecutionTime = 169.26 s  ClockTime = 46 s
+
+ExecutionTime = 168.94 s  ClockTime = 46 s
+
+Time = 9.960073341e-06
+
+ExecutionTime = 170.62 s  ClockTime = 46 s
+
+Time = 9.960073341e-06
+
+    BuildCellOccupancy step summary:
+        source                    = moveOrdered
+        cloud valid parcels       = 916105
+        cloud invalid parcels     = 0
+        move-order valid parcels  = 916105
+        move-order invalid parcels= 0
+        occupancy parcels global  = 916105
+        active cells global       = 30000
+        collision cells global    = 30000
+        pair potential global     = 26772403
+
+    BuildCellOccupancy step summary:
+        source                    = moveOrdered
+        cloud valid parcels       = 737201
+        cloud invalid parcels     = 0
+        move-order valid parcels  = 737201
+        move-order invalid parcels= 0
+        occupancy parcels global  = 737201
+        active cells global       = 30000
+        collision cells global    = 30000
+        pair potential global     = 9929881
+
+    Collisions                      = 139815
+    Collision candidates           = 288830
+    Collision acceptance rate      = 0.4840736766
+    Candidate-cell sigmaTcRMax avg/max/min = 1.022179785e-15 / 1.337412673e-15 / 1e-15
+
+    Collisions                      = 12664
+    Collision candidates           = 48309
+    Collision acceptance rate      = 0.2621457699
+    Candidate-cell sigmaTcRMax avg/max/min = 1e-15 / 1e-15 / 1e-15
+
+Load balance summary:
+    move particles avg/max/min    = 27887489.5 / 111549958 / 111549958
+    move imbalance max/avg        = 4
+    collision cand avg/max/min    = 6248943 / 24995772 / 24995772
+    collision cand imbalance      = 4
+    accepted coll avg/max/min     = 2917252 / 11669008 / 11669008
+    accepted coll imbalance       = 4
+    thread move particles         = 4(27891345 27888655 27886059 27883899)
+    thread collision candidates   = 4(6248677 6284976 6204287 6257832)
+    thread accepted collisions    = 4(2917781 2925295 2907040 2918892)
+
+Load balance summary:
+    move particles avg/max/min    = 27888473.75 / 111553895 / 111553895
+    move imbalance max/avg        = 4
+    collision cand avg/max/min    = 1805836.25 / 7223345 / 7223345
+    collision cand imbalance      = 4
+    accepted coll avg/max/min     = 472718.5 / 1890874 / 1890874
+    accepted coll imbalance       = 4
+    thread move particles         = 4(27892163 27889672 27887141 27884919)
+    thread collision candidates   = 4(1801239 1798348 1804810 1818948)
+    thread accepted collisions    = 4(471650 470626 471985 476613)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 916105
+    Number of molecules             = 5.49663e+15
+    Mass in system                  = 2.55593295e-10
+    Average linear kinetic energy   = 1.400066378e-19
+    Average rotational energy       = 1.275116291e-20
+    Average vibrational energy      = 2.327558051e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.760333812e-19
+ExecutionTime = 172.56 s  ClockTime = 47 s
+
+Cloud name: dsmc
+    Number of dsmc particles        = 737201
+    Number of molecules             = 4.423206e+15
+    Mass in system                  = 2.05679079e-10
+    Average linear kinetic energy   = 1.866262847e-19
+    Average rotational energy       = 1.214862246e-21
+    Average vibrational energy      = 2.327085575e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.111120027e-19
+ExecutionTime = 171.09 s  ClockTime = 47 s
+
+ExecutionTime = 172.11 s  ClockTime = 47 s
+
+ExecutionTime = 174.2 s  ClockTime = 47 s
+
+ExecutionTime = 173.5 s  ClockTime = 48 s
+
+ExecutionTime = 175.57 s  ClockTime = 48 s
+
+ExecutionTime = 174.89 s  ClockTime = 48 s
+
+ExecutionTime = 176.94 s  ClockTime = 48 s
+
+ExecutionTime = 176.24 s  ClockTime = 48 s
+
+ExecutionTime = 178.34 s  ClockTime = 48 s
+
+ExecutionTime = 177.62 s  ClockTime = 49 s
+
+ExecutionTime = 179.74 s  ClockTime = 49 s
+
+ExecutionTime = 179.03 s  ClockTime = 49 s
+
+ExecutionTime = 181.09 s  ClockTime = 49 s
+
+ExecutionTime = 180.39 s  ClockTime = 49 s
+
+ExecutionTime = 182.5 s  ClockTime = 49 s
+
+ExecutionTime = 181.79 s  ClockTime = 50 s
+
+ExecutionTime = 183.9 s  ClockTime = 50 s
+
+ExecutionTime = 183.16 s  ClockTime = 50 s
+
+Time = 1.062407823e-05
+
+ExecutionTime = 185.23 s  ClockTime = 50 s
+
+Time = 1.062407823e-05
+
+    BuildCellOccupancy step summary:
+        source                    = moveOrdered
+        cloud valid parcels       = 938192
+        cloud invalid parcels     = 0
+        move-order valid parcels  = 938192
+        move-order invalid parcels= 0
+        occupancy parcels global  = 938192
+        active cells global       = 30000
+        collision cells global    = 30000
+        pair potential global     = 27971026
+
+    BuildCellOccupancy step summary:
+        source                    = moveOrdered
+        cloud valid parcels       = 737197
+        cloud invalid parcels     = 0
+        move-order valid parcels  = 737197
+        move-order invalid parcels= 0
+        occupancy parcels global  = 737197
+        active cells global       = 30000
+        collision cells global    = 29999
+        pair potential global     = 9929289
+
+    Collisions                      = 147468
+    Collision candidates           = 302670
+    Collision acceptance rate      = 0.487223709
+    Candidate-cell sigmaTcRMax avg/max/min = 1.024468841e-15 / 1.337412673e-15 / 1e-15
+
+    Collisions                      = 12619
+    Collision candidates           = 48192
+    Collision acceptance rate      = 0.2618484396
+    Candidate-cell sigmaTcRMax avg/max/min = 1.000001203e-15 / 1.0335448e-15 / 1e-15
+
+Load balance summary:
+    move particles avg/max/min    = 30202739.5 / 120810958 / 120810958
+    move imbalance max/avg        = 4
+    collision cand avg/max/min    = 6989731.5 / 27958926 / 27958926
+    collision cand imbalance      = 4
+    accepted coll avg/max/min     = 3278325 / 13113300 / 13113300
+    accepted coll imbalance       = 4
+    thread move particles         = 4(30206885 30203994 30201214 30198865)
+    thread collision candidates   = 4(6986195 7026935 6947430 6998366)
+    thread accepted collisions    = 4(3277856 3286246 3268761 3280437)
+
+Load balance summary:
+    move particles avg/max/min    = 29748154.75 / 118992619 / 118992619
+    move imbalance max/avg        = 4
+    collision cand avg/max/min    = 1926418 / 7705672 / 7705672
+    collision cand imbalance      = 4
+    accepted coll avg/max/min     = 504230.25 / 2016921 / 2016921
+    accepted coll imbalance       = 4
+    thread move particles         = 4(29752095 29749442 29746750 29744332)
+    thread collision candidates   = 4(1919427 1921483 1927382 1937380)
+    thread accepted collisions    = 4(502683 502879 503860 507499)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 938192
+    Number of molecules             = 5.629152e+15
+    Mass in system                  = 2.61755568e-10
+    Average linear kinetic energy   = 1.387248171e-19
+    Average rotational energy       = 1.343893619e-20
+    Average vibrational energy      = 2.327601497e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.754397682e-19
+ExecutionTime = 187.33 s  ClockTime = 51 s
+
+Cloud name: dsmc
+    Number of dsmc particles        = 737197
+    Number of molecules             = 4.423182e+15
+    Mass in system                  = 2.05677963e-10
+    Average linear kinetic energy   = 1.86632071e-19
+    Average rotational energy       = 1.215126465e-21
+    Average vibrational energy      = 2.327085575e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.111180532e-19
+ExecutionTime = 185.42 s  ClockTime = 51 s
+
+ExecutionTime = 186.48 s  ClockTime = 51 s
+
+ExecutionTime = 189 s  ClockTime = 51 s
+
+ExecutionTime = 187.88 s  ClockTime = 51 s
+
+ExecutionTime = 190.44 s  ClockTime = 52 s
+
+ExecutionTime = 189.32 s  ClockTime = 52 s
+
+ExecutionTime = 191.86 s  ClockTime = 52 s
+
+ExecutionTime = 190.73 s  ClockTime = 52 s
+
+ExecutionTime = 193.29 s  ClockTime = 52 s
+
+ExecutionTime = 192.18 s  ClockTime = 53 s
+
+ExecutionTime = 194.73 s  ClockTime = 53 s
+
+ExecutionTime = 193.6 s  ClockTime = 52 s
+
+ExecutionTime = 196.17 s  ClockTime = 52 s
+
+ExecutionTime = 195.09 s  ClockTime = 52 s
+
+ExecutionTime = 197.65 s  ClockTime = 52 s
+
+ExecutionTime = 196.6 s  ClockTime = 52 s
+
+ExecutionTime = 199.16 s  ClockTime = 53 s
+
+ExecutionTime = 198.05 s  ClockTime = 53 s
+
+Time = 1.128808312e-05
+
+ExecutionTime = 200.58 s  ClockTime = 53 s
+
+Time = 1.128808312e-05
+
+    BuildCellOccupancy step summary:
+        source                    = moveOrdered
+        cloud valid parcels       = 960008
+        cloud invalid parcels     = 0
+        move-order valid parcels  = 960008
+        move-order invalid parcels= 0
+        occupancy parcels global  = 960008
+        active cells global       = 30000
+        collision cells global    = 30000
+        pair potential global     = 29184101
+
+    BuildCellOccupancy step summary:
+        source                    = moveOrdered
+        cloud valid parcels       = 737079
+        cloud invalid parcels     = 0
+        move-order valid parcels  = 737079
+        move-order invalid parcels= 0
+        occupancy parcels global  = 737079
+        active cells global       = 30000
+        collision cells global    = 30000
+        pair potential global     = 9925482
+
+    Collisions                      = 154879
+    Collision candidates           = 316658
+    Collision acceptance rate      = 0.489104965
+    Candidate-cell sigmaTcRMax avg/max/min = 1.026739786e-15 / 1.360167128e-15 / 1e-15
+
+    Collisions                      = 12506
+    Collision candidates           = 48126
+    Collision acceptance rate      = 0.2598595354
+    Candidate-cell sigmaTcRMax avg/max/min = 1.000004494e-15 / 1.125291078e-15 / 1e-15
+
+Load balance summary:
+    move particles avg/max/min    = 32572629 / 130290516 / 130290516
+    move imbalance max/avg        = 4
+    collision cand avg/max/min    = 7765670 / 31062680 / 31062680
+    collision cand imbalance      = 4
+    accepted coll avg/max/min     = 3657868.5 / 14631474 / 14631474
+    accepted coll imbalance       = 4
+    thread move particles         = 4(32577042 32573964 32571003 32568507)
+    thread collision candidates   = 4(7757666 7804595 7721846 7778573)
+    thread accepted collisions    = 4(3655484 3665526 3648916 3661548)
+
+Load balance summary:
+    move particles avg/max/min    = 31607981 / 126431924 / 126431924
+    move imbalance max/avg        = 4
+    collision cand avg/max/min    = 2047052.5 / 8188210 / 8188210
+    collision cand imbalance      = 4
+    accepted coll avg/max/min     = 535773.25 / 2143093 / 2143093
+    accepted coll imbalance       = 4
+    thread move particles         = 4(31612101 31609295 31606534 31603994)
+    thread collision candidates   = 4(2039313 2041876 2048121 2058900)
+    thread accepted collisions    = 4(533986 534376 535440 539291)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 960008
+    Number of molecules             = 5.760048e+15
+    Mass in system                  = 2.67842232e-10
+    Average linear kinetic energy   = 1.375167548e-19
+    Average rotational energy       = 1.409186825e-20
+    Average vibrational energy      = 2.327647949e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.748851026e-19
+ExecutionTime = 202.71 s  ClockTime = 53 s
+
+Cloud name: dsmc
+    Number of dsmc particles        = 737079
+    Number of molecules             = 4.422474e+15
+    Mass in system                  = 2.05645041e-10
+    Average linear kinetic energy   = 1.866400998e-19
+    Average rotational energy       = 1.214232469e-21
+    Average vibrational energy      = 2.327085575e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.11125188e-19
+ExecutionTime = 200.3 s  ClockTime = 53 s
+
+ExecutionTime = 201.33 s  ClockTime = 54 s
+
+ExecutionTime = 204.37 s  ClockTime = 54 s
+
+ExecutionTime = 202.79 s  ClockTime = 54 s
+
+ExecutionTime = 205.82 s  ClockTime = 54 s
+
+ExecutionTime = 204.24 s  ClockTime = 54 s
+
+ExecutionTime = 207.29 s  ClockTime = 55 s
+
+ExecutionTime = 205.71 s  ClockTime = 55 s
+
+ExecutionTime = 208.76 s  ClockTime = 55 s
+
+ExecutionTime = 207.15 s  ClockTime = 55 s
+
+ExecutionTime = 210.21 s  ClockTime = 55 s
+
+ExecutionTime = 208.64 s  ClockTime = 56 s
+
+ExecutionTime = 211.67 s  ClockTime = 56 s
+
+ExecutionTime = 210.08 s  ClockTime = 56 s
+
+ExecutionTime = 213.12 s  ClockTime = 56 s
+
+ExecutionTime = 211.54 s  ClockTime = 56 s
+
+ExecutionTime = 214.57 s  ClockTime = 57 s
+
+ExecutionTime = 213.01 s  ClockTime = 57 s
+
+Time = 1.195208801e-05
+
+ExecutionTime = 216.1 s  ClockTime = 57 s
+
+Time = 1.195208801e-05
+
+    BuildCellOccupancy step summary:
+        source                    = moveOrdered
+        cloud valid parcels       = 981591
+        cloud invalid parcels     = 0
+        move-order valid parcels  = 981591
+        move-order invalid parcels= 0
+        occupancy parcels global  = 981591
+        active cells global       = 30000
+        collision cells global    = 30000
+        pair potential global     = 30322171
+
+    BuildCellOccupancy step summary:
+        source                    = moveOrdered
+        cloud valid parcels       = 736946
+        cloud invalid parcels     = 0
+        move-order valid parcels  = 736946
+        move-order invalid parcels= 0
+        occupancy parcels global  = 736946
+        active cells global       = 30000
+        collision cells global    = 30000
+        pair potential global     = 9921549
+
+    Collisions                      = 12515
+    Collision candidates           = 48263
+    Collision acceptance rate      = 0.2593083729
+    Candidate-cell sigmaTcRMax avg/max/min = 1.000020209e-15 / 1.177262581e-15 / 1e-15
+
+    Collisions                      = 161568
+    Collision candidates           = 329843
+    Collision acceptance rate      = 0.4898330418
+    Candidate-cell sigmaTcRMax avg/max/min = 1.028819501e-15 / 1.380937308e-15 / 1e-15
+
+Load balance summary:
+    move particles avg/max/min    = 33467311 / 133869244 / 133869244
+    move imbalance max/avg        = 4
+    collision cand avg/max/min    = 2167636.25 / 8670545 / 8670545
+    collision cand imbalance      = 4
+    accepted coll avg/max/min     = 567305.5 / 2269222 / 2269222
+    accepted coll imbalance       = 4
+    thread move particles         = 4(33471642 33468774 33465773 33463055)
+    thread collision candidates   = 4(2158057 2161903 2168702 2181883)
+    thread accepted collisions    = 4(565130 565906 566812 571374)
+
+Load balance summary:
+    move particles avg/max/min    = 34997000.75 / 139988003 / 139988003
+    move imbalance max/avg        = 4
+    collision cand avg/max/min    = 8575946.75 / 34303787 / 34303787
+    collision cand imbalance      = 4
+    accepted coll avg/max/min     = 4054683 / 16218732 / 16218732
+    accepted coll imbalance       = 4
+    thread move particles         = 4(35001632 34998350 34995333 34992688)
+    thread collision candidates   = 4(8568545 8620658 8524150 8590434)
+    thread accepted collisions    = 4(4051560 4064525 4042923 4059724)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 981591
+    Number of molecules             = 5.889546e+15
+    Mass in system                  = 2.73863889e-10
+    Average linear kinetic energy   = 1.363539813e-19
+    Average rotational energy       = 1.4724265e-20
+    Average vibrational energy      = 2.327711447e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.743553607e-19
+ExecutionTime = 218.37 s  ClockTime = 58 s
+
+Cloud name: dsmc
+    Number of dsmc particles        = 736946
+    Number of molecules             = 4.421676e+15
+    Mass in system                  = 2.05607934e-10
+    Average linear kinetic energy   = 1.866577377e-19
+    Average rotational energy       = 1.214656434e-21
+    Average vibrational energy      = 2.327085575e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.111432499e-19
+ExecutionTime = 215.32 s  ClockTime = 58 s
+
+ExecutionTime = 216.37 s  ClockTime = 58 s
+
+ExecutionTime = 219.94 s  ClockTime = 58 s
+
+ExecutionTime = 217.82 s  ClockTime = 58 s
+
+ExecutionTime = 221.41 s  ClockTime = 58 s
+
+ExecutionTime = 219.3 s  ClockTime = 59 s
+
+ExecutionTime = 222.89 s  ClockTime = 59 s
+
+ExecutionTime = 220.84 s  ClockTime = 59 s
+
+ExecutionTime = 224.42 s  ClockTime = 59 s
+
+ExecutionTime = 222.35 s  ClockTime = 59 s
+
+ExecutionTime = 225.93 s  ClockTime = 59 s
+
+ExecutionTime = 223.88 s  ClockTime = 60 s
+
+ExecutionTime = 227.5 s  ClockTime = 60 s
+
+ExecutionTime = 225.39 s  ClockTime = 60 s
+
+ExecutionTime = 229.02 s  ClockTime = 60 s
+
+ExecutionTime = 226.96 s  ClockTime = 61 s
+
+ExecutionTime = 230.59 s  ClockTime = 61 s
+
+ExecutionTime = 228.53 s  ClockTime = 61 s
+
+Time = 1.26160929e-05
+
+ExecutionTime = 232.16 s  ClockTime = 61 s
+
+Time = 1.26160929e-05
+
+    BuildCellOccupancy step summary:
+        source                    = moveOrdered
+        cloud valid parcels       = 1002739
+        cloud invalid parcels     = 0
+        move-order valid parcels  = 1002739
+        move-order invalid parcels= 0
+        occupancy parcels global  = 1002739
+        active cells global       = 30000
+        collision cells global    = 30000
+        pair potential global     = 31437834
+
+    BuildCellOccupancy step summary:
+        source                    = moveOrdered
+        cloud valid parcels       = 736994
+        cloud invalid parcels     = 0
+        move-order valid parcels  = 736994
+        move-order invalid parcels= 0
+        occupancy parcels global  = 736994
+        active cells global       = 30000
+        collision cells global    = 30000
+        pair potential global     = 9929336
+
+    Collisions                      = 12514
+    Collision candidates           = 48335
+    Collision acceptance rate      = 0.2589014172
+    Candidate-cell sigmaTcRMax avg/max/min = 1.000030905e-15 / 1.177262581e-15 / 1e-15
+
+    Collisions                      = 168364
+    Collision candidates           = 342555
+    Collision acceptance rate      = 0.4914947965
+    Candidate-cell sigmaTcRMax avg/max/min = 1.030926303e-15 / 1.397180659e-15 / 1e-15
+
+Load balance summary:
+    move particles avg/max/min    = 35326338.75 / 141305355 / 141305355
+    move imbalance max/avg        = 4
+    collision cand avg/max/min    = 2288177.25 / 9152709 / 9152709
+    collision cand imbalance      = 4
+    accepted coll avg/max/min     = 598886 / 2395544 / 2395544
+    accepted coll imbalance       = 4
+    thread move particles         = 4(35330885 35327932 35324739 35321799)
+    thread collision candidates   = 4(2277070 2282531 2289011 2304097)
+    thread accepted collisions    = 4(596306 597612 598319 603307)
+
+Load balance summary:
+    move particles avg/max/min    = 37474992.75 / 149899971 / 149899971
+    move imbalance max/avg        = 4
+    collision cand avg/max/min    = 9418652.5 / 37674610 / 37674610
+    collision cand imbalance      = 4
+    accepted coll avg/max/min     = 4468645.5 / 17874582 / 17874582
+    accepted coll imbalance       = 4
+    thread move particles         = 4(37479899 37476393 37473209 37470470)
+    thread collision candidates   = 4(9403681 9472814 9364440 9433675)
+    thread accepted collisions    = 4(4462882 4481634 4456038 4474028)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1002739
+    Number of molecules             = 6.016434e+15
+    Mass in system                  = 2.79764181e-10
+    Average linear kinetic energy   = 1.35239516e-19
+    Average rotational energy       = 1.536509963e-20
+    Average vibrational energy      = 2.327740021e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.738820158e-19
+ExecutionTime = 234.5 s  ClockTime = 62 s
+
+Cloud name: dsmc
+    Number of dsmc particles        = 736994
+    Number of molecules             = 4.421964e+15
+    Mass in system                  = 2.05621326e-10
+    Average linear kinetic energy   = 1.86650788e-19
+    Average rotational energy       = 1.214422527e-21
+    Average vibrational energy      = 2.327085575e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.111360663e-19
+ExecutionTime = 230.9 s  ClockTime = 62 s
+
+ExecutionTime = 232.04 s  ClockTime = 62 s
+
+ExecutionTime = 236.19 s  ClockTime = 62 s
+
+ExecutionTime = 233.56 s  ClockTime = 62 s
+
+ExecutionTime = 237.7 s  ClockTime = 63 s
+
+ExecutionTime = 235.06 s  ClockTime = 63 s
+
+ExecutionTime = 239.22 s  ClockTime = 63 s
+
+ExecutionTime = 236.61 s  ClockTime = 63 s
+
+ExecutionTime = 240.77 s  ClockTime = 63 s
+
+ExecutionTime = 238.14 s  ClockTime = 64 s
+
+ExecutionTime = 242.31 s  ClockTime = 64 s
+
+ExecutionTime = 239.7 s  ClockTime = 64 s
+
+ExecutionTime = 243.84 s  ClockTime = 64 s
+
+ExecutionTime = 241.23 s  ClockTime = 64 s
+
+ExecutionTime = 245.39 s  ClockTime = 65 s
+
+ExecutionTime = 242.8 s  ClockTime = 65 s
+
+ExecutionTime = 246.97 s  ClockTime = 65 s
+
+ExecutionTime = 244.36 s  ClockTime = 65 s
+
+Time = 1.328009779e-05
+
+ExecutionTime = 248.54 s  ClockTime = 65 s
+
+Time = 1.328009779e-05
+
+    BuildCellOccupancy step summary:
+        source                    = moveOrdered
+        cloud valid parcels       = 1023698
+        cloud invalid parcels     = 0
+        move-order valid parcels  = 1023698
+        move-order invalid parcels= 0
+        occupancy parcels global  = 1023698
+        active cells global       = 30000
+        collision cells global    = 30000
+        pair potential global     = 32480044
+
+    BuildCellOccupancy step summary:
+        source                    = moveOrdered
+        cloud valid parcels       = 736921
+        cloud invalid parcels     = 0
+        move-order valid parcels  = 736921
+        move-order invalid parcels= 0
+        occupancy parcels global  = 736921
+        active cells global       = 30000
+        collision cells global    = 30000
+        pair potential global     = 9929059
+
+    Collisions                      = 12523
+    Collision candidates           = 48250
+    Collision acceptance rate      = 0.2595440415
+    Candidate-cell sigmaTcRMax avg/max/min = 1.000036128e-15 / 1.177262581e-15 / 1e-15
+
+    Collisions                      = 174081
+    Collision candidates           = 354291
+    Collision acceptance rate      = 0.4913503307
+    Candidate-cell sigmaTcRMax avg/max/min = 1.033066846e-15 / 1.39913803e-15 / 1e-15
+
+Load balance summary:
+    move particles avg/max/min    = 37185665.5 / 148742662 / 148742662
+    move imbalance max/avg        = 4
+    collision cand avg/max/min    = 2408756.25 / 9635025 / 9635025
+    collision cand imbalance      = 4
+    accepted coll avg/max/min     = 630411 / 2521644 / 2521644
+    accepted coll imbalance       = 4
+    thread move particles         = 4(37190548 37187296 37183922 37180896)
+    thread collision candidates   = 4(2399125 2400091 2408979 2426830)
+    thread accepted collisions    = 4(628307 628249 629639 635449)
+
+Load balance summary:
+    move particles avg/max/min    = 40005353 / 160021412 / 160021412
+    move imbalance max/avg        = 4
+    collision cand avg/max/min    = 10290788.75 / 41163155 / 41163155
+    collision cand imbalance      = 4
+    accepted coll avg/max/min     = 4897363.75 / 19589455 / 19589455
+    accepted coll imbalance       = 4
+    thread move particles         = 4(40010367 40006825 40003623 40000597)
+    thread collision candidates   = 4(10276981 10354594 10233674 10297906)
+    thread accepted collisions    = 4(4891860 4912421 4884232 4900942)
+
+
+Phase C auto DLB triggered at step 200: sar=1.599333451 tidl=4.469668587 nPeriods=2 prodTimes 2(34.86413446 27.19579897)
+
+Phase C auto DLB triggered at step 200: sar=1.599333451 tidl=4.469668587 nPeriods=2 prodTimes 2(34.86413446 27.19579897)
+Phase C ParMETIS: AdaptiveRepart (60000 cells, 2 constraints, collScale=4.112350599)
+Phase C ParMETIS: AdaptiveRepart (60000 cells, 2 constraints, collScale=2.244124523)
+Replicated mesh: rank 0 owns 27915 / 60000 cells
+Replicated mesh: rank 1 owns 32085 / 60000 cells
+Local mesh: 27915 owned + 589 halo = 28504 / 60000 cells
+Phase C ParMETIS AdaptiveRepart: 2085 / 60000 cells changed (0.03475)
+Local mesh: 32085 owned + 642 halo = 32727 / 60000 cells
+Phase C ParMETIS AdaptiveRepart: 2085 / 60000 cells changed (0.03475)
+Phase C auto DLB complete: rebalance #1
+
+Phase C auto DLB complete: rebalance #1
+
+Cloud name: dsmc
+    Number of dsmc particles        = 925926
+    Number of molecules             = 5.555556e+15
+    Mass in system                  = 2.58333354e-10
+    Average linear kinetic energy   = 1.351823712e-19
+    Average rotational energy       = 1.694818623e-20
+    Average vibrational energy      = 2.327849604e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.754090535e-19
+ExecutionTime = 251.44 s  ClockTime = 66 s
+
+Cloud name: dsmc
+    Number of dsmc particles        = 834693
+    Number of molecules             = 5.008158e+15
+    Mass in system                  = 2.32879347e-10
+    Average linear kinetic energy   = 1.794570182e-19
+    Average rotational energy       = 1.83378425e-21
+    Average vibrational energy      = 2.32711903e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.045619928e-19
+ExecutionTime = 247.12 s  ClockTime = 66 s
+
+Replicated mesh migration[203]: rank 0 sent 2713 parcels, received 6945 (global 9658) wall 0.123988187s [pack 0.000960755s MPI 0.107834186s deser 0.000572807s]
+Replicated mesh migration[203]: rank 1 sent 6945 parcels, received 2713 (global 9658) wall 0.02676623s [pack 0.001441462s MPI 0.004442571s deser 0.000692154s]
+ExecutionTime = 248.75 s  ClockTime = 67 s
+
+ExecutionTime = 253.33 s  ClockTime = 67 s
+
+Replicated mesh migration[204]: rank 0 sent 2546 parcels, received 6986 (global 9532) wall 0.023774037s [pack 0.000953578s MPI 0.009951026s deser 0.00074s]
+Replicated mesh migration[204]: rank 1 sent 6986 parcels, received 2546 (global 9532) wall 0.089364564s [pack 0.001934747s MPI 0.063655777s deser 0.000605119s]
+ExecutionTime = 250.22 s  ClockTime = 67 s
+
+ExecutionTime = 254.81 s  ClockTime = 67 s
+
+Replicated mesh migration[205]: rank 0 sent 2773 parcels, received 6844 (global 9617) wall 0.027903591s [pack 0.000790553s MPI 0.011159312s deser 0.000602445s]
+Replicated mesh migration[205]: rank 1 sent 6844 parcels, received 2773 (global 9617) wall 0.091806401s [pack 0.001839439s MPI 0.067016816s deser 0.000563634s]
+ExecutionTime = 251.72 s  ClockTime = 67 s
+
+ExecutionTime = 256.33 s  ClockTime = 68 s
+
+Replicated mesh migration[206]: rank 0 sent 2808 parcels, received 6881 (global 9689) wall 0.026567362s [pack 0.000785758s MPI 0.01016007s deser 0.000588331s]
+Replicated mesh migration[206]: rank 1 sent 6881 parcels, received 2808 (global 9689) wall 0.082713632s [pack 0.00145054s MPI 0.05819368s deser 0.000540202s]
+ExecutionTime = 253.23 s  ClockTime = 68 s
+
+ExecutionTime = 257.78 s  ClockTime = 68 s
+
+Replicated mesh migration[207]: rank 0 sent 2614 parcels, received 6879 (global 9493) wall 0.024463278s [pack 0.000707155s MPI 0.010013624s deser 0.000589689s]
+Replicated mesh migration[207]: rank 1 sent 6879 parcels, received 2614 (global 9493) wall 0.072522815s [pack 0.001846209s MPI 0.048862019s deser 0.000593554s]
+ExecutionTime = 254.66 s  ClockTime = 68 s
+
+ExecutionTime = 259.25 s  ClockTime = 68 s
+
+Replicated mesh migration[208]: rank 0 sent 2736 parcels, received 6854 (global 9590) wall 0.0274417s [pack 0.00080031s MPI 0.010875782s deser 0.000635729s]
+Replicated mesh migration[208]: rank 1 sent 6854 parcels, received 2736 (global 9590) wall 0.082152106s [pack 0.001264961s MPI 0.060202386s deser 0.000646113s]
+ExecutionTime = 256.12 s  ClockTime = 69 s
+
+ExecutionTime = 260.72 s  ClockTime = 69 s
+
+Replicated mesh migration[209]: rank 0 sent 2721 parcels, received 6999 (global 9720) wall 0.023685671s [pack 0.000862627s MPI 0.010731038s deser 0.000560762s]
+Replicated mesh migration[209]: rank 1 sent 6999 parcels, received 2721 (global 9720) wall 0.074010316s [pack 0.001397783s MPI 0.054079545s deser 0.000695517s]
+ExecutionTime = 257.58 s  ClockTime = 69 s
+
+ExecutionTime = 262.15 s  ClockTime = 69 s
+
+Replicated mesh migration[210]: rank 0 sent 2806 parcels, received 6901 (global 9707) wall 0.026924063s [pack 0.000720966s MPI 0.011004028s deser 0.000600523s]
+Replicated mesh migration[210]: rank 1 sent 6901 parcels, received 2806 (global 9707) wall 0.084479179s [pack 0.001453089s MPI 0.060766589s deser 0.000760654s]
+ExecutionTime = 259.04 s  ClockTime = 69 s
+
+ExecutionTime = 263.64 s  ClockTime = 69 s
+
+Replicated mesh migration[211]: rank 0 sent 2796 parcels, received 6827 (global 9623) wall 0.022617051s [pack 0.000839257s MPI 0.009198051s deser 0.0005114s]
+Replicated mesh migration[211]: rank 1 sent 6827 parcels, received 2796 (global 9623) wall 0.08465685s [pack 0.001891067s MPI 0.059415558s deser 0.000780911s]
+ExecutionTime = 260.5 s  ClockTime = 70 s
+
+Time = 1.394410268e-05
+
+ExecutionTime = 265.13 s  ClockTime = 70 s
+
+Time = 1.394410268e-05
+
+Replicated mesh migration[212]: rank 0 sent 2673 parcels, received 6988 (global 9661) wall 0.025718567s [pack 0.000659945s MPI 0.010792696s deser 0.000622367s]
+Replicated mesh migration[212]: rank 1 sent 6988 parcels, received 2673 (global 9661) wall 0.087215247s [pack 0.002357723s MPI 0.0664334s deser 0.000796549s]
+    BuildCellOccupancy step summary:
+        source                    = moveOrdered
+        cloud valid parcels       = 945777
+        cloud invalid parcels     = 0
+        move-order valid parcels  = 945777
+        move-order invalid parcels= 0
+        occupancy parcels global  = 945777
+        active cells global       = 27915
+        collision cells global    = 27915
+        pair potential global     = 28198431
+
+    BuildCellOccupancy step summary:
+        source                    = moveOrdered
+        cloud valid parcels       = 835353
+        cloud invalid parcels     = 0
+        move-order valid parcels  = 835353
+        move-order invalid parcels= 0
+        occupancy parcels global  = 835353
+        active cells global       = 32085
+        collision cells global    = 32085
+        pair potential global     = 15338809
+
+    Collisions                      = 153193
+    Collision candidates           = 303379
+    Collision acceptance rate      = 0.5049558473
+    Candidate-cell sigmaTcRMax avg/max/min = 1.037344732e-15 / 1.443969423e-15 / 1e-15
+
+    Collisions                      = 40907
+    Collision candidates           = 109083
+    Collision acceptance rate      = 0.3750080214
+    Candidate-cell sigmaTcRMax avg/max/min = 1.000065541e-15 / 1.177262581e-15 / 1e-15
+
+Load balance summary:
+    move particles avg/max/min    = 42342848.25 / 169371393 / 169371393
+    move imbalance max/avg        = 4
+    collision cand avg/max/min    = 11038230 / 44152920 / 44152920
+    collision cand imbalance      = 4
+    accepted coll avg/max/min     = 5273624 / 21094496 / 21094496
+    accepted coll imbalance       = 4
+    thread move particles         = 4(42348035 42344390 42341082 42337886)
+    thread collision candidates   = 4(10908934 11031716 11064882 11147388)
+    thread accepted collisions    = 4(5209697 5250030 5303249 5331520)
+
+Load balance summary:
+    move particles avg/max/min    = 39289892 / 157159568 / 157159568
+    move imbalance max/avg        = 4
+    collision cand avg/max/min    = 2678188.75 / 10712755 / 10712755
+    collision cand imbalance      = 4
+    accepted coll avg/max/min     = 731107.75 / 2924431 / 2924431
+    accepted coll imbalance       = 4
+    thread move particles         = 4(39294997 39291641 39288044 39284886)
+    thread collision candidates   = 4(2770290 2748207 2585589 2608669)
+    thread accepted collisions    = 4(790076 775753 675669 682933)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 945777
+    Number of molecules             = 5.674662e+15
+    Mass in system                  = 2.63871783e-10
+    Average linear kinetic energy   = 1.341981698e-19
+    Average rotational energy       = 1.753884654e-20
+    Average vibrational energy      = 2.327956593e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.750165823e-19
+ExecutionTime = 267.47 s  ClockTime = 70 s
+
+Cloud name: dsmc
+    Number of dsmc particles        = 835353
+    Number of molecules             = 5.012118e+15
+    Mass in system                  = 2.33063487e-10
+    Average linear kinetic energy   = 1.793181499e-19
+    Average rotational energy       = 1.84252691e-21
+    Average vibrational energy      = 2.327119004e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.044318668e-19
+ExecutionTime = 262.98 s  ClockTime = 70 s
+
+Replicated mesh migration[213]: rank 0 sent 2627 parcels, received 6866 (global 9493) wall 0.093981159s [pack 0.000864894s MPI 0.079106844s deser 0.000599719s]
+Replicated mesh migration[213]: rank 1 sent 6866 parcels, received 2627 (global 9493) wall 0.021856913s [pack 0.001202205s MPI 0.00371749s deser 0.000540714s]
+ExecutionTime = 264.17 s  ClockTime = 71 s
+
+ExecutionTime = 269.2 s  ClockTime = 71 s
+
+Replicated mesh migration[214]: rank 0 sent 2610 parcels, received 6947 (global 9557) wall 0.025394905s [pack 0.000833072s MPI 0.010129435s deser 0.000548184s]
+Replicated mesh migration[214]: rank 1 sent 6947 parcels, received 2610 (global 9557) wall 0.093724512s [pack 0.001974403s MPI 0.066836s deser 0.000724372s]
+ExecutionTime = 265.68 s  ClockTime = 71 s
+
+ExecutionTime = 270.69 s  ClockTime = 71 s
+
+Replicated mesh migration[215]: rank 0 sent 2633 parcels, received 6920 (global 9553) wall 0.027704085s [pack 0.000761448s MPI 0.011058832s deser 0.00059577s]
+Replicated mesh migration[215]: rank 1 sent 6920 parcels, received 2633 (global 9553) wall 0.09665032s [pack 0.002043479s MPI 0.073758785s deser 0.000790835s]
+ExecutionTime = 267.18 s  ClockTime = 72 s
+
+ExecutionTime = 272.18 s  ClockTime = 72 s
+
+Replicated mesh migration[216]: rank 0 sent 2759 parcels, received 6815 (global 9574) wall 0.032036138s [pack 0.000808072s MPI 0.013729421s deser 0.000660363s]
+Replicated mesh migration[216]: rank 1 sent 6815 parcels, received 2759 (global 9574) wall 0.098332333s [pack 0.002096601s MPI 0.071773047s deser 0.001077646s]
+ExecutionTime = 268.72 s  ClockTime = 72 s
+
+ExecutionTime = 273.73 s  ClockTime = 72 s
+
+Replicated mesh migration[217]: rank 0 sent 2753 parcels, received 6947 (global 9700) wall 0.025812509s [pack 0.001270516s MPI 0.011611314s deser 0.000638095s]
+Replicated mesh migration[217]: rank 1 sent 6947 parcels, received 2753 (global 9700) wall 0.09384034s [pack 0.002171498s MPI 0.070867972s deser 0.000706298s]
+ExecutionTime = 270.25 s  ClockTime = 72 s
+
+ExecutionTime = 275.3 s  ClockTime = 72 s
+
+Replicated mesh migration[218]: rank 0 sent 2721 parcels, received 6871 (global 9592) wall 0.028195574s [pack 0.000727803s MPI 0.010489889s deser 0.000593371s]
+Replicated mesh migration[218]: rank 1 sent 6871 parcels, received 2721 (global 9592) wall 0.104050045s [pack 0.002005153s MPI 0.076949875s deser 0.000776906s]
+ExecutionTime = 271.8 s  ClockTime = 73 s
+
+ExecutionTime = 276.82 s  ClockTime = 73 s
+
+Replicated mesh migration[219]: rank 0 sent 2791 parcels, received 6908 (global 9699) wall 0.024315735s [pack 0.000822862s MPI 0.009529257s deser 0.000549442s]
+Replicated mesh migration[219]: rank 1 sent 6908 parcels, received 2791 (global 9699) wall 0.089921359s [pack 0.002090818s MPI 0.063628742s deser 0.000763938s]
+ExecutionTime = 273.34 s  ClockTime = 73 s
+
+ExecutionTime = 278.35 s  ClockTime = 73 s
+
+Replicated mesh migration[220]: rank 0 sent 2718 parcels, received 6904 (global 9622) wall 0.021569031s [pack 0.000774314s MPI 0.008171462s deser 0.000498459s]
+Replicated mesh migration[220]: rank 1 sent 6904 parcels, received 2718 (global 9622) wall 0.093133016s [pack 0.002092741s MPI 0.066191249s deser 0.000795411s]
+ExecutionTime = 274.83 s  ClockTime = 74 s
+
+ExecutionTime = 279.84 s  ClockTime = 74 s
+
+Replicated mesh migration[221]: rank 0 sent 2711 parcels, received 7062 (global 9773) wall 0.023451275s [pack 0.000716612s MPI 0.007919797s deser 0.000510225s]
+Replicated mesh migration[221]: rank 1 sent 7062 parcels, received 2711 (global 9773) wall 0.087297038s [pack 0.002036857s MPI 0.061054648s deser 0.00085467s]
+ExecutionTime = 276.32 s  ClockTime = 74 s
+
+Time = 1.460810757e-05
+
+ExecutionTime = 281.37 s  ClockTime = 74 s
+
+Time = 1.460810757e-05
+
+Replicated mesh migration[222]: rank 0 sent 2622 parcels, received 6934 (global 9556) wall 0.027340695s [pack 0.000607593s MPI 0.010426795s deser 0.00067098s]
+Replicated mesh migration[222]: rank 1 sent 6934 parcels, received 2622 (global 9556) wall 0.098140981s [pack 0.00207111s MPI 0.072219069s deser 0.000805025s]
+    BuildCellOccupancy step summary:
+        source                    = moveOrdered
+        cloud valid parcels       = 965842
+        cloud invalid parcels     = 0
+        move-order valid parcels  = 965842
+        move-order invalid parcels= 0
+        occupancy parcels global  = 965842
+        active cells global       = 27915
+        collision cells global    = 27915
+        pair potential global     = 29225212
+
+    BuildCellOccupancy step summary:
+        source                    = moveOrdered
+        cloud valid parcels       = 835724
+        cloud invalid parcels     = 0
+        move-order valid parcels  = 835724
+        move-order invalid parcels= 0
+        occupancy parcels global  = 835724
+        active cells global       = 32085
+        collision cells global    = 32085
+        pair potential global     = 15401121
+
+    Collisions                      = 158399
+    Collision candidates           = 314748
+    Collision acceptance rate      = 0.5032565735
+    Candidate-cell sigmaTcRMax avg/max/min = 1.039569033e-15 / 1.443969423e-15 / 1e-15
+
+    Collisions                      = 41029
+    Collision candidates           = 110119
+    Collision acceptance rate      = 0.3725878368
+    Candidate-cell sigmaTcRMax avg/max/min = 1.000108515e-15 / 1.164987901e-15 / 1e-15
+
+Load balance summary:
+    move particles avg/max/min    = 41395621.5 / 165582486 / 165582486
+    move imbalance max/avg        = 4
+    collision cand avg/max/min    = 2951924 / 11807696 / 11807696
+    collision cand imbalance      = 4
+    accepted coll avg/max/min     = 833378 / 3333512 / 3333512
+    accepted coll imbalance       = 4
+    thread move particles         = 4(41400977 41397401 41393684 41390424)
+    thread collision candidates   = 4(3147178 3099904 2766322 2794292)
+    thread accepted collisions    = 4(953730 925407 722945 731430)
+
+Load balance summary:
+    move particles avg/max/min    = 44729786.25 / 178919145 / 178919145
+    move imbalance max/avg        = 4
+    collision cand avg/max/min    = 11812614.25 / 47250457 / 47250457
+    collision cand imbalance      = 4
+    accepted coll avg/max/min     = 5664008 / 22656032 / 22656032
+    accepted coll imbalance       = 4
+    thread move particles         = 4(44735204 44731445 44727913 44724583)
+    thread collision candidates   = 4(11570546 11731915 11924050 12023946)
+    thread accepted collisions    = 4(5542548 5600596 5736212 5776676)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 965842
+    Number of molecules             = 5.795052e+15
+    Mass in system                  = 2.69469918e-10
+    Average linear kinetic energy   = 1.331963298e-19
+    Average rotational energy       = 1.813939315e-20
+    Average vibrational energy      = 2.32800596e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.746157826e-19
+ExecutionTime = 283.81 s  ClockTime = 75 s
+
+Cloud name: dsmc
+    Number of dsmc particles        = 835724
+    Number of molecules             = 5.014344e+15
+    Mass in system                  = 2.33166996e-10
+    Average linear kinetic energy   = 1.79261909e-19
+    Average rotational energy       = 1.839158303e-21
+    Average vibrational energy      = 2.327102282e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.043720902e-19
+ExecutionTime = 278.83 s  ClockTime = 75 s
+
+Replicated mesh migration[223]: rank 0 sent 2629 parcels, received 6869 (global 9498) wall 0.077890315s [pack 0.000714146s MPI 0.058802587s deser 0.00058798s]
+Replicated mesh migration[223]: rank 1 sent 6869 parcels, received 2629 (global 9498) wall 0.028011329s [pack 0.001974735s MPI 0.004345169s deser 0.000783875s]
+ExecutionTime = 280.07 s  ClockTime = 75 s
+
+ExecutionTime = 285.54 s  ClockTime = 75 s
+
+Replicated mesh migration[224]: rank 0 sent 2788 parcels, received 6928 (global 9716) wall 0.027835872s [pack 0.000745171s MPI 0.010421695s deser 0.000611741s]
+Replicated mesh migration[224]: rank 1 sent 6928 parcels, received 2788 (global 9716) wall 0.09701295s [pack 0.001581763s MPI 0.074762322s deser 0.000883417s]
+ExecutionTime = 281.58 s  ClockTime = 75 s
+
+ExecutionTime = 287.07 s  ClockTime = 76 s
+
+Replicated mesh migration[225]: rank 0 sent 2672 parcels, received 7029 (global 9701) wall 0.021823509s [pack 0.000771148s MPI 0.007951658s deser 0.000535251s]
+Replicated mesh migration[225]: rank 1 sent 7029 parcels, received 2672 (global 9701) wall 0.096899076s [pack 0.002032488s MPI 0.071335873s deser 0.0008377s]
+ExecutionTime = 283.09 s  ClockTime = 76 s
+
+ExecutionTime = 288.58 s  ClockTime = 76 s
+
+Replicated mesh migration[226]: rank 0 sent 2675 parcels, received 6925 (global 9600) wall 0.030104s [pack 0.00078793s MPI 0.012611524s deser 0.000648252s]
+Replicated mesh migration[226]: rank 1 sent 6925 parcels, received 2675 (global 9600) wall 0.104068153s [pack 0.001526842s MPI 0.082479716s deser 0.000983951s]
+ExecutionTime = 284.66 s  ClockTime = 76 s
+
+ExecutionTime = 290.15 s  ClockTime = 76 s
+
+Replicated mesh migration[227]: rank 0 sent 2789 parcels, received 6813 (global 9602) wall 0.027076126s [pack 0.000648273s MPI 0.009608395s deser 0.000602964s]
+Replicated mesh migration[227]: rank 1 sent 6813 parcels, received 2789 (global 9602) wall 0.104190829s [pack 0.002003063s MPI 0.08263901s deser 0.00076004s]
+ExecutionTime = 286.21 s  ClockTime = 77 s
+
+ExecutionTime = 291.73 s  ClockTime = 77 s
+
+Replicated mesh migration[228]: rank 0 sent 2711 parcels, received 7007 (global 9718) wall 0.023511947s [pack 0.000709287s MPI 0.00972755s deser 0.000612138s]
+Replicated mesh migration[228]: rank 1 sent 7007 parcels, received 2711 (global 9718) wall 0.114240586s [pack 0.001499693s MPI 0.088270847s deser 0.00078447s]
+ExecutionTime = 287.78 s  ClockTime = 77 s
+
+ExecutionTime = 293.25 s  ClockTime = 77 s
+
+Replicated mesh migration[229]: rank 0 sent 2701 parcels, received 7048 (global 9749) wall 0.028174541s [pack 0.000635211s MPI 0.010051348s deser 0.000537456s]
+Replicated mesh migration[229]: rank 1 sent 7048 parcels, received 2701 (global 9749) wall 0.092796135s [pack 0.001460466s MPI 0.073879809s deser 0.000815015s]
+ExecutionTime = 289.35 s  ClockTime = 77 s
+
+ExecutionTime = 294.87 s  ClockTime = 78 s
+
+Replicated mesh migration[230]: rank 0 sent 2631 parcels, received 6916 (global 9547) wall 0.02610888s [pack 0.00084909s MPI 0.010694484s deser 0.000641449s]
+Replicated mesh migration[230]: rank 1 sent 6916 parcels, received 2631 (global 9547) wall 0.107017164s [pack 0.001344707s MPI 0.083978303s deser 0.000826038s]
+ExecutionTime = 290.92 s  ClockTime = 78 s
+
+ExecutionTime = 296.43 s  ClockTime = 78 s
+
+Replicated mesh migration[231]: rank 0 sent 2691 parcels, received 6957 (global 9648) wall 0.029535466s [pack 0.000727626s MPI 0.009960321s deser 0.000549745s]
+Replicated mesh migration[231]: rank 1 sent 6957 parcels, received 2691 (global 9648) wall 0.113197723s [pack 0.002099835s MPI 0.086329887s deser 0.000891055s]
+ExecutionTime = 292.52 s  ClockTime = 78 s
+
+Time = 1.527211246e-05
+
+ExecutionTime = 298.03 s  ClockTime = 78 s
+
+Time = 1.527211246e-05
+
+Replicated mesh migration[232]: rank 0 sent 2645 parcels, received 6993 (global 9638) wall 0.022829453s [pack 0.000685357s MPI 0.00776503s deser 0.00054055s]
+Replicated mesh migration[232]: rank 1 sent 6993 parcels, received 2645 (global 9638) wall 0.106602955s [pack 0.001519808s MPI 0.086282538s deser 0.000854262s]
+    BuildCellOccupancy step summary:
+        source                    = moveOrdered
+        cloud valid parcels       = 985865
+        cloud invalid parcels     = 0
+        move-order valid parcels  = 985865
+        move-order invalid parcels= 0
+        occupancy parcels global  = 985865
+        active cells global       = 27915
+        collision cells global    = 27915
+        pair potential global     = 30198634
+
+    BuildCellOccupancy step summary:
+        source                    = moveOrdered
+        cloud valid parcels       = 835867
+        cloud invalid parcels     = 0
+        move-order valid parcels  = 835867
+        move-order invalid parcels= 0
+        occupancy parcels global  = 835867
+        active cells global       = 32085
+        collision cells global    = 32085
+        pair potential global     = 15471097
+
+    Collisions                      = 164809
+    Collision candidates           = 325435
+    Collision acceptance rate      = 0.5064267826
+    Candidate-cell sigmaTcRMax avg/max/min = 1.04147059e-15 / 1.443969423e-15 / 1e-15
+
+    Collisions                      = 41539
+    Collision candidates           = 110949
+    Collision acceptance rate      = 0.3743972456
+    Candidate-cell sigmaTcRMax avg/max/min = 1.000137148e-15 / 1.177262581e-15 / 1e-15
+
+Load balance summary:
+    move particles avg/max/min    = 47166485.25 / 188665941 / 188665941
+    move imbalance max/avg        = 4
+    collision cand avg/max/min    = 12613830 / 50455320 / 50455320
+    collision cand imbalance      = 4
+    accepted coll avg/max/min     = 6068809.5 / 24275238 / 24275238
+    accepted coll imbalance       = 4
+    thread move particles         = 4(47172132 47168340 47164550 47160919)
+    thread collision candidates   = 4(12252146 12465068 12821118 12916988)
+    thread accepted collisions    = 4(5886826 5966693 6189616 6232103)
+
+Load balance summary:
+    move particles avg/max/min    = 43502301 / 174009204 / 174009204
+    move imbalance max/avg        = 4
+    collision cand avg/max/min    = 3228876.5 / 12915506 / 12915506
+    collision cand imbalance      = 4
+    accepted coll avg/max/min     = 936828.5 / 3747314 / 3747314
+    accepted coll imbalance       = 4
+    thread move particles         = 4(43507871 43504228 43500292 43496813)
+    thread collision candidates   = 4(3527993 3460841 2949736 2976936)
+    thread accepted collisions    = 4(1120385 1077474 770360 779095)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 985865
+    Number of molecules             = 5.91519e+15
+    Mass in system                  = 2.75056335e-10
+    Average linear kinetic energy   = 1.322562271e-19
+    Average rotational energy       = 1.871769388e-20
+    Average vibrational energy      = 2.328180824e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.742557292e-19
+ExecutionTime = 300.51 s  ClockTime = 79 s
+
+Cloud name: dsmc
+    Number of dsmc particles        = 835867
+    Number of molecules             = 5.015202e+15
+    Mass in system                  = 2.33206893e-10
+    Average linear kinetic energy   = 1.791616203e-19
+    Average rotational energy       = 1.832392423e-21
+    Average vibrational energy      = 2.32713012e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.042653139e-19
+ExecutionTime = 295.07 s  ClockTime = 79 s
+
+Replicated mesh migration[233]: rank 0 sent 2668 parcels, received 6950 (global 9618) wall 0.087770657s [pack 0.000635431s MPI 0.067825008s deser 0.00063542s]
+Replicated mesh migration[233]: rank 1 sent 6950 parcels, received 2668 (global 9618) wall 0.028674515s [pack 0.001880021s MPI 0.004596061s deser 0.000910418s]
+ExecutionTime = 296.33 s  ClockTime = 79 s
+
+ExecutionTime = 302.31 s  ClockTime = 80 s
+
+Replicated mesh migration[234]: rank 0 sent 2804 parcels, received 7066 (global 9870) wall 0.027616361s [pack 0.000555315s MPI 0.009705981s deser 0.000632965s]
+Replicated mesh migration[234]: rank 1 sent 7066 parcels, received 2804 (global 9870) wall 0.109099841s [pack 0.002304123s MPI 0.081457229s deser 0.000842382s]
+ExecutionTime = 297.91 s  ClockTime = 80 s
+
+ExecutionTime = 303.85 s  ClockTime = 80 s
+
+Replicated mesh migration[235]: rank 0 sent 2717 parcels, received 6853 (global 9570) wall 0.022736227s [pack 0.000712077s MPI 0.008604616s deser 0.000601445s]
+Replicated mesh migration[235]: rank 1 sent 6853 parcels, received 2717 (global 9570) wall 0.098256674s [pack 0.001991075s MPI 0.072258013s deser 0.000698047s]
+ExecutionTime = 299.4 s  ClockTime = 80 s
+
+ExecutionTime = 305.42 s  ClockTime = 80 s
+
+Replicated mesh migration[236]: rank 0 sent 2758 parcels, received 6881 (global 9639) wall 0.031881006s [pack 0.000633789s MPI 0.011377793s deser 0.000651496s]
+Replicated mesh migration[236]: rank 1 sent 6881 parcels, received 2758 (global 9639) wall 0.121969774s [pack 0.002042389s MPI 0.095450327s deser 0.000927868s]
+ExecutionTime = 301.04 s  ClockTime = 81 s
+
+ExecutionTime = 307.05 s  ClockTime = 81 s
+
+Replicated mesh migration[237]: rank 0 sent 2638 parcels, received 6835 (global 9473) wall 0.027225141s [pack 0.000578505s MPI 0.009440143s deser 0.00059523s]
+Replicated mesh migration[237]: rank 1 sent 6835 parcels, received 2638 (global 9473) wall 0.118988433s [pack 0.002055208s MPI 0.092879505s deser 0.000667971s]
+ExecutionTime = 302.62 s  ClockTime = 81 s
+
+ExecutionTime = 308.64 s  ClockTime = 81 s
+
+Replicated mesh migration[238]: rank 0 sent 2728 parcels, received 7112 (global 9840) wall 0.028622396s [pack 0.000601456s MPI 0.010292554s deser 0.000609343s]
+Replicated mesh migration[238]: rank 1 sent 7112 parcels, received 2728 (global 9840) wall 0.123039578s [pack 0.002038816s MPI 0.09703815s deser 0.000860057s]
+ExecutionTime = 304.23 s  ClockTime = 81 s
+
+ExecutionTime = 310.22 s  ClockTime = 82 s
+
+Replicated mesh migration[239]: rank 0 sent 2697 parcels, received 6931 (global 9628) wall 0.028945307s [pack 0.000550214s MPI 0.009589909s deser 0.000638511s]
+Replicated mesh migration[239]: rank 1 sent 6931 parcels, received 2697 (global 9628) wall 0.107474624s [pack 0.002011874s MPI 0.081116958s deser 0.000895879s]
+ExecutionTime = 305.81 s  ClockTime = 82 s
+
+ExecutionTime = 311.8 s  ClockTime = 82 s
+
+Replicated mesh migration[240]: rank 0 sent 2656 parcels, received 6912 (global 9568) wall 0.027279298s [pack 0.00056694s MPI 0.009387564s deser 0.000599545s]
+Replicated mesh migration[240]: rank 1 sent 6912 parcels, received 2656 (global 9568) wall 0.119274289s [pack 0.001331899s MPI 0.095217488s deser 0.000788548s]
+ExecutionTime = 307.4 s  ClockTime = 82 s
+
+ExecutionTime = 313.4 s  ClockTime = 82 s
+
+Replicated mesh migration[241]: rank 0 sent 2824 parcels, received 6846 (global 9670) wall 0.02594952s [pack 0.000698695s MPI 0.008994439s deser 0.000694277s]
+Replicated mesh migration[241]: rank 1 sent 6846 parcels, received 2824 (global 9670) wall 0.122757296s [pack 0.002072215s MPI 0.096821382s deser 0.000838439s]
+ExecutionTime = 309.05 s  ClockTime = 83 s
+
+Time = 1.593611735e-05
+
+ExecutionTime = 315.06 s  ClockTime = 83 s
+
+Time = 1.593611735e-05
+
+Replicated mesh migration[242]: rank 0 sent 2701 parcels, received 6898 (global 9599) wall 0.028197592s [pack 0.000551311s MPI 0.009615159s deser 0.000677384s]
+Replicated mesh migration[242]: rank 1 sent 6898 parcels, received 2701 (global 9599) wall 0.119822268s [pack 0.00130269s MPI 0.098717964s deser 0.000816243s]
+    BuildCellOccupancy step summary:
+        source                    = moveOrdered
+        cloud valid parcels       = 1005340
+        cloud invalid parcels     = 0
+        move-order valid parcels  = 1005340
+        move-order invalid parcels= 0
+        occupancy parcels global  = 1005340
+        active cells global       = 27915
+        collision cells global    = 27914
+        pair potential global     = 31200059
+
+    BuildCellOccupancy step summary:
+        source                    = moveOrdered
+        cloud valid parcels       = 836386
+        cloud invalid parcels     = 0
+        move-order valid parcels  = 836386
+        move-order invalid parcels= 0
+        occupancy parcels global  = 836386
+        active cells global       = 32085
+        collision cells global    = 32085
+        pair potential global     = 15546253
+
+    Collisions                      = 170486
+    Collision candidates           = 336369
+    Collision acceptance rate      = 0.5068421882
+    Candidate-cell sigmaTcRMax avg/max/min = 1.043627953e-15 / 1.443969423e-15 / 1e-15
+
+    Collisions                      = 42101
+    Collision candidates           = 112207
+    Collision acceptance rate      = 0.3752083203
+    Candidate-cell sigmaTcRMax avg/max/min = 1.000181388e-15 / 1.178780266e-15 / 1e-15
+
+Load balance summary:
+    move particles avg/max/min    = 45609447 / 182437788 / 182437788
+    move imbalance max/avg        = 4
+    collision cand avg/max/min    = 3507188 / 14028752 / 14028752
+    collision cand imbalance      = 4
+    accepted coll avg/max/min     = 1040694.25 / 4162777 / 4162777
+    accepted coll imbalance       = 4
+    thread move particles         = 4(45615264 45611533 45607342 45603649)
+    thread collision candidates   = 4(3916211 3818433 3132471 3161637)
+    thread accepted collisions    = 4(1288631 1228243 818247 827656)
+
+Load balance summary:
+    move particles avg/max/min    = 49653283.25 / 198613133 / 198613133
+    move imbalance max/avg        = 4
+    collision cand avg/max/min    = 13442930.75 / 53771723 / 53771723
+    collision cand imbalance      = 4
+    accepted coll avg/max/min     = 6488219.25 / 25952877 / 25952877
+    accepted coll imbalance       = 4
+    thread move particles         = 4(49659170 49655222 49651230 49647511)
+    thread collision candidates   = 4(12962034 13210365 13756278 13843046)
+    thread accepted collisions    = 4(6244923 6341299 6662811 6703844)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1005340
+    Number of molecules             = 6.03204e+15
+    Mass in system                  = 2.8048986e-10
+    Average linear kinetic energy   = 1.313653694e-19
+    Average rotational energy       = 1.926278451e-20
+    Average vibrational energy      = 2.328182755e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.739099815e-19
+ExecutionTime = 317.69 s  ClockTime = 84 s
+
+Cloud name: dsmc
+    Number of dsmc particles        = 836386
+    Number of molecules             = 5.018316e+15
+    Mass in system                  = 2.33351694e-10
+    Average linear kinetic energy   = 1.790936636e-19
+    Average rotational energy       = 1.829456092e-21
+    Average vibrational energy      = 2.327157915e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.041946988e-19
+ExecutionTime = 311.67 s  ClockTime = 84 s
+
+Replicated mesh migration[243]: rank 0 sent 2794 parcels, received 6916 (global 9710) wall 0.066821201s [pack 0.001068535s MPI 0.049161711s deser 0.000568705s]
+Replicated mesh migration[243]: rank 1 sent 6916 parcels, received 2794 (global 9710) wall 0.027952596s [pack 0.001924507s MPI 0.003929653s deser 0.000721396s]
+ExecutionTime = 312.95 s  ClockTime = 84 s
+
+ExecutionTime = 319.42 s  ClockTime = 84 s
+
+Replicated mesh migration[244]: rank 0 sent 2705 parcels, received 6800 (global 9505) wall 0.027583845s [pack 0.000500372s MPI 0.009358502s deser 0.000675462s]
+Replicated mesh migration[244]: rank 1 sent 6800 parcels, received 2705 (global 9505) wall 0.096620009s [pack 0.001964111s MPI 0.071285203s deser 0.000751912s]
+ExecutionTime = 314.49 s  ClockTime = 83 s
+
+ExecutionTime = 321.02 s  ClockTime = 83 s
+
+Replicated mesh migration[245]: rank 0 sent 2681 parcels, received 7065 (global 9746) wall 0.02957776s [pack 0.000835717s MPI 0.010864163s deser 0.000623843s]
+Replicated mesh migration[245]: rank 1 sent 7065 parcels, received 2681 (global 9746) wall 0.124943218s [pack 0.001476515s MPI 0.101920317s deser 0.000901656s]
+ExecutionTime = 316.12 s  ClockTime = 83 s
+
+ExecutionTime = 322.65 s  ClockTime = 84 s
+
+Replicated mesh migration[246]: rank 0 sent 2703 parcels, received 6980 (global 9683) wall 0.028096575s [pack 0.000543779s MPI 0.009414935s deser 0.000630906s]
+Replicated mesh migration[246]: rank 1 sent 6980 parcels, received 2703 (global 9683) wall 0.125743354s [pack 0.002083435s MPI 0.105462978s deser 0.000807384s]
+ExecutionTime = 317.77 s  ClockTime = 84 s
+
+ExecutionTime = 324.3 s  ClockTime = 84 s
+
+Replicated mesh migration[247]: rank 0 sent 2878 parcels, received 6898 (global 9776) wall 0.029867221s [pack 0.000568121s MPI 0.010608267s deser 0.000641269s]
+Replicated mesh migration[247]: rank 1 sent 6898 parcels, received 2878 (global 9776) wall 0.126102005s [pack 0.001816288s MPI 0.103860897s deser 0.00086551s]
+ExecutionTime = 319.41 s  ClockTime = 84 s
+
+ExecutionTime = 325.95 s  ClockTime = 84 s
+
+Replicated mesh migration[248]: rank 0 sent 2783 parcels, received 7022 (global 9805) wall 0.024873666s [pack 0.000734726s MPI 0.008595464s deser 0.000658125s]
+Replicated mesh migration[248]: rank 1 sent 7022 parcels, received 2783 (global 9805) wall 0.129133032s [pack 0.001503269s MPI 0.10767106s deser 0.000865813s]
+ExecutionTime = 321.04 s  ClockTime = 85 s
+
+ExecutionTime = 327.62 s  ClockTime = 85 s
+
+Replicated mesh migration[249]: rank 0 sent 2715 parcels, received 7024 (global 9739) wall 0.027979863s [pack 0.000744672s MPI 0.009442734s deser 0.00058869s]
+Replicated mesh migration[249]: rank 1 sent 7024 parcels, received 2715 (global 9739) wall 0.1327828s [pack 0.001470696s MPI 0.11195635s deser 0.000761794s]
+ExecutionTime = 322.7 s  ClockTime = 85 s
+
+ExecutionTime = 329.25 s  ClockTime = 85 s
+
+Replicated mesh migration[250]: rank 0 sent 2833 parcels, received 7069 (global 9902) wall 0.026900536s [pack 0.000740775s MPI 0.009232293s deser 0.000562228s]
+Replicated mesh migration[250]: rank 1 sent 7069 parcels, received 2833 (global 9902) wall 0.121246813s [pack 0.002157775s MPI 0.093324506s deser 0.001006152s]
+ExecutionTime = 324.35 s  ClockTime = 86 s
+
+ExecutionTime = 330.89 s  ClockTime = 86 s
+
+Replicated mesh migration[251]: rank 0 sent 2723 parcels, received 7005 (global 9728) wall Replicated mesh migration[251]: rank 1 sent 7005 parcels, received 2723 (global 9728) wall 0.105184749s [pack 0.002142125s MPI 0.078272617s deser 0.000870149s]
+0.025349207s [pack 0.000760394s MPI 0.009335261s deser 0.000551698s]
+ExecutionTime = 325.97 s  ClockTime = 86 s
+
+Time = 1.660012224e-05
+
+ExecutionTime = 332.48 s  ClockTime = 86 s
+
+Time = 1.660012224e-05
+
+Replicated mesh migration[252]: rank 0 sent 2752 parcels, received 6939 (global 9691) wall 0.029019115s [pack 0.000638323s MPI 0.009699978s deser 0.000672933s]
+Replicated mesh migration[252]: rank 1 sent 6939 parcels, received 2752 (global 9691) wall 0.125194788s [pack 0.002065163s MPI 0.099752652s deser 0.00086411s]
+    BuildCellOccupancy step summary:
+        source                    = moveOrdered
+        cloud valid parcels       = 1024544
+        cloud invalid parcels     = 0
+        move-order valid parcels  = 1024544
+        move-order invalid parcels= 0
+        occupancy parcels global  = 1024544
+        active cells global       = 27915
+        collision cells global    = 27915
+        pair potential global     = 32168791
+
+    BuildCellOccupancy step summary:
+        source                    = moveOrdered
+        cloud valid parcels       = 836886
+        cloud invalid parcels     = 0
+        move-order valid parcels  = 836886
+        move-order invalid parcels= 0
+        occupancy parcels global  = 836886
+        active cells global       = 32085
+        collision cells global    = 32085
+        pair potential global     = 15642744
+
+    Collisions                      = 42605
+    Collision candidates           = 113421
+    Collision acceptance rate      = 0.3756359052
+    Candidate-cell sigmaTcRMax avg/max/min = 1.000217018e-15 / 1.231337745e-15 / 1e-15
+
+    Collisions                      = 175631
+    Collision candidates           = 346749
+    Collision acceptance rate      = 0.5065075891
+    Candidate-cell sigmaTcRMax avg/max/min = 1.04580577e-15 / 1.443969423e-15 / 1e-15
+
+Load balance summary:
+    move particles avg/max/min    = 47718404 / 190873616 / 190873616
+    move imbalance max/avg        = 4
+    collision cand avg/max/min    = 3789676.25 / 15158705 / 15158705
+    collision cand imbalance      = 4
+    accepted coll avg/max/min     = 1146390.25 / 4585561 / 4585561
+    accepted coll imbalance       = 4
+    thread move particles         = 4(47724389 47720560 47716295 47712372)
+    thread collision candidates   = 4(4309664 4185156 3318686 3345199)
+    thread accepted collisions    = 4(1460020 1383165 867011 875365)
+
+Load balance summary:
+    move particles avg/max/min    = 52188085.5 / 208752342 / 208752342
+    move imbalance max/avg        = 4
+    collision cand avg/max/min    = 14297339.5 / 57189358 / 57189358
+    collision cand imbalance      = 4
+    accepted coll avg/max/min     = 6920870.5 / 27683482 / 27683482
+    accepted coll imbalance       = 4
+    thread move particles         = 4(52194244 52190108 52185903 52182087)
+    thread collision candidates   = 4(13699656 13996782 14692864 14800056)
+    thread accepted collisions    = 4(6619493 6737452 7134991 7191546)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1024544
+    Number of molecules             = 6.147264e+15
+    Mass in system                  = 2.85847776e-10
+    Average linear kinetic energy   = 1.304877043e-19
+    Average rotational energy       = 1.977741566e-20
+    Average vibrational energy      = 2.328184903e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.735469689e-19
+ExecutionTime = 335.14 s  ClockTime = 87 s
+
+Cloud name: dsmc
+    Number of dsmc particles        = 836886
+    Number of molecules             = 5.021316e+15
+    Mass in system                  = 2.33491194e-10
+    Average linear kinetic energy   = 1.79025853e-19
+    Average rotational energy       = 1.828757244e-21
+    Average vibrational energy      = 2.327202362e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.041266339e-19
+ExecutionTime = 328.54 s  ClockTime = 87 s
+
+Replicated mesh migration[253]: rank 0 sent 2777 parcels, received 7029 (global 9806) wall 0.043828403s [pack 0.000724238s MPI 0.019150473s deser 0.000648133s]
+Replicated mesh migration[253]: rank 1 sent 7029 parcels, received 2777 (global 9806) wall 0.035340803s [pack 0.00200734s MPI 0.005081397s deser 0.000900675s]
+ExecutionTime = 329.85 s  ClockTime = 87 s
+
+ExecutionTime = 336.9 s  ClockTime = 87 s
+
+Replicated mesh migration[254]: rank 0 sent 2785 parcels, received 7042 (global 9827) wall 0.022552926s [pack 0.000690537s MPI 0.007274669s deser 0.000580166s]
+Replicated mesh migration[254]: rank 1 sent 7042 parcels, received 2785 (global 9827) wall 0.127797146s [pack 0.002084574s MPI 0.103518743s deser 0.000835988s]
+ExecutionTime = 331.51 s  ClockTime = 88 s
+
+ExecutionTime = 338.55 s  ClockTime = 88 s
+
+Replicated mesh migration[255]: rank 0 sent 2738 parcels, received 7122 (global 9860) wall 0.030938712s [pack 0.000834901s MPI 0.010967712s deser 0.000680204s]
+Replicated mesh migration[255]: rank 1 sent 7122 parcels, received 2738 (global 9860) wall 0.133212426s [pack 0.001827936s MPI 0.111107377s deser 0.00098005s]
+ExecutionTime = 333.19 s  ClockTime = 88 s
+
+ExecutionTime = 340.25 s  ClockTime = 88 s
+
+Replicated mesh migration[256]: rank 0 sent 2717 parcels, received 6915 (global 9632) wall 0.028421985s [pack 0.000683531s MPI 0.009337009s deser 0.00063387s]
+Replicated mesh migration[256]: rank 1 sent 6915 parcels, received 2717 (global 9632) wall 0.136259371s [pack 0.002071852s MPI 0.109056519s deser 0.000742908s]
+ExecutionTime = 334.88 s  ClockTime = 88 s
+
+ExecutionTime = 341.91 s  ClockTime = 89 s
+
+Replicated mesh migration[257]: rank 0 sent 2718 parcels, received 6874 (global 9592) wall 0.029165395s [pack 0.000718725s MPI 0.009790503s deser 0.00062896s]
+Replicated mesh migration[257]: rank 1 sent 6874 parcels, received 2718 (global 9592) wall 0.132761978s [pack 0.001434604s MPI 0.107328051s deser 0.000894494s]
+ExecutionTime = 336.54 s  ClockTime = 89 s
+
+ExecutionTime = 343.61 s  ClockTime = 89 s
+
+Replicated mesh migration[258]: rank 0 sent 2771 parcels, received 6958 (global 9729) wall 0.029159012s [pack 0.00052012s MPI 0.00988594s deser 0.000673566s]
+Replicated mesh migration[258]: rank 1 sent 6958 parcels, received 2771 (global 9729) wall 0.131951074s [pack 0.00211815s MPI 0.104674994s deser 0.000906779s]
+ExecutionTime = 338.23 s  ClockTime = 89 s
+
+ExecutionTime = 345.28 s  ClockTime = 89 s
+
+Replicated mesh migration[259]: rank 0 sent 2769 parcels, received 7151 (global 9920) wall 0.032840731s [pack 0.000746638s MPI 0.012856487s deser 0.000805931s]
+Replicated mesh migration[259]: rank 1 sent 7151 parcels, received 2769 (global 9920) wall 0.140055961s [pack 0.002389597s MPI 0.119190851s deser 0.001225954s]
+ExecutionTime = 339.95 s  ClockTime = 90 s
+
+ExecutionTime = 347 s  ClockTime = 90 s
+
+Replicated mesh migration[260]: rank 0 sent 2689 parcels, received 7023 (global 9712) wall 0.028973121s [pack 0.000541806s MPI 0.010625579s deser 0.000687303s]
+Replicated mesh migration[260]: rank 1 sent 7023 parcels, received 2689 (global 9712) wall 0.135861367s [pack 0.002151024s MPI 0.108738722s deser 0.000968663s]
+ExecutionTime = 341.63 s  ClockTime = 90 s
+
+ExecutionTime = 348.71 s  ClockTime = 90 s
+
+Replicated mesh migration[261]: rank 0 sent 2743 parcels, received 7028 (global 9771) wall 0.030008994s [pack 0.000561237s MPI 0.010038059s deser 0.000707255s]
+Replicated mesh migration[261]: rank 1 sent 7028 parcels, received 2743 (global 9771) wall 0.147406039s [pack 0.001386231s MPI 0.124380187s deser 0.000897356s]
+ExecutionTime = 343.32 s  ClockTime = 91 s
+
+Time = 1.726412712e-05
+
+ExecutionTime = 350.41 s  ClockTime = 91 s
+
+Time = 1.726412712e-05
+
+Replicated mesh migration[262]: rank 0 sent 2734 parcels, received 6935 (global 9669) wall 0.025627582s [pack 0.000717513s MPI 0.009720022s deser 0.000611766s]
+Replicated mesh migration[262]: rank 1 sent 6935 parcels, received 2734 (global 9669) wall 0.148692657s [pack 0.00229629s MPI 0.122666433s deser 0.000897482s]
+    BuildCellOccupancy step summary:
+        source                    = moveOrdered
+        cloud valid parcels       = 1044217
+        cloud invalid parcels     = 0
+        move-order valid parcels  = 1044217
+        move-order invalid parcels= 0
+        occupancy parcels global  = 1044217
+        active cells global       = 27915
+        collision cells global    = 27915
+        pair potential global     = 33153979
+
+    BuildCellOccupancy step summary:
+        source                    = moveOrdered
+        cloud valid parcels       = 837044
+        cloud invalid parcels     = 0
+        move-order valid parcels  = 837044
+        move-order invalid parcels= 0
+        occupancy parcels global  = 837044
+        active cells global       = 32085
+        collision cells global    = 32085
+        pair potential global     = 15729885
+
+    Collisions                      = 42621
+    Collision candidates           = 114717
+    Collision acceptance rate      = 0.3715316823
+    Candidate-cell sigmaTcRMax avg/max/min = 1.000260362e-15 / 1.238430293e-15 / 1e-15
+
+Load balance summary:
+    move particles avg/max/min    = 49827719 / 199310876 / 199310876
+    move imbalance max/avg        = 4
+    collision cand avg/max/min    = 4075070.75 / 16300283 / 16300283
+    collision cand imbalance      = 4
+    accepted coll avg/max/min     = 1253209.5 / 5012838 / 5012838
+    accepted coll imbalance       = 4
+    thread move particles         = 4(49833938 49830040 49825535 49821363)
+    thread collision candidates   = 4(4709425 4554488 3504692 3531678)
+    thread accepted collisions    = 4(1634822 1537979 915591 924446)
+
+    Collisions                      = 181434
+    Collision candidates           = 357167
+    Collision acceptance rate      = 0.5079808605
+    Candidate-cell sigmaTcRMax avg/max/min = 1.047725693e-15 / 1.443969423e-15 / 1e-15
+
+Load balance summary:
+    move particles avg/max/min    = 54771702 / 219086808 / 219086808
+    move imbalance max/avg        = 4
+    collision cand avg/max/min    = 15178593.75 / 60714375 / 60714375
+    collision cand imbalance      = 4
+    accepted coll avg/max/min     = 7367311.75 / 29469247 / 29469247
+    accepted coll imbalance       = 4
+    thread move particles         = 4(54778088 54773795 54769477 54765448)
+    thread collision candidates   = 4(14464643 14794519 15661046 15794167)
+    thread accepted collisions    = 4(7007521 7143157 7622678 7695891)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 837044
+    Number of molecules             = 5.022264e+15
+    Mass in system                  = 2.33535276e-10
+    Average linear kinetic energy   = 1.789479778e-19
+    Average rotational energy       = 1.832443074e-21
+    Average vibrational energy      = 2.327168979e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.040521107e-19
+ExecutionTime = 345.91 s  ClockTime = 92 s
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1044217
+    Number of molecules             = 6.265302e+15
+    Mass in system                  = 2.91336543e-10
+    Average linear kinetic energy   = 1.296468466e-19
+    Average rotational energy       = 2.030072934e-20
+    Average vibrational energy      = 2.32839596e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.732315355e-19
+ExecutionTime = 353.19 s  ClockTime = 92 s
+
+Replicated mesh migration[263]: rank 0 sent 2676 parcels, received 6949 (global 9625) wall 0.031103339s [pack 0.000565489s MPI 0.012081541s deser 0.000699848s]
+Replicated mesh migration[263]: rank 1 sent 6949 parcels, received 2676 (global 9625) wall 0.066187929s [pack 0.002102868s MPI 0.042830067s deser 0.001300896s]
+ExecutionTime = 347.37 s  ClockTime = 92 s
+
+ExecutionTime = 354.92 s  ClockTime = 92 s
+
+Replicated mesh migration[264]: rank 0 sent 2769 parcels, received 7015 (global 9784) wall 0.029445647s [pack 0.000840247s MPI 0.009856461s deser 0.000642289s]
+Replicated mesh migration[264]: rank 1 sent 7015 parcels, received 2769 (global 9784) wall 0.122722372s [pack 0.002146063s MPI 0.095660336s deser 0.000965696s]
+ExecutionTime = 349.05 s  ClockTime = 92 s
+
+ExecutionTime = 356.63 s  ClockTime = 92 s
+
+Replicated mesh migration[265]: rank 0 sent 2735 parcels, received 7016 (global 9751) wall 0.027546837s [pack 0.000731438s MPI 0.010022192s deser 0.000644358s]
+Replicated mesh migration[265]: rank 1 sent 7016 parcels, received 2735 (global 9751) wall 0.138698274s [pack 0.001356899s MPI 0.115415492s deser 0.000965613s]
+ExecutionTime = 350.77 s  ClockTime = 93 s
+
+ExecutionTime = 358.35 s  ClockTime = 93 s
+
+Replicated mesh migration[266]: rank 0 sent 2708 parcels, received 7061 (global 9769) wall 0.030086964s [pack 0.000520319s MPI 0.010042865s deser 0.000694677s]
+Replicated mesh migration[266]: rank 1 sent 7061 parcels, received 2708 (global 9769) wall 0.144697011s [pack 0.002168041s MPI 0.123481037s deser 0.000909902s]
+ExecutionTime = 352.48 s  ClockTime = 93 s
+
+ExecutionTime = 360.05 s  ClockTime = 93 s
+
+Replicated mesh migration[267]: rank 0 sent 2797 parcels, received 6815 (global 9612) wall 0.030320397s [pack 0.000584303s MPI 0.01014131s deser 0.000611755s]
+Replicated mesh migration[267]: rank 1 sent 6815 parcels, received 2797 (global 9612) wall 0.148619208s [pack 0.002118192s MPI 0.122968433s deser 0.000945691s]
+ExecutionTime = 354.2 s  ClockTime = 94 s
+
+ExecutionTime = 361.76 s  ClockTime = 94 s
+
+Replicated mesh migration[268]: rank 0 sent 2766 parcels, received 6964 (global 9730) wall 0.030486818s [pack 0.000556348s MPI 0.009990278s deser 0.000702178s]
+Replicated mesh migration[268]: rank 1 sent 6964 parcels, received 2766 (global 9730) wall 0.15295805s [pack 0.002044494s MPI 0.131374198s deser 0.000943926s]
+ExecutionTime = 355.93 s  ClockTime = 94 s
+
+ExecutionTime = 363.53 s  ClockTime = 94 s
+
+Replicated mesh migration[269]: rank 0 sent 2741 parcels, received 7003 (global 9744) wall 0.030217952s [pack 0.000496846s MPI 0.010114108s deser 0.000689507s]
+Replicated mesh migration[269]: rank 1 sent 7003 parcels, received 2741 (global 9744) wall 0.14705281s [pack 0.002151516s MPI 0.125318782s deser 0.001095558s]
+ExecutionTime = 357.65 s  ClockTime = 95 s
+
+ExecutionTime = 365.24 s  ClockTime = 95 s
+
+Replicated mesh migration[270]: rank 0 sent 2687 parcels, received 7075 (global 9762) wall 0.029948885s [pack 0.000601068s MPI 0.009740497s deser 0.000691313s]
+Replicated mesh migration[270]: rank 1 sent 7075 parcels, received 2687 (global 9762) wall 0.140672328s [pack 0.002242763s MPI 0.111556982s deser 0.000915271s]
+ExecutionTime = 359.42 s  ClockTime = 95 s
+
+ExecutionTime = 367 s  ClockTime = 95 s
+
+Replicated mesh migration[271]: rank 0 sent 2752 parcels, received 6972 (global 9724) wall 0.029366422s [pack 0.00056974s MPI 0.00928178s deser 0.000631123s]
+Replicated mesh migration[271]: rank 1 sent 6972 parcels, received 2752 (global 9724) wall 0.141738684s [pack 0.00133446s MPI 0.123117397s deser 0.000769014s]
+ExecutionTime = 361.13 s  ClockTime = 95 s
+
+Time = 1.792813201e-05
+
+ExecutionTime = 368.72 s  ClockTime = 96 s
+
+Time = 1.792813201e-05
+
+Replicated mesh migration[272]: rank 0 sent 2791 parcels, received 7032 (global 9823) wall 0.030754126s [pack 0.000821046s MPI 0.010151506s deser 0.000646624s]
+Replicated mesh migration[272]: rank 1 sent 7032 parcels, received 2791 (global 9823) wall 0.143847503s [pack 0.001352887s MPI 0.119257073s deser 0.000849815s]
+    BuildCellOccupancy step summary:
+        source                    = moveOrdered
+        cloud valid parcels       = 1063148
+        cloud invalid parcels     = 0
+        move-order valid parcels  = 1063148
+        move-order invalid parcels= 0
+        occupancy parcels global  = 1063148
+        active cells global       = 27915
+        collision cells global    = 27915
+        pair potential global     = 34086542
+
+    BuildCellOccupancy step summary:
+        source                    = moveOrdered
+        cloud valid parcels       = 837312
+        cloud invalid parcels     = 0
+        move-order valid parcels  = 837312
+        move-order invalid parcels= 0
+        occupancy parcels global  = 837312
+        active cells global       = 32085
+        collision cells global    = 32085
+        pair potential global     = 15816097
+
+    Collisions                      = 43238
+    Collision candidates           = 115780
+    Collision acceptance rate      = 0.3734496459
+    Candidate-cell sigmaTcRMax avg/max/min = 1.000275209e-15 / 1.238430293e-15 / 1e-15
+
+Load balance summary:
+    move particles avg/max/min    = 51937518.75 / 207750075 / 207750075
+    move imbalance max/avg        = 4
+    collision cand avg/max/min    = 4362585.75 / 17450343 / 17450343
+    collision cand imbalance      = 4
+    accepted coll avg/max/min     = 1360732.75 / 5442931 / 5442931
+    accepted coll imbalance       = 4
+    thread move particles         = 4(51943951 51939800 51935295 51931029)
+    thread collision candidates   = 4(5112715 4929135 3693576 3714917)
+    thread accepted collisions    = 4(1810100 1695631 964874 972326)
+
+    Collisions                      = 186337
+    Collision candidates           = 367189
+    Collision acceptance rate      = 0.5074689057
+    Candidate-cell sigmaTcRMax avg/max/min = 1.049722876e-15 / 1.443969423e-15 / 1e-15
+
+Load balance summary:
+    move particles avg/max/min    = 57403475.25 / 229613901 / 229613901
+    move imbalance max/avg        = 4
+    collision cand avg/max/min    = 16086296.25 / 64345185 / 64345185
+    collision cand imbalance      = 4
+    accepted coll avg/max/min     = 7828379.25 / 31313517 / 31313517
+    accepted coll imbalance       = 4
+    thread move particles         = 4(57410088 57405602 57401172 57397039)
+    thread collision candidates   = 4(15247976 15622868 16668885 16805456)
+    thread accepted collisions    = 4(7407326 7562773 8132876 8210542)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 837312
+    Number of molecules             = 5.023872e+15
+    Mass in system                  = 2.33610048e-10
+    Average linear kinetic energy   = 1.788716372e-19
+    Average rotational energy       = 1.829603149e-21
+    Average vibrational energy      = 2.327146718e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.039727076e-19
+ExecutionTime = 363.75 s  ClockTime = 96 s
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1063148
+    Number of molecules             = 6.378888e+15
+    Mass in system                  = 2.96618292e-10
+    Average linear kinetic energy   = 1.288736411e-19
+    Average rotational energy       = 2.078310871e-20
+    Average vibrational energy      = 2.328595891e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.729427087e-19
+ExecutionTime = 371.57 s  ClockTime = 96 s
+
+Replicated mesh migration[273]: rank 0 sent 2684 parcels, received 6824 (global 9508) wall 0.031944334s [pack 0.000596962s MPI 0.010865112s deser 0.000739498s]
+Replicated mesh migration[273]: rank 1 sent 6824 parcels, received 2684 (global 9508) wall 0.09656871s [pack 0.002207309s MPI 0.072875437s deser 0.001073446s]
+ExecutionTime = 365.3 s  ClockTime = 97 s
+
+ExecutionTime = 373.35 s  ClockTime = 97 s
+
+Replicated mesh migration[274]: rank 0 sent 2687 parcels, received 7061 (global 9748) wall 0.031910457s [pack 0.000766491s MPI 0.012320528s deser 0.000727225s]
+Replicated mesh migration[274]: rank 1 sent 7061 parcels, received 2687 (global 9748) wall 0.148161912s [pack 0.00218433s MPI 0.120839446s deser 0.00113955s]
+ExecutionTime = 367.05 s  ClockTime = 97 s
+
+ExecutionTime = 375.14 s  ClockTime = 97 s
+
+Replicated mesh migration[275]: rank 0 sent 2743 parcels, received 7054 (global 9797) wall 0.030729125s [pack 0.000533629s MPI 0.010321781s deser 0.000674733s]
+Replicated mesh migration[275]: rank 1 sent 7054 parcels, received 2743 (global 9797) wall 0.1647429s [pack 0.001376584s MPI 0.144095783s deser 0.000934527s]
+ExecutionTime = 368.84 s  ClockTime = 98 s
+
+ExecutionTime = 376.84 s  ClockTime = 98 s
+
+Replicated mesh migration[276]: rank 0 sent 2735 parcels, received 7049 (global 9784) wall 0.031125768s [pack 0.000652308s MPI 0.01000293s deser 0.000661842s]
+Replicated mesh migration[276]: rank 1 sent 7049 parcels, received 2735 (global 9784) wall 0.129614755s [pack 0.002205322s MPI 0.103187245s deser 0.000994431s]
+ExecutionTime = 370.52 s  ClockTime = 98 s
+
+ExecutionTime = 378.61 s  ClockTime = 98 s
+
+Replicated mesh migration[277]: rank 0 sent 2706 parcels, received 6872 (global 9578) wall 0.023965038s [pack 0.000897654s MPI 0.008237533s deser 0.000583099s]
+Replicated mesh migration[277]: rank 1 sent 6872 parcels, received 2706 (global 9578) wall 0.152103127s [pack 0.001544253s MPI 0.13053301s deser 0.000934088s]
+ExecutionTime = 372.26 s  ClockTime = 99 s
+
+ExecutionTime = 380.34 s  ClockTime = 99 s
+
+Replicated mesh migration[278]: rank 0 sent 2816 parcels, received 6919 (global 9735) wall 0.026460525s [pack 0.000944385s MPI 0.008326155s deser 0.000602158s]
+Replicated mesh migration[278]: rank 1 sent 6919 parcels, received 2816 (global 9735) wall 0.154169003s [pack 0.002145324s MPI 0.128251797s deser 0.000881356s]
+ExecutionTime = 373.98 s  ClockTime = 99 s
+
+ExecutionTime = 382.1 s  ClockTime = 99 s
+
+Replicated mesh migration[279]: rank 0 sent 2732 parcels, received 7062 (global 9794) wall 0.029218158s [pack 0.000705657s MPI 0.009286473s deser 0.000604092s]
+Replicated mesh migration[279]: rank 1 sent 7062 parcels, received 2732 (global 9794) wall 0.167973504s [pack 0.001532963s MPI 0.146909554s deser 0.000993574s]
+ExecutionTime = 375.81 s  ClockTime = 99 s
+
+ExecutionTime = 383.89 s  ClockTime = 100 s
+
+Replicated mesh migration[280]: rank 0 sent 2785 parcels, received 6935 (global 9720) wall 0.032086013s [pack 0.000584228s MPI 0.010619954s deser 0.000774437s]
+Replicated mesh migration[280]: rank 1 sent 6935 parcels, received 2785 (global 9720) wall 0.168120525s [pack 0.00214085s MPI 0.140606512s deser 0.001025104s]
+ExecutionTime = 377.59 s  ClockTime = 100 s
+
+ExecutionTime = 385.7 s  ClockTime = 100 s
+
+Replicated mesh migration[281]: rank 0 sent 2688 parcels, received 6935 (global 9623) wall 0.027345905s [pack 0.000569436s MPI 0.009969548s deser 0.000751793s]
+Replicated mesh migration[281]: rank 1 sent 6935 parcels, received 2688 (global 9623) wall 0.155628924s [pack 0.001449222s MPI 0.134838193s deser 0.000910649s]
+ExecutionTime = 379.38 s  ClockTime = 100 s
+
+Time = 1.85921369e-05
+
+ExecutionTime = 387.45 s  ClockTime = 101 s
+
+Time = 1.85921369e-05
+
+Replicated mesh migration[282]: rank 0 sent 2815 parcels, received 6811 (global 9626) wall 0.026033082s [pack 0.000528067s MPI 0.007232583s deser 0.000569655s]
+Replicated mesh migration[282]: rank 1 sent 6811 parcels, received 2815 (global 9626) wall 0.160754125s [pack 0.002108158s MPI 0.134066485s deser 0.000684142s]
+    BuildCellOccupancy step summary:
+        source                    = moveOrdered
+        cloud valid parcels       = 1081799
+        cloud invalid parcels     = 0
+        move-order valid parcels  = 1081799
+        move-order invalid parcels= 0
+        occupancy parcels global  = 1081799
+        active cells global       = 27915
+        collision cells global    = 27915
+        pair potential global     = 35050370
+
+    BuildCellOccupancy step summary:
+        source                    = moveOrdered
+        cloud valid parcels       = 837866
+        cloud invalid parcels     = 0
+        move-order valid parcels  = 837866
+        move-order invalid parcels= 0
+        occupancy parcels global  = 837866
+        active cells global       = 32085
+        collision cells global    = 32085
+        pair potential global     = 15853330
+
+    Collisions                      = 43541
+    Collision candidates           = 116379
+    Collision acceptance rate      = 0.3741310718
+    Candidate-cell sigmaTcRMax avg/max/min = 1.000301488e-15 / 1.238430293e-15 / 1e-15
+
+Load balance summary:
+    move particles avg/max/min    = 54047935.5 / 216191742 / 216191742
+    move imbalance max/avg        = 4
+    collision cand avg/max/min    = 4651446.75 / 18605787 / 18605787
+    collision cand imbalance      = 4
+    accepted coll avg/max/min     = 1468609 / 5874436 / 5874436
+    accepted coll imbalance       = 4
+    thread move particles         = 4(54054624 54050306 54045630 54041182)
+    thread collision candidates   = 4(5521878 5309194 3874873 3899842)
+    thread accepted collisions    = 4(1987105 1854146 1012584 1020601)
+
+    Collisions                      = 191955
+    Collision candidates           = 377426
+    Collision acceptance rate      = 0.5085897633
+    Candidate-cell sigmaTcRMax avg/max/min = 1.051729886e-15 / 1.443969423e-15 / 1e-15
+
+Load balance summary:
+    move particles avg/max/min    = 60082676.5 / 240330706 / 240330706
+    move imbalance max/avg        = 4
+    collision cand avg/max/min    = 17019298.5 / 68077194 / 68077194
+    collision cand imbalance      = 4
+    accepted coll avg/max/min     = 8302790.25 / 33211161 / 33211161
+    accepted coll imbalance       = 4
+    thread move particles         = 4(60089488 60084885 60080302 60076031)
+    thread collision candidates   = 4(16063158 16472213 17689625 17852198)
+    thread accepted collisions    = 4(7823152 7997002 8648380 8742627)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 837866
+    Number of molecules             = 5.027196e+15
+    Mass in system                  = 2.33764614e-10
+    Average linear kinetic energy   = 1.788045262e-19
+    Average rotational energy       = 1.827124276e-21
+    Average vibrational energy      = 2.327135568e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.039030062e-19
+ExecutionTime = 382.01 s  ClockTime = 101 s
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1081799
+    Number of molecules             = 6.490794e+15
+    Mass in system                  = 3.01821921e-10
+    Average linear kinetic energy   = 1.280994149e-19
+    Average rotational energy       = 2.125429744e-20
+    Average vibrational energy      = 2.32856555e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.726393678e-19
+ExecutionTime = 390.31 s  ClockTime = 101 s
+
+Replicated mesh migration[283]: rank 0 sent 2802 parcels, received 7024 (global 9826) wall 0.028870426s [pack 0.000794824s MPI 0.01078652s deser 0.000691638s]
+Replicated mesh migration[283]: rank 1 sent 7024 parcels, received 2802 (global 9826) wall 0.091990569s [pack 0.002172255s MPI 0.06549774s deser 0.001068051s]
+ExecutionTime = 383.54 s  ClockTime = 102 s
+
+ExecutionTime = 392.13 s  ClockTime = 102 s
+
+Replicated mesh migration[284]: rank 0 sent 2838 parcels, received 7081 (global 9919) wall 0.026696826s [pack 0.000798295s MPI 0.007904565s deser 0.000599262s]
+Replicated mesh migration[284]: rank 1 sent 7081 parcels, received 2838 (global 9919) wall 0.154100573s [pack 0.002165136s MPI 0.127539673s deser 0.000982263s]
+ExecutionTime = 385.31 s  ClockTime = 102 s
+
+ExecutionTime = 393.9 s  ClockTime = 102 s
+
+Replicated mesh migration[285]: rank 0 sent 2712 parcels, received 7067 (global 9779) wall 0.032382817s [pack 0.000589247s MPI 0.010064506s deser 0.00071906s]
+Replicated mesh migration[285]: rank 1 sent 7067 parcels, received 2712 (global 9779) wall 0.160532719s [pack 0.00184987s MPI 0.138097783s deser 0.000930972s]
+ExecutionTime = 387.14 s  ClockTime = 103 s
+
+ExecutionTime = 395.7 s  ClockTime = 103 s
+
+Replicated mesh migration[286]: rank 0 sent 2798 parcels, received 6967 (global 9765) wall 0.025816832s [pack 0.000885746s MPI 0.007959421s deser 0.000613993s]
+Replicated mesh migration[286]: rank 1 sent 6967 parcels, received 2798 (global 9765) wall 0.148019447s [pack 0.002214961s MPI 0.119909663s deser 0.001000338s]
+ExecutionTime = 388.87 s  ClockTime = 103 s
+
+ExecutionTime = 397.49 s  ClockTime = 103 s
+
+Replicated mesh migration[287]: rank 0 sent 2779 parcels, received 6996 (global 9775) wall 0.028674615s [pack 0.000540068s MPI 0.008245761s deser 0.000558259s]
+Replicated mesh migration[287]: rank 1 sent 6996 parcels, received 2779 (global 9775) wall 0.187060415s [pack 0.002196991s MPI 0.159264371s deser 0.000899316s]
+ExecutionTime = 390.76 s  ClockTime = 104 s
+
+ExecutionTime = 399.34 s  ClockTime = 104 s
+
+Replicated mesh migration[288]: rank 0 sent 2756 parcels, received 7000 (global 9756) wall 0.031566477s [pack 0.00053804s MPI 0.010197645s deser 0.000682741s]
+Replicated mesh migration[288]: rank 1 sent 7000 parcels, received 2756 (global 9756) wall 0.152180485s [pack 0.00143078s MPI 0.132484145s deser 0.000957151s]
+ExecutionTime = 392.52 s  ClockTime = 104 s
+
+ExecutionTime = 401.13 s  ClockTime = 104 s
+
+Replicated mesh migration[289]: rank 0 sent 2812 parcels, received 6992 (global 9804) wall 0.031460691s [pack 0.0005153s MPI 0.010345034s deser 0.000745394s]
+Replicated mesh migration[289]: rank 1 sent 6992 parcels, received 2812 (global 9804) wall 0.162456925s [pack 0.002140752s MPI 0.13877819s deser 0.000944191s]
+ExecutionTime = 394.32 s  ClockTime = 105 s
+
+ExecutionTime = 402.94 s  ClockTime = 105 s
+
+Replicated mesh migration[290]: rank 0 sent 2696 parcels, received 7075 (global 9771) wall 0.028809139s [pack 0.00080544s MPI 0.010493083s deser 0.000710469s]
+Replicated mesh migration[290]: rank 1 sent 7075 parcels, received 2696 (global 9771) wall 0.153867525s [pack 0.00137328s MPI 0.131866847s deser 0.00124217s]
+ExecutionTime = 396.11 s  ClockTime = 105 s
+
+ExecutionTime = 404.71 s  ClockTime = 105 s
+
+Replicated mesh migration[291]: rank 0 sent 2798 parcels, received 7084 (global 9882) wall 0.034553809s [pack 0.000791035s MPI 0.012091173s deser 0.000740419s]
+Replicated mesh migration[291]: rank 1 sent 7084 parcels, received 2798 (global 9882) wall 0.179083494s [pack 0.002081982s MPI 0.157149079s deser 0.001211584s]
+ExecutionTime = 397.95 s  ClockTime = 105 s
+
+Time = 1.925614179e-05
+
+ExecutionTime = 406.57 s  ClockTime = 106 s
+
+Time = 1.925614179e-05
+
+Replicated mesh migration[292]: rank 0 sent 2765 parcels, received 6873 (global 9638) wall 0.029613477s [pack 0.000535465s MPI 0.008253142s deser 0.000595302s]
+Replicated mesh migration[292]: rank 1 sent 6873 parcels, received 2765 (global 9638) wall 0.172443826s [pack 0.001327032s MPI 0.15180318s deser 0.000776066s]
+    BuildCellOccupancy step summary:
+        source                    = moveOrdered
+        cloud valid parcels       = 1100470
+        cloud invalid parcels     = 0
+        move-order valid parcels  = 1100470
+        move-order invalid parcels= 0
+        occupancy parcels global  = 1100470
+        active cells global       = 27915
+        collision cells global    = 27915
+        pair potential global     = 35915441
+
+    BuildCellOccupancy step summary:
+        source                    = moveOrdered
+        cloud valid parcels       = 838102
+        cloud invalid parcels     = 0
+        move-order valid parcels  = 838102
+        move-order invalid parcels= 0
+        occupancy parcels global  = 838102
+        active cells global       = 32085
+        collision cells global    = 32085
+        pair potential global     = 15986062
+
+    Collisions                      = 44138
+    Collision candidates           = 118179
+    Collision acceptance rate      = 0.3734842908
+    Candidate-cell sigmaTcRMax avg/max/min = 1.000345142e-15 / 1.238430293e-15 / 1e-15
+
+Load balance summary:
+    move particles avg/max/min    = 56159974.5 / 224639898 / 224639898
+    move imbalance max/avg        = 4
+    collision cand avg/max/min    = 4945717.25 / 19782869 / 19782869
+    collision cand imbalance      = 4
+    accepted coll avg/max/min     = 1579058.25 / 6316233 / 6316233
+    accepted coll imbalance       = 4
+    thread move particles         = 4(56166912 56162451 56157600 56152935)
+    thread collision candidates   = 4(5938625 5694027 4060679 4089538)
+    thread accepted collisions    = 4(2168427 2016034 1061259 1070513)
+
+    Collisions                      = 196930
+    Collision candidates           = 386340
+    Collision acceptance rate      = 0.5097323601
+    Candidate-cell sigmaTcRMax avg/max/min = 1.053536207e-15 / 1.443969423e-15 / 1e-15
+
+Load balance summary:
+    move particles avg/max/min    = 62808215 / 251232860 / 251232860
+    move imbalance max/avg        = 4
+    collision cand avg/max/min    = 17974456.5 / 71897826 / 71897826
+    collision cand imbalance      = 4
+    accepted coll avg/max/min     = 8788896 / 35155584 / 35155584
+    accepted coll imbalance       = 4
+    thread move particles         = 4(62815189 62810496 62805817 62801358)
+    thread collision candidates   = 4(16900199 17334569 18751179 18911879)
+    thread accepted collisions    = 4(8250390 8438510 9184013 9282671)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 838102
+    Number of molecules             = 5.028612e+15
+    Mass in system                  = 2.33830458e-10
+    Average linear kinetic energy   = 1.787388594e-19
+    Average rotational energy       = 1.831370218e-21
+    Average vibrational energy      = 2.327141107e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.038416407e-19
+ExecutionTime = 400.59 s  ClockTime = 106 s
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1100470
+    Number of molecules             = 6.60282e+15
+    Mass in system                  = 3.0703113e-10
+    Average linear kinetic energy   = 1.27387453e-19
+    Average rotational energy       = 2.169586206e-20
+    Average vibrational energy      = 2.328603879e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.723693539e-19
+ExecutionTime = 409.46 s  ClockTime = 106 s
+
+Replicated mesh migration[293]: rank 0 sent 2742 parcels, received 6954 (global 9696) wall 0.03326787s [pack 0.000554784s MPI 0.010997789s deser 0.000703152s]
+Replicated mesh migration[293]: rank 1 sent 6954 parcels, received 2742 (global 9696) wall 0.113602021s [pack 0.002272917s MPI 0.084484521s deser 0.001079774s]
+ExecutionTime = 402.19 s  ClockTime = 107 s
+
+ExecutionTime = 411.25 s  ClockTime = 107 s
+
+Replicated mesh migration[294]: rank 0 sent 2642 parcels, received 6911 (global 9553) wall 0.028072478s [pack 0.001005814s MPI 0.010362314s deser 0.000702127s]
+Replicated mesh migration[294]: rank 1 sent 6911 parcels, received 2642 (global 9553) wall 0.14955441s [pack 0.00214877s MPI 0.123511781s deser 0.001020115s]
+ExecutionTime = 403.93 s  ClockTime = 107 s
+
+ExecutionTime = 413.01 s  ClockTime = 107 s
+
+Replicated mesh migration[295]: rank 0 sent 2715 parcels, received 7029 (global 9744) wall 0.033899286s [pack 0.000572503s MPI 0.012682228s deser 0.000755085Replicated mesh migration[295]: rank 1 sent 7029 parcels, received 2715 (global 9744) wall 0.162999886s [pack 0.002134814s MPI 0.142506612s deser 0.000995382s]
+s]
+ExecutionTime = 405.76 s  ClockTime = 108 s
+
+ExecutionTime = 414.91 s  ClockTime = 108 s
+
+Replicated mesh migration[296]: rank 0 sent 2724 parcels, received 7097 (global 9821) wall 0.031926306s [pack 0.000520705s MPI 0.010206785s deser 0.000692521s]
+Replicated mesh migration[296]: rank 1 sent 7097 parcels, received 2724 (global 9821) wall 0.169641541s [pack 0.001497437s MPI 0.144904985s deser 0.001034865s]
+ExecutionTime = 407.62 s  ClockTime = 108 s
+
+ExecutionTime = 416.74 s  ClockTime = 108 s
+
+Replicated mesh migration[297]: rank 0 sent 2794 parcels, received 7043 (global 9837) wall 0.03151351s [pack 0.000502003s MPI 0.00973484s deser 0.000652148s]
+Replicated mesh migration[297]: rank 1 sent 7043 parcels, received 2794 (global 9837) wall 0.171502492s [pack 0.002050945s MPI 0.149225638s deser 0.000991943s]
+ExecutionTime = 409.42 s  ClockTime = 109 s
+
+ExecutionTime = 418.56 s  ClockTime = 109 s
+
+Replicated mesh migration[298]: rank 0 sent 2657 parcels, received 6971 (global 9628) wall 0.032635165s [pack 0.00052982s MPI 0.010103306s deser 0.000659988s]
+Replicated mesh migration[298]: rank 1 sent 6971 parcels, received 2657 (global 9628) wall 0.188655581s [pack 0.002261986s MPI 0.164554298s deser 0.000955961s]
+ExecutionTime = 411.31 s  ClockTime = 109 s
+
+ExecutionTime = 420.39 s  ClockTime = 109 s
+
+Replicated mesh migration[299]: rank 0 sent 2765 parcels, received 6861 (global 9626) wall 0.031686887s [pack 0.000509822s MPI 0.009989236s deser 0.000689102s]
+Replicated mesh migration[299]: rank 1 sent 6861 parcels, received 2765 (global 9626) wall 0.157263876s [pack 0.001319036s MPI 0.138689836s deser 0.000973241s]
+ExecutionTime = 413.12 s  ClockTime = 110 s
+
+ExecutionTime = 422.26 s  ClockTime = 110 s
+
+Replicated mesh migration[300]: rank 0 sent 2686 parcels, received 7147 (global 9833) wall 0.028764852s [pack 0.000737261s MPI 0.010520435s deser 0.000723975s]
+Replicated mesh migration[300]: rank 1 sent 7147 parcels, received 2686 (global 9833) wall 0.172611615s [pack 0.001425068s MPI 0.153291543s deser 0.001069268s]
+ExecutionTime = 415 s  ClockTime = 110 s
+
+ExecutionTime = 424.13 s  ClockTime = 110 s
+
+Replicated mesh migration[301]: rank 0 sent 2728 parcels, received 6991 (global 9719) wall 0.031519473s [pack 0.000494895s MPI 0.009872751s deser 0.000682443s]
+Replicated mesh migration[301]: rank 1 sent 6991 parcels, received 2728 (global 9719) wall 0.173540987s [pack 0.002111218s MPI 0.149189726s deser 0.000955993s]
+dsmcVolFields final profiling [N2]
+    calls                 = 0
+    sample accumulation   = 10.16357917 s
+    shared cache build    = 10.07702696 s
+      cache allocate      = 0.002400016 s
+      cache reset         = 0 s
+      parcel accumulate   = 10.07408763 s
+    field combine         = 0.086311877 s
+    cell reduction        = 0.063734518 s
+    boundary accumulation = 0.172391929 s
+    output compute        = 0 s
+    field writes          = 0 s
+    output reset          = 0 s
+    output-time block     = 0 s
+      detail sample cells = 287695
+      detail sample parcels = 7125914
+      base accum (sampled)= 0.184426985 s
+      vib accum (sampled) = 0.701508182 s
+      electronic (sampled)= 0 s
+      class accum (sampled)= 0 s
+
+ExecutionTime = 416.84 s  ClockTime = 111 s
+
+Time = 1.992014668e-05
+
+dsmcVolFields final profiling [N2]
+    calls                 = 0
+    sample accumulation   = 11.84206787 s
+    shared cache build    = 11.75515718 s
+      cache allocate      = 0.0022231 s
+      cache reset         = 0 s
+      parcel accumulate   = 11.75241558 s
+    field combine         = 0.086679682 s
+    cell reduction        = 0.060055143 s
+    boundary accumulation = 0.17130976 s
+    output compute        = 0 s
+    field writes          = 0 s
+    output reset          = 0 s
+    output-time block     = 0 s
+      detail sample cells = 272930
+      detail sample parcels = 8142893
+      base accum (sampled)= 0.208765277 s
+      vib accum (sampled) = 0.855128166 s
+      electronic (sampled)= 0 s
+      class accum (sampled)= 0 s
+
+ExecutionTime = 425.93 s  ClockTime = 111 s
+
+Time = 1.992014668e-05
+
+Replicated mesh migration[302]: rank 0 sent 2649 parcels, received 7011 (global 9660) wall 0.027368649s [pack 0.000532026s MPI 0.009019151s deser 0.000631733s]
+Replicated mesh migration[302]: rank 1 sent 7011 parcels, received 2649 (global 9660) wall 0.166232992s [pack 0.002189769s MPI 0.138594464s deser 0.000945549s]
+    BuildCellOccupancy step summary:
+        source                    = moveOrdered
+        cloud valid parcels       = 1119586
+        cloud invalid parcels     = 0
+        move-order valid parcels  = 1119586
+        move-order invalid parcels= 0
+        occupancy parcels global  = 1119586
+        active cells global       = 27915
+        collision cells global    = 27915
+        pair potential global     = 36929756
+
+    BuildCellOccupancy step summary:
+        source                    = moveOrdered
+        cloud valid parcels       = 837817
+        cloud invalid parcels     = 0
+        move-order valid parcels  = 837817
+        move-order invalid parcels= 0
+        occupancy parcels global  = 837817
+        active cells global       = 32085
+        collision cells global    = 32085
+        pair potential global     = 15890086
+
+    Collisions                      = 43884
+    Collision candidates           = 116827
+    Collision acceptance rate      = 0.3756323453
+    Candidate-cell sigmaTcRMax avg/max/min = 1.000352989e-15 / 1.238430293e-15 / 1e-15
+
+Load balance summary:
+    move particles avg/max/min    = 58272077 / 233088308 / 233088308
+    move imbalance max/avg        = 4
+    collision cand avg/max/min    = 5239581.25 / 20958325 / 20958325
+    collision cand imbalance      = 4
+    accepted coll avg/max/min     = 1688784 / 6755136 / 6755136
+    accepted coll imbalance       = 4
+    thread move particles         = 4(58279360 58274668 58269537 58264743)
+    thread collision candidates   = 4(6355069 6074464 4249869 4278923)
+    thread accepted collisions    = 4(2348236 2176299 1110829 1119772)
+
+    Collisions                      = 202425
+    Collision candidates           = 397261
+    Collision acceptance rate      = 0.509551655
+    Candidate-cell sigmaTcRMax avg/max/min = 1.055410227e-15 / 1.443969423e-15 / 1e-15
+
+Load balance summary:
+    move particles avg/max/min    = 65580894.25 / 262323577 / 262323577
+    move imbalance max/avg        = 4
+    collision cand avg/max/min    = 18955242 / 75820968 / 75820968
+    collision cand imbalance      = 4
+    accepted coll avg/max/min     = 9289095 / 37156380 / 37156380
+    accepted coll imbalance       = 4
+    thread move particles         = 4(65588079 65583296 65578472 65573730)
+    thread collision candidates   = 4(17753620 18235842 19831245 20000261)
+    thread accepted collisions    = 4(8688808 8899412 9730344 9837816)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1119586
+    Number of molecules             = 6.717516e+15
+    Mass in system                  = 3.12364494e-10
+    Average linear kinetic energy   = 1.266212494e-19
+    Average rotational energy       = 2.213903582e-20
+    Average vibrational energy      = 2.328698509e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.720472703e-19
+ExecutionTime = 428.91 s  ClockTime = 112 s
+
+
+Main loop profiling summary:
+    main loop wall time [s]      = 112.0728975
+
+Move profiling summary:
+    move calls                    = 600
+    move pre-control/partition [s]= 0.075883169
+    move reset/setup [s]          = 0.001929145
+    move extract parcels [s]      = 0.17775057
+    move parallel kernel wall [s] = 41.53876616
+    move commit/survivor rebuild [s] = 0.639701357
+    move transfer/delete finalize [s] = 0
+    total profiled [s]            = 42.4340304
+
+Move profiling detail:
+    move commit passes total      = 300
+    avg move passes/call          = 0.5
+    max move passes/call          = 1
+    avg move extracted parcels    = 874411.9233
+    extract deferred-only [s]     = 0
+    extract ordered-reuse [s]     = 0.111606176
+    extract full-scan [s]         = 0.066042898
+    deferred extract passes       = 0
+    ordered-reuse extract passes  = 299
+    full-scan extract passes      = 1
+    avg deferred-only parcels     = 0
+    avg ordered-reuse parcels     = 874239.6355
+    avg full-scan parcels         = 925926
+    first-pass reuse checks       = 300
+    first-pass has ordered        = 299
+    first-pass missing ordered    = 1
+    first-pass offset mismatch    = 1
+    first-pass exact size match   = 299
+    first-pass prior+appended match= 299
+    avg first-pass current size   = 874411.9233
+    avg first-pass prior size     = 871325.5033
+    avg first-pass appended size  = 0
+    avg first-pass size delta     = 3086.42
+    avg first-pass (delta-appended)= 3086.42
+    avg inter-step cloud delta    = -163.2253756
+    inter-step cloud delta min/max= -97772 / 0
+    avg post-step cloud delta     = 2355.428333
+    post-step cloud delta min/max = 3996 / 5106
+    avg deferred parcels/pass     = 0
+    max deferred parcels/pass     = 0
+    avg received parcels/pass     = 0
+    max received parcels/pass     = 0
+    avg move surviving parcels    = 871860.5667
+    avg move transferred parcels  = 0
+    avg move deleted parcels      = 2551.356667
+    trackToAndHitFace total [s]   = 117.2441989
+    tracker callback total [s]    = 0
+    boundary control total [s]    = 3.454850102
+    avg face hits/call            = 259507.2033
+    avg processor hits/call       = 0
+    avg patch hits/call           = 5804.935
+    avg cyclic hits/call          = 0
+    avg stuck hits/call           = 0
+
+BuildCellOccupancy profiling summary:
+    buildCellOccupancy calls      = 301
+    extract parcels [s]           = 2.044406062
+    count/reduce [s]              = 1.554945586
+    allocate/fill [s]             = 1.68208891
+    total profiled [s]            = 5.281440558
+
+BuildCellOccupancy profiling detail:
+    move-ordered hits             = 300
+    fallback gathers             = 1
+    fallback invalid-order       = 1
+    fallback offset-mismatch     = 0
+    fallback size-mismatch       = 0
+    avg move-ordered parcels      = 873659.2259
+    avg appended parcels          = 0
+    avg cloud size                = 877999.6545
+    size delta avg/min/max        = -4340.428571 / -1306469 / 0
+
+
+    avg cloud valid-cell parcels   = 88331.21927
+    avg cloud invalid-cell parcels = 0
+    avg move-order valid parcels   = 88331.21927
+    avg move-order invalid parcels = 0
+    avg partition assigned parcels = 88331.21927
+    avg partition gap cells        = 0
+    avg partition overlap cells    = 0
+
+Collision profiling summary:
+    collision calls               = 300
+    precompute candidates [s]     = 0.056277207
+    rebuild partition [s]         = 1.9039e-05
+    selection/collide [s]         = 37.41749401
+    total profiled [s]            = 37.47379025
+
+Evolve profiling summary:
+    evolve calls                  = 300
+    move only [s]                 = 43.5059361
+    buildCellOccupancy [s]        = 16.67934272
+    coordSystem [s]               = 0.000437107
+    collision phase [s]           = 37.47516854
+    reaction/output [s]           = 3.2825e-05
+    post fields/output [s]        = 12.23793498
+    total profiled [s]            = 109.8988523
+
+Profiling detail load-balance summary:
+    move particles avg/max/min    = 65580894.25 / 65588079 / 65573730
+    move imbalance max/avg        = 1.000109556
+    collision cand avg/max/min    = 18955242 / 20000261 / 17753620
+    collision cand imbalance      = 1.055130871
+    accepted coll avg/max/min     = 9289095 / 9837816 / 8688808
+    accepted coll imbalance       = 1.059071524
+    thread move particles         = 4(65588079 65583296 65578472 65573730)
+    thread move wall time [s]     = 4(41.53468836 41.53426928 41.53435783 41.53428611)
+    thread move ns/particle       = 4(633.265816 633.30561 633.3535468 633.3982543)
+    thread track wall time [s]    = 4(29.14641884 29.34822575 29.30409457 29.44545971)
+    thread tracker wall time [s]  = 4{0}
+    thread boundary wall time [s] = 4(0.885043132 0.858023334 0.854677091 0.857106545)
+    thread face hits              = 4(38924515 38925501 38929268 38925038)
+    thread processor hits         = 4{0}
+    thread patch hits             = 4(872476 871292 869673 869520)
+    thread cyclic hits            = 4{0}
+    thread stuck hits             = 4{0}
+    thread track ns/particle      = 4(444.3859201 447.4954378 446.8554035 449.0435379)
+    thread boundary ns/particle   = 4(13.49396332 13.08295536 13.03289121 13.07088288)
+    thread collision candidates   = 4(17753620 18235842 19831245 20000261)
+    thread accepted collisions    = 4(8688808 8899412 9730344 9837816)
+    thread collision active cells = 4(2311758 2325421 1649283 1669568)
+    thread collision reaction hits= 4{0}
+    thread collision wall time [s]= 4(37.36196074 37.3617539 37.36166123 37.36169577)
+    thread collision ns/candidate = 4(2104.470003 2048.808818 1883.97961 1868.060411)
+    thread collision ns/accepted  = 4(4300.009936 4198.227242 3839.706102 3797.76322)
+
+
+Replicated mesh profiling summary:
+    migration calls             = 302
+    migration wall time [s]     = 10.23410702
+    local particles (final)     = 1119586
+    particles per rank          = min 837817 max 1119586 avg 978701.5 imbalance 1.143950428
+Cloud name: dsmc
+    Number of dsmc particles        = 837817
+    Number of molecules             = 5.026902e+15
+    Mass in system                  = 2.33750943e-10
+    Average linear kinetic energy   = 1.787776277e-19
+    Average rotational energy       = 1.818506936e-21
+    Average vibrational energy      = 2.327185567e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.038679903e-19
+ExecutionTime = 419.75 s  ClockTime = 112 s
+
+
+Main loop profiling summary:
+    main loop wall time [s]      = 113.2847917
+
+Move profiling summary:
+    move calls                    = 600
+    move pre-control/partition [s]= 3.244498781
+    move reset/setup [s]          = 0.003144887
+    move extract parcels [s]      = 0.199428982
+    move parallel kernel wall [s] = 43.32845971
+    move commit/survivor rebuild [s] = 0.505546329
+    move transfer/delete finalize [s] = 0
+    total profiled [s]            = 47.28107869
+
+Move profiling detail:
+    move commit passes total      = 300
+    avg move passes/call          = 0.5
+    max move passes/call          = 1
+    avg move extracted parcels    = 776961.0267
+    extract deferred-only [s]     = 0
+    extract ordered-reuse [s]     = 0.085267735
+    extract full-scan [s]         = 0.114052371
+    deferred extract passes       = 0
+    ordered-reuse extract passes  = 299
+    full-scan extract passes      = 1
+    avg deferred-only parcels     = 0
+    avg ordered-reuse parcels     = 776745.2308
+    avg full-scan parcels         = 841484
+    first-pass reuse checks       = 300
+    first-pass has ordered        = 299
+    first-pass missing ordered    = 1
+    first-pass offset mismatch    = 1
+    first-pass exact size match   = 1
+    first-pass prior+appended match= 299
+    avg first-pass current size   = 776961.0267
+    avg first-pass prior size     = 767419.1467
+    avg first-pass appended size  = 6759.57
+    avg first-pass size delta     = 9541.88
+    avg first-pass (delta-appended)= 2782.31
+    avg inter-step cloud delta    = 3548.652755
+    inter-step cloud delta min/max= 6754 / 104563
+    avg post-step cloud delta     = -2355.428333
+    post-step cloud delta min/max = -5106 / -3996
+    avg deferred parcels/pass     = 0
+    max deferred parcels/pass     = 0
+    avg received parcels/pass     = 0
+    max received parcels/pass     = 0
+    avg move surviving parcels    = 774899.9633
+    avg move transferred parcels  = 0
+    avg move deleted parcels      = 2061.063333
+    trackToAndHitFace total [s]   = 114.6264049
+    tracker callback total [s]    = 0
+    boundary control total [s]    = 0.555878288
+    avg face hits/call            = 290064.5
+    avg processor hits/call       = 0
+    avg patch hits/call           = 1650.548333
+    avg cyclic hits/call          = 0
+    avg stuck hits/call           = 0
+
+BuildCellOccupancy profiling summary:
+    buildCellOccupancy calls      = 301
+    extract parcels [s]           = 3.170462789
+    count/reduce [s]              = 1.699643777
+    allocate/fill [s]             = 1.829026066
+    total profiled [s]            = 6.699132632
+
+BuildCellOccupancy profiling detail:
+    move-ordered hits             = 300
+    fallback gathers             = 1
+    fallback invalid-order       = 1
+    fallback offset-mismatch     = 0
+    fallback size-mismatch       = 0
+    avg move-ordered parcels      = 767630.3389
+    avg appended parcels          = 0
+    avg cloud size                = 767630.3389
+    size delta avg/min/max        = 0 / 0 / 0
+
+
+    avg cloud valid-cell parcels   = 76769.54153
+    avg cloud invalid-cell parcels = 0
+    avg move-order valid parcels   = 76769.54153
+    avg move-order invalid parcels = 0
+    avg partition assigned parcels = 76769.54153
+    avg partition gap cells        = 0
+    avg partition overlap cells    = 0
+
+Collision profiling summary:
+    collision calls               = 300
+    precompute candidates [s]     = 0.051708162
+    rebuild partition [s]         = 1.6108e-05
+    selection/collide [s]         = 15.3458851
+    total profiled [s]            = 15.39760937
+
+Evolve profiling summary:
+    evolve calls                  = 300
+    move only [s]                 = 49.55785197
+    buildCellOccupancy [s]        = 34.53330458
+    coordSystem [s]               = 0.000411516
+    collision phase [s]           = 15.39876961
+    reaction/output [s]           = 1.701e-05
+    post fields/output [s]        = 10.55678529
+    total profiled [s]            = 110.04714
+
+Profiling detail load-balance summary:
+    move particles avg/max/min    = 58272077 / 58279360 / 58264743
+    move imbalance max/avg        = 1.000124983
+    collision cand avg/max/min    = 5239581.25 / 6355069 / 4249869
+    collision cand imbalance      = 1.212896355
+    accepted coll avg/max/min     = 1688784 / 2348236 / 1110829
+    accepted coll imbalance       = 1.390489251
+    thread move particles         = 4(58279360 58274668 58269537 58264743)
+    thread move wall time [s]     = 4(43.3241537 43.32385665 43.3237718 43.32359852)
+    thread move ns/particle       = 4(743.3876023 743.4423591 743.5063676 743.5645691)
+    thread track wall time [s]    = 4(28.50099318 28.71584265 28.71908092 28.69048814)
+    thread tracker wall time [s]  = 4{0}
+    thread boundary wall time [s] = 4(0.141234871 0.137038849 0.138681007 0.138923561)
+    thread face hits              = 4(43508867 43507932 43514245 43507656)
+    thread processor hits         = 4{0}
+    thread patch hits             = 4(247647 247415 248660 246607)
+    thread cyclic hits            = 4{0}
+    thread stuck hits             = 4{0}
+    thread track ns/particle      = 4(489.0409431 492.7671599 492.8661252 492.4159391)
+    thread boundary ns/particle   = 4(2.423411496 2.351602398 2.379991573 2.384350361)
+    thread collision candidates   = 4(6355069 6074464 4249869 4278923)
+    thread accepted collisions    = 4(2348236 2176299 1110829 1119772)
+    thread collision active cells = 4(1801184 1900315 2422681 2444390)
+    thread collision reaction hits= 4{0}
+    thread collision wall time [s]= 4(15.29010533 15.28949851 15.28990625 15.28711093)
+    thread collision ns/candidate = 4(2405.969995 2517.011955 3597.735894 3572.653898)
+    thread collision ns/accepted  = 4(6511.315444 7025.458592 13764.41041 13651.98535)
+
+
+Replicated mesh profiling summary:
+    migration calls             = 302
+    migration wall time [s]     = 26.20927052
+    local particles (final)     = 837817
+    particles per rank          = min 837817 max 1119586 avg 978701.5 imbalance 1.143950428
+    rank wall time (evolve, 300 steps): min 109.9039606 max 110.0523396 avg 109.9781501 imbalance 1.000674584
+    TACF cell cost (30 samples): min     rank wall time (evolve, 300 steps): min 109.9039606 max 110.0523396 avg 109.9781501 imbalance 1.000674584
+    TACF cell cost (30 samples): min 0 max 0 max 30943.1 avg 12247 avg 1639.574648 (move weight 3.7)
+    TACF collision cost (30 samples): min 1424.97064 (move weight 3.7)
+    TACF collision cost (30 samples): min 0 max 0 max 18657 avg 8039 avg 128.8163167 (coll weight 1)
+    Phase C auto DLB rebalances = 1
+
+End
+
+--> FOAM Warning : 
+    From static void Foam::UPstream::shutdown(int)
+    in file UPstream.C at line 680
+    35.00935 (coll weight 1)
+    Phase C auto DLB rebalances = 1
+
+End
+
+--> FOAM Warning : 
+    From static void Foam::UPstream::shutdown(int)
+    in file UPstream.C at line 680
+    Finalizing MPI, but was initialized elsewhere
+Finalizing MPI, but was initialized elsewhere
+	Command being timed: "mpirun -np 2 dsmcFoam+ -case ."
+	User time (seconds): 843.57
+	System time (seconds): 5.53
+	Percent of CPU this job got: 758%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 1:51.96
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 859080
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 50
+	Minor (reclaiming a frame) page faults: 402341
+	Voluntary context switches: 4058
+	Involuntary context switches: 1112
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 384
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0

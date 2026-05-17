@@ -131,6 +131,32 @@ inline bool hasParticlePartition(const TrackCloudType&, long)
 }
 
 template<class TrackCloudType>
+inline auto hasCellOccupancy(const TrackCloudType& cloud, int)
+-> decltype(cloud.isCellOccupancyValid(), bool())
+{
+    return cloud.isCellOccupancyValid();
+}
+
+template<class TrackCloudType>
+inline bool hasCellOccupancy(const TrackCloudType&, long)
+{
+    return false;
+}
+
+template<class TrackCloudType>
+inline auto hasReplicatedMesh(const TrackCloudType& cloud, int)
+-> decltype(cloud.replicatedMeshActive(), bool())
+{
+    return cloud.replicatedMeshActive();
+}
+
+template<class TrackCloudType>
+inline bool hasReplicatedMesh(const TrackCloudType&, long)
+{
+    return false;
+}
+
+template<class TrackCloudType>
 inline auto particleLoadStart(const TrackCloudType& cloud, int)
 -> decltype(cloud.particleLoadStart())
 {
@@ -821,7 +847,8 @@ void Foam::Cloud<ParticleType>::move
     const bool useParticlePartition =
         useOpenMPMove && cloudOpenMP::hasParticlePartition(cloud, 0);
     const bool useMoveParticlePartition =
-        useParticlePartition && !Pstream::parRun();
+        useParticlePartition && !Pstream::parRun()
+     && !cloudOpenMP::hasReplicatedMesh(cloud, 0);
     #else
     const bool useOpenMPMove = false;
     const label moveThreads = 1;
@@ -1044,10 +1071,7 @@ void Foam::Cloud<ParticleType>::move
                 const bool canReuseMoveOrdered =
                     [&]()
                     {
-                        const bool firstPass =
-                            accumulateMixedMoveOrdered && moveLoopPasses == 1;
-
-                        if (!firstPass)
+                        if (moveLoopPasses != 1)
                         {
                             return false;
                         }
@@ -1254,6 +1278,10 @@ void Foam::Cloud<ParticleType>::move
                 #else
                     0;
                 #endif
+                // Seed per-thread move RNG
+                localTd.moveRng = typename ParticleType::MoveFastRng(
+                    uint64_t(threadI)*10000ULL + uint64_t(moveLoopPasses)*100ULL + 42ULL
+                );
 
                 label localProcessedCount = 0;
                 const auto tBegin = clock_type::now();
@@ -1736,7 +1764,7 @@ void Foam::Cloud<ParticleType>::move
             cloudOpenMP::recordMoveThreadProfile(cloud, processedCounts, moveWallTimes, 0);
         }
 
-        if (!Pstream::parRun())
+        if (!Pstream::parRun() || neighbourProcs.empty())
         {
             break;
         }

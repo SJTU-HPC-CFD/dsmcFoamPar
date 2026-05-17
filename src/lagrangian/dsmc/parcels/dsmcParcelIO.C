@@ -56,6 +56,7 @@ Foam::dsmcParcel::dsmcParcel
     typeId_(-1),
     newParcel_(-1),
     classification_(0),
+    localCellI_(-1),
     tracked_(),
     stuck_(nullptr),
     vibLevel_()
@@ -129,6 +130,7 @@ Foam::dsmcParcel::dsmcParcel(const dsmcParcel& dP, const polyMesh& mesh)
     typeId_(dP.typeId_),
     newParcel_(dP.newParcel_),
     classification_(dP.classification_),
+    localCellI_(-1),
     tracked_(dP.tracked_),
     stuck_(nullptr),
     vibLevel_(dP.vibLevel_)

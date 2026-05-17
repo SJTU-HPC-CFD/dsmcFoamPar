@@ -773,7 +773,6 @@ bool dsmcDynamicLoadBalancing::performInMemory()
     };
 
     const auto selectStart = std::chrono::steady_clock::now();
-    const auto selectStart = std::chrono::steady_clock::now();
     if (remainingExcess > SMALL && oldNCells > inMemoryMinLocalCells_)
     {
         const polyBoundaryMesh& patches = mesh_.boundaryMesh();

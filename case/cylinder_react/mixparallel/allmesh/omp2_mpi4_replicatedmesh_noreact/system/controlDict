@@ -1,0 +1,109 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  v1706                                 |
+|   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version 2.0;
+    format ascii;
+    class dictionary;
+    location "system";
+    object controlDict;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+nTerminalOutputs 10;
+
+application dsmcFoam+;
+
+startFrom startTime;
+
+startTime 0;
+
+stopAt endTime;
+
+endTime         1.9920146682e-05;
+
+deltaT          6.640048894e-08;
+
+sampleSteps 10;
+
+CTC 0.5;
+
+CAC 0.005;
+
+writeControl none;
+
+writeInterval   1.9920146682e-05;
+
+purgeWrite 0;
+
+writeFormat ascii;
+
+writePrecision 10;
+
+writeCompression uncompressed;
+
+timeFormat general;
+
+timePrecision 10;
+
+runTimeModifiable no;
+
+adjustTimeStep no;
+
+useOpenMP true;
+
+openmpMove true;
+
+openmpMoveSchedule static;
+
+openmpMoveChunk 64;
+
+openmpThreads 2;
+
+openmpCollisionStrategy dynamic;
+openmpCollisionChunk 8;
+
+openmpCollisionCostCandidateWeight  1.0;
+openmpCollisionCostActiveCellWeight 0.0;
+
+profileSummary true;
+profileDetail  true;
+
+OptimisationSwitches
+{
+    fileHandler masterUncollated;
+}
+replicatedMesh true;
+replicatedMeshDecompMethod metis;
+replicatedMeshAutoDLB true;
+replicatedMeshDLBCooldownSteps 20;
+
+// dlbOffload (matching OMP8 config)
+dlbOffloadPlanner true;
+dlbOffloadExecute true;
+dlbOffloadExperimentalExecute true;
+dlbOffloadTopCells 8;
+dlbOffloadTaskCells 2048;
+dlbOffloadMinCandidates 1;
+dlbOffloadMaxFraction 1.00;
+dlbOffloadImbalance 1.50;
+dlbOffloadBalanceToTarget true;
+dlbOffloadBalanceTarget 1.05;
+dlbOffloadBalanceEffective false;
+dlbOffloadRemoteCostFactor 3.20;
+dlbOffloadCompactSingleSpeciesPayload true;
+dlbOffloadInterval 0;
+dlbOffloadParcelBytes 160.0;
+dlbOffloadPackProbe false;
+dlbOffloadPackExchangeProbe false;
+
+functions
+{
+}
+
+// ************************************************************************* //

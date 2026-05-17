@@ -1,4 +1,8 @@
+ifeq ($(WM_COMPILER),Gcc)
+OPENMP_FLAGS = -fopenmp
+else
 OPENMP_FLAGS = -qopenmp
+endif
 
 EXE_INC = \
     $(OPENMP_FLAGS) \

@@ -1,0 +1,261 @@
+/*---------------------------------------------------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  2506                                  |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+Build  : 95a5dfacc7-20250714 OPENFOAM=2506 version=v2506
+Arch   : "LSB;label=32;scalar=64"
+Exec   : dsmcFoam+ -parallel
+Date   : May 16 2026
+Time   : 04:51:12
+Host   : SuperXCX-ROG
+PID    : 1279300
+I/O    : uncollated
+Case   : /home/superxcx/code/DSMC/dsmcFoam++/hyStrath_xcx/case/cylinder_react/mixparallel/allmesh/omp4_mpi2_mpiopt_noreact
+nProcs : 2
+Hosts  :
+(
+    (SuperXCX-ROG 2)
+)
+Pstream initialized with:
+    node communication : off [type=host] (2 ranks, 1 nodes)
+    topology controls  : none
+    consensus exchange : 0 (tuning: 0)
+    exchange algorithm : 0
+    commsType          : nonBlocking
+    polling iterations : 0
+trapFpe: Floating point exception trapping enabled (FOAM_SIGFPE).
+fileModificationChecking : Monitoring run-time modified files using timeStampMaster (fileModificationSkew 5, maxFileModificationPolls 20)
+allowSystemOperations : Allowing user-supplied system call operations
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+Create time
+
+Overriding OptimisationSwitches according to controlDict
+    fileHandler (unregistered)
+Overriding fileHandler to masterUncollated
+I/O    : masterUncollated (maxMasterFileBufferSize 1e+09)
+--> FOAM Warning : 
+    From void Foam::fileOperations::masterUncollatedFileOperation::init(bool)
+    in file global/fileOperations/masterUncollatedFileOperation/masterUncollatedFileOperation.C at line 646
+    Resetting fileModificationChecking to timeStamp
+--> FOAM Warning : 
+    From static Foam::IOstreamOption::compressionType Foam::IOstreamOption::compressionEnum(const word &, const compressionType)
+    in file db/options/IOstreamOption.C at line 189
+    Unknown compression specifier 'uncompressed' using compression off
+Create mesh for time = 0
+
+
+Constructing dsmcCloud
+Selecting the coordinate system model:	dsmcCartesian
+
+Selecting the time-step model:	dsmcConstantTimeStepModel
+
+Constant time-step model:
+- time-step [sec]	6.640048894e-08
+
+Selecting the porous measurement model:	dsmcNoPorousMediumMeasurements
+
+
+Creating dsmcControllers
+
+Creating fields: 
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+Resetting fields at output until time: 2.456818091e-06
+ measurement option: write
+ nSamples: 1, time interval: 6.640048894e-08
+ nAverages: 300, time interval: 1.992014668e-05
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Creating the boundary models: 
+
+Selecting dsmcPatchBoundaryModel dsmcDeletionPatch
+Selecting dsmcPatchBoundaryModel dsmcDeletionPatch
+Selecting dsmcPatchBoundaryModel dsmcDiffuseWallPatch
+Selecting dsmcGeneralBoundaryModel dsmcFreeStreamInflowPatch
+Selecting BinaryCollisionModel LarsenBorgnakkeVariableHardSphere
+OpenMP enabled for dsmcCloud with 4 thread-local RNG streams using collision strategy 'dynamic' (chunk 8)', move kernel enabled (static, chunk 64), adaptive partition enabled (interval 5, imbalance 1.1, drift 0.1), collision partition cost (candidate x1, active-cell x0)
+OpenMP mixed-move guard cells enabled on 0 / 60000 cells (processor halo layers 2)
+
+Constructing constant properties for
+    N2
+Replicated mesh: METIS decomposition complete, 60000 cells -> 2 ranks
+Replicated mesh: rank 0 owns 30000 / 60000 cells
+Local mesh: 30000 owned + 446 halo = 30446 / 60000 cells
+Phase C auto DLB: enabled (SCOTCH remap), imbalanceThreshold=0.15, cooldownSteps=20
+Replicated mesh: initialized with 2 MPI ranks, migrate interval 1
+Replicated mesh: rank 0 starts with 1306469 parcels (decomposed mesh)
+
+Creating dsmcReactions
+
+There are no chemical reactions defined.
+Selecting collisionPartnerSelectionModel noTimeCounter
+
+Initialising the measurement fields
+
+Initialising dsmcVolFields field
+DSMC dynamic load balancing: enabled, mode in-memory, check interval 10, cooldown 30, max imbalance 0.16, timer gate off
+
+Starting time loop
+
+Replicated mesh migration[1]: rank 0 sent 736961 parcels, received 569508 (global 1306469) wall 0.843768281s [pack 0.054622503s MPI 0.148748181s deser 0.239890272s]
+Replicated mesh migration[2]: rank 0 sent 254 parcels, received 10026 (global 10280) wall 0.034305458s [pack 6.3724e-05s MPI 0.012904936s deser 0.007927869s]
+ExecutionTime = 6.07 s  ClockTime = 5 s
+
+Replicated mesh migration[3]: rank 0 sent 218 parcels, received 10268 (global 10486) wall 0.036905478s [pack 5.1253e-05s MPI 0.013772004s deser 0.008323223s]
+ExecutionTime = 7.66 s  ClockTime = 6 s
+
+ExecutionTime = 9.26 s  ClockTime = 6 s
+
+ExecutionTime = 10.87 s  ClockTime = 6 s
+
+ExecutionTime = 12.53 s  ClockTime = 7 s
+
+ExecutionTime = 14.39 s  ClockTime = 7 s
+
+ExecutionTime = 16.34 s  ClockTime = 8 s
+
+ExecutionTime = 18.11 s  ClockTime = 8 s
+
+ExecutionTime = 19.94 s  ClockTime = 9 s
+
+Time = 6.640048894e-07
+
+    BuildCellOccupancy step summary:
+        source                    = fallbackGather
+        cloud valid parcels       = 1185800
+        cloud invalid parcels     = 0
+        move-order valid parcels  = 0
+        move-order invalid parcels= 0
+        occupancy parcels global  = 2592398
+        active cells global       = 60000
+        collision cells global    = 60000
+        pair potential global     = 65531827
+
+    Collisions                      = 105180
+    Collision candidates           = 378540
+    Collision acceptance rate      = 0.2778570296
+    Candidate-cell sigmaTcRMax avg/max/min = 1.000005242e-15 / 1.048769461e-15 / 1e-15
+
+[0] Load stats rank 0:
+[0]     move particles processed      = 11600984
+[0]     collision candidates          = 1708999
+[0]     accepted collisions           = 444714
+[0] 
+[1] Load stats rank 1:
+[1]     move particles processed      = 14503336
+[1]     collision candidates          = 1863620
+[1]     accepted collisions           = 430263
+[1] 
+Load balance summary:
+    move particles avg/max/min    = 13052160 / 14503336 / 11600984
+    move imbalance max/avg        = 1.111182823
+    collision cand avg/max/min    = 1786309.5 / 1863620 / 1708999
+    collision cand imbalance      = 1.043279454
+    accepted coll avg/max/min     = 437488.5 / 444714 / 430263
+    accepted coll imbalance       = 1.016515863
+
+    DLB imbalance check at time 6.640048894e-07 (timeIndex 10, interval 10)
+    Particle imbalance = 8.517133557%
+    Candidates imbalance = 4.235219528%
+    Rank candidates = 2(197286 181254)
+
+Cloud name: dsmc
+    Number of dsmc particles        = 2592398
+    Number of molecules             = 1.5554388e+16
+    Mass in system                  = 7.23279042e-10
+    Average linear kinetic energy   = 1.835889981e-19
+    Average rotational energy       = 1.402905927e-21
+    Average vibrational energy      = 2.327085575e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.082627597e-19
+ExecutionTime = 21.99 s  ClockTime = 9 s
+
+ExecutionTime = 23.73 s  ClockTime = 10 s
+
+ExecutionTime = 25.55 s  ClockTime = 10 s
+
+ExecutionTime = 27.34 s  ClockTime = 11 s
+
+ExecutionTime = 29.16 s  ClockTime = 9 s
+
+ExecutionTime = 31.01 s  ClockTime = 9 s
+
+ExecutionTime = 32.9 s  ClockTime = 10 s
+
+ExecutionTime = 34.82 s  ClockTime = 10 s
+
+ExecutionTime = 36.71 s  ClockTime = 11 s
+
+ExecutionTime = 38.62 s  ClockTime = 11 s
+
+Time = 1.328009779e-06
+
+    BuildCellOccupancy step summary:
+        source                    = fallbackGather
+        cloud valid parcels       = 1232892
+        cloud invalid parcels     = 0
+        move-order valid parcels  = 0
+        move-order invalid parcels= 0
+        occupancy parcels global  = 2572702
+        active cells global       = 60000
+        collision cells global    = 60000
+        pair potential global     = 69159700
+
+[1] 
+[1] 
+[1] --> FOAM FATAL ERROR: (openfoam-2506)
+[1] Message from processor 0 Only consumed 32 of 796348 bytes
+ comm 0 tag 1
+[1] 
+[1] 
+[1]     From Foam::PstreamBuffers::~PstreamBuffers()
+[1]     in file db/IOstreams/Pstreams/PstreamBuffers.C at line 344.
+[1] 
+FOAM parallel run aborting
+[1] 
+[1] [stack trace]
+[1] =============
+[1] #1  Foam::error::simpleExit(int, bool) in ~/code/OpenFoam/OF-2506/OpenFOAM-v2506/platforms/linux64IcxDPInt32Opt/lib/libOpenFOAM.so
+[1] #2  Foam::error::exiting(int, bool) in ~/code/OpenFoam/OF-2506/OpenFOAM-v2506/platforms/linux64IcxDPInt32Opt/lib/libOpenFOAM.so
+[1] #3  Foam::PstreamBuffers::~PstreamBuffers() in ~/code/OpenFoam/OF-2506/OpenFOAM-v2506/platforms/linux64IcxDPInt32Opt/lib/libOpenFOAM.so
+[1] #4  Foam::noTimeCounter::collide() in ~/code/DSMC/dsmcFoam++/hyStrath_xcx/platforms/linux64IcxDPInt32Opt/lib/libdsmcFoam+.so
+[1] #5  Foam::dsmcCloud::collisions() in ~/code/DSMC/dsmcFoam++/hyStrath_xcx/platforms/linux64IcxDPInt32Opt/lib/libdsmcFoam+.so
+[1] #6  Foam::dsmcCloud::evolve() in ~/code/DSMC/dsmcFoam++/hyStrath_xcx/platforms/linux64IcxDPInt32Opt/lib/libdsmcFoam+.so
+[1] #7  ? in ~/code/DSMC/dsmcFoam++/hyStrath_xcx/platforms/linux64IcxDPInt32Opt/bin/dsmcFoam+
+[1] #8  ? in /lib/x86_64-linux-gnu/libc.so.6
+[1] #9  __libc_start_main in /lib/x86_64-linux-gnu/libc.so.6
+[1] #10  ? in ~/code/DSMC/dsmcFoam++/hyStrath_xcx/platforms/linux64IcxDPInt32Opt/bin/dsmcFoam+
+[1] =============
+Abort(1) on node 1 (rank 1 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 1) - process 1
+Command exited with non-zero status 1
+	Command being timed: "mpirun -np 2 dsmcFoam+ -parallel"
+	User time (seconds): 79.40
+	System time (seconds): 2.50
+	Percent of CPU this job got: 661%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:12.38
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 978436
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 151
+	Minor (reclaiming a frame) page faults: 805965
+	Voluntary context switches: 2380
+	Involuntary context switches: 489
+	Swaps: 0
+	File system inputs: 5536
+	File system outputs: 24
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 1

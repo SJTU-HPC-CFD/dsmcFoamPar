@@ -229,7 +229,8 @@ void noTimeCounter::collide()
      && dlbOffloadExecute
      && Pstream::parRun()
      && Pstream::nProcs() >= 2
-     && !cloud_.reactionsActive();
+     && !cloud_.reactionsActive()
+     && !cloud_.replicatedMeshActive();
     const bool dlbCompactStaticFields =
         dlbOffloadCompactSingleSpeciesPayload
      && cloud_.typeIdList().size() == 1;
@@ -1655,6 +1656,7 @@ void noTimeCounter::collide()
                 #pragma omp for schedule(dynamic, collisionChunk)
                 for (label cellI = 0; cellI < nCells; ++cellI)
                 {
+                    if (cloud_.nCandidatesPerCell()[cellI] == 0) continue;
                     localCandidates += cloud_.nCandidatesPerCell()[cellI];
                     localCollisions += processCell
                     (
@@ -1684,6 +1686,7 @@ void noTimeCounter::collide()
 
         for (label cellI = 0; cellI < nCells; ++cellI)
         {
+            if (cloud_.nCandidatesPerCell()[cellI] == 0) continue;
             threadCandidateCounts[0] += cloud_.nCandidatesPerCell()[cellI];
             threadAcceptedCounts[0] += processCell
             (
@@ -1800,7 +1803,8 @@ void noTimeCounter::collide()
 
     for (label cellI = 0; cellI < nCells; ++cellI)
     {
-        if (cloud_.nCandidatesPerCell()[cellI] > 0)
+        const label nc = cloud_.nCandidatesPerCell()[cellI];
+        if (nc > 0)
         {
             const scalar sigma = cloud_.sigmaTcRMax()[cellI];
             ++localCandidateCells;

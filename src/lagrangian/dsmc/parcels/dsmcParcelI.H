@@ -151,6 +151,7 @@ inline Foam::dsmcParcel::dsmcParcel
     typeId_(typeId),
     newParcel_(newParcel),
     classification_(classification),
+    localCellI_(-1),
     tracked_(),
     stuck_(nullptr),
     vibLevel_(vibLevel)
@@ -179,6 +180,7 @@ inline Foam::dsmcParcel::dsmcParcel
     typeId_(typeId),
     newParcel_(newParcel),
     classification_(classification),
+    localCellI_(-1),
     tracked_(),
     stuck_(nullptr),
     vibLevel_(vibLevel)
@@ -209,6 +211,7 @@ inline Foam::dsmcParcel::dsmcParcel
     typeId_(typeId),
     newParcel_(newParcel),
     classification_(classification),
+    localCellI_(-1),
     tracked_(),
     stuck_(nullptr),
     vibLevel_(vibLevel)
@@ -275,6 +278,9 @@ inline void Foam::dsmcParcel::setStuck() { if (!stuck_) { stuck_ = new StuckParc
 inline void Foam::dsmcParcel::setStuck(const scalarField& wallTemperature, const vectorField& wallVectors) { deleteStuck(); stuck_ = new StuckParcel(wallTemperature, wallVectors); }
 inline void Foam::dsmcParcel::deleteStuck() { if (stuck_) { delete stuck_; stuck_ = nullptr; } }
 inline Foam::labelList& Foam::dsmcParcel::vibLevel() { return vibLevel_; }
+
+inline Foam::label Foam::dsmcParcel::localCell() const { return localCellI_; }
+inline Foam::label& Foam::dsmcParcel::localCell() { return localCellI_; }
 
 // ************************************************************************* //
 

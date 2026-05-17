@@ -31,6 +31,7 @@ License
 #include "wallPolyPatch.H"
 #include "processorPolyPatch.H"
 #include "zeroGradientFvPatchFields.H"
+#include <mpi.h>
 #include <chrono>
 #include <unordered_set>
 
@@ -644,11 +645,26 @@ void Foam::dsmcCloud::buildCellOccupancy(const bool rebuildParticlePartition)
     }
     #endif
 
-    forAll(cellOccupancy_, celli)
+    // Sparse clear: only clear cells that had particles last step.
+    // For replicated mesh with 60K cells but only ~7.5K active, this
+    // avoids ~52K unnecessary DynamicList::clear() calls.
+    if (occupancyActiveCells_.size() > 0
+        && occupancyActiveCells_.size() < cellOccupancy_.size() / 2)
     {
-        cellOccupancy_[celli].clear();
+        forAll(occupancyActiveCells_, i)
+        {
+            cellOccupancy_[occupancyActiveCells_[i]].clear();
+        }
+    }
+    else
+    {
+        forAll(cellOccupancy_, celli)
+        {
+            cellOccupancy_[celli].clear();
+        }
     }
 
+    // Use linked list iteration (parcelArray disabled due to memory)
     forAllIter(dsmcCloud, *this, iter)
     {
         if (iter().cell() >= 0 && iter().cell() < cellOccupancy_.size())
@@ -2424,7 +2440,8 @@ void Foam::dsmcCloud::initOpenMPMoveGuardCells()
     openmpMoveGuardCells_.setSize(mesh_.nCells(), false);
     openmpMoveGuardCellCount_ = 0;
 
-    if (!(openmpEnabled_ && openmpMoveEnabled_ && Pstream::parRun()))
+    const bool replicated = replicatedMesh_.valid() && replicatedMesh_->active();
+    if (!(openmpEnabled_ && openmpMoveEnabled_ && (Pstream::parRun() || replicated)))
     {
         return;
     }
@@ -2436,9 +2453,15 @@ void Foam::dsmcCloud::initOpenMPMoveGuardCells()
     {
         const polyPatch& pp = mesh_.boundaryMesh()[patchi];
 
-        if (!isA<processorPolyPatch>(pp))
+        // Standard parallel: guard processor-patch cells for transfer.
+        // Replicated mesh: guard physical-boundary cells for injection.
+        if (replicated)
         {
-            continue;
+            if (isA<processorPolyPatch>(pp)) continue;
+        }
+        else
+        {
+            if (!isA<processorPolyPatch>(pp)) continue;
         }
 
         const labelUList& faceCells = pp.faceCells();
@@ -2756,6 +2779,45 @@ void Foam::dsmcCloud::rebuildParticleLoadPartition()
         return;
     }
 
+    // Replicated mesh: only iterate owned cells to avoid scanning
+    // 60k cells when only ~7.5k have particles.
+    if (replicatedMesh_.valid() && replicatedMesh_->active())
+    {
+        const auto& myCells = replicatedMesh_->myCells();
+        const label nOwned = myCells.size();
+
+        if (nOwned == 0)
+        {
+            particleLoadStart_.setSize(1, 0);
+            particleLoadEnd_.setSize(1, 0);
+            return;
+        }
+
+        // myCells_ is sorted by construction; divide across OMP threads
+        particleLoadStart_.setSize(ompNumThreads_, 0);
+        particleLoadEnd_.setSize(ompNumThreads_, nOwned);
+
+        const label perThread = nOwned / ompNumThreads_;
+        const label remainder = nOwned % ompNumThreads_;
+        label start = 0;
+
+        for (label t = 0; t < ompNumThreads_; ++t)
+        {
+            const label count = perThread + (t < remainder ? 1 : 0);
+            label end = min(start + count, nOwned);
+
+            // Convert indices-in-myCells_ to actual cell indices.
+            // particleLoadEnd_ is exclusive (one past last cell).
+            particleLoadStart_[t] =
+                (start < nOwned) ? myCells[start] : myCells[nOwned-1];
+            particleLoadEnd_[t] =
+                (end < nOwned) ? myCells[end] : (myCells[nOwned-1] + 1);
+
+            start = end;
+        }
+        return;
+    }
+
     const label nCells = mesh_.nCells();
     labelList currentCellLoads(nCells, 0);
     label totalParticles = 0;
@@ -2955,6 +3017,64 @@ void Foam::dsmcCloud::clearMoveOrderedParcels()
     moveOrderedParcels_.clear();
     moveOrderedThreadOffsets_.clear();
     moveOrderedParcelsValid_ = false;
+}
+
+
+void Foam::dsmcCloud::rebuildMoveOrderedParcels()
+{
+    moveOrderedParcels_.setSize(this->size());
+    label i = 0;
+    forAllIter(Cloud<dsmcParcel>, *this, iter)
+    {
+        moveOrderedParcels_[i++] = &iter();
+    }
+    moveOrderedParcels_.setSize(i);
+
+    const label nThreads = ompNumThreads_;
+    moveOrderedThreadOffsets_.setSize(nThreads + 1);
+    for (label t = 0; t <= nThreads; ++t)
+    {
+        moveOrderedThreadOffsets_[t] = t * i / nThreads;
+    }
+    moveOrderedParcelsValid_ = true;
+    moveOrderedReuseDisabled_ = false;
+    moveAppendedParcels_.clear();
+}
+
+
+void Foam::dsmcCloud::setMoveOrderedParcels(const DynamicList<dsmcParcel*>& parcels)
+{
+    moveOrderedParcels_.setSize(parcels.size());
+    forAll(parcels, i) moveOrderedParcels_[i] = parcels[i];
+
+    const label nThreads = ompNumThreads_;
+    moveOrderedThreadOffsets_.setSize(nThreads + 1);
+    for (label t = 0; t <= nThreads; ++t)
+    {
+        moveOrderedThreadOffsets_[t] = t * parcels.size() / nThreads;
+    }
+    moveOrderedParcelsValid_ = true;
+    moveOrderedReuseDisabled_ = false;
+    moveAppendedParcels_.clear();
+}
+
+
+void Foam::dsmcCloud::appendToMoveOrdered(dsmcParcel* p)
+{
+    const label oldSize = moveOrderedParcels_.size();
+    moveOrderedParcels_.setSize(oldSize + 1);
+    moveOrderedParcels_[oldSize] = p;
+}
+
+
+void Foam::dsmcCloud::appendBatchToMoveOrdered(const DynamicList<dsmcParcel*>& parcels)
+{
+    const label oldSize = moveOrderedParcels_.size();
+    moveOrderedParcels_.setSize(oldSize + parcels.size());
+    forAll(parcels, i)
+    {
+        moveOrderedParcels_[oldSize + i] = parcels[i];
+    }
 }
 
 
@@ -3196,6 +3316,41 @@ Foam::dsmcCloud::dsmcCloud
 
     coordSystem().checkCoordinateSystemInputs();
     buildConstProps();
+
+    // Phase A: replicated mesh DLB (all ranks hold full mesh, cellOwner_ routing)
+    const bool replicatedMesh =
+        mesh_.time().controlDict().lookupOrDefault<bool>("replicatedMesh", false);
+    if (replicatedMesh)
+    {
+        replicatedMesh_.reset(new dsmcReplicatedMesh(*this, mesh_));
+        replicatedMesh_->initialize();
+
+        // In replicated-mesh mode (no -parallel), all ranks read the full
+        // particle set. Only rank 0 keeps them; others clear and receive
+        // their share via the first migrateParticlesByCellOwner() call.
+        // In decomposed mode (with -parallel), each rank already has its
+        // own subset — no clearing needed.
+        if (!Pstream::parRun())
+        {
+            int mpiInit = 0;
+            MPI_Initialized(&mpiInit);
+            if (!mpiInit) MPI_Init(nullptr, nullptr);
+            int myRank = 0;
+            MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
+            if (myRank != 0)
+            {
+                this->clear();
+            }
+            Info<< "Replicated mesh: rank " << myRank
+                << " starts with " << this->size() << " parcels" << endl;
+        }
+        else
+        {
+            Info<< "Replicated mesh: rank " << Pstream::myProcNo()
+                << " starts with " << this->size() << " parcels"
+                << " (decomposed mesh)" << endl;
+        }
+    }
 
     IOobject chemReactIO
     (
@@ -3662,6 +3817,8 @@ void Foam::dsmcCloud::initialiseFromDict(const dictionary& dsmcInitialiseDict)
 void Foam::dsmcCloud::evolve()
 {
     using clock_type = std::chrono::steady_clock;
+    const auto tEvolveStart = clock_type::now();
+
     const auto logEvolveStage = [&](const char* stage)
     {
         if (evolveStageProbe_)
@@ -3679,6 +3836,12 @@ void Foam::dsmcCloud::evolve()
 
     dsmcParcel::trackingData td(*this);
 
+    // Phase A: all ranks process boundaries.  Each boundary face is
+    // handled only by the rank that owns its adjacent cell (checked
+    // per-face in the boundary model / hitPatch).  This ensures each
+    // injection / deletion happens exactly once.
+    const bool processBoundaries = true;
+
     const auto t0 = clock_type::now();
     if (openmpEnabled_ && openmpMoveEnabled_)
     {
@@ -3687,7 +3850,10 @@ void Foam::dsmcCloud::evolve()
     logEvolveStage("before controlBeforeMove");
     controllers_.controlBeforeMove();
     logEvolveStage("after controllers controlBeforeMove");
-    boundaries_.controlBeforeMove();
+    if (processBoundaries)
+    {
+        boundaries_.controlBeforeMove();
+    }
     logEvolveStage("after boundaries controlBeforeMove");
     if
     (
@@ -3720,6 +3886,27 @@ void Foam::dsmcCloud::evolve()
         0.0
     );
 
+    // Phase A: pre-move migration only needed on the first step (initial
+    // distribution).  After that, the post-move migration from the previous
+    // step already placed particles on their owning ranks.
+    if (replicatedMesh_.valid() && replicatedMesh_->migrationCalls() == 0)
+    {
+        logEvolveStage("before pre-move migration (initial)");
+        if (Pstream::parRun())
+        {
+            // With -parallel + masterUncollated: each rank has all particles,
+            // just delete non-owned (no MPI needed).
+            replicatedMesh_->distributeInitialParticles();
+        }
+        else
+        {
+            // Without -parallel: only rank 0 has particles, must send to others.
+            replicatedMesh_->migrateParticlesByCellOwner();
+        }
+        replicatedMesh_->updateParticleCounts();
+        logEvolveStage("after pre-move migration (initial)");
+    }
+
     logEvolveStage("before move");
     Cloud<dsmcParcel>::move(*this, td, mesh_.time().deltaTValue());
     logEvolveStage("after move");
@@ -3727,8 +3914,60 @@ void Foam::dsmcCloud::evolve()
     {
         endMoveAppendCapture();
     }
+    else if (replicatedMesh_.valid() && moveOrderedParcelsValid_)
+    {
+        moveOrderedParcelsValid_ = false;
+    }
     const label moveEndCloudSize = this->size();
     const auto t1 = clock_type::now();
+
+    // Phase A: migrate particles to their owning rank before building occupancy.
+    if (replicatedMesh_.valid() && replicatedMesh_->stepCounter() > 0)
+    {
+        if (replicatedMesh_->stepCounter() % replicatedMesh_->migrateInterval() == 0)
+        {
+            logEvolveStage("before migrateParticlesByCellOwner");
+            replicatedMesh_->migrateParticlesByCellOwner();
+            replicatedMesh_->updateParticleCounts();
+            cellOccupancyMaterialized_ = false;
+            logEvolveStage("after migrateParticlesByCellOwner");
+        }
+        replicatedMesh_->advanceStepCounter();
+    }
+    else if (replicatedMesh_.valid() && replicatedMesh_->stepCounter() == 0)
+    {
+        logEvolveStage("before migrateParticlesByCellOwner (first step)");
+        replicatedMesh_->migrateParticlesByCellOwner();
+        replicatedMesh_->updateParticleCounts();
+        replicatedMesh_->advanceStepCounter();
+        logEvolveStage("after migrateParticlesByCellOwner (first step)");
+    }
+
+    // TACF: accumulate cell costs periodically (every 10 steps)
+    if (replicatedMesh_.valid() && replicatedMesh_->stepCounter() % 10 == 0)
+    {
+        replicatedMesh_->accumulateCellCosts();
+    }
+
+    // Phase B: reassign cellOwner_ at configured steps and redistribute
+    if (replicatedMesh_.valid() && replicatedMesh_->rebalanceSteps().size())
+    {
+        const label currentStep = replicatedMesh_->stepCounter();
+        const labelList& steps = replicatedMesh_->rebalanceSteps();
+        forAll(steps, i)
+        {
+            if (steps[i] == currentStep)
+            {
+                Info<< "\nPhase B: reassigning cellOwner_ at step "
+                    << currentStep << nl << endl;
+                replicatedMesh_->reassignCellOwner();
+                replicatedMesh_->migrateParticlesByCellOwner();
+                replicatedMesh_->updateParticleCounts();
+                Info<< "Phase B: redistribution complete\n" << endl;
+                break;
+            }
+        }
+    }
 
     logEvolveStage("before buildCellOccupancy");
     buildCellOccupancy();
@@ -3743,7 +3982,10 @@ void Foam::dsmcCloud::evolve()
     logEvolveStage("before controlBeforeCollisions");
     controllers_.controlBeforeCollisions();
     logEvolveStage("after controllers controlBeforeCollisions");
-    boundaries_.controlBeforeCollisions();
+    if (processBoundaries)
+    {
+        boundaries_.controlBeforeCollisions();
+    }
     logEvolveStage("after boundaries controlBeforeCollisions");
 
     logEvolveStage("before collisions");
@@ -3762,18 +4004,27 @@ void Foam::dsmcCloud::evolve()
     logEvolveStage("before controlAfterCollisions");
     controllers_.controlAfterCollisions();
     logEvolveStage("after controllers controlAfterCollisions");
-    boundaries_.controlAfterCollisions();
+    if (processBoundaries)
+    {
+        boundaries_.controlAfterCollisions();
+    }
     logEvolveStage("after boundaries controlAfterCollisions");
 
     logEvolveStage("before fields/output");
-    fields_.calculateFields();
-    fields_.writeFields();
+    if (processBoundaries)
+    {
+        fields_.calculateFields();
+        fields_.writeFields();
+    }
 
     controllers_.calculateProps();
     controllers_.outputResults();
 
-    boundaries_.calculateProps();
-    boundaries_.outputResults();
+    if (processBoundaries)
+    {
+        boundaries_.calculateProps();
+        boundaries_.outputResults();
+    }
 
     boundaryMeas_.outputResults();
     logEvolveStage("after fields/output");
@@ -3876,6 +4127,28 @@ void Foam::dsmcCloud::evolve()
                 Info<< endl;
             }
 
+        }
+    }
+
+    // Per-rank evolve wall time (for load balance diagnostics)
+    if (replicatedMesh_.valid())
+    {
+        replicatedMesh_->addEvolveTime
+        (
+            std::chrono::duration<scalar>(clock_type::now() - tEvolveStart).count()
+        );
+
+        // Phase C: automatic DLB — checks per-rank wall time imbalance
+        // and triggers Hilbert SFC rebalancing if threshold exceeded.
+        // Must be called after addEvolveTime so the current step's time
+        // is included in the imbalance calculation.
+        const label prevRebalances = replicatedMesh_->autoRebalanceCount();
+        replicatedMesh_->autoRebalance();
+        if (replicatedMesh_->autoRebalanceCount() > prevRebalances)
+        {
+            // DLB triggered migration — cellOccupancy has dangling pointers
+            cellOccupancyMaterialized_ = false;
+            clearMoveOrderedParcels();
         }
     }
 }
@@ -4200,6 +4473,15 @@ void Foam::dsmcCloud::resetLoadStats()
     collisionThreadActiveCellCounts_.clear();
     collisionThreadReactionHitCounts_.clear();
     collisionThreadWallTimes_.clear();
+}
+
+
+void Foam::dsmcCloud::deleteParcel(dsmcParcel* p)
+{
+    // Cast to IDLList to resolve multiple-inheritance ambiguity for erase()
+    IDLList<dsmcParcel>& list = static_cast<IDLList<dsmcParcel>&>(*this);
+    list.remove(p);
+    delete p;
 }
 
 
@@ -4604,6 +4886,11 @@ void Foam::dsmcCloud::reportProfiling() const
         }
 
         const_cast<dsmcCloud&>(*this).resetLoadStats();
+    }
+
+    if (replicatedMesh_.valid())
+    {
+        replicatedMesh_->report();
     }
 }
 
