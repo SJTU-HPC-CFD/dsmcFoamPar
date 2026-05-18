@@ -224,6 +224,10 @@ void noTimeCounter::collide()
     static scalar dlbPrevRankCollisionWall = -1.0;
     static scalar dlbPrevSecondsPerCandidate = -1.0;
 
+    const bool dlbUseRawMPI = false;
+    const label dlbEffectiveNProcs = Pstream::nProcs();
+    const label dlbMyProcNo = Pstream::myProcNo();
+
     const bool dlbBaseActive =
         dlbOffloadPlanner
      && dlbOffloadExecute
@@ -236,17 +240,15 @@ void noTimeCounter::collide()
      && cloud_.typeIdList().size() == 1;
     const label dlbCompactTypeId = 0;
     // Determine peer for offload communication.
-    // For 2-rank: trivial peer = 1 - myProcNo.
-    // For multi-rank: heaviest rank offloads to ALL below-average helpers.
     label peerProc = -1;
-    labelList allProcCands;     // saved AllGather data for planner reuse
-    labelList donorHelperList;  // multi-rank donor: all helpers
-    label donorProc = -1;       // multi-rank helper: the donor
+    labelList allProcCands;
+    labelList donorHelperList;
+    label donorProc = -1;
     if (dlbBaseActive)
     {
-        if (Pstream::nProcs() == 2)
+        if (dlbEffectiveNProcs == 2)
         {
-            peerProc = 1 - Pstream::myProcNo();
+            peerProc = 1 - dlbMyProcNo;
         }
         else
         {
@@ -256,26 +258,50 @@ void noTimeCounter::collide()
                 localCandQuick += cloud_.nCandidatesPerCell()[cellI];
             }
 
-            allProcCands.setSize(Pstream::nProcs(), 0);
-            allProcCands[Pstream::myProcNo()] = localCandQuick;
-            Pstream::allGatherList(allProcCands);
+            allProcCands.setSize(dlbEffectiveNProcs, 0);
+
+            if (dlbUseRawMPI)
+            {
+                // Use cached data from migration (no extra MPI_Allgather)
+                const labelList& cached = cloud_.replicatedMesh().allProcCandidates();
+                if (cached.size() == dlbEffectiveNProcs)
+                {
+                    allProcCands = cached;
+                    // Update local value (more recent than cached)
+                    allProcCands[dlbMyProcNo] = localCandQuick;
+                }
+                else
+                {
+                    // Fallback: first step, cache not yet populated
+                    MPI_Allgather(&localCandQuick, 1, MPI_INT,
+                                  allProcCands.data(), 1, MPI_INT, MPI_COMM_WORLD);
+                }
+            }
+            else
+            {
+                allProcCands[Pstream::myProcNo()] = localCandQuick;
+                Pstream::allGatherList(allProcCands);
+            }
 
             scalar totalCand = 0;
             forAll(allProcCands, pi) totalCand += scalar(allProcCands[pi]);
-            const scalar avgCand = totalCand / scalar(Pstream::nProcs());
+            const scalar avgCand = totalCand / scalar(dlbEffectiveNProcs);
+
+            if (dlbUseRawMPI && dlbEffectiveNProcs > 2)
+            {
+            }
 
             // Find heaviest rank as donor
             label heaviest = 0;
-            for (label pi = 1; pi < Pstream::nProcs(); ++pi)
+            for (label pi = 1; pi < dlbEffectiveNProcs; ++pi)
             {
                 if (allProcCands[pi] > allProcCands[heaviest]) heaviest = pi;
             }
 
             if (scalar(allProcCands[heaviest]) > avgCand)
             {
-                // Collect all below-average ranks as helpers
                 DynamicList<label> helpers;
-                for (label pi = 0; pi < Pstream::nProcs(); ++pi)
+                for (label pi = 0; pi < dlbEffectiveNProcs; ++pi)
                 {
                     if (pi != heaviest && scalar(allProcCands[pi]) < avgCand)
                     {
@@ -283,7 +309,6 @@ void noTimeCounter::collide()
                     }
                 }
 
-                // Sort helpers by spare capacity (descending)
                 std::sort
                 (
                     helpers.begin(),
@@ -297,16 +322,27 @@ void noTimeCounter::collide()
 
                 donorHelperList.transfer(helpers);
 
-                // Multi-helper: all below-average ranks help the heaviest
-                if (Pstream::myProcNo() == heaviest)
+                if (dlbUseRawMPI && dlbEffectiveNProcs > 2)
+                {
+                }
+
+                if (dlbMyProcNo == heaviest)
                 {
                     peerProc = donorHelperList.size() > 0
                              ? donorHelperList[0] : -1;
                 }
-                else if (donorHelperList.found(Pstream::myProcNo()))
+                else
                 {
-                    donorProc = heaviest;
-                    peerProc = heaviest;
+                    // All helpers in donorHelperList participate
+                    forAll(donorHelperList, hi)
+                    {
+                        if (donorHelperList[hi] == dlbMyProcNo)
+                        {
+                            donorProc = heaviest;
+                            peerProc = heaviest;
+                            break;
+                        }
+                    }
                 }
             }
         }
@@ -333,6 +369,13 @@ void noTimeCounter::collide()
     label remoteAcceptedCount = 0;
     label remoteActiveCellCount = 0;
     scalar dlbOffloadWallTime = 0.0;
+
+    // Raw MPI offload state (Phase B needs these after local collision)
+    List<char> dlbResultRecvBuf;
+    labelList dlbResultRecvSizes;
+    labelList dlbResultRecvOffsets;
+    DynamicList<MPI_Request> dlbResultRecvReqs;
+    bool dlbDonorPendingResults = false;
     label dlbLocalCandidateTotal = 0;
     label dlbPeerCandidateTotal = 0;
     scalar dlbCandidateImbalance = 0.0;
@@ -697,25 +740,39 @@ void noTimeCounter::collide()
 
             label peerCandidateTotal = 0;
 
-            if (Pstream::nProcs() == 2)
+            if (dlbEffectiveNProcs == 2)
             {
-                // Original 2-rank path: direct peer exchange
-                PstreamBuffers totalsBufs;
-
+                if (dlbUseRawMPI)
                 {
-                    UOPstream os(peerProc, totalsBufs);
-                    os  << localCandidateTotal
-                        << dlbPrevRankCollisionWall
-                        << dlbPrevSecondsPerCandidate;
+                    // Raw MPI path for replicated mesh
+                    struct { label cands; double collWall; double secsPerCand; } sendD, recvD;
+                    sendD.cands = localCandidateTotal;
+                    sendD.collWall = dlbPrevRankCollisionWall;
+                    sendD.secsPerCand = dlbPrevSecondsPerCandidate;
+                    MPI_Sendrecv(&sendD, sizeof(sendD), MPI_BYTE, peerProc, 10,
+                                 &recvD, sizeof(recvD), MPI_BYTE, peerProc, 10,
+                                 MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                    peerCandidateTotal = recvD.cands;
+                    dlbPreviousPeerCollisionWall = recvD.collWall;
+                    dlbPreviousPeerSecondsPerCandidate = recvD.secsPerCand;
                 }
-
-                totalsBufs.finishedSends();
-
+                else
                 {
-                    UIPstream is(peerProc, totalsBufs);
-                    is  >> peerCandidateTotal
-                        >> dlbPreviousPeerCollisionWall
-                        >> dlbPreviousPeerSecondsPerCandidate;
+                    // Original PstreamBuffers path
+                    PstreamBuffers totalsBufs;
+                    {
+                        UOPstream os(peerProc, totalsBufs);
+                        os  << localCandidateTotal
+                            << dlbPrevRankCollisionWall
+                            << dlbPrevSecondsPerCandidate;
+                    }
+                    totalsBufs.finishedSends();
+                    {
+                        UIPstream is(peerProc, totalsBufs);
+                        is  >> peerCandidateTotal
+                            >> dlbPreviousPeerCollisionWall
+                            >> dlbPreviousPeerSecondsPerCandidate;
+                    }
                 }
             }
             else if (peerProc >= 0)
@@ -806,6 +863,10 @@ void noTimeCounter::collide()
              && (candidateImbalance >= dlbOffloadImbalance || donorByTimer)
              && desiredOffloadCandidates >= dlbOffloadMinCandidates
              && desiredOffloadCandidates >= dlbOffloadMinSelectedCandidates;
+
+            if (dlbUseRawMPI && dlbEffectiveNProcs == 2)
+            {
+            }
 
             dlbLocalCandidateTotal = localCandidateTotal;
             dlbPeerCandidateTotal = peerCandidateTotal;
@@ -1039,6 +1100,332 @@ void noTimeCounter::collide()
               : dlbTimeIndex + dlbOffloadPersistentLeaseSteps - 1;
         }
 
+        // ---- Raw MPI offload Phase A: send tasks, helper executes ----
+        OCharStream taskSendStream(IOstreamOption::BINARY);
+
+        if (dlbUseRawMPI)
+        {
+            // Raw MPI path: donor sends to ALL helpers, each helper receives from donor
+            const bool isDonor = (peerProc >= 0 && offloadCellLabels.size() > 0);
+            const bool isHelper = (donorProc >= 0);
+            const bool isDonorRole = (peerProc >= 0);  // has peer, even if no cells to offload
+            const label nHelpers = (dlbEffectiveNProcs == 2) ? 1 : donorHelperList.size();
+
+            // Donor: split cells among helpers and send to each
+            List<DynamicList<char>> helperSendBufs(dlbEffectiveNProcs);
+            if (isDonor && nHelpers > 0)
+            {
+                const label cellsPerHelper = max(label(1), offloadCellLabels.size() / nHelpers);
+                DynamicList<dsmcParcel*> cellParcels;
+
+                // Build helper list for iteration
+                labelList helperList;
+                if (dlbEffectiveNProcs == 2)
+                {
+                    helperList.setSize(1);
+                    helperList[0] = peerProc;
+                }
+                else
+                {
+                    helperList = donorHelperList;
+                }
+
+                forAll(helperList, hi)
+                {
+                    const label helperRank = helperList[hi];
+                    const label startCI = hi * cellsPerHelper;
+                    const label endCI = (hi == nHelpers - 1)
+                        ? offloadCellLabels.size()
+                        : min(startCI + cellsPerHelper, offloadCellLabels.size());
+                    if (startCI >= endCI) continue;
+
+                    OCharStream hStream(IOstreamOption::BINARY);
+                    hStream << dlbCompactTaskPayload << token::SPACE
+                            << false << token::SPACE
+                            << label(-1) << token::SPACE
+                            << label(endCI - startCI);
+
+                    for (label ci = startCI; ci < endCI; ++ci)
+                    {
+                        const label cellI = offloadCellLabels[ci];
+                        const point& cC = mesh.cellCentres()[cellI];
+                        collectCellParcels(cellI, cellParcels);
+                        hStream << cellI << cloud_.nCandidatesPerCell()[cellI]
+                                << cloud_.sigmaTcRMax()[cellI] << cellParcels.size();
+                        labelList subCellIds(cellParcels.size(), 0);
+                        forAll(cellParcels, parcelI)
+                        {
+                            const vector relPos = cellParcels[parcelI]->position() - cC;
+                            subCellIds[parcelI] =
+                                label(pos(relPos.x())) + 2*label(pos(relPos.y()))
+                              + 4*label(pos(relPos.z()));
+                        }
+                        hStream << subCellIds;
+                        forAll(cellParcels, parcelI)
+                        {
+                            writeParcelState(hStream, *cellParcels[parcelI], dlbCompactTaskPayload);
+                        }
+                    }
+                    helperSendBufs[helperRank] = hStream.release();
+                }
+            }
+
+            // Exchange sizes via p2p
+            labelList taskSendSizes(dlbEffectiveNProcs, 0);
+            forAll(helperSendBufs, i) taskSendSizes[i] = helperSendBufs[i].size();
+            label taskRecvSize = 0;
+            label taskRecvFrom = donorProc;
+
+            if (dlbEffectiveNProcs == 2)
+            {
+                // 2-rank: symmetric Sendrecv (both ranks participate)
+                const label peer = 1 - dlbMyProcNo;
+                const label sendSize = taskSendSizes[peer];
+                MPI_Sendrecv(&sendSize, 1, MPI_INT, peer, 20,
+                             &taskRecvSize, 1, MPI_INT, peer, 20,
+                             MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                taskRecvFrom = peer;
+            }
+            else
+            {
+                // N-rank: donor sends to each helper, helper receives from donor
+                DynamicList<MPI_Request> sizeReqs;
+                if (isDonorRole)
+                {
+                    forAll(donorHelperList, hi)
+                    {
+                        const label h = donorHelperList[hi];
+                        MPI_Request req;
+                        MPI_Isend(&taskSendSizes[h], 1, MPI_INT, h, 20,
+                                  MPI_COMM_WORLD, &req);
+                        sizeReqs.append(req);
+                    }
+                }
+                if (isHelper)
+                {
+                    MPI_Request req;
+                    MPI_Irecv(&taskRecvSize, 1, MPI_INT, donorProc, 20,
+                              MPI_COMM_WORLD, &req);
+                    sizeReqs.append(req);
+                }
+                if (sizeReqs.size() > 0)
+                    MPI_Waitall(sizeReqs.size(), sizeReqs.data(), MPI_STATUSES_IGNORE);
+            }
+
+            // Exchange data via p2p
+            List<char> taskRecvBuf(taskRecvSize);
+            if (dlbEffectiveNProcs == 2)
+            {
+                // 2-rank: symmetric Sendrecv
+                const label peer = 1 - dlbMyProcNo;
+                const label sendSize = taskSendSizes[peer];
+                DynamicList<char> sendData;
+                if (sendSize > 0) sendData.transfer(helperSendBufs[peer]);
+                MPI_Sendrecv(sendData.data(), sendSize, MPI_BYTE, peer, 21,
+                             taskRecvBuf.data(), taskRecvSize, MPI_BYTE, peer, 21,
+                             MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            }
+            else
+            {
+                DynamicList<MPI_Request> dReqs;
+                if (isDonor)
+                {
+                    forAll(donorHelperList, hi)
+                    {
+                        const label h = donorHelperList[hi];
+                        if (taskSendSizes[h] > 0)
+                        {
+                            MPI_Request req;
+                            MPI_Isend(helperSendBufs[h].data(), taskSendSizes[h],
+                                      MPI_BYTE, h, 21, MPI_COMM_WORLD, &req);
+                            dReqs.append(req);
+                        }
+                    }
+                }
+                if (isHelper && taskRecvSize > 0)
+                {
+                    MPI_Request req;
+                    MPI_Irecv(taskRecvBuf.data(), taskRecvSize, MPI_BYTE,
+                              taskRecvFrom, 21, MPI_COMM_WORLD, &req);
+                    dReqs.append(req);
+                }
+                if (dReqs.size() > 0)
+                    MPI_Waitall(dReqs.size(), dReqs.data(), MPI_STATUSES_IGNORE);
+            }
+
+            // Helper: deserialize and execute remote collisions
+            OCharStream resultSendStream(IOstreamOption::BINARY);
+            label remoteAcceptedCount = 0;
+
+            if (isHelper && taskRecvSize > 0)
+            {
+                ISpanStream is(taskRecvBuf.data(), taskRecvSize, IOstreamOption::BINARY);
+                is >> dlbIncomingCompactPayload;
+                bool incomingPersistentTask = false;
+                label incomingPersistentExpire = -1;
+                is >> incomingPersistentTask;
+                is >> incomingPersistentExpire;
+                label nIncomingTasks = 0;
+                is >> nIncomingTasks;
+
+                resultSendStream << nIncomingTasks;
+
+                for (label taskI = 0; taskI < nIncomingTasks; ++taskI)
+                {
+                    label donorCellI, nCandidates, nParcels;
+                    scalar sigmaTcRMaxInitial;
+                    is >> donorCellI >> nCandidates >> sigmaTcRMaxInitial >> nParcels;
+                    labelList subCellIds(is);
+
+                    DynamicList<dsmcParcel*> tempParcels(nParcels);
+                    for (label pi = 0; pi < nParcels; ++pi)
+                    {
+                        vector U; scalar RWF, ERot; label ELevel, typeId, newParcel, classification;
+                        labelList vibLevel;
+                        readParcelState(is, U, RWF, ERot, ELevel, typeId, newParcel, classification, vibLevel, dlbIncomingCompactPayload);
+                        if (dlbIncomingCompactPayload) { typeId = dlbCompactTypeId; newParcel = -1; }
+                        tempParcels.append(new dsmcParcel(mesh, mesh.cellCentres()[0], U, RWF, ERot, ELevel, 0, 0, 0, typeId, newParcel, classification, vibLevel));
+                    }
+
+                    scalar sigmaTcRMaxUpdated = sigmaTcRMaxInitial;
+                    boolList dirtyFlags(nParcels, false);
+                    executeRemoteCell(donorCellI, tempParcels, subCellIds, nCandidates, sigmaTcRMaxInitial, sigmaTcRMaxUpdated, dirtyFlags);
+
+                    label accepted = 0;
+                    forAll(dirtyFlags, pi) if (dirtyFlags[pi]) ++accepted;
+
+                    resultSendStream << donorCellI << accepted << sigmaTcRMaxUpdated
+                        << nParcels << accepted;
+                    forAll(dirtyFlags, pi)
+                    {
+                        if (dirtyFlags[pi])
+                        {
+                            resultSendStream << pi << token::SPACE;
+                            writeParcelState(resultSendStream, *tempParcels[pi], dlbCompactTaskPayload);
+                        }
+                    }
+                    remoteAcceptedCount += accepted;
+                    forAll(tempParcels, pi) delete tempParcels[pi];
+                }
+            }
+            else
+            {
+                resultSendStream << label(0);
+            }
+
+            // Result exchange: helper sends synchronously, donor posts non-blocking Irecv
+            // Donor will Waitall + apply AFTER local collision (Phase B)
+            auto resultSendBuf = resultSendStream.release();
+            label resultSendSize = resultSendBuf.size();
+            const bool helperHasResult = isHelper && taskRecvSize > 0;
+
+            // Step 1: exchange result sizes
+            dlbResultRecvSizes.setSize(dlbEffectiveNProcs, 0);
+            if (dlbEffectiveNProcs == 2)
+            {
+                const label peer = 1 - dlbMyProcNo;
+                const label sendSz = helperHasResult ? resultSendSize : 0;
+                label recvSz = 0;
+                MPI_Sendrecv(&sendSz, 1, MPI_INT, peer, 30,
+                             &recvSz, 1, MPI_INT, peer, 30,
+                             MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                dlbResultRecvSizes[peer] = recvSz;
+            }
+            else
+            {
+                DynamicList<MPI_Request> rSizeReqs;
+                if (helperHasResult)
+                {
+                    MPI_Request req;
+                    MPI_Isend(&resultSendSize, 1, MPI_INT, donorProc, 30,
+                              MPI_COMM_WORLD, &req);
+                    rSizeReqs.append(req);
+                }
+                if (isDonor)
+                {
+                    forAll(donorHelperList, hi)
+                    {
+                        const label h = donorHelperList[hi];
+                        if (taskSendSizes[h] > 0)
+                        {
+                            MPI_Request req;
+                            MPI_Irecv(&dlbResultRecvSizes[h], 1, MPI_INT, h, 30,
+                                      MPI_COMM_WORLD, &req);
+                            rSizeReqs.append(req);
+                        }
+                    }
+                }
+                if (rSizeReqs.size() > 0)
+                    MPI_Waitall(rSizeReqs.size(), rSizeReqs.data(), MPI_STATUSES_IGNORE);
+            }
+
+            // Step 2: helper sends result data (blocking Isend)
+            // Donor posts non-blocking Irecv (will Waitall later in Phase B)
+            label totalResultRecv = 0;
+            forAll(dlbResultRecvSizes, i) totalResultRecv += dlbResultRecvSizes[i];
+            dlbResultRecvBuf.setSize(totalResultRecv);
+            dlbResultRecvOffsets.setSize(dlbEffectiveNProcs, 0);
+            {
+                label off = 0;
+                forAll(dlbResultRecvSizes, i) { dlbResultRecvOffsets[i] = off; off += dlbResultRecvSizes[i]; }
+            }
+
+            if (dlbEffectiveNProcs == 2)
+            {
+                // 2-rank: symmetric Sendrecv for result data
+                const label peer = 1 - dlbMyProcNo;
+                const label sendSz = helperHasResult ? resultSendSize : 0;
+                const label recvSz = dlbResultRecvSizes[peer];
+                MPI_Sendrecv(resultSendBuf.data(), sendSz, MPI_BYTE, peer, 31,
+                             dlbResultRecvBuf.data(), recvSz, MPI_BYTE, peer, 31,
+                             MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                dlbDonorPendingResults = (recvSz > 0);
+            }
+            else
+            {
+                DynamicList<MPI_Request> helperSendReqs;
+                if (helperHasResult && resultSendSize > 0)
+                {
+                    MPI_Request req;
+                    MPI_Isend(resultSendBuf.data(), resultSendSize, MPI_BYTE,
+                              donorProc, 31, MPI_COMM_WORLD, &req);
+                    helperSendReqs.append(req);
+                }
+                if (isDonor)
+                {
+                    forAll(donorHelperList, hi)
+                    {
+                        const label h = donorHelperList[hi];
+                        if (dlbResultRecvSizes[h] > 0)
+                        {
+                            MPI_Request req;
+                            MPI_Irecv(dlbResultRecvBuf.data() + dlbResultRecvOffsets[h],
+                                      dlbResultRecvSizes[h], MPI_BYTE, h, 31,
+                                      MPI_COMM_WORLD, &req);
+                            dlbResultRecvReqs.append(req);
+                        }
+                    }
+                    dlbDonorPendingResults = (dlbResultRecvReqs.size() > 0);
+                }
+                // Helper waits for its send to complete
+                if (helperSendReqs.size() > 0)
+                    MPI_Waitall(helperSendReqs.size(), helperSendReqs.data(), MPI_STATUSES_IGNORE);
+                // Donor does NOT wait here — deferred to Phase B
+            }
+
+            // No barrier needed — all communication is point-to-point with Waitall
+
+            if (dlbOffloadReport && isDonor)
+            {
+                Info<< "dlbOffload[raw MPI]: rank " << dlbMyProcNo
+                    << " offloaded " << offloadCellLabels.size() << " cells to "
+                    << nHelpers << " helpers"
+                    << ", remote accepted " << remoteAcceptedCount << endl;
+            }
+        }
+        else
+        {
+        // Original PstreamBuffers path
         PstreamBuffers taskBufs;
 
         if (peerProc >= 0)
@@ -1334,6 +1721,7 @@ void noTimeCounter::collide()
                 dlb_clock_type::now() - dlbBegin
             ).count();
     }
+    } // end else (PstreamBuffers path)
 
     auto processCell =
     [&]
@@ -1776,6 +2164,47 @@ void noTimeCounter::collide()
             (
                 dlb_clock_type::now() - dlbApplyBegin
             ).count();
+    }
+
+    // ---- Raw MPI offload Phase B: donor receives and applies results ----
+    if (dlbUseRawMPI && dlbDonorPendingResults)
+    {
+        MPI_Waitall(dlbResultRecvReqs.size(), dlbResultRecvReqs.data(), MPI_STATUSES_IGNORE);
+
+        DynamicList<dsmcParcel*> cellParcels;
+        for (label hi = 0; hi < dlbEffectiveNProcs; ++hi)
+        {
+            if (dlbResultRecvSizes[hi] <= 0) continue;
+
+            ISpanStream ris(dlbResultRecvBuf.data() + dlbResultRecvOffsets[hi],
+                            dlbResultRecvSizes[hi], IOstreamOption::BINARY);
+            label nResults;
+            ris >> nResults;
+            for (label ri = 0; ri < nResults; ++ri)
+            {
+                label cellI, accepted, nParcels, nDirty;
+                scalar sigmaTcRMaxUpdated;
+                ris >> cellI >> accepted >> sigmaTcRMaxUpdated >> nParcels >> nDirty;
+                collectCellParcels(cellI, cellParcels);
+                for (label di = 0; di < nDirty; ++di)
+                {
+                    label parcelI;
+                    ris >> parcelI;
+                    if (parcelI < cellParcels.size())
+                    {
+                        vector U; scalar RWF, ERot; label ELevel, typeId, newParcel, classification;
+                        labelList vibLevel;
+                        readParcelState(ris, U, RWF, ERot, ELevel, typeId, newParcel, classification, vibLevel, dlbCompactTaskPayload);
+                        dsmcParcel& p = *cellParcels[parcelI];
+                        p.U() = U; p.RWF() = RWF; p.ERot() = ERot; p.ELevel() = ELevel;
+                        if (!dlbCompactTaskPayload) { p.typeId() = typeId; p.newParcel() = newParcel; }
+                        p.classification() = classification; p.vibLevel() = vibLevel;
+                    }
+                }
+                cloud_.sigmaTcRMax()[cellI] = max(cloud_.sigmaTcRMax()[cellI], sigmaTcRMaxUpdated);
+                remoteAcceptedCount += accepted;
+            }
+        }
     }
 
     if (remoteAcceptedCount || remoteActiveCellCount || dlbOffloadWallTime > 0)

@@ -12,7 +12,8 @@ EXE_INC = \
     -I$(WM_PROJECT_USER_DIR)/src/lagrangian/basic/lnInclude \
     -I$(WM_PROJECT_USER_DIR)/src/lagrangian/dsmc/lnInclude \
     -I$(WM_PROJECT_USER_DIR)/src/lagrangian/molecularDynamics/general/lnInclude \
-    -I$(FOAM_SRC)/meshTools/lnInclude
+    -I$(FOAM_SRC)/meshTools/lnInclude \
+    -I/home/superxcx/intel/oneapi/mpi/2021.16/include
 
 EXE_LIBS = \
     $(OPENMP_FLAGS) \

@@ -85,6 +85,9 @@ class dsmcReplicatedMesh
     label nEvalPeriods_;              // number of eval periods since last trigger
     scalar sar_;                       // trend metric: sar > 0 triggers DLB
 
+    // ---- Cached per-rank candidate counts (updated during migration) ----
+    labelList allProcCandidates_;
+
     // ---- Async migration state ----
     bool asyncMigrationPending_;
     List<char> asyncSendBuf_;          // kept alive until Waitall
@@ -129,6 +132,9 @@ public:
         { return cellOwner_[cellI] == myRank_; }
     inline const DynamicList<label>& myCells() const { return myCells_; }
     inline bool active() const { return active_; }
+    inline label myRank() const { return myRank_; }
+    inline label nProcs() const { return nProcs_; }
+    inline const labelList& allProcCandidates() const { return allProcCandidates_; }
     inline const dsmcLocalMesh& localMesh() const { return localMesh_; }
     inline dsmcLocalMesh& localMesh() { return localMesh_; }
 

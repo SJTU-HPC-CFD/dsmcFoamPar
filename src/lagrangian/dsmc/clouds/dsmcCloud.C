@@ -1941,6 +1941,7 @@ void Foam::dsmcCloud::collisions()
     const auto t0 = clock_type::now();
     precomputeCollisionCandidates();
     const auto t1 = clock_type::now();
+
     if (openmpEnabled_ && openmpCollisionStrategy_ == "partition")
     {
         rebuildCollisionLoadPartition();
@@ -1959,6 +1960,205 @@ void Foam::dsmcCloud::collisions()
     }
 }
 
+
+
+void Foam::dsmcCloud::replicatedMeshCollisionOffload()
+{
+    if (nCandidatesPerCell_.size() == 0) return;
+    const label myRank = replicatedMesh_->myRank();
+    const label peer = 1 - myRank;
+    const label nCells = mesh_.nCells();
+    MPI_Request rq[2];
+
+    // Exchange candidate counts
+    label localCands = 0;
+    forAll(nCandidatesPerCell_, i) localCands += nCandidatesPerCell_[i];
+    label peerCands = 0;
+    MPI_Irecv(&peerCands, 1, MPI_INT, peer, 50, MPI_COMM_WORLD, &rq[0]);
+    MPI_Isend(&localCands, 1, MPI_INT, peer, 50, MPI_COMM_WORLD, &rq[1]);
+    MPI_Waitall(2, rq, MPI_STATUSES_IGNORE);
+
+    const scalar imbalance = (localCands + peerCands) > 0
+        ? scalar(max(localCands, peerCands)) / (0.5 * scalar(localCands + peerCands))
+        : 1.0;
+    const scalar threshold = mesh_.time().controlDict()
+        .lookupOrDefault<scalar>("dlbOffloadImbalance", 1.20);
+    const scalar maxFraction = mesh_.time().controlDict()
+        .lookupOrDefault<scalar>("dlbOffloadMaxFraction", 0.30);
+    const bool isDonor = (localCands > peerCands) && (imbalance >= threshold);
+    offloadedCells_.setSize(nCells, false);
+
+    // Donor: select cells + serialize parcels with writeBinaryFast
+    OCharStream taskStream(IOstreamOption::BINARY);
+    label nOffload = 0;
+    if (isDonor)
+    {
+        label targetCands = label(0.5 * scalar(localCands + peerCands));
+        // Remote collision costs ~3x more than local due to serialization+MPI
+        const scalar remoteCostFactor = 3.0;
+        label budget = min(
+            localCands - targetCands,                      // donor excess
+            label(peerCands / remoteCostFactor));          // cap to helper spare
+        if (budget <= 0) budget = 0;
+
+        labelList sorted(occupancyCollisionCells_.size());
+        forAll(occupancyCollisionCells_, i) sorted[i] = occupancyCollisionCells_[i];
+        std::sort(sorted.begin(), sorted.end(),
+            [this](label a, label b)
+            { return nCandidatesPerCell_[a] > nCandidatesPerCell_[b]; });
+
+        label accum = 0;
+        DynamicList<label> selected;
+        forAll(sorted, i)
+        {
+            if (accum >= budget) break;
+            selected.append(sorted[i]);
+            accum += nCandidatesPerCell_[sorted[i]];
+            offloadedCells_[sorted[i]] = true;
+            nCandidatesPerCell_[sorted[i]] = 0;   // skip current-step collision
+        }
+        nOffload = selected.size();
+
+        taskStream.write(reinterpret_cast<const char*>(&nOffload), sizeof(label));
+        forAll(selected, si)
+        {
+            const label cellI = selected[si];
+            label nP = 0;
+            if (cellOccupancy_.size() > cellI) nP = cellOccupancy_[cellI].size();
+            label nC = nCandidatesPerCell_[cellI];
+            scalar sig = sigmaTcRMax_[cellI];
+            taskStream.write(reinterpret_cast<const char*>(&cellI), sizeof(label));
+            taskStream.write(reinterpret_cast<const char*>(&nC), sizeof(label));
+            taskStream.write(reinterpret_cast<const char*>(&sig), sizeof(scalar));
+            taskStream.write(reinterpret_cast<const char*>(&nP), sizeof(label));
+            if (nP > 0)
+            {
+                forAll(cellOccupancy_[cellI], pi)
+                {
+                    cellOccupancy_[cellI][pi]->writeBinaryFast(taskStream);
+                }
+            }
+        }
+    }
+    else
+    {
+        taskStream.write(reinterpret_cast<const char*>(&nOffload), sizeof(label));
+    }
+
+    // Exchange task
+    auto taskBuf = taskStream.release();
+    label taskSendSize = taskBuf.size();
+    label taskRecvSize = 0;
+    MPI_Irecv(&taskRecvSize, 1, MPI_INT, peer, 51, MPI_COMM_WORLD, &rq[0]);
+    MPI_Isend(&taskSendSize, 1, MPI_INT, peer, 51, MPI_COMM_WORLD, &rq[1]);
+    MPI_Waitall(2, rq, MPI_STATUSES_IGNORE);
+    List<char> taskRecvBuf(taskRecvSize);
+    MPI_Irecv(taskRecvBuf.data(), taskRecvSize, MPI_BYTE, peer, 52, MPI_COMM_WORLD, &rq[0]);
+    MPI_Isend(taskBuf.data(), taskSendSize, MPI_BYTE, peer, 52, MPI_COMM_WORLD, &rq[1]);
+    MPI_Waitall(2, rq, MPI_STATUSES_IGNORE);
+
+    // Helper: deserialize + execute collision + serialize result
+    OCharStream resStream(IOstreamOption::BINARY);
+    label nRes = 0;
+    if (!isDonor && taskRecvSize > label(sizeof(label)))
+    {
+        ISpanStream tis(taskRecvBuf.data(), taskRecvSize, IOstreamOption::BINARY);
+        tis.read(reinterpret_cast<char*>(&nRes), sizeof(label));
+
+        resStream.write(reinterpret_cast<const char*>(&nRes), sizeof(label));
+        for (label ti = 0; ti < nRes; ++ti)
+        {
+            label cellI, nC, nP;
+            scalar sig;
+            tis.read(reinterpret_cast<char*>(&cellI), sizeof(label));
+            tis.read(reinterpret_cast<char*>(&nC), sizeof(label));
+            tis.read(reinterpret_cast<char*>(&sig), sizeof(scalar));
+            tis.read(reinterpret_cast<char*>(&nP), sizeof(label));
+
+            DynamicList<dsmcParcel*> tp(nP);
+            for (label pi = 0; pi < nP; ++pi)
+            {
+                tp.append(new dsmcParcel(mesh_, tis));
+            }
+
+            // Execute collision
+            scalar sigUpd = sig;
+            label accepted = 0;
+            if (nP > 1 && nC > 0)
+            {
+                for (label ci = 0; ci < nC; ++ci)
+                {
+                    label i = rndGen_.position<label>(0, nP - 1);
+                    label j = rndGen_.position<label>(0, nP - 2);
+                    if (j >= i) ++j;
+                    scalar stcr = binaryCollisionModel_->sigmaTcR(*tp[i], *tp[j]);
+                    sigUpd = max(sigUpd, stcr);
+                    if (stcr > sig * rndGen_.sample01<scalar>())
+                    {
+                        binaryCollisionModel_->collide(*tp[i], *tp[j], cellI);
+                        ++accepted;
+                    }
+                }
+            }
+
+            // Write result: cellI + accepted + sigUpd + nP + parcels
+            resStream.write(reinterpret_cast<const char*>(&cellI), sizeof(label));
+            resStream.write(reinterpret_cast<const char*>(&accepted), sizeof(label));
+            resStream.write(reinterpret_cast<const char*>(&sigUpd), sizeof(scalar));
+            resStream.write(reinterpret_cast<const char*>(&nP), sizeof(label));
+            forAll(tp, pi) { tp[pi]->writeBinaryFast(resStream); }
+            forAll(tp, pi) delete tp[pi];
+        }
+    }
+    else
+    {
+        resStream.write(reinterpret_cast<const char*>(&nRes), sizeof(label));
+    }
+
+    // Exchange result
+    auto resBuf = resStream.release();
+    label resSendSize = resBuf.size();
+    label resRecvSize = 0;
+    MPI_Irecv(&resRecvSize, 1, MPI_INT, peer, 53, MPI_COMM_WORLD, &rq[0]);
+    MPI_Isend(&resSendSize, 1, MPI_INT, peer, 53, MPI_COMM_WORLD, &rq[1]);
+    MPI_Waitall(2, rq, MPI_STATUSES_IGNORE);
+    List<char> resRecvBuf(resRecvSize);
+    MPI_Irecv(resRecvBuf.data(), resRecvSize, MPI_BYTE, peer, 54, MPI_COMM_WORLD, &rq[0]);
+    MPI_Isend(resBuf.data(), resSendSize, MPI_BYTE, peer, 54, MPI_COMM_WORLD, &rq[1]);
+    MPI_Waitall(2, rq, MPI_STATUSES_IGNORE);
+
+    // Donor: apply results
+    if (isDonor && resRecvSize > label(sizeof(label)))
+    {
+        ISpanStream ris(resRecvBuf.data(), resRecvSize, IOstreamOption::BINARY);
+        label nR;
+        ris.read(reinterpret_cast<char*>(&nR), sizeof(label));
+        for (label ri = 0; ri < nR; ++ri)
+        {
+            label cellI, acc, nP;
+            scalar sigUpd;
+            ris.read(reinterpret_cast<char*>(&cellI), sizeof(label));
+            ris.read(reinterpret_cast<char*>(&acc), sizeof(label));
+            ris.read(reinterpret_cast<char*>(&sigUpd), sizeof(scalar));
+            ris.read(reinterpret_cast<char*>(&nP), sizeof(label));
+            sigmaTcRMax_[cellI] = max(sigmaTcRMax_[cellI], sigUpd);
+
+            // Read back modified parcels and apply to local
+            if (cellOccupancy_.size() > cellI)
+            {
+                const DynamicList<dsmcParcel*>& localP = cellOccupancy_[cellI];
+                for (label pi = 0; pi < min(nP, localP.size()); ++pi)
+                {
+                    dsmcParcel tempP(mesh_, ris);
+                    localP[pi]->U() = tempP.U();
+                    localP[pi]->ERot() = tempP.ERot();
+                    localP[pi]->ELevel() = tempP.ELevel();
+                    localP[pi]->vibLevel() = tempP.vibLevel();
+                }
+            }
+        }
+    }
+}
 
 void Foam::dsmcCloud::insertInflowParcels()
 {
@@ -3991,6 +4191,7 @@ void Foam::dsmcCloud::evolve()
     logEvolveStage("before collisions");
     collisions();
     logEvolveStage("after collisions");
+
     const auto t4 = clock_type::now();
 
     if (reactionsActive() && emitStepDiagnostics_)

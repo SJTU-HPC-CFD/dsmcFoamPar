@@ -204,12 +204,12 @@ void dsmcReplicatedMesh::computeCellOwnerScotch()
                 &nparts, nullptr, nullptr, options,
                 &edgecut, part.data()
             );
+
+            Info<< "Replicated mesh: METIS decomposition complete, "
+                << nCells << " cells -> " << nProcs_ << " ranks" << endl;
         }
         MPI_Bcast(part.data(), nCells, MPI_INT, 0, MPI_COMM_WORLD);
         forAll(cellOwner_, i) cellOwner_[i] = label(part[i]);
-
-        Info<< "Replicated mesh: METIS decomposition complete, "
-            << nCells << " cells -> " << nProcs_ << " ranks" << endl;
     }
     else if (decompMethod == "scotch")
     {
@@ -792,9 +792,8 @@ void dsmcReplicatedMesh::reassignByParMetisAdaptiveRepart()
     }
 
     // ---- Vertex weights: dual constraint (move + collision) ------------------
-    // ncon=2: constraint 1 = particle count (move proxy),
-    //         constraint 2 = collision candidates (collision proxy)
-    // Real-time scaling: normalize both to wall-time contribution.
+    // ncon=2: constraint 1 = particle count × 4 (ParDSMC3D style)
+    //         constraint 2 = collision candidates × collScale
 
     const scalar moveTime = cloud_.evolveMoveWallTime();
     const scalar collTime = cloud_.evolveCollisionWallTime();
@@ -820,25 +819,33 @@ void dsmcReplicatedMesh::reassignByParMetisAdaptiveRepart()
         collScale = costPerCandidate / costPerParticle;
     }
 
-    idx_t ncon = 2;
-    List<idx_t> vwgt(myN * ncon, 1);
+    // Unified DLB strategy: single constraint = N + N*(N-1)/K
+    // K auto-computed from real-time move/collision wall times.
+    idx_t ncon = 1;
+    idx_t wgtflag = 2;  // vertex weights only
+    label collDivisor = (nProcs_ >= 8) ? 128 : 64;
+    if (moveTime > SMALL && collTime > SMALL
+        && totalParticles > 0 && totalCandidates > 0)
+    {
+        const scalar costPerParticle = moveTime / scalar(totalParticles);
+        const scalar costPerCandidate = collTime / scalar(totalCandidates);
+        const scalar rawK = 2.0 * costPerParticle / max(costPerCandidate, SMALL);
+        collDivisor = max(label(32), min(label(128), label(rawK)));
+    }
 
+    List<idx_t> vwgt(myN * ncon, 1);
     for (label i = 0; i < myN; ++i)
     {
         const label gi = myStart + i;
         label nPart = 0;
         if (cloud_.cellOccupancy().size() > gi)
             nPart = cloud_.cellOccupancy()[gi].size();
-        vwgt[i * ncon] = max(idx_t(1), idx_t(nPart));
-
-        idx_t nCand = 1;
-        if (nCandPerCell.size() > gi)
-            nCand = max(idx_t(1), idx_t(scalar(nCandPerCell[gi]) * collScale));
-        vwgt[i * ncon + 1] = nCand;
+        vwgt[i] = max(idx_t(1),
+            idx_t(nPart + nPart * max(nPart - 1, label(0)) / collDivisor));
     }
 
-    // ---- Edge weights: particle density proxy for migration cost ----------
-    // Higher weight = more expensive to cut = fewer particles will migrate.
+    Info<< "Phase C ParMETIS: K=" << collDivisor
+        << " (moveT=" << moveTime << "s, collT=" << collTime << "s)" << endl;
     // Weight = sum of particle counts of the two cells sharing the face.
     List<idx_t> adjwgt(xadj[myN], 1);
     {
@@ -870,28 +877,32 @@ void dsmcReplicatedMesh::reassignByParMetisAdaptiveRepart()
         part[i] = cellOwner_[myStart + i];
 
     // ---- ParMETIS parameters -----------------------------------------------
-    idx_t wgtflag = 2;  // weights on vertices only
     idx_t numflag = 0;  // C-style numbering
     idx_t nparts = nProcs_;
     List<real_t> tpwgts(ncon * nparts, real_t(1.0) / real_t(nparts));
-    List<real_t> ubvec(ncon, real_t(1.05));
+    List<real_t> ubvec(ncon, real_t(1.05));  // 5% tolerance
     real_t itr = 1000.0;
     idx_t options[4] = {1, 0, 0, 42};  // options[0]=1: use custom, [3]=seed
     idx_t edgecut = 0;
+    // vsize: 2-rank uses particle count (conservative), 4+ rank uses 1 (free migration)
     List<idx_t> vsize(myN, 1);
-    for (label i = 0; i < myN; ++i)
+    if (nProcs_ <= 2)
     {
-        const label gi = myStart + i;
-        label nPart = 0;
-        if (cloud_.cellOccupancy().size() > gi)
-            nPart = cloud_.cellOccupancy()[gi].size();
-        vsize[i] = max(idx_t(1), idx_t(nPart));
+        for (label i = 0; i < myN; ++i)
+        {
+            const label gi = myStart + i;
+            label nPart = 0;
+            if (cloud_.cellOccupancy().size() > gi)
+                nPart = cloud_.cellOccupancy()[gi].size();
+            vsize[i] = max(idx_t(1), idx_t(nPart));
+        }
     }
 
     MPI_Comm comm = MPI_COMM_WORLD;
 
     Info<< "Phase C ParMETIS: AdaptiveRepart (" << nCells << " cells, "
-        << ncon << " constraints, collScale=" << collScale << ")" << endl;
+        << ncon << " constraints, collScale=" << collScale
+        << ", ubvec=" << ubvec[0] << ")" << endl;
 
     ParMETIS_V3_AdaptiveRepart
     (
@@ -1238,6 +1249,19 @@ void dsmcReplicatedMesh::migrateParticlesByCellOwner()
 
     // ---- Phase 4: set moveOrderedParcels_ directly (no linked-list rebuild) ---
     cloud_.setMoveOrderedParcels(kept);
+
+    // ---- Phase 5: exchange per-rank candidate counts for offload planner ----
+    {
+        const labelList& nCandPerCell = cloud_.nCandidatesPerCell();
+        label localCands = 0;
+        for (label i = 0; i < mesh_.nCells(); ++i)
+        {
+            if (i < nCandPerCell.size()) localCands += nCandPerCell[i];
+        }
+        allProcCandidates_.setSize(nProcs_, 0);
+        MPI_Allgather(&localCands, 1, MPI_INT,
+                      allProcCandidates_.data(), 1, MPI_INT, MPI_COMM_WORLD);
+    }
 
     const auto tEnd = std::chrono::steady_clock::now();
 

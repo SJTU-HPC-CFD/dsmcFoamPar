@@ -426,6 +426,14 @@ public:
     void setMoveOrderedParcels(const DynamicList<dsmcParcel*>& parcels);
     void appendToMoveOrdered(dsmcParcel* p);
     void appendBatchToMoveOrdered(const DynamicList<dsmcParcel*>& parcels);
+
+    // Collision offload for replicated mesh
+    boolList offloadedCells_;
+    inline bool isOffloadedCell(label cellI) const
+    {
+        return offloadedCells_.size() > cellI && offloadedCells_[cellI];
+    }
+    void replicatedMeshCollisionOffload();
     inline bool hasMoveOrderedParcels() const;
     inline const List<dsmcParcel*>& moveOrderedParcels() const;
     inline const labelList& moveOrderedThreadOffsets() const;

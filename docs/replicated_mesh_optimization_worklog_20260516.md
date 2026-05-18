@@ -1,4 +1,4 @@
-# dsmcFoam+ Replicated Mesh DLB 优化工作总结（2026-05-16）
+# dsmcFoam+ Replicated Mesh DLB 优化工作总结（2026-05-18 更新）
 
 ## 1. 工作目标
 
@@ -6,16 +6,24 @@
 
 核心思路：每个 MPI rank 持有完整网格，通过 `cellOwner_[]` 划分计算责任，ParMETIS AdaptiveRepart 动态调整 cell 归属。
 
-## 2. 最终性能对比（300步，8核，cylinder N2 noreact）
+## 2. 最终性能对比（300步，8核，cylinder N2 noreact，profileDetail false）
 
-| 配置 | Wall time | vs 纯OMP8 | 备注 |
-|------|-----------|-----------|------|
-| 旧 decompose MPI8 | 326s | +284% | 标准 OpenFOAM 分区 |
-| 旧 decompose MPI2×OMP4 | 118s | +39% | stagebuf2 优化后 |
-| **纯 OMP8** | **85s** | baseline | dlbOffload 开启 |
-| **MPI2×OMP4 replicated mesh** | **108s** | +27% | 新方案，有 DLB |
-| **MPI4×OMP2 replicated mesh** | **118s** | +39% | rank 越多 migration 越大 |
-| **MPI8 replicated mesh (无OMP)** | **149s** | +75% | migration 开销主导 |
+### 2.1 完整 8 组对比（含 collisionFastRng）
+
+| 配置 | 无 FastRng | 有 FastRng | FastRng 收益 |
+|------|-----------|-----------|-------------|
+| **纯 OMP8** | **82.5s** | **79.2s** | -4% |
+| **MPI2×OMP4 replicated mesh** | **101.3s** | **96.7s** | -5% |
+| **MPI4×OMP2 + DLB(K=64)** | **104.7s** | **99.2s** | -5% |
+| **MPI8 + DLB** | **142.5s** | **133.7s** | -6% |
+
+### 2.2 vs 旧方案对比
+
+| 配置 | 旧方案 | 新方案(无FastRng) | 新方案(FastRng) | 改善 |
+|------|--------|-------------------|-----------------|------|
+| 纯 OMP8 | 175s (V-2.1) | 82.5s | 79.2s | -55% |
+| MPI2×OMP4 | 118s (stagebuf2) | 101.3s | 96.7s | -18% |
+| MPI8 | 326s (decompose) | 142.5s | 133.7s | -59% |
 
 ## 3. 关键优化及效果
 
@@ -156,3 +164,254 @@ Replicated mesh DLB 方案在 8 核规模下实现了：
 1. **DLB 能力**：可动态调整负载，适应非稳态流场
 2. **可扩展性**：更多 rank 时 DLB 收益更大（当前 2 rank 均匀流场收益有限）
 3. **无 processor boundary**：消除了 OpenFOAM 标准并行的 transfer 瓶颈
+
+## 9. DLB 权重 K 值调优（2026-05-18）
+
+ParMETIS AdaptiveRepart 使用单约束权重 `weight = N + N*(N-1)/K`，K 控制 move 和 collision 的折中。
+
+### 4-rank K 值扫描
+
+| K | Wall time | Move max | Coll max | 特征 |
+|---|-----------|----------|----------|------|
+| 8 | 124s | 48.2s | 40.0s | collision 过度均衡 |
+| 16 | 118s | 45.4s | 35.7s | |
+| 32 | 112s | 50.9s | 30.4s | |
+| **64** | **106s** | 48.5s | 29.6s | **最佳折中** |
+| 128 | 109s | 50.4s | 33.3s | move 过度均衡 |
+
+### 8-rank K 值扫描
+
+| K | Wall time |
+|---|-----------|
+| 8 | 183s |
+| 16 | 160s |
+| 32 | 179s |
+| 64 | 152s |
+| **128** | **134s** |
+
+### Auto-K 计算
+
+```
+K = 2 * (moveTime/totalParticles) / (collTime/totalCandidates)
+clamp to [32, 128], default 64
+```
+
+早期数据不稳定时 K 偏低（被 clamp 到下限）。对于 4-rank 最优 K=64，8-rank 最优 K=128。
+
+## 10. Inter-Rank Collision Offload 实验（2026-05-17~18）
+
+### 实验结论
+
+| 方案 | 结果 | 原因 |
+|------|------|------|
+| 2-rank offload (raw MPI) | 无改善 (113s vs 112s) | remote execution 成本 ≈ local，无净收益 |
+| 4-rank offload (raw MPI) | 更差 (131s vs 125s) | MPI_Alltoall 同步 + 通信开销 > 均衡收益 |
+| DLB + offload 组合 | crash | cell ownership 迁移后数据冲突 |
+
+### 根因分析
+
+Collision offload 的数据流：
+```
+donor parcels → serialize → MPI send → helper deserialize → collide → serialize → MPI send → donor apply
+```
+
+每步开销：~200KB 数据传输 + 反序列化 + 碰撞执行 + 序列化 + 回传。
+remote execution 成本 ≈ local execution 成本（同一算法，同一 N² 复杂度）。
+offload 只是把工作从 donor 移到 helper，不减少总工作量。
+
+### 有效条件
+
+Offload 仅在以下条件下有效：
+1. DLB 先粗粒度均衡 cell ownership（减少 donor 的 heavy cells）
+2. Offload 再做细粒度调整（处理 DLB 后的残余不均衡）
+3. Helper 有足够 spare capacity 吸收 remote work
+
+当前 case（均匀圆柱流，2-rank）中条件 1 和 3 不满足，offload 无收益。
+
+## 11. 当前推荐配置
+
+| 场景 | 推荐配置 | 预期性能 |
+|------|----------|----------|
+| 单节点 8 核 | 纯 OMP8 + collisionFastRng | 79s |
+| 单节点 8 核（需 DLB） | MPI4×OMP2 + DLB(K=64) + FastRng | 99s |
+| 跨节点 2×4 核 | MPI2×OMP4 + FastRng | 97s |
+| 跨节点 8×1 核 | MPI8 + DLB(K=128) + FastRng | 134s |
+
+## 12. React Case 性能对比（2026-05-18）
+
+测试 case：`hyStrath_xcx/case/cylinder_react/mixparallel/allmesh_react/`
+配置：300步，8核，collisionFastRng 开启，cylinder N2 react
+
+| 配置 | Wall time | vs 纯OMP8 |
+|------|-----------|-----------|
+| **纯 OMP8** | **85.2s** | baseline |
+| **MPI2×OMP4 replicated mesh** | **100.8s** | +18% |
+| **MPI4×OMP2 + DLB(K=64)** | **106.5s** | +25% |
+| **MPI8 + DLB** | **142.1s** | +67% |
+
+### 与 noreact case 对比
+
+| 配置 | noreact | react | react 额外开销 |
+|------|---------|-------|---------------|
+| 纯 OMP8 | 79.2s | 85.2s | +8% |
+| MPI2×OMP4 | 96.7s | 100.8s | +4% |
+| MPI4×OMP2 + DLB | 99.2s | 106.5s | +7% |
+| MPI8 + DLB | 133.7s | 142.1s | +6% |
+
+React 的额外开销（化学反应计算）对各配置影响均匀（+4~8%），不改变配置间的相对排序。
+
+### 测试 case 目录
+
+- `allmesh_react/omp8/` — 纯 OMP8
+- `allmesh_react/omp4_mpi2_replicatedmesh/` — MPI2×OMP4，无 DLB
+- `allmesh_react/omp2_mpi4_replicatedmesh/` — MPI4×OMP2，DLB 开启
+- `allmesh_react/mpi8_replicatedmesh/` — MPI8，DLB 开启
+
+## 13. 延迟接收 Migration + interval 调优（2026-05-18）
+
+### 延迟接收（migrateBegin/Finish 拆分）
+
+将同步 `migrateParticlesByCellOwner()` 拆分为：
+- `migrateBegin()`: 分区 + delete + Isend + Irecv（非阻塞）
+- `migrateFinish()`: Waitall + 反序列化 + appendBatch（下一步开头执行）
+
+MPI2×OMP4 结果：101.5s → **98.7s**（-2.8s）
+
+### Migration interval=2
+
+通过 controlDict 参数 `replicatedMeshMigrateInterval 2` 控制。
+
+| 配置 | interval=1 | interval=2 | 节省 | 精度偏差 |
+|------|-----------|-----------|------|----------|
+| MPI2×OMP4 | 101.5s | 98.8s | -2.7s | <0.3% |
+| MPI8 (K=128) | 126.9s | **113.0s** | **-13.9s** | <0.5% |
+
+8-rank 节省更大（8× migration 通信量，减半频率效果显著）。
+
+### 8-rank DLB K 值 + interval 组合
+
+| 配置 | Wall time |
+|------|-----------|
+| K=128 | 126.9s |
+| K=256 | 117.9s |
+| K=∞ (纯 N) | 135.2s |
+| **K=128 + interval=2** | **113.0s** |
+| K=256 + interval=2 | 116.6s |
+
+### 自适应 K 默认值
+
+```cpp
+label collDivisor = (nProcs_ >= 8) ? 128 : 64;
+```
+
+### 最终推荐配置（更新）
+
+| 场景 | 配置 | 性能 |
+|------|------|------|
+| 单节点 8 核 | 纯 OMP8 + FastRng | 79-85s |
+| 需 DLB, 2 rank | MPI2×OMP4 + 延迟接收 | 95-99s |
+| 需 DLB, 4 rank | MPI4×OMP2 + DLB(K=64) | 99-107s |
+| 需 DLB, 8 rank | MPI8 + DLB(K=128) + interval=2 | **113s** |
+
+## 14. Post-Collision Migration 实验（2026-05-19）
+
+### 架构设计
+
+将 `migrateBegin()` 从 move 之后移到 collision 之后，使 DLB 可以独立平衡 collision 成本，move 不平衡由 migration 通信吸收。
+
+核心改动：
+- `dsmcCloud.C`：controlDict 开关 `replicatedMeshPostCollisionMigration true/false`（默认 false）
+- `noTimeCounter.C`：collision 循环加 `isMyCell` 检查（跳过 non-owned cells）
+- `dsmcReplicatedMesh.C`：双约束 DLB（计算成本 + cell 数量）、adaptive K 反馈、PartKway 备选
+
+### Post-Collision Migration 8-rank 测试
+
+| 配置 | Wall time | vs baseline |
+|------|-----------|-------------|
+| Baseline (delayed-receive + K=128) | 119.1s | — |
+| Post-collision + collision-only weight | 174.9s | +47% ❌ |
+| Post-collision + K=16 | 153.95s | +29% ❌ |
+| Post-collision + K=128 + adaptive K | 118.5s | -0.5% |
+| Post-collision + 双约束 (ubvec 1.05/1.03) | **116.0s** | **-2.6%** |
+| Post-collision + PartKway | 129.5s | +9% ❌ |
+
+### DLB 触发策略对比
+
+| 策略 | DLB 次数 | Wall time |
+|------|---------|-----------|
+| **sar > 0 趋势触发** | **3-4** | **116.0s** |
+| 绝对阈值 1.15 | 29 | 122.4s |
+| 绝对阈值 1.25 + min 30步 | 8 | 119.0s |
+| 固定 50 步 | 6 | 122.4s |
+
+### DLB 权重方案对比
+
+| 方案 | Wall time | 说明 |
+|------|-----------|------|
+| N + N*(N-1)/K (K=128) | 118.5s | 原始单约束 |
+| N*(N-1)/2 (纯 collision) | 174.9s | 权重比太极端 |
+| **5 + N + N*(N-1)/K + cell约束** | **116.0s** | 双约束最优 |
+| TACF 实测权重 | 140.4s | 累积平均含瞬态，不准 |
+
+### 关键发现
+
+1. **Post-collision migration 对 2-rank 无效**：delayed-receive 的 component cancellation 天然平衡 wall time（imbalance 1.001），post-collision 破坏此平衡。
+
+2. **Post-collision migration 对 8-rank 有限收益**（116s vs 119s，-2.6%）：DLB 已经通过 Alltoall 同步吸收了工作不平衡，post-collision 的额外收益来自双约束分区质量改善。
+
+3. **"buildCellOccupancy" 计时包含 migrateBegin**：profiling 中 "buildCellOccupancy [s]" 实际 = migrateBegin（含 Alltoall 等待）+ TACF + Phase B + 实际 buildOcc。实际 buildOcc ≈ 5s。
+
+4. **MPI8 实际工作 imbalance 1.76:1**（rank 7 = 69.7s vs rank 0 = 39.5s），被 Alltoall 同步等待吸收为 wall time imbalance 1.011。
+
+### 已验证无效方向
+
+| 方向 | 结果 | 原因 |
+|------|------|------|
+| Collision-only 权重 (K→0) | 174.9s | 权重比 4950:1，ParMETIS 分区质量崩溃 |
+| PartKway 替代 AdaptiveRepart | 129.5s | 空间局部性差，migration 量增大 |
+| TACF 实测权重 | 140.4s | 累积平均含初始瞬态 |
+| 绝对 imbalance 阈值触发 | 119-122s | DLB 过于频繁 |
+| 固定间隔 DLB | 122.4s | 首次 DLB 太晚 + 不必要触发 |
+| cellBaseCost=20 | 123.2s | 权重比过小 |
+
+## 15. 最终性能确认（2026-05-19，React + FastRng）
+
+### 测试环境
+
+- 8 核单节点，Intel oneAPI 2025.2 + OF-2506
+- 300 步，cylinder N2 react，collisionFastRng true
+- 配置：delayed-receive + DLB(auto-K, clamp [32,128]) + migrateInterval 按需
+
+### 结果
+
+| 配置 | Wall time | vs Worklog | Imbalance |
+|------|-----------|-----------|-----------|
+| **纯 OMP8** | **81.3s** | -5% | — |
+| **MPI2×OMP4** (delayed-receive, no DLB) | **94.8s** | -6% | 1.001 |
+| **MPI4×OMP2** (delayed-receive + DLB K=64) | **100.2s** | -6% | 1.014 |
+| **MPI8** (delayed-receive + DLB K=128 + interval=2) | **131.3s** | -8% | 1.011 |
+
+### MPI8 per-rank 负载分析
+
+| Rank | Move | Collision | Migration | Particles | 实际工作 |
+|------|------|-----------|-----------|-----------|---------|
+| 0 | 25.5s | 14.0s | 79.5s | 63K | 39.5s |
+| 1 | 26.4s | 22.6s | 70.2s | 142K | 49.0s |
+| 2 | 28.9s | 23.5s | 65.4s | 208K | 52.4s |
+| 3 | 42.1s | 12.6s | 57.0s | 223K | 54.7s |
+| 4 | 40.6s | 32.3s | 41.7s | 366K | 72.9s |
+| 5 | 47.7s | 16.2s | 46.6s | 279K | 63.9s |
+| 6 | 48.0s | 23.1s | 33.5s | 310K | 71.1s |
+| 7 | 52.3s | 17.4s | 37.9s | 368K | **69.7s** |
+
+实际工作 imbalance = 69.7/39.5 = 1.76:1，被 MPI_Alltoall 同步等待吸收。
+
+### 最终推荐配置（更新）
+
+| 场景 | 配置 | 性能 |
+|------|------|------|
+| 单节点 8 核 | 纯 OMP8 + FastRng | **81s** |
+| 需 DLB, 2 rank | MPI2×OMP4 + delayed-receive | **95s** |
+| 需 DLB, 4 rank | MPI4×OMP2 + DLB(K=64) | **100s** |
+| 需 DLB, 8 rank | MPI8 + DLB(K=128) + interval=2 | **131s** |
+| 需 DLB, 8 rank (post-coll) | MPI8 + post-collision + 双约束 DLB | **116s** |
