@@ -60,7 +60,6 @@ private:
 
     // Private data
 
-//         dictionary propsDict_;
     label infoCounter_;
     List<DynamicList<label>> threadWhichSubCell_;
     List<List<DynamicList<label>>> threadSubCells_;
@@ -68,6 +67,12 @@ private:
     List<DynamicList<vector>> threadVelocities_;
     List<DynamicList<label>> threadTypeIds_;
     List<DynamicList<label>> threadCharges_;
+
+    // Cached controlDict parameters (avoid per-step dictionary lookup)
+    bool collisionFastRng_;
+
+    // Private Member Functions
+    void readControlDictParams();
 
 
 

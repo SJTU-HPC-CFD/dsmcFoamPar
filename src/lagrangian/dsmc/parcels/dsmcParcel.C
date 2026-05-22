@@ -26,44 +26,19 @@ License
 #include "dsmcParcel.H"
 #include "dsmcCloud.H"
 #include "meshTools.H"
-#include "Pstream.H"
 
 #ifdef _OPENMP
     #include <omp.h>
 #endif
 
-#include <chrono>
-
 namespace
 {
-using clock_type = std::chrono::steady_clock;
 
 inline bool useOpenMPMoveCriticals(const Foam::dsmcCloud& cloud)
 {
     #ifdef _OPENMP
     return cloud.openmpMoveEnabled() && omp_in_parallel();
     #else
-    return false;
-    #endif
-}
-
-inline bool useOpenMPMoveTrackCriticals
-(
-    const Foam::dsmcCloud& cloud,
-    const Foam::label celli
-)
-{
-    #ifdef _OPENMP
-    // Guard only boundary cells (physical boundaries for replicated mesh,
-    // processor boundaries for standard parallel).  Internal cells are
-    // fully parallel — tracking only modifies per-particle state.
-    return
-        cloud.openmpMoveEnabled()
-     && omp_in_parallel()
-     && cloud.openmpMoveGuardCell(celli);
-    #else
-    (void)cloud;
-    (void)celli;
     return false;
     #endif
 }
@@ -110,7 +85,8 @@ inline void controlPatchBoundaryThreadSafe
         *cloud.boundaries().patchBoundaryModels()[boundaryI];
     const Foam::word& modelType = model.type();
     const bool threadSafePatchModel =
-        modelType == "dsmcSpecularWallPatch";
+        modelType == "dsmcDiffuseWallPatch"
+     || modelType == "dsmcSpecularWallPatch";
 
     if (useOpenMPMoveCriticals(cloud))
     {
@@ -142,7 +118,6 @@ bool Foam::dsmcParcel::move
 {
     td.switchProcessor = false;
     td.keepParticle = true;
-    const bool recordMoveDetail = cloud.profilingDetailEnabled();
 
     if (cloud.replicatedMeshActive() && cell() >= 0
         && cell() < cloud.mesh().nCells())
@@ -159,126 +134,46 @@ bool Foam::dsmcParcel::move
         }
 
         vector Utracking = U_;
-        label moveLoopI = 0;
 
         while (td.keepParticle && !td.switchProcessor && stepFraction() < 1)
         {
-            ++moveLoopI;
-            const bool probeStuckParticle =
-                cloud.moveStageProbeEnabled()
-             && Pstream::parRun()
-             && Pstream::myProcNo() == 1
-             && origProc() == 0
-             && origId() == 1;
+            Utracking = U_;
+            meshTools::constrainDirection(mesh(), mesh().solutionD(), Utracking);
 
-            if (probeStuckParticle && (moveLoopI == 1 || moveLoopI % 1000 == 0))
+            const vector d = deviationFromMeshCentre();
+            const scalar f = 1 - stepFraction();
+            trackToAndHitFace(f*trackTime*Utracking - d, f, cloud, td);
+
+            if (face() != -1)
             {
-                Pout<< "dsmcParcel move probe rank " << Pstream::myProcNo()
-                    << " orig=" << origProc() << ':' << origId()
-                    << " loop=" << moveLoopI
-                    << " cell=" << cell()
-                    << " face=" << face()
-                    << " stepFraction=" << stepFraction()
-                    << " keep=" << td.keepParticle
-                    << " switch=" << td.switchProcessor
-                    << nl << endl;
-            }
-
-            auto moveTrackStep = [&]()
-            {
-                Utracking = U_;
-                meshTools::constrainDirection(mesh(), mesh().solutionD(), Utracking);
-
-                const vector d = deviationFromMeshCentre();
-                const scalar f = 1 - stepFraction();
-                if (recordMoveDetail)
+                if (cloud.trackerActive())
                 {
-                    const auto tTrackBegin = clock_type::now();
-                    trackToAndHitFace(f*trackTime*Utracking - d, f, cloud, td);
-                    td.moveTrackWallTime +=
-                        std::chrono::duration<scalar>(clock_type::now() - tTrackBegin).count();
-                }
-                else
-                {
-                    trackToAndHitFace(f*trackTime*Utracking - d, f, cloud, td);
+                    trackParcelFaceTransitionThreadSafe(cloud, *this);
                 }
 
-                if (face() != -1)
+                const label patchIndex = patch();
+
+                if
+                (
+                    patchIndex >= 0
+                 && patchIndex
+                  < cloud.boundaries().cyclicBoundaryToModelIds().size()
+                )
                 {
-                    if (recordMoveDetail)
+                    const label cyclicModelId =
+                        cloud.boundaries().cyclicBoundaryToModelIds()[patchIndex];
+
+                    if (cyclicModelId >= 0)
                     {
-                        ++td.moveFaceHitCount;
-                    }
-
-                    if (cloud.trackerActive())
-                    {
-                        if (recordMoveDetail)
-                        {
-                            const auto tTrackerBegin = clock_type::now();
-                            trackParcelFaceTransitionThreadSafe(cloud, *this);
-                            td.moveTrackerWallTime +=
-                                std::chrono::duration<scalar>(clock_type::now() - tTrackerBegin).count();
-                        }
-                        else
-                        {
-                            trackParcelFaceTransitionThreadSafe(cloud, *this);
-                        }
-                    }
-
-                    const label patchIndex = patch();
-
-                    if
-                    (
-                        patchIndex >= 0
-                     && patchIndex
-                      < cloud.boundaries().cyclicBoundaryToModelIds().size()
-                    )
-                    {
-                        const label cyclicModelId =
-                            cloud.boundaries().cyclicBoundaryToModelIds()[patchIndex];
-
-                        if (cyclicModelId >= 0)
-                        {
-                            if (recordMoveDetail)
-                            {
-                                const auto tBoundaryBegin = clock_type::now();
-                                controlCyclicBoundaryThreadSafe
-                                (
-                                    cloud,
-                                    cyclicModelId,
-                                    *this,
-                                    td
-                                );
-                                td.moveBoundaryWallTime +=
-                                    std::chrono::duration<scalar>(clock_type::now() - tBoundaryBegin).count();
-                                ++td.moveCyclicHitCount;
-                            }
-                            else
-                            {
-                                controlCyclicBoundaryThreadSafe
-                                (
-                                    cloud,
-                                    cyclicModelId,
-                                    *this,
-                                    td
-                                );
-                            }
-                        }
+                        controlCyclicBoundaryThreadSafe
+                        (
+                            cloud,
+                            cyclicModelId,
+                            *this,
+                            td
+                        );
                     }
                 }
-
-            };
-
-            if (useOpenMPMoveTrackCriticals(cloud, cell()))
-            {
-                #pragma omp critical(dsmcMoveTrack)
-                {
-                    moveTrackStep();
-                }
-            }
-            else
-            {
-                moveTrackStep();
             }
         }
     }
@@ -297,30 +192,13 @@ bool Foam::dsmcParcel::move
 
             if (patchModelId >= 0)
             {
-                if (recordMoveDetail)
-                {
-                    const auto tBoundaryBegin = clock_type::now();
-                    controlPatchBoundaryThreadSafe
-                    (
-                        cloud,
-                        patchModelId,
-                        *this,
-                        td
-                    );
-                    td.moveBoundaryWallTime +=
-                        std::chrono::duration<scalar>(clock_type::now() - tBoundaryBegin).count();
-                    ++td.moveStuckHitCount;
-                }
-                else
-                {
-                    controlPatchBoundaryThreadSafe
-                    (
-                        cloud,
-                        patchModelId,
-                        *this,
-                        td
-                    );
-                }
+                controlPatchBoundaryThreadSafe
+                (
+                    cloud,
+                    patchModelId,
+                    *this,
+                    td
+                );
             }
         }
     }
@@ -338,18 +216,7 @@ bool Foam::dsmcParcel::hitPatch(dsmcCloud& cloud, trackingData& td)
 
         if (patchModelId >= 0)
         {
-            if (cloud.profilingDetailEnabled())
-            {
-                const auto tBoundaryBegin = clock_type::now();
-                controlPatchBoundaryThreadSafe(cloud, patchModelId, *this, td);
-                td.moveBoundaryWallTime +=
-                    std::chrono::duration<scalar>(clock_type::now() - tBoundaryBegin).count();
-                ++td.movePatchHitCount;
-            }
-            else
-            {
-                controlPatchBoundaryThreadSafe(cloud, patchModelId, *this, td);
-            }
+            controlPatchBoundaryThreadSafe(cloud, patchModelId, *this, td);
         }
     }
 
@@ -359,10 +226,6 @@ bool Foam::dsmcParcel::hitPatch(dsmcCloud& cloud, trackingData& td)
 void Foam::dsmcParcel::hitProcessorPatch(dsmcCloud& cloud, trackingData& td)
 {
     td.switchProcessor = true;
-    if (cloud.profilingDetailEnabled())
-    {
-        ++td.moveProcessorHitCount;
-    }
 }
 
 void Foam::dsmcParcel::hitWallPatch(dsmcCloud& cloud, trackingData& td)
@@ -375,18 +238,7 @@ void Foam::dsmcParcel::hitWallPatch(dsmcCloud& cloud, trackingData& td)
 
         if (patchModelId >= 0)
         {
-            if (cloud.profilingDetailEnabled())
-            {
-                const auto tBoundaryBegin = clock_type::now();
-                controlPatchBoundaryThreadSafe(cloud, patchModelId, *this, td);
-                td.moveBoundaryWallTime +=
-                    std::chrono::duration<scalar>(clock_type::now() - tBoundaryBegin).count();
-                ++td.movePatchHitCount;
-            }
-            else
-            {
-                controlPatchBoundaryThreadSafe(cloud, patchModelId, *this, td);
-            }
+            controlPatchBoundaryThreadSafe(cloud, patchModelId, *this, td);
             return;
         }
     }

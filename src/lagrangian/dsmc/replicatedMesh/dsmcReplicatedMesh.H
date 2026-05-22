@@ -42,12 +42,6 @@ class dsmcReplicatedMesh
 
     scalar migrationWallTime_;
     label migrationCalls_;
-    scalarField cellCost_;
-    label cellCostSteps_;
-    scalarField cellCollisionCost_;
-    label cellCollisionCostSteps_;
-    scalar costMoveWeight_;
-    scalar costCollisionWeight_;
     scalar evolveStepTime_;
     label evolveTimeSteps_;
 
@@ -63,18 +57,12 @@ class dsmcReplicatedMesh
 
     // ---- Phase C: auto DLB ----
     bool autoDLBEnabled_;
-    label nSuperCells_;
-    label alpha_;                       // over-decomposition factor M/P
-    scalar imbalanceThreshold_;         // trigger: accumulated idle > threshold
-    label cooldownSteps_;              // min steps between rebalances
+    scalar imbalanceThreshold_;         // threshold trigger: max/min > this
+    label dlbSteps_;                    // evaluation interval (steps)
     label lastAutoRebalanceStep_;      // step of last auto rebalance
     label autoRebalanceCount_;         // number of auto rebalances performed
-    scalarField superCellCost_;        // cost per superCell
-    labelList superCellOfCell_;        // cell -> superCell mapping
-    labelList superCellOwner_;         // superCell -> rank mapping
-    vectorField superCellCentres_;     // centroid per superCell
 
-    // ParDSMC3D-style trend-based trigger
+    // ParDSMC3D-style trend-based trigger (SAR)
     scalar productiveTime_;            // cumulative move+coll time in eval window
     scalar lastEvolveTime_;            // evolveStepTime_ snapshot for delta
     scalar lastMigrationTime_;         // migrationWallTime_ snapshot for delta
@@ -84,6 +72,14 @@ class dsmcReplicatedMesh
     label ndecps_;                     // steps in current eval window
     label nEvalPeriods_;              // number of eval periods since last trigger
     scalar sar_;                       // trend metric: sar > 0 triggers DLB
+
+    // DLB diagnostics
+    label postDLBSnapshotCountdown_;
+    scalarList lastDLBMoveT_;
+    scalarList lastDLBCollT_;
+
+    // Adaptive K (persistent across DLB calls)
+    label collDivisor_;
 
     // ---- Cached per-rank candidate counts (updated during migration) ----
     labelList allProcCandidates_;
@@ -97,27 +93,6 @@ class dsmcReplicatedMesh
 
     // (Phase B) construct myCells_ from cellOwner_
     void rebuildMyCells();
-
-    // Hilbert curve helper
-    static uint64_t hilbert3DIndex
-    (
-        uint32_t x, uint32_t y, uint32_t z,
-        label bits
-    );
-
-    // Phase C: build superCells by Scotch over-decomposition
-    void buildSuperCells();
-
-    // Phase C: compute superCell centroids and costs from TACF data
-    void updateSuperCellCosts();
-
-    // Phase C: sort superCells by Hilbert key, assign to ranks by cost balance
-    // returns number of superCells that changed owner
-    label reassignByHilbertSuperCell();
-
-    // Phase C: SCOTCH graphRemap — directly remaps cellOwner_ using
-    // per-cell TACF costs.  Minimises data movement while rebalancing.
-    void reassignByScotchRemap();
 
     // Phase C: ParMETIS AdaptiveRepart — parallel incremental repartitioning
     // that minimises data movement while rebalancing vertex weights.
@@ -155,8 +130,6 @@ public:
 
     inline bool asyncMigrationPending() const { return asyncMigrationPending_; }
 
-    // Phase A/B: TACF cell cost accumulation
-    void accumulateCellCosts();
     // Phase B: manual cellOwner reassignment (block/reverse-block)
     void reassignCellOwner();
 
@@ -174,6 +147,8 @@ public:
     inline void addEvolveTime(scalar dt) { evolveStepTime_ += dt; ++evolveTimeSteps_; }
     inline bool autoDLBEnabled() const { return autoDLBEnabled_; }
     inline label autoRebalanceCount() const { return autoRebalanceCount_; }
+
+    void gatherParcelsToRank0();
 
     void report() const;
 };

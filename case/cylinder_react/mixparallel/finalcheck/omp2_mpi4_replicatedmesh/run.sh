@@ -1,0 +1,3 @@
+source /home/superxcx/intel/oneapi/setvars.sh --force 2>/dev/null; source /home/superxcx/code/OpenFoam/OF-2506/OpenFOAM-v2506/etc/bashrc; export WM_PROJECT_USER_DIR=/home/superxcx/code/DSMC/dsmcFoam++/hyStrath_xcx; export FOAM_USER_APPBIN=$WM_PROJECT_USER_DIR/platforms/$WM_OPTIONS/bin; export FOAM_USER_LIBBIN=$WM_PROJECT_USER_DIR/platforms/$WM_OPTIONS/lib; export PATH=$FOAM_USER_APPBIN:$PATH; export LD_LIBRARY_PATH=$FOAM_USER_LIBBIN:/home/superxcx/code/DSMC/dsmcFoam++/parmetis-install/lib:/home/superxcx/miniconda3/envs/cap/lib:$LD_LIBRARY_PATH;
+
+OMP_NUM_THREADS=2 OMP_PROC_BIND=close OMP_PLACES=cores mpirun -n 4  ${FOAM_USER_APPBIN}/dsmcFoam+ > log.dsmcFoam+.omp2.mpi4.test 2>&1 &

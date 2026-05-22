@@ -120,7 +120,7 @@ class dsmcCloud
     bool openmpMoveEnabled_;
     bool trackerActive_;
     label ompNumThreads_;
-    word openmpCollisionStrategy_;
+    word openmpCollisionSchedule_;
     label openmpCollisionChunk_;
     word openmpMoveSchedule_;
     label openmpMoveChunk_;
@@ -174,6 +174,10 @@ class dsmcCloud
     scalar collisionPartitionWallTime_;
     scalar collisionSelectionWallTime_;
     label collisionProfileCalls_;
+    label cumulativeCollisions_;
+    label cumulativeCollisionCandidates_;
+    bool collisionPhaseActive_;
+    List<DynamicList<dsmcParcel*>> collisionNewParcels_;
     scalar buildOccupancyExtractWallTime_;
     scalar buildOccupancyCountWallTime_;
     scalar buildOccupancyAssembleWallTime_;
@@ -362,7 +366,9 @@ public:
     inline scalar deltaTValue(const label celli = 0) const;
     inline label nTerminalOutputs() const;
     inline bool replicatedMeshActive() const;
+    inline bool isOutputRank() const;
     inline const dsmcReplicatedMesh& replicatedMesh() const;
+    inline dsmcReplicatedMesh& replicatedMeshRef();
     inline bool openmpEnabled() const;
     inline bool openmpMoveEnabled() const;
     inline bool trackerActive() const;
@@ -375,7 +381,7 @@ public:
     inline void setStepDiagnosticOutput(const bool enabled);
     inline bool emitStepDiagnostics() const;
     inline label ompNumThreads() const;
-    inline const word& openmpCollisionStrategy() const;
+    inline const word& openmpCollisionSchedule() const;
     inline label openmpCollisionChunk() const;
     inline const word& openmpMoveSchedule() const;
     inline label openmpMoveChunk() const;
@@ -388,6 +394,8 @@ public:
     void endMoveAppendCapture();
     void recordMoveAppendedParcel(dsmcParcel* pPtr);
     void clearMoveAppendedParcels();
+    void beginCollisionPhase();
+    void endCollisionPhase();
     void recordPendingMoveParcel(dsmcParcel* pPtr);
     void clearPendingMoveParcels();
     void resetAfterMeshDistribution();
@@ -427,13 +435,6 @@ public:
     void appendToMoveOrdered(dsmcParcel* p);
     void appendBatchToMoveOrdered(const DynamicList<dsmcParcel*>& parcels);
 
-    // Collision offload for replicated mesh
-    boolList offloadedCells_;
-    inline bool isOffloadedCell(label cellI) const
-    {
-        return offloadedCells_.size() > cellI && offloadedCells_[cellI];
-    }
-    void replicatedMeshCollisionOffload();
     inline bool hasMoveOrderedParcels() const;
     inline const List<dsmcParcel*>& moveOrderedParcels() const;
     inline const labelList& moveOrderedThreadOffsets() const;
@@ -601,6 +602,7 @@ public:
         const labelList& reactionHitCounts,
         const scalarField& wallTimes
     );
+    void accumulateCollisionCounts(label candidates, label collisions);
     void resetLoadStats();
     void loadBalanceCheck();
     void evolve();

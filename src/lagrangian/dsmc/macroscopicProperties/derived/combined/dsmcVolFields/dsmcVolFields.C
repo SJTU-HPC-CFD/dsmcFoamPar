@@ -37,6 +37,7 @@ and are also written.
 #include "dsmcVolFields.H"
 #include "addToRunTimeSelectionTable.H"
 #include <chrono>
+#include <mpi.h>
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
@@ -2417,7 +2418,7 @@ void dsmcVolFields::calculateField()
 
     const scalar kB = physicoChemical::k.value();
     const scalar NAvo = physicoChemical::NA.value();
-    const bool doProfile = profileSummaryEnabled_ || profileDetailEnabled_;
+    const bool doProfile = profileDetailEnabled_;
 
     auto wallClockNow = []()
     {
@@ -2719,6 +2720,7 @@ void dsmcVolFields::calculateField()
                         }
                         dsmcNSpeciesCum_[i][celli] +=
                             sharedSampleCache_.dsmcN[spId][celli];
+
                         dsmcMccSpeciesCum_[i][celli] +=
                             sharedSampleCache_.dsmcLinearKE[spId][celli];
                         nSpeciesCum_[i][celli] +=
@@ -2820,9 +2822,23 @@ void dsmcVolFields::calculateField()
                     const scalarField& evibCache =
                         sharedSampleCache_.dsmcSpeciesEvibMod[spId][mod];
 
-                    forAll(evibCum, celli)
+                    if (cloud_.replicatedMeshActive())
                     {
-                        evibCum[celli] += evibCache[celli];
+                        const auto& repMesh = cloud_.replicatedMesh();
+                        forAll(evibCum, celli)
+                        {
+                            if (repMesh.isMyCell(celli))
+                            {
+                                evibCum[celli] += evibCache[celli];
+                            }
+                        }
+                    }
+                    else
+                    {
+                        forAll(evibCum, celli)
+                        {
+                            evibCum[celli] += evibCache[celli];
+                        }
                     }
                 }
             }
@@ -3155,7 +3171,7 @@ void dsmcVolFields::calculateField()
             doProfile ? wallClockNow() : std::chrono::steady_clock::time_point();
         const scalar nAvTimeSteps = nTimeSteps_;
 
-        if (Pstream::myProcNo() == 0)
+        if (cloud_.isOutputRank())
             Info << endl << "Sample average steps = " << nAvTimeSteps << endl;
 
         //- XCX: get freestreaminflow velocity and density for heat and pressure coeffcient
@@ -3223,11 +3239,129 @@ void dsmcVolFields::calculateField()
                 cqCoef_ = 0.0;
                 cpCoef_ = 0.0;
 
-                if (Pstream::myProcNo() == 0)
+                if (cloud_.isOutputRank())
                 {
                     Info<< endl
                         << "Vacuum or zero-velocity freestream condition. "
                         << "Cq and Cp coefficients are set to zero." << endl;
+                }
+            }
+        }
+
+        if (cloud_.replicatedMeshActive() && !Pstream::parRun())
+        {
+            const label nCells = mesh_.nCells();
+
+            MPI_Allreduce(MPI_IN_PLACE, dsmcN_.primitiveFieldRef().data(), nCells, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+            MPI_Allreduce(MPI_IN_PLACE, dsmcNCum_.data(), nCells, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+            MPI_Allreduce(MPI_IN_PLACE, nCum_.data(), nCells, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+            MPI_Allreduce(MPI_IN_PLACE, dsmcMCum_.data(), nCells, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+            MPI_Allreduce(MPI_IN_PLACE, mCum_.data(), nCells, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+            MPI_Allreduce(MPI_IN_PLACE, dsmcLinearKECum_.data(), nCells, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+            MPI_Allreduce(MPI_IN_PLACE, linearKECum_.data(), nCells, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+            MPI_Allreduce(MPI_IN_PLACE, dsmcErotCum_.data(), nCells, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+            MPI_Allreduce(MPI_IN_PLACE, dsmcZetaRotCum_.data(), nCells, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+            MPI_Allreduce(MPI_IN_PLACE, dsmcNElecLvlCum_.data(), nCells, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+            MPI_Allreduce(MPI_IN_PLACE, dsmcMuuCum_.data(), nCells, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+            MPI_Allreduce(MPI_IN_PLACE, dsmcMuvCum_.data(), nCells, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+            MPI_Allreduce(MPI_IN_PLACE, dsmcMuwCum_.data(), nCells, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+            MPI_Allreduce(MPI_IN_PLACE, dsmcMvvCum_.data(), nCells, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+            MPI_Allreduce(MPI_IN_PLACE, dsmcMvwCum_.data(), nCells, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+            MPI_Allreduce(MPI_IN_PLACE, dsmcMwwCum_.data(), nCells, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+            MPI_Allreduce(MPI_IN_PLACE, dsmcMccCum_.data(), nCells, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+            MPI_Allreduce(MPI_IN_PLACE, dsmcMccuCum_.data(), nCells, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+            MPI_Allreduce(MPI_IN_PLACE, dsmcMccvCum_.data(), nCells, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+            MPI_Allreduce(MPI_IN_PLACE, dsmcMccwCum_.data(), nCells, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+            MPI_Allreduce(MPI_IN_PLACE, dsmcEuCum_.data(), nCells, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+            MPI_Allreduce(MPI_IN_PLACE, dsmcEvCum_.data(), nCells, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+            MPI_Allreduce(MPI_IN_PLACE, dsmcEwCum_.data(), nCells, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+            MPI_Allreduce(MPI_IN_PLACE, dsmcECum_.data(), nCells, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+            MPI_Allreduce(MPI_IN_PLACE, collisionSeparation_.data(), nCells, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+            MPI_Allreduce(MPI_IN_PLACE, dsmcNCollsCum_.data(), nCells, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+
+            MPI_Allreduce(MPI_IN_PLACE, dsmcMomentumCum_.data(), nCells * 3, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+            MPI_Allreduce(MPI_IN_PLACE, momentumCum_.data(), nCells * 3, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+
+            if (measureClassifications_)
+            {
+                MPI_Allreduce(MPI_IN_PLACE, dsmcNClassICum_.data(), nCells, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+                MPI_Allreduce(MPI_IN_PLACE, dsmcNClassIICum_.data(), nCells, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+                MPI_Allreduce(MPI_IN_PLACE, dsmcNClassIIICum_.data(), nCells, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+            }
+
+            forAll(speciesIds_, i)
+            {
+                MPI_Allreduce(MPI_IN_PLACE, dsmcNSpeciesCum_[i].data(), nCells, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+                MPI_Allreduce(MPI_IN_PLACE, nSpeciesCum_[i].data(), nCells, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+                MPI_Allreduce(MPI_IN_PLACE, dsmcMccSpeciesCum_[i].data(), nCells, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+                MPI_Allreduce(MPI_IN_PLACE, dsmcSpeciesEelecCum_[i].data(), nCells, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+                MPI_Allreduce(MPI_IN_PLACE, dsmcNGrndElecLvlSpeciesCum_[i].data(), nCells, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+                MPI_Allreduce(MPI_IN_PLACE, dsmcN1stElecLvlSpeciesCum_[i].data(), nCells, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+
+                forAll(dsmcSpeciesEvibModCum_[i], mod)
+                {
+                    MPI_Allreduce(MPI_IN_PLACE, dsmcSpeciesEvibModCum_[i][mod].data(), nCells, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+                }
+            }
+
+            forAll(rhoNBF_, j)
+            {
+                const label nFaces = rhoNBF_[j].size();
+                if (nFaces == 0) continue;
+
+                MPI_Allreduce(MPI_IN_PLACE, rhoNBF_[j].data(), nFaces, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+                MPI_Allreduce(MPI_IN_PLACE, rhoMBF_[j].data(), nFaces, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+                MPI_Allreduce(MPI_IN_PLACE, linearKEBF_[j].data(), nFaces, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+                MPI_Allreduce(MPI_IN_PLACE, momentumBF_[j].data(), nFaces * 3, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+                MPI_Allreduce(MPI_IN_PLACE, ErotBF_[j].data(), nFaces, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+                MPI_Allreduce(MPI_IN_PLACE, zetaRotBF_[j].data(), nFaces, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+                MPI_Allreduce(MPI_IN_PLACE, qBF_[j].data(), nFaces, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+                MPI_Allreduce(MPI_IN_PLACE, fDBF_[j].data(), nFaces * 3, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+                MPI_Allreduce(MPI_IN_PLACE, rhoNIntBF_[j].data(), nFaces, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+                MPI_Allreduce(MPI_IN_PLACE, rhoNElecBF_[j].data(), nFaces, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+
+                forAll(speciesIds_, i)
+                {
+                    MPI_Allreduce(MPI_IN_PLACE, speciesRhoNBF_[i][j].data(), nFaces, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+                    MPI_Allreduce(MPI_IN_PLACE, speciesEvibBF_[i][j].data(), nFaces, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+                    MPI_Allreduce(MPI_IN_PLACE, speciesEelecBF_[i][j].data(), nFaces, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+                    MPI_Allreduce(MPI_IN_PLACE, speciesMccBF_[i][j].data(), nFaces, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+                }
+            }
+        }
+
+        if (!cloud_.isOutputRank())
+        {
+            goto skipFieldComputation;
+        }
+
+        if (cloud_.replicatedMeshActive() && !Pstream::parRun())
+        {
+            const scalar kBLocal = physicoChemical::k.value();
+            forAll(dsmcNCum_, celli)
+            {
+                if (dsmcNCum_[celli] > 1e-3)
+                {
+                    const scalar cellVolume = mesh_.cellVolumes()[celli];
+                    dsmcNMean_[celli] = dsmcNCum_[celli]/nAvTimeSteps;
+                    const scalar rhoNMean = nCum_[celli]/(nAvTimeSteps*cellVolume);
+                    const scalar rhoMMean = mCum_[celli]/(nAvTimeSteps*cellVolume);
+                    rhoN_[celli] = rhoNMean;
+                    rhoM_[celli] = rhoMMean;
+                    UMean_[celli] = momentumCum_[celli]/mCum_[celli];
+                    const scalar linearKEMean = 0.5*linearKECum_[celli]/(cellVolume*nAvTimeSteps);
+                    Ttra_[celli] = 2.0/(3.0*kBLocal*rhoNMean)
+                        *(linearKEMean - 0.5*rhoMMean*(UMean_[celli] & UMean_[celli]));
+                    p_[celli] = rhoNMean*kBLocal*Ttra_[celli];
+                }
+                else
+                {
+                    dsmcNMean_[celli] = 0.001;
+                    rhoN_[celli] = 0.0;
+                    rhoM_[celli] = 0.0;
+                    UMean_[celli] = vector::zero;
+                    Ttra_[celli] = 0.0;
+                    p_[celli] = 0.0;
                 }
             }
         }
@@ -3270,6 +3404,8 @@ void dsmcVolFields::calculateField()
                 scalar moleculesRhoN = 0.0;
                 Tvib_[celli] = 0.0;
                 zetaVib_[celli] = 0.0;
+                // XCX: flag for freestream debug cell
+                const bool xcxDbg = (Ttra_[celli] > 80 && Ttra_[celli] < 120);
                 
                 scalar molarCv_trarot = 0.0;
                 scalar molarCp_trarot = 0.0;
@@ -3296,9 +3432,10 @@ void dsmcVolFields::calculateField()
                 forAll(speciesIds_, i)
                 {
                     const label spId = speciesIds_[i];
-                    const scalar speciesCount = nSpeciesCum_[i][celli];
+                    const scalar speciesParcelCount =
+                        dsmcNSpeciesCum_[i][celli];
 
-                    if (speciesCount <= SMALL)
+                    if (speciesParcelCount <= SMALL)
                     {
                         continue;
                     }
@@ -3319,8 +3456,9 @@ void dsmcVolFields::calculateField()
                         )
                         {
                             const scalar iMean =
-                                evibCum/(kB*thetaV[mod]*speciesCount);
-                               
+                                evibCum/(kB*thetaV[mod]*speciesParcelCount)
+                              - 0.5;
+
                             if (iMean > SMALL)
                             {
                                 const scalar logFactor = log(1.0 + 1.0/iMean);
@@ -3330,7 +3468,7 @@ void dsmcVolFields::calculateField()
                                     2.0*iMean*logFactor;
 
                                 speciesZetaVib += speciesZetaVibMod;
-                                    
+
                                 // XCX: = should be +=, same as line 2251
                                 zetaByTvibMod +=
                                     speciesZetaVibMod*speciesTvibMod;
@@ -3343,10 +3481,12 @@ void dsmcVolFields::calculateField()
                         const scalar speciesTvib =
                             zetaByTvibMod/speciesZetaVib;
 
-                        moleculesRhoN += speciesCount;
-                        Tvib_[celli] += speciesCount*speciesTvib;
-                            
-                        zetaVib_[celli] += speciesCount*speciesZetaVib;    
+                        speciesTvib_[i][celli] = speciesTvib;
+
+                        moleculesRhoN += speciesParcelCount;
+                        Tvib_[celli] += speciesParcelCount*speciesTvib;
+
+                        zetaVib_[celli] += speciesParcelCount*speciesZetaVib;
                     }
                     
                 } //- end species loop
@@ -3869,7 +4009,8 @@ void dsmcVolFields::calculateField()
                                     }
 
                                     const scalar iMean =
-                                        evibMod/(kB*thetaV[mod]*speciesRhoN);
+                                        evibMod/(kB*thetaV[mod]*speciesRhoN)
+                                      - 0.5;
 
                                     if (iMean > SMALL)
                                     {
@@ -4210,6 +4351,8 @@ void dsmcVolFields::calculateField()
             }
         }
 
+        skipFieldComputation:
+
         const auto outputResetStart =
             doProfile
           ? wallClockNow()
@@ -4328,7 +4471,8 @@ void dsmcVolFields::calculateField()
                 wallSeconds(outputResetStart, wallClockNow());
         }
 
-        if (averagingAcrossManyRuns_ && !time_.resetFieldsAtOutput())
+        if (averagingAcrossManyRuns_ && !time_.resetFieldsAtOutput()
+            && cloud_.isOutputRank())
         {
             const auto writeOutStart =
                 doProfile
@@ -4353,8 +4497,8 @@ void dsmcVolFields::calculateField()
 
     if
     (
-        doProfile
-     && Pstream::master()
+        profileDetailEnabled_
+     && cloud_.isOutputRank()
      && !finalProfilePrinted_
      && time_.time().value() + time_.time().deltaT().value()
         >= time_.time().endTime().value() - SMALL

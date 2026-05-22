@@ -707,9 +707,8 @@ bool dsmcDynamicLoadBalancing::performInMemory()
     }
     scalar loadCountWallTime = elapsedSeconds(loadCountStart);
 
-    // TACF-style cost: particle count as spatial resolution.
+    // Cost proxy: particle count as spatial resolution.
     // Per-particle cost = 1.0 (equivalently: balance particle count).
-    // Can be augmented with per-rank wall time ratio later.
     scalarList cellTacfCost(oldNCells, 0.0);
     scalar localTacfCost = 0.0;
 

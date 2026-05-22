@@ -106,8 +106,7 @@ void dsmcFreeStreamInflowPatch::controlParcelsBeforeMove()
     };
 
     Random& rndGen = cloud_.rndGen();
-    const bool useOpenMPInflow =
-        cloud_.openmpEnabled() && cloud_.ompNumThreads() > 1;
+    const bool useOpenMPInflow = false;
     const label inflowThreads =
         useOpenMPInflow ? cloud_.ompNumThreads() : label(1);
 

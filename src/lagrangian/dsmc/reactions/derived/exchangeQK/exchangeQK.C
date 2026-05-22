@@ -225,7 +225,7 @@ void exchangeQK::testExchange
     {
         const label vibLevel_m = p.vibLevel()[m];
         const scalar kBByThetaVP = physicoChemical::k.value()*cloud_.constProps(typeIdP).thetaV_m(m);
-        const scalar EVibP_m = cloud_.constProps(typeIdP).eVib_m(m, vibLevel_m);
+        const scalar EVibP_m = kBByThetaVP*vibLevel_m;
 
         //- Total collision energy
         collisionEnergy = translationalEnergy + EVibP_m;
@@ -243,7 +243,7 @@ void exchangeQK::testExchange
                 {
                     const scalar vibBase = max
                     (
-                        1.0 - cloud_.constProps(typeIdP).eVib_m(m, i)/collisionEnergy,
+                        1.0 - (kBByThetaVP*i)/collisionEnergy,
                         0.0
                     );
 
@@ -275,7 +275,9 @@ void exchangeQK::exchange
     const label typeIdP = p.typeId();
     const label typeIdQ = q.typeId();
 
+    #pragma omp atomic
     nTotExchangeReactions_++;
+    #pragma omp atomic
     nExchangeReactionsPerTimeStep_++;
 
     if (allowSplitting_)
@@ -309,7 +311,13 @@ void exchangeQK::exchange
                 + cloud_.constProps(typeIdMol).omega()
             );
 
-        const scalar EVibP = cloud_.constProps(typeIdP).eVib_tot(p.vibLevel());
+        const scalarList& thetaV = cloud_.constProps(typeIdP).thetaV();
+        const labelList& vibLevels = p.vibLevel();
+        scalar EVibP = 0.0;
+        forAll(thetaV, m)
+        {
+            EVibP += physicoChemical::k.value()*thetaV[m]*vibLevels[m];
+        }
         const scalar EEleP = cloud_.constProps(typeIdP).electronicEnergyList()[p.ELevel()];
         const scalar EEleQ = cloud_.constProps(typeIdQ).electronicEnergyList()[q.ELevel()];
 

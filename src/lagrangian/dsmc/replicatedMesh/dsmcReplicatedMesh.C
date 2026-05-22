@@ -21,82 +21,14 @@ License
 #include "dsmcCloud.H"
 #include "OCharStream.H"
 #include "ISpanStream.H"
-#include "IStringStream.H"
 #include "scotchDecomp.H"
-#include "scotch.h"
 #include "parmetis.h"
-#include "PrecisionAdaptor.H"
-#include "floatScalar.H"
 #include <mpi.h>
 #include <chrono>
-#include <vector>
 #include <cstring>
-#include <algorithm>
-#include <cmath>
 
 namespace Foam
 {
-
-// ============================================================================
-// 3D Hilbert curve — state tables
-// ============================================================================
-
-// Hilbert sub-cube index for (state, octant) → local position [0..7]
-// 12 states × 8 octants (ordered by xyz bits)
-static const uint8_t hilbertTable[12][8] = {
-    {0,1,3,2,7,6,4,5},  // state  0
-    {0,1,3,2,7,6,4,5},  // state  1
-    {0,3,1,2,7,4,6,5},  // state  2
-    {0,1,5,4,7,6,2,3},  // state  3
-    {0,1,5,4,7,6,2,3},  // state  4
-    {0,5,1,4,7,2,6,3},  // state  5
-    {6,2,3,7,5,1,0,4},  // state  6
-    {6,2,3,7,5,1,0,4},  // state  7
-    {6,4,5,1,2,3,0,7},  // state  8
-    {0,3,7,4,1,2,6,5},  // state  9
-    {0,3,7,4,1,2,6,5},  // state 10
-    {6,4,5,1,2,3,0,7}   // state 11
-};
-
-// Next state for (state, octant)
-static const uint8_t hilbertNextState[12][8] = {
-    { 2, 1, 3, 0, 0,11, 0, 9},  // state  0
-    { 3, 1, 1, 0,10, 2, 9, 9},  // state  1
-    { 2, 0, 3, 1, 0, 0,11, 0},  // state  2
-    { 5, 4, 4, 1,11, 3, 0, 5},  // state  3
-    { 5, 3, 1, 0, 1, 5,11, 0},  // state  4
-    { 4, 0, 2, 1, 0, 2, 5, 4},  // state  5
-    { 8, 7, 7,10, 9, 0,11, 0},  // state  6
-    { 6, 4, 4, 9, 8,10, 7, 7},  // state  7
-    { 7, 9, 5, 4, 5, 5, 7, 8},  // state  8
-    { 1, 1, 2, 3, 6, 3, 7, 0},  // state  9
-    { 1, 0, 6, 3, 9, 6, 3,10},  // state 10
-    { 8,11,11, 9, 4, 9,10, 1}   // state 11
-};
-
-
-uint64_t dsmcReplicatedMesh::hilbert3DIndex
-(
-    uint32_t x, uint32_t y, uint32_t z,
-    label bits
-)
-{
-    uint64_t h = 0;
-    uint8_t state = 0;
-
-    for (label i = bits - 1; i >= 0; --i)
-    {
-        const uint8_t xi = (x >> i) & 1;
-        const uint8_t yi = (y >> i) & 1;
-        const uint8_t zi = (z >> i) & 1;
-        const uint8_t octant = (xi << 2) | (yi << 1) | zi;
-
-        h |= static_cast<uint64_t>(hilbertTable[state][octant]) << (3 * i);
-        state = hilbertNextState[state][octant];
-    }
-    return h;
-}
-
 
 // ============================================================================
 // Constructor / Destructor
@@ -108,34 +40,28 @@ dsmcReplicatedMesh::dsmcReplicatedMesh(dsmcCloud& cloud, const fvMesh& mesh)
     cellOwner_(mesh.nCells(), -1), localMesh_(mesh), myCells_(0),
     localParticleCount_(0), allParticleCounts_(0),
     migrationWallTime_(0.0), migrationCalls_(0),
-    cellCost_(0), cellCostSteps_(0),
-    cellCollisionCost_(0), cellCollisionCostSteps_(0),
-    costMoveWeight_(1.0), costCollisionWeight_(1.0),
     evolveStepTime_(0.0), evolveTimeSteps_(0),
     active_(false), nProcs_(1), myRank_(0),
     migrateInterval_(1), stepCounter_(0),
     rebalanceCount_(0), totalCellsChanged_(0), totalParcelsMigrated_(0),
     // Phase C defaults
     autoDLBEnabled_(false),
-    nSuperCells_(0), alpha_(8),
-    imbalanceThreshold_(0.15),
-    cooldownSteps_(100),
+    imbalanceThreshold_(1.15),
+    dlbSteps_(50),
     lastAutoRebalanceStep_(-1000),
     autoRebalanceCount_(0),
-    superCellCost_(0),
-    superCellOfCell_(0),
-    superCellOwner_(0),
-    superCellCentres_(0),
     // ParDSMC3D trigger state
     productiveTime_(0.0),
     lastEvolveTime_(0.0),
     lastMigrationTime_(0.0),
     tidl_(0.0),
     tdecps_(0.0),
-    w1_(1.0e6), w2_(0.0),  // w1 large → sar negative until idle accumulates
+    w1_(0.0), w2_(0.0),
     ndecps_(0),
     nEvalPeriods_(0),
     sar_(0.0),
+    postDLBSnapshotCountdown_(0),
+    collDivisor_(128),
     asyncMigrationPending_(false),
     asyncRecvSize_(0)
 {}
@@ -282,6 +208,9 @@ void dsmcReplicatedMesh::initialize()
     MPI_Comm_size(MPI_COMM_WORLD, &nProcs_);
     MPI_Comm_rank(MPI_COMM_WORLD, &myRank_);
     allParticleCounts_.setSize(nProcs_, 0);
+    const label defaultK = (nProcs_ >= 8) ? 128 : 64;
+    collDivisor_ = mesh_.time().controlDict().lookupOrDefault<label>
+        ("replicatedMeshDLBInitialK", defaultK);
 
     if (nProcs_ < 2)
     {
@@ -326,416 +255,19 @@ void dsmcReplicatedMesh::initialize()
     if (autoDLBEnabled_)
     {
         imbalanceThreshold_ = mesh_.time().controlDict()
-            .lookupOrDefault<scalar>("replicatedMeshDLBImbalanceThreshold", 0.15);
-        cooldownSteps_ = mesh_.time().controlDict()
-            .lookupOrDefault<label>("replicatedMeshDLBCooldownSteps", 100);
-        if (cooldownSteps_ < 10) cooldownSteps_ = 10;
-
-        // TACF cost weights: move (particle count) vs collision (candidates)
-        costMoveWeight_ = mesh_.time().controlDict()
-            .lookupOrDefault<scalar>("replicatedMeshCostMoveWeight", 3.7);
-        costCollisionWeight_ = mesh_.time().controlDict()
-            .lookupOrDefault<scalar>("replicatedMeshCostCollisionWeight", 1.0);
+            .lookupOrDefault<scalar>("replicatedMeshDLBImbalanceThreshold", 1.15);
+        dlbSteps_ = mesh_.time().controlDict()
+            .lookupOrDefault<label>("replicatedMeshDLBSteps", 50);
+        if (dlbSteps_ < 10) dlbSteps_ = 10;
 
         Info<< "Phase C auto DLB: enabled (ParMETIS AdaptiveRepart)"
             << ", imbalanceThreshold=" << imbalanceThreshold_
-            << ", cooldownSteps=" << cooldownSteps_ << endl;
+            << ", dlbSteps=" << dlbSteps_ << endl;
     }
 
     active_ = true;
     Info<< "Replicated mesh: initialized with " << nProcs_ << " MPI ranks"
         << ", migrate interval " << migrateInterval_ << endl;
-}
-
-
-// ============================================================================
-// buildSuperCells — Phase C: Scotch over-decomposition
-// ============================================================================
-
-void dsmcReplicatedMesh::buildSuperCells()
-{
-    const label nCells = mesh_.nCells();
-
-    // Scotch decompose to M = alpha*P domains
-    pointField cellCentres(nCells);
-    forAll(mesh_.cells(), cellI) cellCentres[cellI] = mesh_.cellCentres()[cellI];
-
-    dictionary decompDict;
-    decompDict.set("method", "scotch");
-    decompDict.set("numberOfSubdomains", nSuperCells_);
-    dictionary scotchCoeffs;
-    decompDict.set("scotchCoeffs", scotchCoeffs);
-    scotchDecomp decomposer(decompDict);
-
-    superCellOfCell_ = decomposer.decompose(mesh_, cellCentres);
-
-    Info<< "Phase C: superCell decomposition complete, "
-        << nCells << " cells -> " << nSuperCells_ << " superCells" << endl;
-}
-
-
-// ============================================================================
-// updateSuperCellCosts — Phase C: aggregate cell costs to superCells
-// ============================================================================
-
-void dsmcReplicatedMesh::updateSuperCellCosts()
-{
-    const label nCells = mesh_.nCells();
-
-    if (superCellCentres_.size() != nSuperCells_)
-        superCellCentres_.setSize(nSuperCells_, vector::zero);
-    if (superCellCost_.size() != nSuperCells_)
-        superCellCost_.setSize(nSuperCells_, 0.0);
-
-    superCellCost_ = 0.0;
-    superCellCentres_ = vector::zero;
-    labelList superCellCellCounts(nSuperCells_, 0);
-
-    // TACF cell costs: weighted combination of move (particle count)
-    // and collision (candidate pairs)
-    const bool haveTACF = (cellCost_.size() == nCells && cellCostSteps_ > 0);
-    const bool haveCollisionCost =
-        (cellCollisionCost_.size() == nCells && cellCollisionCostSteps_ > 0);
-
-    for (label cellI = 0; cellI < nCells; ++cellI)
-    {
-        const label sc = superCellOfCell_[cellI];
-        superCellCentres_[sc] += mesh_.cellCentres()[cellI];
-        ++superCellCellCounts[sc];
-
-        if (haveTACF)
-        {
-            // move proxy (pre-weighted by costMoveWeight_)
-            superCellCost_[sc] += cellCost_[cellI];
-
-            // collision proxy (pre-weighted by costCollisionWeight_)
-            if (haveCollisionCost)
-                superCellCost_[sc] += cellCollisionCost_[cellI];
-        }
-    }
-
-    // Compute centroids and fallback costs
-    for (label sc = 0; sc < nSuperCells_; ++sc)
-    {
-        if (superCellCellCounts[sc] > 0)
-        {
-            superCellCentres_[sc] /= scalar(superCellCellCounts[sc]);
-        }
-        if (!haveTACF)
-        {
-            // No TACF yet — use cell count as proxy cost
-            superCellCost_[sc] = scalar(superCellCellCounts[sc]);
-        }
-    }
-}
-
-
-// ============================================================================
-// reassignByHilbertSuperCell — Phase C: Hilbert SFC load-balanced assignment
-// ============================================================================
-
-label dsmcReplicatedMesh::reassignByHilbertSuperCell()
-{
-    const label nCells = mesh_.nCells();
-
-    // Update superCell data from current TACF
-    updateSuperCellCosts();
-
-    // Compute bounding box of superCell centroids for Hilbert normalization
-    vector bbMin = vector(GREAT, GREAT, GREAT);
-    vector bbMax = vector(-GREAT, -GREAT, -GREAT);
-    forAll(superCellCentres_, sc)
-    {
-        const vector& c = superCellCentres_[sc];
-        bbMin.x() = min(bbMin.x(), c.x());
-        bbMin.y() = min(bbMin.y(), c.y());
-        bbMin.z() = min(bbMin.z(), c.z());
-        bbMax.x() = max(bbMax.x(), c.x());
-        bbMax.y() = max(bbMax.y(), c.y());
-        bbMax.z() = max(bbMax.z(), c.z());
-    }
-
-    const vector bbLen = bbMax - bbMin;
-    const scalar eps = 1e-12;
-
-    // Compute Hilbert keys for each superCell
-    const label bits = 21; // ~2M resolution per axis, 63-bit key
-    const uint32_t maxCoord = (uint32_t(1) << bits) - 1;
-
-    // (hilbertKey, superCellIndex) pairs for sorting
-    std::vector<std::pair<uint64_t, label>> sortedSCs;
-    sortedSCs.reserve(nSuperCells_);
-
-    for (label sc = 0; sc < nSuperCells_; ++sc)
-    {
-        const vector& c = superCellCentres_[sc];
-        const uint32_t ix = uint32_t(
-            (bbLen.x() > eps)
-                ? ((c.x() - bbMin.x()) / bbLen.x()) * scalar(maxCoord)
-                : 0
-        );
-        const uint32_t iy = uint32_t(
-            (bbLen.y() > eps)
-                ? ((c.y() - bbMin.y()) / bbLen.y()) * scalar(maxCoord)
-                : 0
-        );
-        const uint32_t iz = uint32_t(
-            (bbLen.z() > eps)
-                ? ((c.z() - bbMin.z()) / bbLen.z()) * scalar(maxCoord)
-                : 0
-        );
-
-        const uint64_t key = hilbert3DIndex(ix, iy, iz, bits);
-        sortedSCs.emplace_back(key, sc);
-    }
-
-    // Sort superCells by Hilbert key
-    std::sort(sortedSCs.begin(), sortedSCs.end());
-
-    // Compute total cost and target per rank
-    scalar totalCost = 0.0;
-    forAll(superCellCost_, sc) totalCost += superCellCost_[sc];
-    const scalar targetPerRank = totalCost / scalar(nProcs_);
-
-    // Walk sorted superCells, assign to ranks by cumulative cost
-    labelList newSuperCellOwner(nSuperCells_, -1);
-    scalar accumCost = 0.0;
-    label rankIdx = 0;
-
-    for (const auto& [key, sc] : sortedSCs)
-    {
-        newSuperCellOwner[sc] = rankIdx;
-        accumCost += superCellCost_[sc];
-
-        // Move to next rank when we've exceeded this rank's target
-        if (accumCost >= targetPerRank * scalar(rankIdx + 1) && rankIdx < nProcs_ - 1)
-        {
-            ++rankIdx;
-        }
-    }
-
-    // Ensure last rank gets remaining superCells
-    for (label sc = 0; sc < nSuperCells_; ++sc)
-    {
-        if (newSuperCellOwner[sc] < 0) newSuperCellOwner[sc] = nProcs_ - 1;
-    }
-
-    // Count changes
-    label nSuperCellsChanged = 0;
-    for (label sc = 0; sc < nSuperCells_; ++sc)
-    {
-        if (newSuperCellOwner[sc] != superCellOwner_[sc]) ++nSuperCellsChanged;
-    }
-    superCellOwner_ = newSuperCellOwner;
-
-    // Derive cellOwner_ from superCellOwner_
-    labelList oldCellOwner(cellOwner_);
-    for (label cellI = 0; cellI < nCells; ++cellI)
-    {
-        cellOwner_[cellI] = superCellOwner_[superCellOfCell_[cellI]];
-    }
-
-    label nCellsChanged = 0;
-    for (label cellI = 0; cellI < nCells; ++cellI)
-    {
-        if (cellOwner_[cellI] != oldCellOwner[cellI]) ++nCellsChanged;
-    }
-
-    rebuildMyCells();
-
-    Info<< "Phase C Hilbert: " << nSuperCellsChanged << " / " << nSuperCells_
-        << " superCells changed owner, "
-        << nCellsChanged << " / " << nCells << " cells changed ("
-        << scalar(nCellsChanged)/scalar(nCells) << ")"
-        << " totalCost=" << totalCost << " targetPerRank=" << targetPerRank
-        << endl;
-
-    return nSuperCellsChanged;
-}
-
-
-// ============================================================================
-// reassignByScotchRemap — Phase C: SCOTCH graph remap for load balancing
-// ============================================================================
-
-void dsmcReplicatedMesh::reassignByScotchRemap()
-{
-    const label nCells = mesh_.nCells();
-
-    // ---- Build mesh adjacency graph (CSR format) --------------------------
-    const labelList& faceOwner = mesh_.faceOwner();
-    const labelList& faceNei = mesh_.faceNeighbour();
-    const label nIntFaces = mesh_.nInternalFaces();
-
-    labelList cellDeg(nCells, 0);
-    for (label fi = 0; fi < nIntFaces; ++fi)
-    {
-        ++cellDeg[faceOwner[fi]];
-        ++cellDeg[faceNei[fi]];
-    }
-
-    labelList xadj(nCells + 1);
-    xadj[0] = 0;
-    for (label i = 0; i < nCells; ++i)
-        xadj[i+1] = xadj[i] + cellDeg[i];
-
-    labelList adjncy(xadj[nCells]);
-    labelList off = xadj;
-    for (label fi = 0; fi < nIntFaces; ++fi)
-    {
-        const label own = faceOwner[fi];
-        const label nei = faceNei[fi];
-        adjncy[off[own]++] = nei;
-        adjncy[off[nei]++] = own;
-    }
-
-    // ---- Vertex weights from TACF costs ----------------------------------
-    const bool haveTACF = (cellCost_.size() == nCells && cellCostSteps_ > 0);
-    const bool haveColl =
-        (cellCollisionCost_.size() == nCells && cellCollisionCostSteps_ > 0);
-
-    List<scalar> cWeights(nCells, 1.0);
-    if (haveTACF)
-    {
-        forAll(cWeights, i)
-        {
-            cWeights[i] = cellCost_[i];
-            if (haveColl) cWeights[i] += cellCollisionCost_[i];
-        }
-    }
-
-    // Normalise and convert to SCOTCH_Num integers
-    const scalar minW = max(min(cWeights), SMALL);
-    scalar rangeScale = 1.0;
-    {
-        const scalar wSum = sum(cWeights) / minW;
-        const scalar upper = scalar(std::numeric_limits<SCOTCH_Num>::max() - 1);
-        if (wSum > upper) rangeScale = 0.9 * upper / wSum;
-    }
-
-    List<SCOTCH_Num> velotab(nCells);
-    forAll(velotab, i)
-    {
-        velotab[i] = static_cast<SCOTCH_Num>
-        (
-            ((cWeights[i] / minW - 1.0) * rangeScale) + 1.0
-        );
-    }
-
-    // ---- Precision adaptors for SCOTCH API --------------------------------
-    ConstPrecisionAdaptor<SCOTCH_Num, label, List> xadjParam(xadj);
-    ConstPrecisionAdaptor<SCOTCH_Num, label, List> adjncyParam(adjncy);
-
-    // ---- Build graph and remap on rank 0 only (memory-efficient) -----------
-    List<SCOTCH_Num> outPart(nCells, 0);
-
-    if (myRank_ == 0)
-    {
-        Info<< "Phase C SCOTCH: building graph (rank 0, "
-            << nCells << " cells, " << adjncy.size() << " edges)" << endl;
-
-        SCOTCH_Graph grafdat;
-        SCOTCH_graphInit(&grafdat);
-
-        {
-            const int ret = SCOTCH_graphBuild
-        (
-            &grafdat, 0,
-            SCOTCH_Num(nCells),
-            xadjParam().cdata(), nullptr,
-            velotab.cdata(), nullptr,
-            SCOTCH_Num(adjncy.size()),
-            adjncyParam().cdata(), nullptr
-        );
-        if (ret)
-        {
-            FatalErrorInFunction
-                << "SCOTCH_graphBuild failed (" << ret << ")" << nl
-                << exit(FatalError);
-        }
-    }
-
-    // ---- Architecture (complete graph, fully connected) -------------------
-    SCOTCH_Arch archdat;
-    SCOTCH_archInit(&archdat);
-    SCOTCH_archCmplt(&archdat, SCOTCH_Num(nProcs_));
-
-    // ---- Current partition (input) ----------------------------------------
-    List<SCOTCH_Num> inPart(nCells);
-    forAll(cellOwner_, i) inPart[i] = SCOTCH_Num(cellOwner_[i]);
-
-    // Output partition — separate array; SCOTCH_graphRemap takes
-    // const input and non-const output
-    List<SCOTCH_Num> outPart(nCells, 0);
-
-    // ---- Strategy ---------------------------------------------------------
-    SCOTCH_Strat stradat;
-    SCOTCH_stratInit(&stradat);
-
-    // ---- Compute new partition (SCOTCH_graphRemap) -------------------------
-    // graphRemap minimises data movement while rebalancing.
-    // 3rd param = vmlotab (vertex migration cost), NULL = uniform.
-    // Vertex LOADS are already set in graphBuild via velotab.
-    Info<< "Phase C SCOTCH: calling graphRemap..." << endl;
-
-    #ifdef FE_NOMASK_ENV
-    int oldExcepts = fedisableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
-    #endif
-
-    {
-        const int ret = SCOTCH_graphRemap
-        (
-            &grafdat,               // graph (velotab already set)
-            &archdat,               // target architecture
-            nullptr,                // vmlotab: vertex migration cost (NULL=uniform)
-            1.05,                   // imbalance ratio (5%)
-            inPart.cdata(),         // old partition (input, const)
-            &stradat,               // strategy
-            outPart.data()          // new partition (output)
-        );
-        if (ret)
-        {
-            FatalErrorInFunction
-                << "SCOTCH_graphRemap failed (" << ret << ")" << nl
-                << exit(FatalError);
-        }
-    }
-
-    #ifdef FE_NOMASK_ENV
-    feenableexcept(oldExcepts);
-    #endif
-
-    // ---- Cleanup SCOTCH ---------------------------------------------------
-    SCOTCH_graphExit(&grafdat);
-    SCOTCH_archExit(&archdat);
-    SCOTCH_stratExit(&stradat);
-
-    } // end rank 0 only
-
-    // Broadcast new partition from rank 0 to all ranks
-    MPI_Bcast(outPart.data(), nCells, MPI_INT, 0, MPI_COMM_WORLD);
-
-    // ---- Update cellOwner_ ------------------------------------------------
-    label nChanged = 0;
-    forAll(cellOwner_, i)
-    {
-        const label newOwner = label(outPart[i]);
-        if (newOwner != cellOwner_[i])
-        {
-            cellOwner_[i] = newOwner;
-            ++nChanged;
-        }
-    }
-
-    // ---- Rebuild local structures -----------------------------------------
-    rebuildMyCells();
-    localMesh_.build(myCells_);
-
-    totalCellsChanged_ += nChanged;
-
-    Info<< "Phase C SCOTCH remap: " << nChanged
-        << " / " << nCells << " cells changed ("
-        << scalar(nChanged) / scalar(nCells) << ")" << nl;
 }
 
 
@@ -820,17 +352,20 @@ void dsmcReplicatedMesh::reassignByParMetisAdaptiveRepart()
     }
 
     // Unified DLB strategy: single constraint = N + N*(N-1)/K
-    // K auto-computed from real-time move/collision wall times.
+    // K from fixedK (controlDict), adaptive PID (collDivisor_), or auto formula.
     idx_t ncon = 1;
     idx_t wgtflag = 2;  // vertex weights only
-    label collDivisor = (nProcs_ >= 8) ? 128 : 64;
-    if (moveTime > SMALL && collTime > SMALL
-        && totalParticles > 0 && totalCandidates > 0)
+    const label fixedK = mesh_.time().controlDict().lookupOrDefault<label>
+        ("replicatedMeshDLBFixedK", 0);
+    label collDivisor;
+    if (fixedK > 0)
     {
-        const scalar costPerParticle = moveTime / scalar(totalParticles);
-        const scalar costPerCandidate = collTime / scalar(totalCandidates);
-        const scalar rawK = 2.0 * costPerParticle / max(costPerCandidate, SMALL);
-        collDivisor = max(label(32), min(label(128), label(rawK)));
+        collDivisor = fixedK;
+    }
+    else
+    {
+        // Use adaptive K (PID-adjusted collDivisor_)
+        collDivisor = collDivisor_;
     }
 
     List<idx_t> vwgt(myN * ncon, 1);
@@ -961,10 +496,40 @@ void dsmcReplicatedMesh::autoRebalance()
     if (!autoDLBEnabled_ || !active_ || nProcs_ < 2) return;
 
     const label currentStep = stepCounter_;
+    const bool dlbProfile = mesh_.time().controlDict().lookupOrDefault<bool>
+        ("replicatedMeshDLBProfile", false);
+
+    // Post-DLB snapshot: per-rank load for 5 steps after DLB
+    if (dlbProfile && postDLBSnapshotCountdown_ > 0)
+    {
+        const scalar myMoveT = cloud_.evolveMoveWallTime();
+        const scalar myCollT = cloud_.evolveCollisionWallTime();
+        scalarList snapMove(nProcs_, 0.0), snapColl(nProcs_, 0.0);
+        MPI_Allgather(&myMoveT, 1, MPI_DOUBLE,
+                      snapMove.data(), 1, MPI_DOUBLE, MPI_COMM_WORLD);
+        MPI_Allgather(&myCollT, 1, MPI_DOUBLE,
+                      snapColl.data(), 1, MPI_DOUBLE, MPI_COMM_WORLD);
+        if (lastDLBMoveT_.size() == nProcs_)
+        {
+            const label nSnap = mesh_.time().controlDict().lookupOrDefault<label>
+                ("replicatedMeshDLBProfileSteps", 5);
+            const label step = nSnap + 1 - postDLBSnapshotCountdown_;
+            scalar maxLoad = 0.0, minLoad = GREAT;
+            Info<< "  [post-DLB step " << step << "] per-rank load:";
+            for (label i = 0; i < nProcs_; ++i)
+            {
+                const scalar load = (snapMove[i] - lastDLBMoveT_[i])
+                    + (snapColl[i] - lastDLBCollT_[i]);
+                Info<< " r" << i << "=" << load;
+                if (load > maxLoad) maxLoad = load;
+                if (load < minLoad) minLoad = load;
+            }
+            Info<< " | max/min=" << maxLoad / max(minLoad, SMALL) << nl;
+        }
+        --postDLBSnapshotCountdown_;
+    }
 
     // ---- Accumulate productive time (move+collision, excluding migration) ----
-    // ParDSMC3D: toper = move + collision (excludes communication cost)
-    // evolveStepTime_ / migrationWallTime_ are cumulative → use deltas
     const scalar stepEvolve = evolveStepTime_ - lastEvolveTime_;
     const scalar stepMig = migrationWallTime_ - lastMigrationTime_;
     productiveTime_ += stepEvolve - stepMig;
@@ -972,41 +537,65 @@ void dsmcReplicatedMesh::autoRebalance()
     lastMigrationTime_ = migrationWallTime_;
     ++ndecps_;
 
-    // Evaluate every cooldownSteps_ steps (ParDSMC3D evaluates every 10)
-    if (ndecps_ < cooldownSteps_) return;
+    // Minimum step guard (ParMETIS needs stable particle distribution)
+    if (currentStep < 30) return;
 
-    // Need TACF data for SCOTCH vertex weights
-    const label nCells = mesh_.nCells();
-    if (cellCost_.size() != nCells || cellCostSteps_ < 2) return;
+    bool triggered = false;
 
-    // ---- ParDSMC3D-style trend-based trigger ----
-    scalarList allProdTimes(nProcs_, 0.0);
-    MPI_Allgather(&productiveTime_, 1, MPI_DOUBLE,
-                  allProdTimes.data(), 1, MPI_DOUBLE, MPI_COMM_WORLD);
+    // ---- Evaluate every 10 steps ----
+    if (ndecps_ % 10 == 0)
+    {
+        scalarList allProdTimes(nProcs_, 0.0);
+        MPI_Allgather(&productiveTime_, 1, MPI_DOUBLE,
+                      allProdTimes.data(), 1, MPI_DOUBLE, MPI_COMM_WORLD);
 
-    const scalar avgT = sum(allProdTimes) / scalar(nProcs_);
-    const scalar maxT = max(allProdTimes);
-    if (avgT < SMALL) return;
+        const scalar maxT = max(allProdTimes);
+        const scalar minT = min(allProdTimes);
 
-    // Accumulate idle across evaluation periods
-    tidl_ += maxT - avgT;
-    ++nEvalPeriods_;
-    w2_ = (tidl_ + tdecps_) / scalar(nEvalPeriods_);
-    sar_ = w2_ - w1_;
-    w1_ = w2_;
+        if (maxT > SMALL)
+        {
+            const scalar loadImbalance = maxT / max(minT, SMALL);
 
-    // Reset for next evaluation window
-    productiveTime_ = 0.0;
-    ndecps_ = 0;
+            // SAR trend update
+            tidl_ += maxT - minT;
+            ++nEvalPeriods_;
+            w2_ = (tidl_ + tdecps_) / scalar(nEvalPeriods_);
 
-    // ParDSMC3D: trigger when idle rate trend is increasing (sar > 0)
-    if (sar_ <= 0.0) return;
+            if (nEvalPeriods_ == 1)
+            {
+                w1_ = w2_;
+            }
+            else
+            {
+                sar_ = w2_ - w1_;
+                w1_ = w2_;
+                if (sar_ > 0.0)
+                {
+                    triggered = true;
+                    Info<< "\nPhase C auto DLB triggered (SAR) at step "
+                        << currentStep << ": sar=" << sar_
+                        << " loadImbalance=" << loadImbalance << nl;
+                }
+            }
 
-    // ---- Triggered ----
-    Info<< "\nPhase C auto DLB triggered at step " << currentStep
-        << ": sar=" << sar_ << " tidl=" << tidl_
-        << " nPeriods=" << nEvalPeriods_
-        << " prodTimes " << allProdTimes << nl;
+            // Threshold check at dlbSteps_ interval
+            if (!triggered && ndecps_ >= dlbSteps_)
+            {
+                if (loadImbalance > imbalanceThreshold_)
+                {
+                    triggered = true;
+                    Info<< "\nPhase C auto DLB triggered (threshold) at step "
+                        << currentStep << ": loadImbalance=" << loadImbalance
+                        << " > threshold=" << imbalanceThreshold_ << nl;
+                }
+            }
+        }
+
+        productiveTime_ = 0.0;
+        if (ndecps_ >= dlbSteps_) ndecps_ = 0;
+    }
+
+    if (!triggered) return;
 
     // Time the decomposition for cost accounting
     const auto tDecStart = std::chrono::steady_clock::now();
@@ -1024,16 +613,156 @@ void dsmcReplicatedMesh::autoRebalance()
     lastAutoRebalanceStep_ = currentStep;
     ++autoRebalanceCount_;
 
-    // ParDSMC3D: reset trigger state after repartition
-    // w1_ set large so next sar stays negative until idle re-accumulates
+    // Reset SAR state: w1_=w2_ keeps current idle rate as baseline
     tidl_ = 0.0;
     nEvalPeriods_ = 0;
-    w1_ = 1.0e6;
-    w2_ = 0.0;
     sar_ = 0.0;
+    ndecps_ = 0;
+    productiveTime_ = 0.0;
 
     Info<< "Phase C auto DLB complete: rebalance #" << autoRebalanceCount_
         << nl << endl;
+
+    // Inter-DLB load summary + arm post-DLB snapshot
+    {
+        const scalar myMoveT = cloud_.evolveMoveWallTime();
+        const scalar myCollT = cloud_.evolveCollisionWallTime();
+        scalarList allMoveT(nProcs_, 0.0), allCollT(nProcs_, 0.0);
+        MPI_Allgather(&myMoveT, 1, MPI_DOUBLE,
+                      allMoveT.data(), 1, MPI_DOUBLE, MPI_COMM_WORLD);
+        MPI_Allgather(&myCollT, 1, MPI_DOUBLE,
+                      allCollT.data(), 1, MPI_DOUBLE, MPI_COMM_WORLD);
+
+        if (dlbProfile && lastDLBMoveT_.size() == nProcs_)
+        {
+            Info<< "  Inter-DLB actual load (since last rebalance):" << nl;
+            scalar maxA = 0.0, minA = GREAT;
+            for (label i = 0; i < nProcs_; ++i)
+            {
+                const scalar dM = allMoveT[i] - lastDLBMoveT_[i];
+                const scalar dC = allCollT[i] - lastDLBCollT_[i];
+                Info<< "    rank" << i << ": move=" << dM
+                    << " coll=" << dC << " total=" << (dM+dC) << nl;
+                if (dM+dC > maxA) maxA = dM+dC;
+                if (dM+dC < minA) minA = dM+dC;
+            }
+            Info<< "    max/min=" << maxA / max(minA, SMALL)
+                << " (max=" << maxA << " min=" << minA << ")" << nl;
+        }
+
+        // ---- Adaptive K PID: use inter-DLB delta for error signal ----
+        const label fixedK = mesh_.time().controlDict().lookupOrDefault<label>
+            ("replicatedMeshDLBFixedK", 0);
+        const label adaptiveKMode = mesh_.time().controlDict().lookupOrDefault<label>
+            ("replicatedMeshDLBAdaptiveKMode", 1);
+        if (fixedK <= 0 && lastDLBMoveT_.size() == nProcs_)
+        {
+            // Compute bottleneck + imbalance from delta (max/min)
+            scalar maxWork = 0.0, minWork = GREAT;
+            label bottleneckRank = 0;
+            scalarList dMove(nProcs_), dColl(nProcs_);
+            for (label i = 0; i < nProcs_; ++i)
+            {
+                dMove[i] = allMoveT[i] - lastDLBMoveT_[i];
+                dColl[i] = allCollT[i] - lastDLBCollT_[i];
+                const scalar w = dMove[i] + dColl[i];
+                if (w > maxWork) { maxWork = w; bottleneckRank = i; }
+                if (w < minWork) { minWork = w; }
+            }
+            const scalar workImbalance = maxWork / max(minWork, SMALL);
+
+            // Direction from moveRatio
+            const scalar bnMoveRatio = dMove[bottleneckRank]
+                / max(dMove[bottleneckRank] + dColl[bottleneckRank], SMALL);
+            scalar avgMoveRatio = 0.0;
+            for (label i = 0; i < nProcs_; ++i)
+                avgMoveRatio += dMove[i] / max(dMove[i] + dColl[i], SMALL);
+            avgMoveRatio /= scalar(nProcs_);
+
+            const scalar totalDelta = sum(dMove) + sum(dColl);
+            const label oldK = collDivisor_;
+
+            if (adaptiveKMode == 0)
+            {
+                // PID controller with integral decay, rate limit, anti-windup
+                static scalar integral = 0.0;
+                static scalar prevError = 0.0;
+                const scalar targetImbalance = 1.1;
+                const scalar error = targetImbalance - workImbalance;
+
+                const scalar decayFactor = 0.5;
+                integral = decayFactor * integral + error;
+
+                const scalar derivative = error - prevError;
+                prevError = error;
+
+                const scalar Kp = 0.3;
+                const scalar Ki = 0.05;
+                const scalar Kd = 0.1;
+                scalar output = Kp * error + Ki * integral + Kd * derivative;
+
+                // Rate limit: max ±15% change per DLB
+                output = max(scalar(-0.15), min(scalar(0.15), output));
+
+                if (totalDelta > 2.0 * nProcs_)
+                {
+                    const label newK = label(
+                        scalar(collDivisor_) * (scalar(1.0) + output) + scalar(0.5)
+                    );
+                    const label clampedK = max(label(32), min(label(2048), newK));
+
+                    // Anti-windup: if K was clamped, back-calculate integral
+                    if (clampedK != newK)
+                    {
+                        const scalar actualOutput =
+                            scalar(clampedK) / scalar(collDivisor_) - scalar(1.0);
+                        integral = (actualOutput - Kp * error - Kd * derivative) / Ki;
+                    }
+
+                    collDivisor_ = clampedK;
+                }
+
+                Info<< "Phase C adaptive K (PID): bottleneck=rank" << bottleneckRank
+                    << " max/min=" << workImbalance
+                    << " error=" << error << " integral=" << integral
+                    << " K: " << oldK << " -> " << collDivisor_ << nl;
+            }
+            else
+            {
+                // Hill-Climbing controller (mode=1, default)
+                static scalar lastImbalance = GREAT;
+                static label lastDirection = -1;
+
+                if (workImbalance > 1.3 && totalDelta > 2.0 * nProcs_)
+                {
+                    label direction = (bnMoveRatio > avgMoveRatio + 0.03) ? 1 : -1;
+
+                    if (workImbalance > lastImbalance + 0.05)
+                        direction = -lastDirection;
+
+                    const scalar step = direction * min(scalar(0.4),
+                        (workImbalance - 1.0) * scalar(0.4));
+
+                    collDivisor_ = label(
+                        scalar(collDivisor_) * (scalar(1.0) + step) + scalar(0.5)
+                    );
+                    collDivisor_ = max(label(32), min(label(2048), collDivisor_));
+                    lastDirection = direction;
+                }
+                lastImbalance = workImbalance;
+
+                Info<< "Phase C adaptive K (Hill): bottleneck=rank" << bottleneckRank
+                    << " max/min=" << workImbalance
+                    << " (moveRatio=" << bnMoveRatio << " vs avg=" << avgMoveRatio << ")"
+                    << " K: " << oldK << " -> " << collDivisor_ << nl;
+            }
+        }
+
+        lastDLBMoveT_ = allMoveT;
+        lastDLBCollT_ = allCollT;
+        postDLBSnapshotCountdown_ = mesh_.time().controlDict().lookupOrDefault<label>
+            ("replicatedMeshDLBProfileSteps", 5);
+    }
 }
 
 
@@ -1271,7 +1000,7 @@ void dsmcReplicatedMesh::migrateParticlesByCellOwner()
 
     totalParcelsMigrated_ += nMigratedOut;
 
-    if (migrationCalls_ <= 3 || rebalanceCount_ > 0 || autoRebalanceCount_ > 0)
+    if (cloud_.emitStepDiagnostics())
     {
         label globalMigrated = 0;
         MPI_Allreduce(&nMigratedOut, &globalMigrated, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
@@ -1397,6 +1126,7 @@ void dsmcReplicatedMesh::migrateBegin()
     }
     else
     {
+        // Multi-rank: exchange sizes via Alltoall, then Isend/Irecv
         labelList recvSizes(nProcs_, 0);
         MPI_Alltoall(sendSizes.data(), 1, MPI_INT,
                      recvSizes.data(), 1, MPI_INT, MPI_COMM_WORLD);
@@ -1517,44 +1247,6 @@ void dsmcReplicatedMesh::updateParticleCounts()
 
 
 // ============================================================================
-// accumulateCellCosts — Phase A/B TACF
-// ============================================================================
-
-void dsmcReplicatedMesh::accumulateCellCosts()
-{
-    if (!active_) return;
-    const label nCells = mesh_.nCells();
-    if (cellCost_.size() != nCells)
-    {
-        cellCost_.setSize(nCells, 0.0);
-        cellCollisionCost_.setSize(nCells, 0.0);
-        cellCostSteps_ = 0;
-        cellCollisionCostSteps_ = 0;
-    }
-
-    // Move cost proxy: particle count per cell
-    forAllConstIter(Cloud<dsmcParcel>, cloud_, iter)
-    {
-        const label cellI = iter().cell();
-        if (cellI >= 0 && cellI < nCells) cellCost_[cellI] += costMoveWeight_;
-    }
-    ++cellCostSteps_;
-
-    // Collision cost proxy: collision candidates per cell
-    const labelList& nCand = cloud_.nCandidatesPerCell();
-    if (nCand.size() == nCells)
-    {
-        for (label cellI = 0; cellI < nCells; ++cellI)
-        {
-            if (nCand[cellI] > 0)
-                cellCollisionCost_[cellI] += costCollisionWeight_ * scalar(nCand[cellI]);
-        }
-        ++cellCollisionCostSteps_;
-    }
-}
-
-
-// ============================================================================
 // reassignCellOwner — Phase B: manual block/reverse-block
 // ============================================================================
 
@@ -1591,12 +1283,67 @@ void dsmcReplicatedMesh::reassignCellOwner()
 
 
 // ============================================================================
+// gatherParcelsToRank0 — collect all particles on rank 0 for writing
+// ============================================================================
+
+void dsmcReplicatedMesh::gatherParcelsToRank0()
+{
+    if (!active_ || nProcs_ <= 1) return;
+
+    cloud_.clearMoveOrderedParcels();
+
+    if (myRank_ != 0)
+    {
+        OCharStream os(IOstreamOption::BINARY);
+        forAllIter(Cloud<dsmcParcel>, cloud_, iter)
+        {
+            iter().writeBinaryFast(os);
+        }
+        cloud_.clear();
+
+        DynamicList<char> buf = os.release();
+        label sendSize = buf.size();
+        MPI_Send(&sendSize, 1, MPI_INT, 0, 10, MPI_COMM_WORLD);
+        if (sendSize > 0)
+        {
+            MPI_Send(buf.data(), sendSize, MPI_BYTE, 0, 11, MPI_COMM_WORLD);
+        }
+    }
+    else
+    {
+        for (label src = 1; src < nProcs_; ++src)
+        {
+            label recvSize = 0;
+            MPI_Recv(&recvSize, 1, MPI_INT, src, 10, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            if (recvSize > 0)
+            {
+                List<char> recvBuf(recvSize);
+                MPI_Recv(recvBuf.data(), recvSize, MPI_BYTE, src, 11, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                ISpanStream is(recvBuf.data(), recvSize, IOstreamOption::BINARY);
+                while (!is.eof())
+                {
+                    auto* newp = new dsmcParcel(mesh_, is);
+                    cloud_.addParticle(newp);
+                }
+            }
+        }
+    }
+}
+
+// ============================================================================
 // report — profiling summary
 // ============================================================================
 
 void dsmcReplicatedMesh::report() const
 {
     if (!active_) return;
+
+    scalarList allTimes(nProcs_, 0.0);
+    allTimes[myRank_] = evolveStepTime_;
+    MPI_Allreduce(MPI_IN_PLACE, allTimes.data(), nProcs_, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+
+    if (myRank_ != 0) return;
+
     Info<< nl << "Replicated mesh profiling summary:" << nl
         << "    migration calls             = " << migrationCalls_ << nl
         << "    migration wall time [s]     = " << migrationWallTime_ << nl
@@ -1605,35 +1352,13 @@ void dsmcReplicatedMesh::report() const
     {
         const label minP = min(allParticleCounts_);
         const label maxP = max(allParticleCounts_);
-        const scalar avgP = scalar(sum(allParticleCounts_))/allParticleCounts_.size();
         Info<< "    particles per rank          = min " << minP
-            << " max " << maxP << " avg " << avgP
-            << " imbalance " << (avgP > 0 ? maxP/avgP : 0) << nl;
+            << " max " << maxP
+            << " max/min " << (minP > 0 ? scalar(maxP)/scalar(minP) : 0) << nl;
     }
-    {
-        scalarList allTimes(nProcs_, 0.0);
-        allTimes[myRank_] = evolveStepTime_;
-        MPI_Allreduce(MPI_IN_PLACE, allTimes.data(), nProcs_, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-        const scalar avgT = sum(allTimes)/nProcs_;
-        Info<< "    rank wall time (evolve, " << evolveTimeSteps_ << " steps):"
-            << " min " << min(allTimes) << " max " << max(allTimes)
-            << " avg " << avgT
-            << " imbalance " << (avgT > 0 ? max(allTimes)/avgT : 0) << nl;
-    }
-    if (cellCostSteps_ > 0)
-    {
-        Info<< "    TACF cell cost (" << cellCostSteps_ << " samples):"
-            << " min " << min(cellCost_) << " max " << max(cellCost_)
-            << " avg " << sum(cellCost_)/cellCost_.size()
-            << " (move weight " << costMoveWeight_ << ")" << nl;
-    }
-    if (cellCollisionCostSteps_ > 0)
-    {
-        Info<< "    TACF collision cost (" << cellCollisionCostSteps_ << " samples):"
-            << " min " << min(cellCollisionCost_) << " max " << max(cellCollisionCost_)
-            << " avg " << sum(cellCollisionCost_)/cellCollisionCost_.size()
-            << " (coll weight " << costCollisionWeight_ << ")" << nl;
-    }
+    Info<< "    rank wall time (evolve, " << evolveTimeSteps_ << " steps):"
+        << " min " << min(allTimes) << " max " << max(allTimes)
+        << " max/min " << (min(allTimes) > 0 ? max(allTimes)/min(allTimes) : 0) << nl;
     if (rebalanceCount_ > 0)
     {
         const label nCells = mesh_.nCells();

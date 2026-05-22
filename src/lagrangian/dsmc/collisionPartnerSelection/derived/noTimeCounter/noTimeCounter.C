@@ -30,11 +30,8 @@ Description
 
 #include "noTimeCounter.H"
 #include "addToRunTimeSelectionTable.H"
-#include "PstreamBuffers.H"
-#include <algorithm>
 #include <chrono>
 #include <cstdint>
-#include <vector>
 
 namespace Foam
 {
@@ -48,6 +45,14 @@ addToRunTimeSelectionTable(collisionPartnerSelection, noTimeCounter, dictionary)
 
 
 // * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
+
+void noTimeCounter::readControlDictParams()
+{
+    const dictionary& cd = cloud_.mesh().time().controlDict();
+
+    collisionFastRng_ =
+        cd.lookupOrDefault<bool>("collisionFastRng", false);
+}
 
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
@@ -67,9 +72,10 @@ noTimeCounter::noTimeCounter
     threadParcelPtrs_(),
     threadVelocities_(),
     threadTypeIds_(),
-    threadCharges_()
-//     propsDict_(dict.subDict(typeName + "Properties"))
+    threadCharges_(),
+    collisionFastRng_(false)
 {
+    readControlDictParams();
 }
 
 
@@ -153,253 +159,7 @@ void noTimeCounter::collide()
     const polyMesh& mesh = cloud_.mesh();
     const label nCells = mesh.nCells();
     const label collisionChunk = max(cloud_.openmpCollisionChunk(), label(1));
-    const dictionary& controlDict = mesh.time().controlDict();
-    const bool collisionFastRng =
-        controlDict.lookupOrDefault<bool>("collisionFastRng", false);
-    const bool dlbOffloadPlanner =
-        controlDict.lookupOrDefault<bool>("dlbOffloadPlanner", false);
-    const bool dlbOffloadExecute =
-        controlDict.lookupOrDefault<bool>("dlbOffloadExecute", false)
-     || controlDict.lookupOrDefault<bool>("dlbOffloadExperimentalExecute", false);
-    const bool dlbOffloadReport =
-        controlDict.lookupOrDefault<bool>("dlbOffloadReport", false);
-    const scalar dlbOffloadBalanceTarget =
-        controlDict.lookupOrDefault<scalar>("dlbOffloadBalanceTarget", 1.30);
-    const scalar dlbOffloadMaxFraction =
-        controlDict.lookupOrDefault<scalar>("dlbOffloadMaxFraction", 0.30);
-    const scalar dlbOffloadMaxParcelFraction =
-        max(controlDict.lookupOrDefault<scalar>("dlbOffloadMaxParcelFraction", 1.0), scalar(0));
-    const label dlbOffloadTaskCells =
-        max(controlDict.lookupOrDefault<label>("dlbOffloadTaskCells", 256), label(1));
-    const label dlbOffloadMinCandidates =
-        max(controlDict.lookupOrDefault<label>("dlbOffloadMinCandidates", 1), label(1));
-    const scalar dlbOffloadMinCandidatesPerParcel =
-        max
-        (
-            controlDict.lookupOrDefault<scalar>("dlbOffloadMinCandidatesPerParcel", 0.0),
-            scalar(0)
-        );
-    const bool dlbOffloadEfficiencySort =
-        controlDict.lookupOrDefault<bool>("dlbOffloadEfficiencySort", false);
-    const scalar dlbOffloadImbalance =
-        max(controlDict.lookupOrDefault<scalar>("dlbOffloadImbalance", 1.0), scalar(1));
-    const scalar dlbOffloadRemoteCostFactor =
-        max(controlDict.lookupOrDefault<scalar>("dlbOffloadRemoteCostFactor", 1.0), scalar(1));
-    const scalar dlbOffloadBudgetSafety =
-        max(controlDict.lookupOrDefault<scalar>("dlbOffloadBudgetSafety", 1.0), scalar(1));
-    const bool dlbOffloadUseTimerCost =
-        controlDict.lookupOrDefault<bool>("dlbOffloadUseTimerCost", true);
-    const bool dlbOffloadRequireTimerCost =
-        controlDict.lookupOrDefault<bool>("dlbOffloadRequireTimerCost", false);
-    const label dlbOffloadMinSelectedCandidates =
-        max
-        (
-            controlDict.lookupOrDefault<label>("dlbOffloadMinSelectedCandidates", 1),
-            label(1)
-        );
-    const label dlbOffloadIntervalInput =
-        controlDict.lookupOrDefault<label>("dlbOffloadInterval", cloud_.nTerminalOutputs());
-    const label dlbOffloadInterval =
-        dlbOffloadIntervalInput > 0
-      ? dlbOffloadIntervalInput
-      : max(cloud_.nTerminalOutputs(), label(1));
-    const bool dlbOffloadCompactSingleSpeciesPayload =
-        controlDict.lookupOrDefault<bool>("dlbOffloadCompactSingleSpeciesPayload", false);
-    const bool dlbOffloadPersistent =
-        controlDict.lookupOrDefault<bool>("dlbOffloadPersistent", false);
-    const label dlbOffloadPersistentLeaseSteps =
-        max
-        (
-            controlDict.lookupOrDefault<label>("dlbOffloadPersistentLeaseSteps", 5),
-            label(1)
-        );
-    const bool dlbOffloadIntervalHit =
-        dlbOffloadInterval <= 1
-     || (mesh.time().timeIndex() % dlbOffloadInterval) == 0;
-    static labelList dlbPersistentDonorCells;
-    static label dlbPersistentDonorPeer = -1;
-    static label dlbPersistentDonorExpire = -1;
-    static label dlbPersistentHelperPeer = -1;
-    static label dlbPersistentHelperExpire = -1;
-    static scalar dlbPrevRankCollisionWall = -1.0;
-    static scalar dlbPrevSecondsPerCandidate = -1.0;
-
-    const bool dlbUseRawMPI = false;
-    const label dlbEffectiveNProcs = Pstream::nProcs();
-    const label dlbMyProcNo = Pstream::myProcNo();
-
-    const bool dlbBaseActive =
-        dlbOffloadPlanner
-     && dlbOffloadExecute
-     && Pstream::parRun()
-     && Pstream::nProcs() >= 2
-     && !cloud_.reactionsActive()
-     && !cloud_.replicatedMeshActive();
-    const bool dlbCompactStaticFields =
-        dlbOffloadCompactSingleSpeciesPayload
-     && cloud_.typeIdList().size() == 1;
-    const label dlbCompactTypeId = 0;
-    // Determine peer for offload communication.
-    label peerProc = -1;
-    labelList allProcCands;
-    labelList donorHelperList;
-    label donorProc = -1;
-    if (dlbBaseActive)
-    {
-        if (dlbEffectiveNProcs == 2)
-        {
-            peerProc = 1 - dlbMyProcNo;
-        }
-        else
-        {
-            label localCandQuick = 0;
-            for (label cellI = 0; cellI < nCells; ++cellI)
-            {
-                localCandQuick += cloud_.nCandidatesPerCell()[cellI];
-            }
-
-            allProcCands.setSize(dlbEffectiveNProcs, 0);
-
-            if (dlbUseRawMPI)
-            {
-                // Use cached data from migration (no extra MPI_Allgather)
-                const labelList& cached = cloud_.replicatedMesh().allProcCandidates();
-                if (cached.size() == dlbEffectiveNProcs)
-                {
-                    allProcCands = cached;
-                    // Update local value (more recent than cached)
-                    allProcCands[dlbMyProcNo] = localCandQuick;
-                }
-                else
-                {
-                    // Fallback: first step, cache not yet populated
-                    MPI_Allgather(&localCandQuick, 1, MPI_INT,
-                                  allProcCands.data(), 1, MPI_INT, MPI_COMM_WORLD);
-                }
-            }
-            else
-            {
-                allProcCands[Pstream::myProcNo()] = localCandQuick;
-                Pstream::allGatherList(allProcCands);
-            }
-
-            scalar totalCand = 0;
-            forAll(allProcCands, pi) totalCand += scalar(allProcCands[pi]);
-            const scalar avgCand = totalCand / scalar(dlbEffectiveNProcs);
-
-            if (dlbUseRawMPI && dlbEffectiveNProcs > 2)
-            {
-            }
-
-            // Find heaviest rank as donor
-            label heaviest = 0;
-            for (label pi = 1; pi < dlbEffectiveNProcs; ++pi)
-            {
-                if (allProcCands[pi] > allProcCands[heaviest]) heaviest = pi;
-            }
-
-            if (scalar(allProcCands[heaviest]) > avgCand)
-            {
-                DynamicList<label> helpers;
-                for (label pi = 0; pi < dlbEffectiveNProcs; ++pi)
-                {
-                    if (pi != heaviest && scalar(allProcCands[pi]) < avgCand)
-                    {
-                        helpers.append(pi);
-                    }
-                }
-
-                std::sort
-                (
-                    helpers.begin(),
-                    helpers.end(),
-                    [&](const label a, const label b)
-                    {
-                        return (avgCand - scalar(allProcCands[a]))
-                             > (avgCand - scalar(allProcCands[b]));
-                    }
-                );
-
-                donorHelperList.transfer(helpers);
-
-                if (dlbUseRawMPI && dlbEffectiveNProcs > 2)
-                {
-                }
-
-                if (dlbMyProcNo == heaviest)
-                {
-                    peerProc = donorHelperList.size() > 0
-                             ? donorHelperList[0] : -1;
-                }
-                else
-                {
-                    // All helpers in donorHelperList participate
-                    forAll(donorHelperList, hi)
-                    {
-                        if (donorHelperList[hi] == dlbMyProcNo)
-                        {
-                            donorProc = heaviest;
-                            peerProc = heaviest;
-                            break;
-                        }
-                    }
-                }
-            }
-        }
-    }
-    const label dlbTimeIndex = mesh.time().timeIndex();
-    const bool dlbPersistentDonorActive =
-        dlbBaseActive
-     && dlbOffloadPersistent
-     && dlbPersistentDonorPeer == peerProc
-     && dlbPersistentDonorExpire >= dlbTimeIndex
-     && dlbPersistentDonorCells.size() > 0;
-    const bool dlbPersistentHelperActive =
-        dlbBaseActive
-     && dlbOffloadPersistent
-     && dlbPersistentHelperPeer == peerProc
-     && dlbPersistentHelperExpire >= dlbTimeIndex;
-    const bool dlbActive =
-        dlbBaseActive
-     && (dlbOffloadIntervalHit || dlbPersistentDonorActive || dlbPersistentHelperActive);
-    boolList offloadCells(nCells, false);
-    DynamicList<label> offloadCellLabels;
-    label offloadCandidateCount = 0;
-    label offloadParcelCount = 0;
-    label remoteAcceptedCount = 0;
-    label remoteActiveCellCount = 0;
-    scalar dlbOffloadWallTime = 0.0;
-
-    // Raw MPI offload state (Phase B needs these after local collision)
-    List<char> dlbResultRecvBuf;
-    labelList dlbResultRecvSizes;
-    labelList dlbResultRecvOffsets;
-    DynamicList<MPI_Request> dlbResultRecvReqs;
-    bool dlbDonorPendingResults = false;
-    label dlbLocalCandidateTotal = 0;
-    label dlbPeerCandidateTotal = 0;
-    scalar dlbCandidateImbalance = 0.0;
-    label dlbDesiredOffloadCandidates = 0;
-    label dlbSelectedCells = 0;
-    label dlbSelectedCandidatesBeforeGate = 0;
-    scalar dlbCurrentMaxCost = 0.0;
-    scalar dlbPredictedDonorCost = 0.0;
-    scalar dlbPredictedHelperCost = 0.0;
-    scalar dlbPredictedMaxCost = 0.0;
-    bool dlbDonorCandidate = false;
-    bool dlbGateCancelled = false;
-    label dlbSelectedParcels = 0;
-    scalar dlbPreviousLocalCollisionWall = -1.0;
-    scalar dlbPreviousPeerCollisionWall = -1.0;
-    scalar dlbPreviousLocalSecondsPerCandidate = -1.0;
-    scalar dlbPreviousPeerSecondsPerCandidate = -1.0;
-    bool dlbCompactTaskPayload = false;
-    bool dlbIncomingCompactPayload = false;
-    bool dlbPersistentTaskPayload = false;
-    label dlbPersistentTaskExpire = -1;
-    bool dlbUsingPersistentLease = false;
-    bool dlbResultsPending = false;
-    PstreamBuffers resultBufs;
+    const bool collisionFastRng = collisionFastRng_;
 
     if (threadWhichSubCell_.size() != statsThreads)
     {
@@ -419,1310 +179,6 @@ void noTimeCounter::collide()
         }
     }
 
-    auto collectCellParcels =
-    [&]
-    (
-        const label cellI,
-        DynamicList<dsmcParcel*>& parcelPtrs
-    )
-    {
-        parcelPtrs.clear();
-
-        if (useFlatOccupancy)
-        {
-            const label occStart = cloud_.occupancyStart(cellI);
-            const label nC = cloud_.occupancyCount(cellI);
-            parcelPtrs.setCapacity(nC);
-
-            for (label i = 0; i < nC; ++i)
-            {
-                parcelPtrs.append(cloud_.occupancyParcel(occStart + i));
-            }
-        }
-        else
-        {
-            const DynamicList<dsmcParcel*>& cellParcels =
-                (*cellOccupancyPtr)[cellI];
-            parcelPtrs.setCapacity(cellParcels.size());
-
-            forAll(cellParcels, i)
-            {
-                parcelPtrs.append(cellParcels[i]);
-            }
-        }
-    };
-
-    auto writeParcelState =
-    [&]
-    (
-        Ostream& os,
-        const dsmcParcel& p,
-        const bool compactStaticFields
-    )
-    {
-        os  << p.U()
-            << p.RWF()
-            << p.ERot()
-            << p.ELevel();
-
-        if (compactStaticFields)
-        {
-            os << p.classification();
-        }
-        else
-        {
-            os  << p.typeId()
-                << p.newParcel()
-                << p.classification();
-        }
-
-        os  << p.vibLevel()
-            << token::SPACE;
-    };
-
-    auto readParcelState =
-    [&]
-    (
-        Istream& is,
-        vector& U,
-        scalar& RWF,
-        scalar& ERot,
-        label& ELevel,
-        label& typeId,
-        label& newParcel,
-        label& classification,
-        labelList& vibLevel,
-        const bool compactStaticFields
-    )
-    {
-        is  >> U
-            >> RWF
-            >> ERot
-            >> ELevel;
-
-        if (compactStaticFields)
-        {
-            typeId = dlbCompactTypeId;
-            newParcel = -1;
-            is >> classification;
-        }
-        else
-        {
-            is  >> typeId
-                >> newParcel
-                >> classification;
-        }
-
-        is >> vibLevel;
-    };
-
-    auto applyParcelState =
-    [&]
-    (
-        Istream& is,
-        dsmcParcel& p,
-        const bool compactStaticFields
-    )
-    {
-        vector U;
-        scalar RWF = 1.0;
-        scalar ERot = 0.0;
-        label ELevel = 0;
-        label typeId = -1;
-        label newParcel = -1;
-        label classification = 0;
-        labelList vibLevel;
-
-        readParcelState
-        (
-            is,
-            U,
-            RWF,
-            ERot,
-            ELevel,
-            typeId,
-            newParcel,
-            classification,
-            vibLevel,
-            compactStaticFields
-        );
-
-        p.U() = U;
-        p.RWF() = RWF;
-        p.ERot() = ERot;
-        p.ELevel() = ELevel;
-
-        if (!compactStaticFields)
-        {
-            p.typeId() = typeId;
-            p.newParcel() = newParcel;
-        }
-
-        p.classification() = classification;
-        p.vibLevel() = vibLevel;
-    };
-
-    auto executeRemoteCell =
-    [&]
-    (
-        const label donorCellI,
-        DynamicList<dsmcParcel*>& parcelPtrs,
-        const labelList& subCellIds,
-        const label nCandidates,
-        const scalar sigmaTcRMaxInitial,
-        scalar& sigmaTcRMaxUpdated,
-        boolList& dirtyParcels
-    )
-    {
-        auto rngPosRemote = [&](label n) -> label
-        {
-            return collisionFastRng
-                 ? threadFastRng[0].position(n)
-                 : cloud_.randomLabel(0, n - 1);
-        };
-        auto rng01Remote = [&]() -> scalar
-        {
-            return collisionFastRng
-                 ? threadFastRng[0].sample01()
-                 : cloud_.rndGen().sample01<scalar>();
-        };
-
-        const label nC = parcelPtrs.size();
-        label acceptedCollisions = 0;
-
-        sigmaTcRMaxUpdated = sigmaTcRMaxInitial;
-        dirtyParcels.setSize(nC);
-        dirtyParcels = false;
-
-        if (nC <= 1 || nCandidates <= 0)
-        {
-            return acceptedCollisions;
-        }
-
-        DynamicList<label> whichSubCell;
-        List<DynamicList<label>> subCells(8);
-        DynamicList<vector> velocities;
-        DynamicList<label> typeIds;
-        DynamicList<label> charges;
-        label subCellCounts[8] = {0, 0, 0, 0, 0, 0, 0, 0};
-        label subCellOffsets[8] = {0, 0, 0, 0, 0, 0, 0, 0};
-
-        whichSubCell.setSize(nC);
-        velocities.setSize(nC);
-        typeIds.setSize(nC);
-        charges.setSize(nC);
-
-        for (label i = 0; i < nC; ++i)
-        {
-            dsmcParcel* pPtr = parcelPtrs[i];
-            const label typeId = pPtr->typeId();
-            const label subCell = subCellIds[i];
-
-            velocities[i] = pPtr->U();
-            typeIds[i] = typeId;
-            charges[i] = cloud_.constProps(typeId).charge();
-            whichSubCell[i] = subCell;
-            ++subCellCounts[subCell];
-        }
-
-        for (label subCellI = 0; subCellI < 8; ++subCellI)
-        {
-            subCells[subCellI].setSize(subCellCounts[subCellI]);
-        }
-
-        for (label i = 0; i < nC; ++i)
-        {
-            const label subCell = whichSubCell[i];
-            subCells[subCell][subCellOffsets[subCell]++] = i;
-        }
-
-        for (label c = 0; c < nCandidates; ++c)
-        {
-            const label candidateP = rngPosRemote(nC);
-            label candidateQ = -1;
-
-            const List<label>& subCellPs = subCells[whichSubCell[candidateP]];
-            const label nSC = subCellPs.size();
-
-            if (nSC > 1)
-            {
-                do
-                {
-                    candidateQ = subCellPs[rngPosRemote(nSC)];
-                } while (candidateP == candidateQ);
-            }
-            else
-            {
-                do
-                {
-                    candidateQ = rngPosRemote(nC);
-                } while (candidateP == candidateQ);
-            }
-
-            const label typeIdP = typeIds[candidateP];
-            const label typeIdQ = typeIds[candidateQ];
-            label chargeP = charges[candidateP];
-            label chargeQ = charges[candidateQ];
-
-            if (chargeP == -2)
-            {
-                chargeP = cloud_.constProps(typeIdP).charge();
-            }
-
-            if (chargeQ == -2)
-            {
-                chargeQ = cloud_.constProps(typeIdQ).charge();
-            }
-
-            if (chargeP == -1 && chargeQ == -1)
-            {
-                continue;
-            }
-
-            const scalar sigmaTcR = cloud_.binaryCollision().sigmaTcR
-            (
-                *parcelPtrs[candidateP],
-                *parcelPtrs[candidateQ]
-            );
-
-            if (sigmaTcR > sigmaTcRMaxUpdated)
-            {
-                sigmaTcRMaxUpdated = sigmaTcR;
-            }
-
-            if ((sigmaTcR/sigmaTcRMaxInitial) > rng01Remote())
-            {
-                dsmcParcel& parcelP = *parcelPtrs[candidateP];
-                dsmcParcel& parcelQ = *parcelPtrs[candidateQ];
-
-                cloud_.binaryCollision().collide
-                (
-                    parcelP,
-                    parcelQ,
-                    donorCellI
-                );
-
-                ++acceptedCollisions;
-                dirtyParcels[candidateP] = true;
-                dirtyParcels[candidateQ] = true;
-
-                velocities[candidateP] = parcelP.U();
-                velocities[candidateQ] = parcelQ.U();
-                typeIds[candidateP] = parcelP.typeId();
-                typeIds[candidateQ] = parcelQ.typeId();
-                charges[candidateP] =
-                    cloud_.constProps(typeIds[candidateP]).charge();
-                charges[candidateQ] =
-                    cloud_.constProps(typeIds[candidateQ]).charge();
-            }
-        }
-
-        return acceptedCollisions;
-    };
-
-    if (dlbActive)
-    {
-        using dlb_clock_type = std::chrono::steady_clock;
-        const auto dlbBegin = dlb_clock_type::now();
-        const bool dlbLeaseStep =
-            dlbPersistentDonorActive || dlbPersistentHelperActive;
-        const bool dlbPlannerThisStep =
-            dlbOffloadIntervalHit && !dlbLeaseStep;
-
-        label localCandidateTotal = 0;
-
-        if (dlbPlannerThisStep)
-        {
-            for (label cellI = 0; cellI < nCells; ++cellI)
-            {
-                localCandidateTotal += cloud_.nCandidatesPerCell()[cellI];
-            }
-
-            label peerCandidateTotal = 0;
-
-            if (dlbEffectiveNProcs == 2)
-            {
-                if (dlbUseRawMPI)
-                {
-                    // Raw MPI path for replicated mesh
-                    struct { label cands; double collWall; double secsPerCand; } sendD, recvD;
-                    sendD.cands = localCandidateTotal;
-                    sendD.collWall = dlbPrevRankCollisionWall;
-                    sendD.secsPerCand = dlbPrevSecondsPerCandidate;
-                    MPI_Sendrecv(&sendD, sizeof(sendD), MPI_BYTE, peerProc, 10,
-                                 &recvD, sizeof(recvD), MPI_BYTE, peerProc, 10,
-                                 MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-                    peerCandidateTotal = recvD.cands;
-                    dlbPreviousPeerCollisionWall = recvD.collWall;
-                    dlbPreviousPeerSecondsPerCandidate = recvD.secsPerCand;
-                }
-                else
-                {
-                    // Original PstreamBuffers path
-                    PstreamBuffers totalsBufs;
-                    {
-                        UOPstream os(peerProc, totalsBufs);
-                        os  << localCandidateTotal
-                            << dlbPrevRankCollisionWall
-                            << dlbPrevSecondsPerCandidate;
-                    }
-                    totalsBufs.finishedSends();
-                    {
-                        UIPstream is(peerProc, totalsBufs);
-                        is  >> peerCandidateTotal
-                            >> dlbPreviousPeerCollisionWall
-                            >> dlbPreviousPeerSecondsPerCandidate;
-                    }
-                }
-            }
-            else if (peerProc >= 0)
-            {
-                // Multi-rank: use saved AllGather data from pairing phase.
-                // No blocking exchange needed — avoids deadlock with
-                // multi-helper where donor communicates with N helpers.
-                peerCandidateTotal = allProcCands[peerProc];
-                dlbPreviousPeerCollisionWall = -1.0;
-                dlbPreviousPeerSecondsPerCandidate = -1.0;
-            }
-
-            dlbPreviousLocalCollisionWall = dlbPrevRankCollisionWall;
-            dlbPreviousLocalSecondsPerCandidate = dlbPrevSecondsPerCandidate;
-
-            const scalar averageCandidates =
-                0.5*scalar(localCandidateTotal + peerCandidateTotal);
-            const scalar candidateImbalance =
-                averageCandidates > SMALL
-              ? max(scalar(localCandidateTotal), scalar(peerCandidateTotal))/averageCandidates
-              : scalar(0);
-            const label targetLocalCandidates =
-                label(dlbOffloadBalanceTarget*averageCandidates);
-            const label maxOffloadCandidates =
-                label(dlbOffloadMaxFraction*scalar(localCandidateTotal));
-            const label balanceDesiredOffloadCandidates =
-                max
-                (
-                    label(0),
-                    min
-                    (
-                        localCandidateTotal - targetLocalCandidates,
-                        maxOffloadCandidates
-                    )
-                );
-            label desiredOffloadCandidates = balanceDesiredOffloadCandidates;
-            const bool timerBudgetActive =
-                dlbOffloadUseTimerCost
-             && dlbPreviousLocalCollisionWall > SMALL
-             && dlbPreviousPeerCollisionWall >= 0.0
-             && dlbPreviousLocalSecondsPerCandidate > SMALL
-             && dlbPreviousPeerSecondsPerCandidate > SMALL
-             && dlbPreviousLocalCollisionWall
-              > dlbPreviousPeerCollisionWall + SMALL;
-
-            if (timerBudgetActive)
-            {
-                const scalar timerDesiredCandidatesScalar =
-                    (
-                        dlbPreviousLocalCollisionWall
-                      - dlbPreviousPeerCollisionWall
-                    )
-                   /
-                    max
-                    (
-                        dlbPreviousLocalSecondsPerCandidate
-                      + dlbPreviousPeerSecondsPerCandidate
-                       *dlbOffloadRemoteCostFactor,
-                        SMALL
-                    );
-                const label timerDesiredOffloadCandidates =
-                    max
-                    (
-                        label(0),
-                        min(label(timerDesiredCandidatesScalar), maxOffloadCandidates)
-                    );
-
-                if (desiredOffloadCandidates > 0)
-                {
-                    desiredOffloadCandidates =
-                        min(desiredOffloadCandidates, timerDesiredOffloadCandidates);
-                }
-                else
-                {
-                    desiredOffloadCandidates = timerDesiredOffloadCandidates;
-                }
-            }
-
-            const bool donorByCandidates = localCandidateTotal > peerCandidateTotal;
-            const bool donorByTimer =
-                timerBudgetActive
-             && dlbPreviousLocalCollisionWall
-              > dlbPreviousPeerCollisionWall + SMALL;
-            const bool donor =
-                (!dlbOffloadRequireTimerCost || timerBudgetActive)
-             &&
-                (donorByCandidates || donorByTimer)
-             && (candidateImbalance >= dlbOffloadImbalance || donorByTimer)
-             && desiredOffloadCandidates >= dlbOffloadMinCandidates
-             && desiredOffloadCandidates >= dlbOffloadMinSelectedCandidates;
-
-            if (dlbUseRawMPI && dlbEffectiveNProcs == 2)
-            {
-            }
-
-            dlbLocalCandidateTotal = localCandidateTotal;
-            dlbPeerCandidateTotal = peerCandidateTotal;
-            dlbCandidateImbalance = candidateImbalance;
-            dlbDesiredOffloadCandidates = desiredOffloadCandidates;
-            dlbDonorCandidate = localCandidateTotal > peerCandidateTotal;
-
-            if (donor)
-            {
-                struct offloadCellInfo
-                {
-                    label cellI;
-                    label nCandidates;
-                    label nParcels;
-                    scalar efficiency;
-                };
-
-                std::vector<offloadCellInfo> candidateCellInfo;
-                candidateCellInfo.reserve(nCells);
-                const label localParcelBudget =
-                    dlbOffloadMaxParcelFraction >= scalar(1)
-                  ? max(cloud_.size(), label(1))
-                  : max
-                    (
-                        label(1),
-                        label
-                        (
-                            dlbOffloadMaxParcelFraction
-                          * scalar(max(cloud_.size(), label(1)))
-                        )
-                    );
-
-                for (label cellI = 0; cellI < nCells; ++cellI)
-                {
-                    const label nCandidates = cloud_.nCandidatesPerCell()[cellI];
-
-                    if (nCandidates >= dlbOffloadMinCandidates)
-                    {
-                        const label nC =
-                            useFlatOccupancy
-                          ? cloud_.occupancyCount(cellI)
-                          : (*cellOccupancyPtr)[cellI].size();
-
-                        if (nC > 1)
-                        {
-                            const scalar efficiency =
-                                scalar(nCandidates)/scalar(max(nC, label(1)));
-
-                            if (efficiency + SMALL >= dlbOffloadMinCandidatesPerParcel)
-                            {
-                                candidateCellInfo.push_back
-                                (
-                                    {cellI, nCandidates, nC, efficiency}
-                                );
-                            }
-                        }
-                    }
-                }
-
-                std::sort
-                (
-                    candidateCellInfo.begin(),
-                    candidateCellInfo.end(),
-                    [&](const offloadCellInfo& a, const offloadCellInfo& b)
-                    {
-                        if (dlbOffloadEfficiencySort)
-                        {
-                            if (mag(a.efficiency - b.efficiency) > SMALL)
-                            {
-                                return a.efficiency > b.efficiency;
-                            }
-                        }
-
-                        if (a.nCandidates != b.nCandidates)
-                        {
-                            return a.nCandidates > b.nCandidates;
-                        }
-
-                        return a.nParcels < b.nParcels;
-                    }
-                );
-
-                for (const offloadCellInfo& info : candidateCellInfo)
-                {
-                    if
-                    (
-                        offloadCandidateCount >= desiredOffloadCandidates
-                     || offloadCellLabels.size() >= dlbOffloadTaskCells
-                    )
-                    {
-                        break;
-                    }
-
-                    if (offloadParcelCount + info.nParcels > localParcelBudget)
-                    {
-                        continue;
-                    }
-
-                    const label cellI = info.cellI;
-                    offloadCells[cellI] = true;
-                    offloadCellLabels.append(cellI);
-                    offloadCandidateCount += info.nCandidates;
-                    offloadParcelCount += info.nParcels;
-                }
-
-                dlbSelectedCells = offloadCellLabels.size();
-                dlbSelectedCandidatesBeforeGate = offloadCandidateCount;
-                dlbSelectedParcels = offloadParcelCount;
-                if (timerBudgetActive)
-                {
-                    dlbCurrentMaxCost =
-                        max
-                        (
-                            dlbPreviousLocalCollisionWall,
-                            dlbPreviousPeerCollisionWall
-                        );
-                    dlbPredictedDonorCost =
-                        max
-                        (
-                            scalar(0),
-                            dlbPreviousLocalCollisionWall
-                          - dlbPreviousLocalSecondsPerCandidate
-                           *scalar(offloadCandidateCount)
-                        );
-                    dlbPredictedHelperCost =
-                        dlbPreviousPeerCollisionWall
-                      + dlbPreviousPeerSecondsPerCandidate
-                       *dlbOffloadRemoteCostFactor
-                       *scalar(offloadCandidateCount);
-                    dlbPredictedMaxCost =
-                        max(dlbPredictedDonorCost, dlbPredictedHelperCost);
-                }
-                else
-                {
-                    dlbCurrentMaxCost =
-                        max(scalar(localCandidateTotal), scalar(peerCandidateTotal));
-                    dlbPredictedDonorCost =
-                        scalar(localCandidateTotal - offloadCandidateCount);
-                    dlbPredictedHelperCost =
-                        scalar(peerCandidateTotal)
-                      + dlbOffloadRemoteCostFactor*scalar(offloadCandidateCount);
-                    dlbPredictedMaxCost =
-                        max(dlbPredictedDonorCost, dlbPredictedHelperCost);
-                }
-
-                if (dlbPredictedMaxCost*dlbOffloadBudgetSafety >= dlbCurrentMaxCost)
-                {
-                    dlbGateCancelled = true;
-                    forAll(offloadCellLabels, i)
-                    {
-                        offloadCells[offloadCellLabels[i]] = false;
-                    }
-
-                    offloadCellLabels.clear();
-                    offloadCandidateCount = 0;
-                    offloadParcelCount = 0;
-                }
-                else if (dlbOffloadPersistent && offloadCellLabels.size() > 0)
-                {
-                    dlbPersistentDonorCells.setSize(offloadCellLabels.size());
-                    forAll(offloadCellLabels, i)
-                    {
-                        dlbPersistentDonorCells[i] = offloadCellLabels[i];
-                    }
-
-                    dlbPersistentDonorPeer = peerProc;
-                    dlbPersistentDonorExpire =
-                        dlbTimeIndex + dlbOffloadPersistentLeaseSteps - 1;
-                }
-            }
-        }
-
-        if (dlbPersistentDonorActive)
-        {
-            dlbUsingPersistentLease = true;
-            DynamicList<dsmcParcel*> cellParcels;
-
-            forAll(dlbPersistentDonorCells, i)
-            {
-                const label cellI = dlbPersistentDonorCells[i];
-
-                if (cellI < 0 || cellI >= nCells)
-                {
-                    continue;
-                }
-
-                collectCellParcels(cellI, cellParcels);
-
-                if (cellParcels.size() <= 1 || cloud_.nCandidatesPerCell()[cellI] <= 0)
-                {
-                    continue;
-                }
-
-                offloadCells[cellI] = true;
-                offloadCellLabels.append(cellI);
-                offloadCandidateCount += cloud_.nCandidatesPerCell()[cellI];
-                offloadParcelCount += cellParcels.size();
-            }
-
-            dlbSelectedCells = offloadCellLabels.size();
-            dlbSelectedCandidatesBeforeGate = offloadCandidateCount;
-            dlbSelectedParcels = offloadParcelCount;
-            dlbCurrentMaxCost =
-                scalar(localCandidateTotal);
-            dlbPredictedDonorCost =
-                scalar(localCandidateTotal - offloadCandidateCount);
-            dlbPredictedHelperCost =
-                dlbOffloadRemoteCostFactor*scalar(offloadCandidateCount);
-            dlbPredictedMaxCost =
-                max(dlbPredictedDonorCost, dlbPredictedHelperCost);
-        }
-
-        if (dlbOffloadIntervalHit && !dlbUsingPersistentLease && offloadCellLabels.size() == 0)
-        {
-            dlbPersistentDonorCells.setSize(0);
-            dlbPersistentDonorPeer = -1;
-            dlbPersistentDonorExpire = -1;
-        }
-
-        if (dlbCompactStaticFields && offloadCandidateCount > 0)
-        {
-            dlbCompactTaskPayload = true;
-        }
-
-        if (dlbOffloadPersistent && offloadCandidateCount > 0)
-        {
-            dlbPersistentTaskPayload = true;
-            dlbPersistentTaskExpire =
-                dlbUsingPersistentLease
-              ? dlbPersistentDonorExpire
-              : dlbTimeIndex + dlbOffloadPersistentLeaseSteps - 1;
-        }
-
-        // ---- Raw MPI offload Phase A: send tasks, helper executes ----
-        OCharStream taskSendStream(IOstreamOption::BINARY);
-
-        if (dlbUseRawMPI)
-        {
-            // Raw MPI path: donor sends to ALL helpers, each helper receives from donor
-            const bool isDonor = (peerProc >= 0 && offloadCellLabels.size() > 0);
-            const bool isHelper = (donorProc >= 0);
-            const bool isDonorRole = (peerProc >= 0);  // has peer, even if no cells to offload
-            const label nHelpers = (dlbEffectiveNProcs == 2) ? 1 : donorHelperList.size();
-
-            // Donor: split cells among helpers and send to each
-            List<DynamicList<char>> helperSendBufs(dlbEffectiveNProcs);
-            if (isDonor && nHelpers > 0)
-            {
-                const label cellsPerHelper = max(label(1), offloadCellLabels.size() / nHelpers);
-                DynamicList<dsmcParcel*> cellParcels;
-
-                // Build helper list for iteration
-                labelList helperList;
-                if (dlbEffectiveNProcs == 2)
-                {
-                    helperList.setSize(1);
-                    helperList[0] = peerProc;
-                }
-                else
-                {
-                    helperList = donorHelperList;
-                }
-
-                forAll(helperList, hi)
-                {
-                    const label helperRank = helperList[hi];
-                    const label startCI = hi * cellsPerHelper;
-                    const label endCI = (hi == nHelpers - 1)
-                        ? offloadCellLabels.size()
-                        : min(startCI + cellsPerHelper, offloadCellLabels.size());
-                    if (startCI >= endCI) continue;
-
-                    OCharStream hStream(IOstreamOption::BINARY);
-                    hStream << dlbCompactTaskPayload << token::SPACE
-                            << false << token::SPACE
-                            << label(-1) << token::SPACE
-                            << label(endCI - startCI);
-
-                    for (label ci = startCI; ci < endCI; ++ci)
-                    {
-                        const label cellI = offloadCellLabels[ci];
-                        const point& cC = mesh.cellCentres()[cellI];
-                        collectCellParcels(cellI, cellParcels);
-                        hStream << cellI << cloud_.nCandidatesPerCell()[cellI]
-                                << cloud_.sigmaTcRMax()[cellI] << cellParcels.size();
-                        labelList subCellIds(cellParcels.size(), 0);
-                        forAll(cellParcels, parcelI)
-                        {
-                            const vector relPos = cellParcels[parcelI]->position() - cC;
-                            subCellIds[parcelI] =
-                                label(pos(relPos.x())) + 2*label(pos(relPos.y()))
-                              + 4*label(pos(relPos.z()));
-                        }
-                        hStream << subCellIds;
-                        forAll(cellParcels, parcelI)
-                        {
-                            writeParcelState(hStream, *cellParcels[parcelI], dlbCompactTaskPayload);
-                        }
-                    }
-                    helperSendBufs[helperRank] = hStream.release();
-                }
-            }
-
-            // Exchange sizes via p2p
-            labelList taskSendSizes(dlbEffectiveNProcs, 0);
-            forAll(helperSendBufs, i) taskSendSizes[i] = helperSendBufs[i].size();
-            label taskRecvSize = 0;
-            label taskRecvFrom = donorProc;
-
-            if (dlbEffectiveNProcs == 2)
-            {
-                // 2-rank: symmetric Sendrecv (both ranks participate)
-                const label peer = 1 - dlbMyProcNo;
-                const label sendSize = taskSendSizes[peer];
-                MPI_Sendrecv(&sendSize, 1, MPI_INT, peer, 20,
-                             &taskRecvSize, 1, MPI_INT, peer, 20,
-                             MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-                taskRecvFrom = peer;
-            }
-            else
-            {
-                // N-rank: donor sends to each helper, helper receives from donor
-                DynamicList<MPI_Request> sizeReqs;
-                if (isDonorRole)
-                {
-                    forAll(donorHelperList, hi)
-                    {
-                        const label h = donorHelperList[hi];
-                        MPI_Request req;
-                        MPI_Isend(&taskSendSizes[h], 1, MPI_INT, h, 20,
-                                  MPI_COMM_WORLD, &req);
-                        sizeReqs.append(req);
-                    }
-                }
-                if (isHelper)
-                {
-                    MPI_Request req;
-                    MPI_Irecv(&taskRecvSize, 1, MPI_INT, donorProc, 20,
-                              MPI_COMM_WORLD, &req);
-                    sizeReqs.append(req);
-                }
-                if (sizeReqs.size() > 0)
-                    MPI_Waitall(sizeReqs.size(), sizeReqs.data(), MPI_STATUSES_IGNORE);
-            }
-
-            // Exchange data via p2p
-            List<char> taskRecvBuf(taskRecvSize);
-            if (dlbEffectiveNProcs == 2)
-            {
-                // 2-rank: symmetric Sendrecv
-                const label peer = 1 - dlbMyProcNo;
-                const label sendSize = taskSendSizes[peer];
-                DynamicList<char> sendData;
-                if (sendSize > 0) sendData.transfer(helperSendBufs[peer]);
-                MPI_Sendrecv(sendData.data(), sendSize, MPI_BYTE, peer, 21,
-                             taskRecvBuf.data(), taskRecvSize, MPI_BYTE, peer, 21,
-                             MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-            }
-            else
-            {
-                DynamicList<MPI_Request> dReqs;
-                if (isDonor)
-                {
-                    forAll(donorHelperList, hi)
-                    {
-                        const label h = donorHelperList[hi];
-                        if (taskSendSizes[h] > 0)
-                        {
-                            MPI_Request req;
-                            MPI_Isend(helperSendBufs[h].data(), taskSendSizes[h],
-                                      MPI_BYTE, h, 21, MPI_COMM_WORLD, &req);
-                            dReqs.append(req);
-                        }
-                    }
-                }
-                if (isHelper && taskRecvSize > 0)
-                {
-                    MPI_Request req;
-                    MPI_Irecv(taskRecvBuf.data(), taskRecvSize, MPI_BYTE,
-                              taskRecvFrom, 21, MPI_COMM_WORLD, &req);
-                    dReqs.append(req);
-                }
-                if (dReqs.size() > 0)
-                    MPI_Waitall(dReqs.size(), dReqs.data(), MPI_STATUSES_IGNORE);
-            }
-
-            // Helper: deserialize and execute remote collisions
-            OCharStream resultSendStream(IOstreamOption::BINARY);
-            label remoteAcceptedCount = 0;
-
-            if (isHelper && taskRecvSize > 0)
-            {
-                ISpanStream is(taskRecvBuf.data(), taskRecvSize, IOstreamOption::BINARY);
-                is >> dlbIncomingCompactPayload;
-                bool incomingPersistentTask = false;
-                label incomingPersistentExpire = -1;
-                is >> incomingPersistentTask;
-                is >> incomingPersistentExpire;
-                label nIncomingTasks = 0;
-                is >> nIncomingTasks;
-
-                resultSendStream << nIncomingTasks;
-
-                for (label taskI = 0; taskI < nIncomingTasks; ++taskI)
-                {
-                    label donorCellI, nCandidates, nParcels;
-                    scalar sigmaTcRMaxInitial;
-                    is >> donorCellI >> nCandidates >> sigmaTcRMaxInitial >> nParcels;
-                    labelList subCellIds(is);
-
-                    DynamicList<dsmcParcel*> tempParcels(nParcels);
-                    for (label pi = 0; pi < nParcels; ++pi)
-                    {
-                        vector U; scalar RWF, ERot; label ELevel, typeId, newParcel, classification;
-                        labelList vibLevel;
-                        readParcelState(is, U, RWF, ERot, ELevel, typeId, newParcel, classification, vibLevel, dlbIncomingCompactPayload);
-                        if (dlbIncomingCompactPayload) { typeId = dlbCompactTypeId; newParcel = -1; }
-                        tempParcels.append(new dsmcParcel(mesh, mesh.cellCentres()[0], U, RWF, ERot, ELevel, 0, 0, 0, typeId, newParcel, classification, vibLevel));
-                    }
-
-                    scalar sigmaTcRMaxUpdated = sigmaTcRMaxInitial;
-                    boolList dirtyFlags(nParcels, false);
-                    executeRemoteCell(donorCellI, tempParcels, subCellIds, nCandidates, sigmaTcRMaxInitial, sigmaTcRMaxUpdated, dirtyFlags);
-
-                    label accepted = 0;
-                    forAll(dirtyFlags, pi) if (dirtyFlags[pi]) ++accepted;
-
-                    resultSendStream << donorCellI << accepted << sigmaTcRMaxUpdated
-                        << nParcels << accepted;
-                    forAll(dirtyFlags, pi)
-                    {
-                        if (dirtyFlags[pi])
-                        {
-                            resultSendStream << pi << token::SPACE;
-                            writeParcelState(resultSendStream, *tempParcels[pi], dlbCompactTaskPayload);
-                        }
-                    }
-                    remoteAcceptedCount += accepted;
-                    forAll(tempParcels, pi) delete tempParcels[pi];
-                }
-            }
-            else
-            {
-                resultSendStream << label(0);
-            }
-
-            // Result exchange: helper sends synchronously, donor posts non-blocking Irecv
-            // Donor will Waitall + apply AFTER local collision (Phase B)
-            auto resultSendBuf = resultSendStream.release();
-            label resultSendSize = resultSendBuf.size();
-            const bool helperHasResult = isHelper && taskRecvSize > 0;
-
-            // Step 1: exchange result sizes
-            dlbResultRecvSizes.setSize(dlbEffectiveNProcs, 0);
-            if (dlbEffectiveNProcs == 2)
-            {
-                const label peer = 1 - dlbMyProcNo;
-                const label sendSz = helperHasResult ? resultSendSize : 0;
-                label recvSz = 0;
-                MPI_Sendrecv(&sendSz, 1, MPI_INT, peer, 30,
-                             &recvSz, 1, MPI_INT, peer, 30,
-                             MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-                dlbResultRecvSizes[peer] = recvSz;
-            }
-            else
-            {
-                DynamicList<MPI_Request> rSizeReqs;
-                if (helperHasResult)
-                {
-                    MPI_Request req;
-                    MPI_Isend(&resultSendSize, 1, MPI_INT, donorProc, 30,
-                              MPI_COMM_WORLD, &req);
-                    rSizeReqs.append(req);
-                }
-                if (isDonor)
-                {
-                    forAll(donorHelperList, hi)
-                    {
-                        const label h = donorHelperList[hi];
-                        if (taskSendSizes[h] > 0)
-                        {
-                            MPI_Request req;
-                            MPI_Irecv(&dlbResultRecvSizes[h], 1, MPI_INT, h, 30,
-                                      MPI_COMM_WORLD, &req);
-                            rSizeReqs.append(req);
-                        }
-                    }
-                }
-                if (rSizeReqs.size() > 0)
-                    MPI_Waitall(rSizeReqs.size(), rSizeReqs.data(), MPI_STATUSES_IGNORE);
-            }
-
-            // Step 2: helper sends result data (blocking Isend)
-            // Donor posts non-blocking Irecv (will Waitall later in Phase B)
-            label totalResultRecv = 0;
-            forAll(dlbResultRecvSizes, i) totalResultRecv += dlbResultRecvSizes[i];
-            dlbResultRecvBuf.setSize(totalResultRecv);
-            dlbResultRecvOffsets.setSize(dlbEffectiveNProcs, 0);
-            {
-                label off = 0;
-                forAll(dlbResultRecvSizes, i) { dlbResultRecvOffsets[i] = off; off += dlbResultRecvSizes[i]; }
-            }
-
-            if (dlbEffectiveNProcs == 2)
-            {
-                // 2-rank: symmetric Sendrecv for result data
-                const label peer = 1 - dlbMyProcNo;
-                const label sendSz = helperHasResult ? resultSendSize : 0;
-                const label recvSz = dlbResultRecvSizes[peer];
-                MPI_Sendrecv(resultSendBuf.data(), sendSz, MPI_BYTE, peer, 31,
-                             dlbResultRecvBuf.data(), recvSz, MPI_BYTE, peer, 31,
-                             MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-                dlbDonorPendingResults = (recvSz > 0);
-            }
-            else
-            {
-                DynamicList<MPI_Request> helperSendReqs;
-                if (helperHasResult && resultSendSize > 0)
-                {
-                    MPI_Request req;
-                    MPI_Isend(resultSendBuf.data(), resultSendSize, MPI_BYTE,
-                              donorProc, 31, MPI_COMM_WORLD, &req);
-                    helperSendReqs.append(req);
-                }
-                if (isDonor)
-                {
-                    forAll(donorHelperList, hi)
-                    {
-                        const label h = donorHelperList[hi];
-                        if (dlbResultRecvSizes[h] > 0)
-                        {
-                            MPI_Request req;
-                            MPI_Irecv(dlbResultRecvBuf.data() + dlbResultRecvOffsets[h],
-                                      dlbResultRecvSizes[h], MPI_BYTE, h, 31,
-                                      MPI_COMM_WORLD, &req);
-                            dlbResultRecvReqs.append(req);
-                        }
-                    }
-                    dlbDonorPendingResults = (dlbResultRecvReqs.size() > 0);
-                }
-                // Helper waits for its send to complete
-                if (helperSendReqs.size() > 0)
-                    MPI_Waitall(helperSendReqs.size(), helperSendReqs.data(), MPI_STATUSES_IGNORE);
-                // Donor does NOT wait here — deferred to Phase B
-            }
-
-            // No barrier needed — all communication is point-to-point with Waitall
-
-            if (dlbOffloadReport && isDonor)
-            {
-                Info<< "dlbOffload[raw MPI]: rank " << dlbMyProcNo
-                    << " offloaded " << offloadCellLabels.size() << " cells to "
-                    << nHelpers << " helpers"
-                    << ", remote accepted " << remoteAcceptedCount << endl;
-            }
-        }
-        else
-        {
-        // Original PstreamBuffers path
-        PstreamBuffers taskBufs;
-
-        if (peerProc >= 0)
-        {
-            const bool multiSend =
-                donorHelperList.size() > 1 && offloadCellLabels.size() > 0;
-
-            if (multiSend)
-            {
-                // Multi-helper: split offload cells among all helpers
-                const label cellsPer =
-                    max(label(1), offloadCellLabels.size()/donorHelperList.size());
-
-                forAll(donorHelperList, hi)
-                {
-                    const label helper = donorHelperList[hi];
-                    const label start = hi*cellsPer;
-                    const label end =
-                        (hi == donorHelperList.size()-1)
-                      ? offloadCellLabels.size()
-                      : min(start + cellsPer, offloadCellLabels.size());
-
-                    if (start >= end) continue;
-
-                    UOPstream os(helper, taskBufs);
-                    os << dlbCompactTaskPayload << token::SPACE
-                       << dlbPersistentTaskPayload << token::SPACE
-                       << dlbPersistentTaskExpire << token::SPACE
-                       << (end - start);
-
-                    DynamicList<dsmcParcel*> cellParcels;
-                    for (label ci = start; ci < end; ++ci)
-                    {
-                        const label cellI = offloadCellLabels[ci];
-                        const point& cC = mesh.cellCentres()[cellI];
-                        collectCellParcels(cellI, cellParcels);
-                        os << cellI << cloud_.nCandidatesPerCell()[cellI]
-                           << cloud_.sigmaTcRMax()[cellI] << cellParcels.size();
-                        labelList subCellIds(cellParcels.size(), 0);
-                        forAll(cellParcels, parcelI)
-                        {
-                            const vector relPos =
-                                cellParcels[parcelI]->position() - cC;
-                            subCellIds[parcelI] =
-                                pos(relPos.x())+2*pos(relPos.y())+4*pos(relPos.z());
-                        }
-                        os << subCellIds;
-                        forAll(cellParcels, parcelI)
-                            writeParcelState(os,*cellParcels[parcelI],dlbCompactTaskPayload);
-                    }
-                }
-            }
-            else
-            {
-            UOPstream os(peerProc, taskBufs);
-            os  << dlbCompactTaskPayload
-                << token::SPACE
-                << dlbPersistentTaskPayload
-                << token::SPACE
-                << dlbPersistentTaskExpire
-                << token::SPACE
-                << offloadCellLabels.size();
-
-            DynamicList<dsmcParcel*> cellParcels;
-
-            forAll(offloadCellLabels, taskI)
-            {
-                const label cellI = offloadCellLabels[taskI];
-                const point& cC = mesh.cellCentres()[cellI];
-                collectCellParcels(cellI, cellParcels);
-
-                os  << cellI
-                    << cloud_.nCandidatesPerCell()[cellI]
-                    << cloud_.sigmaTcRMax()[cellI]
-                    << cellParcels.size();
-
-                labelList subCellIds(cellParcels.size(), 0);
-
-                forAll(cellParcels, parcelI)
-                {
-                    const dsmcParcel& p = *cellParcels[parcelI];
-                    const vector relPos = p.position() - cC;
-                    subCellIds[parcelI] =
-                        pos(relPos.x()) + 2*pos(relPos.y()) + 4*pos(relPos.z());
-                }
-
-                os << subCellIds;
-
-                forAll(cellParcels, parcelI)
-                {
-                    writeParcelState(os, *cellParcels[parcelI], dlbCompactTaskPayload);
-                }
-            }
-            } // end else
-        }
-
-        taskBufs.finishedSends();
-
-        // Drain incoming data from ALL ranks to avoid unconsumed-data
-        // errors in PstreamBuffers destructor. Only ranks that are
-        // legitimate helpers (donorProc matches sender) execute remote
-        // collision; other ranks just consume and discard.
-        for (label fromRank = 0; fromRank < Pstream::nProcs(); ++fromRank)
-        {
-            if (fromRank == Pstream::myProcNo()) continue;
-            if (!taskBufs.recvDataCount(fromRank)) continue;
-
-            UIPstream is(fromRank, taskBufs);
-            is >> dlbIncomingCompactPayload;
-            bool incomingPersistentTask = false;
-            label incomingPersistentExpire = -1;
-            is >> incomingPersistentTask;
-            is >> incomingPersistentExpire;
-            label nIncomingTasks = 0;
-            is >> nIncomingTasks;
-
-            const bool isMyDonor =
-                (donorProc >= 0) && (fromRank == donorProc);
-
-            if (dlbOffloadPersistent && incomingPersistentTask && nIncomingTasks > 0)
-            {
-                dlbPersistentHelperPeer = fromRank;
-                dlbPersistentHelperExpire = incomingPersistentExpire;
-            }
-            else if (dlbOffloadPersistent && dlbOffloadIntervalHit && nIncomingTasks == 0)
-            {
-                dlbPersistentHelperPeer = -1;
-                dlbPersistentHelperExpire = -1;
-            }
-
-            // Only execute remote collision if this rank is a helper
-            // and the sender is its assigned donor.
-            if (nIncomingTasks > 0 && isMyDonor)
-            {
-            UOPstream os(fromRank, resultBufs);
-            os << nIncomingTasks;
-
-            const label helperCell = 0;
-            const point helperPosition = mesh.cellCentres()[helperCell];
-
-            for (label taskI = 0; taskI < nIncomingTasks; ++taskI)
-            {
-                label donorCellI = -1;
-                label nCandidates = 0;
-                scalar sigmaTcRMaxInitial = SMALL;
-                label nParcels = 0;
-
-                is  >> donorCellI
-                    >> nCandidates
-                    >> sigmaTcRMaxInitial
-                    >> nParcels;
-
-                DynamicList<dsmcParcel*> tempParcelPtrs;
-                labelList subCellIds;
-                tempParcelPtrs.setCapacity(nParcels);
-                is >> subCellIds;
-
-                if (subCellIds.size() != nParcels)
-                {
-                    FatalErrorInFunction
-                        << "DLB offload sub-cell count mismatch for cell " << donorCellI
-                        << ": expected " << nParcels
-                        << ", received " << subCellIds.size()
-                        << exit(FatalError);
-                }
-
-                for (label parcelI = 0; parcelI < nParcels; ++parcelI)
-                {
-                    vector U = Zero;
-                    scalar RWF = 1.0;
-                    scalar ERot = 0.0;
-                    label ELevel = 0;
-                    label typeId = -1;
-                    label newParcel = -1;
-                    label classification = 0;
-                    labelList vibLevel;
-
-                    readParcelState
-                    (
-                        is,
-                        U,
-                        RWF,
-                        ERot,
-                        ELevel,
-                        typeId,
-                        newParcel,
-                        classification,
-                        vibLevel,
-                        dlbIncomingCompactPayload
-                    );
-
-                    tempParcelPtrs.append
-                    (
-                        new dsmcParcel
-                        (
-                            mesh,
-                            helperPosition,
-                            U,
-                            RWF,
-                            ERot,
-                            ELevel,
-                            helperCell,
-                            0,
-                            0,
-                            typeId,
-                            newParcel,
-                            classification,
-                            vibLevel
-                        )
-                    );
-                }
-
-                scalar sigmaTcRMaxUpdated = sigmaTcRMaxInitial;
-                boolList dirtyParcels;
-                const label accepted =
-                    executeRemoteCell
-                    (
-                        donorCellI,
-                        tempParcelPtrs,
-                        subCellIds,
-                        nCandidates,
-                        sigmaTcRMaxInitial,
-                        sigmaTcRMaxUpdated,
-                        dirtyParcels
-                    );
-
-                label nDirtyParcels = 0;
-                forAll(dirtyParcels, parcelI)
-                {
-                    if (dirtyParcels[parcelI])
-                    {
-                        ++nDirtyParcels;
-                    }
-                }
-
-                os  << donorCellI
-                    << accepted
-                    << sigmaTcRMaxUpdated
-                    << tempParcelPtrs.size()
-                    << nDirtyParcels;
-
-                forAll(tempParcelPtrs, parcelI)
-                {
-                    if (dirtyParcels[parcelI])
-                    {
-                        os  << parcelI
-                            << token::SPACE;
-                        writeParcelState(os, *tempParcelPtrs[parcelI], dlbIncomingCompactPayload);
-                    }
-                    delete tempParcelPtrs[parcelI];
-                }
-            }
-            } // end if (nIncomingTasks > 0 && isMyDonor)
-            else
-            {
-                // No tasks or not our donor: send 0 response to drain buffer
-                UOPstream os(fromRank, resultBufs);
-                os << label(0);
-            }
-        } // end for (fromRank)
-
-        // Defer resultBufs.finishedSends() to after local collision loop
-        // so donor's local collision overlaps with helper's remote execution.
-        // All ranks in dlbActive must participate in finishedSends (collective).
-        dlbResultsPending = true;
-
-        if (dlbOffloadReport && dlbDonorCandidate)
-        {
-            Pout<< "DLB offload planner summary: local candidates "
-                << dlbLocalCandidateTotal << ", peer candidates "
-                << dlbPeerCandidateTotal << ", imbalance "
-                << dlbCandidateImbalance << ", desired candidates "
-                << dlbDesiredOffloadCandidates << ", selected candidates "
-                << dlbSelectedCandidatesBeforeGate << ", selected cells "
-                << dlbSelectedCells << ", predicted donor cost "
-                << dlbPredictedDonorCost << ", predicted helper cost "
-                << dlbPredictedHelperCost << ", predicted max cost "
-                << dlbPredictedMaxCost << ", current max cost "
-                << dlbCurrentMaxCost << ", gate cancelled "
-                << Switch(dlbGateCancelled) << ", offloaded candidates "
-                << offloadCandidateCount << ", selected parcels "
-                << dlbSelectedParcels << ", offloaded cells "
-                << offloadCellLabels.size() << ", compact payload "
-                << Switch(dlbCompactTaskPayload) << ", persistent "
-                << Switch(dlbPersistentTaskPayload) << ", lease reused "
-                << Switch(dlbUsingPersistentLease) << ", lease expire "
-                << dlbPersistentTaskExpire << endl;
-        }
-
-        dlbOffloadWallTime =
-            std::chrono::duration<scalar>
-            (
-                dlb_clock_type::now() - dlbBegin
-            ).count();
-    }
-    } // end else (PstreamBuffers path)
-
     auto processCell =
     [&]
     (
@@ -1735,7 +191,6 @@ void noTimeCounter::collide()
     {
         FastRng& frng = threadFastRng[threadI];
 
-        // Unified RNG interface: FastRng (configurable) or cloud Random (fallback)
         auto rngPos = [&](label n) -> label
         {
             return collisionFastRng
@@ -1748,11 +203,6 @@ void noTimeCounter::collide()
                  ? frng.sample01()
                  : cloud_.rndGen().sample01<scalar>();
         };
-
-        if (offloadCells[cellI])
-        {
-            return 0;
-        }
 
         const DynamicList<dsmcParcel*>* cellParcelsPtr =
             useFlatOccupancy ? nullptr : &(*cellOccupancyPtr)[cellI];
@@ -1816,80 +266,31 @@ void noTimeCounter::collide()
 
             for (label c = 0; c < nCandidates; c++)
             {
-                // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-                // subCell candidate selection procedure
-
-                // Select the first collision candidate
-                //label candidateP = rndGen_.position<label>(0, nC - 1);
                 label candidateP = rngPos(nC);
-
-                // Declare the second collision candidate
                 label candidateQ = -1;
 
                 const List<label>& subCellPs = subCells[whichSubCell[candidateP]];
-
                 const label nSC = subCellPs.size();
 
                 if (nSC > 1)
                 {
-                    // If there are two or more particle in a subCell, choose
-                    // another from the same cell.  If the same candidate is
-                    // chosen, choose again.
-
                     do
                     {
-                        //candidateQ = subCellPs[rndGen_.position<label>(0, nSC - 1)]; OLD
                         candidateQ = subCellPs[rngPos(nSC)];
-
                     } while (candidateP == candidateQ);
                 }
                 else
                 {
-                    // Select a possible second collision candidate from the
-                    // whole cell.  If the same candidate is chosen, choose
-                    // again.
-
                     do
                     {
-                        //candidateQ = rndGen_.position<label>(0, nC - 1); OLD
                         candidateQ = rngPos(nC);
-
                     } while (candidateP == candidateQ);
                 }
 
-                // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-                // uniform candidate selection procedure
-
-                // // Select the first collision candidate
-                // label candidateP = cloud_.randomLabel(0, nC-1);
-
-                // // Select a possible second collision candidate
-                // label candidateQ = rngPos(nC);
-
-                // // If the same candidate is chosen, choose again
-                // while (candidateP == candidateQ)
-                // {
-                //     candidateQ = rngPos(nC);
-                // }
-
-                // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
                 const label typeIdP = typeIds[candidateP];
                 const label typeIdQ = typeIds[candidateQ];
-                label chargeP = charges[candidateP];
-                label chargeQ = charges[candidateQ];
-
-                if (chargeP == -2)
-                {
-                    chargeP = cloud_.constProps(typeIdP).charge();
-                }
-
-                if (chargeQ == -2)
-                {
-                    chargeQ = cloud_.constProps(typeIdQ).charge();
-                }
-
-                //do not allow electron-electron collisions
+                const label chargeP = charges[candidateP];
+                const label chargeQ = charges[candidateQ];
 
                 if(!(chargeP == -1 && chargeQ == -1))
                 {
@@ -1900,12 +301,6 @@ void noTimeCounter::collide()
                         *parcelPtrs[candidateQ]
                     );
 
-
-                    // Update the maximum value of sigmaTcR stored, but use the
-                    // initial value in the acceptance-rejection criteria because
-                    // the number of collision candidates selected was based on this
-
-
                     if (sigmaTcR > cloud_.sigmaTcRMax()[cellI])
                     {
                         cloud_.sigmaTcRMax()[cellI] = sigmaTcR;
@@ -1913,9 +308,6 @@ void noTimeCounter::collide()
 
                     if ((sigmaTcR/sigmaTcRMax) > rng01())
                     {
-                        // chemical reactions
-
-                        // find which reaction model parcel p and q should use
                         const label rMId =
                             cloud_.reactionsActive()
                           ? cloud_.reactions().pairModelAddressing()[typeIdP][typeIdQ]
@@ -1924,37 +316,14 @@ void noTimeCounter::collide()
                         dsmcParcel& parcelP = *parcelPtrs[candidateP];
                         dsmcParcel& parcelQ = *parcelPtrs[candidateQ];
 
-    //                             Info << " parcelP id: " <<  parcelP.typeId()
-    //                                 << " parcelQ id: " << parcelQ.typeId()
-    //                                 << " reaction model: " << rMId
-    //                                 << endl;
-
                         if(rMId != -1)
                         {
                             ++reactionHitCount;
-                            // try to react molecules
-    //                         if(cloud_.reactions().reactions()[rMId]->reactWithLists())
-    //                         {
-                                // so far for recombination only
-    //                                     reactions_.reactions()[rMId]->reaction
-    //                                     (
-    //                                         parcelP,
-    //                                         parcelQ,
-    //                                         candidateList,
-    //                                         candidateSubList,
-    //                                         candidateP,
-    //                                         whichSubCell
-    //                                     );
-    //                         }
-    //                         else
-    //                         {
-                                cloud_.reactions().reactions()[rMId]->reaction
-                                (
-                                    parcelP,
-                                    parcelQ
-                                );
-    //                         }
-                            // if reaction unsuccessful use conventional collision model
+                            cloud_.reactions().reactions()[rMId]->reaction
+                            (
+                                parcelP,
+                                parcelQ
+                            );
                             if(cloud_.reactions().reactions()[rMId]->relax())
                             {
                                 cloud_.binaryCollision().collide
@@ -1965,7 +334,7 @@ void noTimeCounter::collide()
                                 );
                             }
                         }
-                        else // if reaction model not found, use conventional collision model
+                        else
                         {
                             cloud_.binaryCollision().collide
                             (
@@ -1995,7 +364,7 @@ void noTimeCounter::collide()
     #ifdef _OPENMP
     if (cloud_.openmpEnabled())
     {
-        if (cloud_.openmpCollisionStrategy() == "partition")
+        if (cloud_.openmpCollisionSchedule() == "partition")
         {
             #pragma omp parallel num_threads(statsThreads)
             {
@@ -2091,129 +460,6 @@ void noTimeCounter::collide()
             std::chrono::duration<scalar>(clock_type::now() - tBegin).count();
     }
 
-    if (dlbResultsPending)
-    {
-        resultBufs.finishedSends();
-
-        using dlb_clock_type = std::chrono::steady_clock;
-        const auto dlbApplyBegin = dlb_clock_type::now();
-
-        // Drain result data from ALL ranks
-        for (label fromRank = 0; fromRank < Pstream::nProcs(); ++fromRank)
-        {
-            if (fromRank == Pstream::myProcNo()) continue;
-            if (!resultBufs.recvDataCount(fromRank)) continue;
-
-        UIPstream is(fromRank, resultBufs);
-            label nResults = 0;
-            is >> nResults;
-
-            DynamicList<dsmcParcel*> cellParcels;
-
-            for (label resultI = 0; resultI < nResults; ++resultI)
-            {
-                label cellI = -1;
-                label accepted = 0;
-                scalar sigmaTcRMaxUpdated = SMALL;
-                label nParcels = 0;
-                label nDirtyParcels = 0;
-
-                is  >> cellI
-                    >> accepted
-                    >> sigmaTcRMaxUpdated
-                    >> nParcels
-                    >> nDirtyParcels;
-
-                collectCellParcels(cellI, cellParcels);
-
-                if (cellParcels.size() != nParcels)
-                {
-                    FatalErrorInFunction
-                        << "DLB offload result size mismatch for cell " << cellI
-                        << ": local parcels " << cellParcels.size()
-                        << ", returned parcels " << nParcels
-                        << exit(FatalError);
-                }
-
-                for (label dirtyI = 0; dirtyI < nDirtyParcels; ++dirtyI)
-                {
-                    label parcelI = -1;
-                    is >> parcelI;
-
-                    if (parcelI < 0 || parcelI >= cellParcels.size())
-                    {
-                        FatalErrorInFunction
-                            << "DLB offload dirty parcel index out of range for cell "
-                            << cellI << ": index " << parcelI
-                            << ", local parcels " << cellParcels.size()
-                            << exit(FatalError);
-                    }
-
-                    applyParcelState(is, *cellParcels[parcelI], dlbCompactTaskPayload);
-                }
-
-                cloud_.sigmaTcRMax()[cellI] =
-                    max(cloud_.sigmaTcRMax()[cellI], sigmaTcRMaxUpdated);
-                remoteAcceptedCount += accepted;
-                ++remoteActiveCellCount;
-            }
-        }
-
-        dlbOffloadWallTime +=
-            std::chrono::duration<scalar>
-            (
-                dlb_clock_type::now() - dlbApplyBegin
-            ).count();
-    }
-
-    // ---- Raw MPI offload Phase B: donor receives and applies results ----
-    if (dlbUseRawMPI && dlbDonorPendingResults)
-    {
-        MPI_Waitall(dlbResultRecvReqs.size(), dlbResultRecvReqs.data(), MPI_STATUSES_IGNORE);
-
-        DynamicList<dsmcParcel*> cellParcels;
-        for (label hi = 0; hi < dlbEffectiveNProcs; ++hi)
-        {
-            if (dlbResultRecvSizes[hi] <= 0) continue;
-
-            ISpanStream ris(dlbResultRecvBuf.data() + dlbResultRecvOffsets[hi],
-                            dlbResultRecvSizes[hi], IOstreamOption::BINARY);
-            label nResults;
-            ris >> nResults;
-            for (label ri = 0; ri < nResults; ++ri)
-            {
-                label cellI, accepted, nParcels, nDirty;
-                scalar sigmaTcRMaxUpdated;
-                ris >> cellI >> accepted >> sigmaTcRMaxUpdated >> nParcels >> nDirty;
-                collectCellParcels(cellI, cellParcels);
-                for (label di = 0; di < nDirty; ++di)
-                {
-                    label parcelI;
-                    ris >> parcelI;
-                    if (parcelI < cellParcels.size())
-                    {
-                        vector U; scalar RWF, ERot; label ELevel, typeId, newParcel, classification;
-                        labelList vibLevel;
-                        readParcelState(ris, U, RWF, ERot, ELevel, typeId, newParcel, classification, vibLevel, dlbCompactTaskPayload);
-                        dsmcParcel& p = *cellParcels[parcelI];
-                        p.U() = U; p.RWF() = RWF; p.ERot() = ERot; p.ELevel() = ELevel;
-                        if (!dlbCompactTaskPayload) { p.typeId() = typeId; p.newParcel() = newParcel; }
-                        p.classification() = classification; p.vibLevel() = vibLevel;
-                    }
-                }
-                cloud_.sigmaTcRMax()[cellI] = max(cloud_.sigmaTcRMax()[cellI], sigmaTcRMaxUpdated);
-                remoteAcceptedCount += accepted;
-            }
-        }
-    }
-
-    if (remoteAcceptedCount || remoteActiveCellCount || dlbOffloadWallTime > 0)
-    {
-        threadAcceptedCounts[0] += remoteAcceptedCount;
-        threadActiveCellCounts[0] += remoteActiveCellCount;
-        threadWallTimes[0] += dlbOffloadWallTime;
-    }
-
     cloud_.recordCollisionThreadProfile
     (
         threadCandidateCounts,
@@ -2242,22 +488,11 @@ void noTimeCounter::collide()
             localSigmaMin = min(localSigmaMin, sigma);
         }
     }
-    scalar localRankCollisionWall = 0.0;
-
-    forAll(threadWallTimes, threadI)
-    {
-        localRankCollisionWall = max(localRankCollisionWall, threadWallTimes[threadI]);
-    }
-
-    dlbPrevRankCollisionWall = localRankCollisionWall;
-    dlbPrevSecondsPerCandidate =
-        collisionCandidates > 0
-      ? localRankCollisionWall/scalar(collisionCandidates)
-      : 0.0;
 
     reduce(collisions, sumOp<label>());
-
     reduce(collisionCandidates, sumOp<label>());
+
+    cloud_.accumulateCollisionCounts(collisionCandidates, collisions);
 
     label globalCandidateCells = localCandidateCells;
     scalar globalSigmaSum = localSigmaSum;
@@ -2284,30 +519,47 @@ void noTimeCounter::collide()
 
     if(infoCounter_ >= cloud_.nTerminalOutputs())
     {
-        if (collisionCandidates)
+        if (cloud_.replicatedMeshActive() && !Pstream::parRun())
         {
-            Info<< "    Collisions                      = "
-                << collisions << nl
-                << "    Collision candidates           = "
-                << collisionCandidates << nl
-                << "    Collision acceptance rate      = "
-                << globalAcceptanceRate << nl
-                << "    Candidate-cell sigmaTcRMax avg/max/min = "
-                << globalSigmaAvg << " / "
-                << (globalCandidateCells > 0 ? globalSigmaMax : scalar(0)) << " / "
-                << (globalCandidateCells > 0 ? globalSigmaMin : scalar(0)) << nl
-    //             << "    Acceptance rate                 = "
-    //             << scalar(collisions)/scalar(collisionCandidates) << nl
-                << endl;
-
-            infoCounter_ = 0;
+            const label myRank = cloud_.replicatedMesh().myRank();
+            if (collisionCandidates)
+            {
+                Info<< "    Collisions [rank " << myRank << "]"
+                    << "              = " << collisions << nl
+                    << "    Collision candidates           = "
+                    << collisionCandidates << nl
+                    << "    Collision acceptance rate      = "
+                    << globalAcceptanceRate << nl
+                    << endl;
+            }
+            else
+            {
+                Info<< "    No collisions [rank " << myRank << "]" << endl;
+            }
         }
-        else
+        else if (cloud_.isOutputRank())
         {
-            Info<< "    No collisions" << endl;
-
-            infoCounter_ = 0;
+            if (collisionCandidates)
+            {
+                Info<< "    Collisions                      = "
+                    << collisions << nl
+                    << "    Collision candidates           = "
+                    << collisionCandidates << nl
+                    << "    Collision acceptance rate      = "
+                    << globalAcceptanceRate << nl
+                    << "    Candidate-cell sigmaTcRMax avg/max/min = "
+                    << globalSigmaAvg << " / "
+                    << (globalCandidateCells > 0 ? globalSigmaMax : scalar(0)) << " / "
+                    << (globalCandidateCells > 0 ? globalSigmaMin : scalar(0)) << nl
+                    << endl;
+            }
+            else
+            {
+                Info<< "    No collisions" << endl;
+            }
         }
+
+        infoCounter_ = 0;
     }
 }
 

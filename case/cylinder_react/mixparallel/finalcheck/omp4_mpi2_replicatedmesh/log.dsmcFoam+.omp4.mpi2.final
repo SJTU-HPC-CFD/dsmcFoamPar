@@ -1,0 +1,2852 @@
+/*---------------------------------------------------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  2506                                  |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+Build  : 95a5dfacc7-20250714 OPENFOAM=2506 version=v2506
+Arch   : "LSB;label=32;scalar=64"
+Exec   : /home/superxcx/code/DSMC/dsmcFoam++/hyStrath_xcx/platforms/linux64IcxDPInt32Opt/bin/dsmcFoam+
+Date   : May 21 2026
+Time   : 04:47:21
+Host   : SuperXCX-ROG
+PID    : 663659
+I/O    : uncollated
+Case   : /home/superxcx/code/DSMC/dsmcFoam++/hyStrath_xcx/case/cylinder_react/mixparallel/finalcheck/omp4_mpi2_replicatedmesh
+nProcs : 1
+trapFpe: Floating point exception trapping enabled (FOAM_SIGFPE).
+/*---------------------------------------------------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  2506                                  |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+Build  : 95a5dfacc7-20250714 OPENFOAM=2506 version=v2506
+Arch   : "LSB;label=32;scalar=64"
+Exec   : /home/superxcx/code/DSMC/dsmcFoam++/hyStrath_xcx/platforms/linux64IcxDPInt32Opt/bin/dsmcFoam+
+Date   : May 21 2026
+Time   : 04:47:21
+Host   : SuperXCX-ROG
+PID    : 663660
+I/O    : uncollated
+Case   : /home/superxcx/code/DSMC/dsmcFoam++/hyStrath_xcx/case/cylinder_react/mixparallel/finalcheck/omp4_mpi2_replicatedmesh
+nProcs : 1
+trapFpe: Floating point exception trapping enabled (FOAM_SIGFPE).
+fileModificationChecking : Monitoring run-time modified files using timeStampMaster (fileModificationSkew 5, maxFileModificationPolls 20)
+allowSystemOperations : Allowing user-supplied system call operations
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+Create time
+
+fileModificationChecking : Monitoring run-time modified files using timeStampMaster (fileModificationSkew 5, maxFileModificationPolls 20)
+allowSystemOperations : Allowing user-supplied system call operations
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+Create time
+
+--> FOAM Warning : 
+    From static Foam::IOstreamOption::compressionType Foam::IOstreamOption::compressionEnum(const word &, const compressionType)
+    in file db/options/IOstreamOption.C at line 189
+    Unknown compression specifier 'uncompressed' using compression off
+Create mesh for time = 0
+
+
+Constructing dsmcCloud
+--> FOAM Warning : 
+    From static Foam::IOstreamOption::compressionType Foam::IOstreamOption::compressionEnum(const word &, const compressionType)
+    in file db/options/IOstreamOption.C at line 189
+    Unknown compression specifier 'uncompressed' using compression off
+Create mesh for time = 0
+
+
+Constructing dsmcCloud
+Selecting the coordinate system model:	dsmcCartesian
+
+Selecting the time-step model:	dsmcConstantTimeStepModel
+
+Selecting the coordinate system model:	dsmcCartesian
+
+Selecting the time-step model:	dsmcConstantTimeStepModel
+
+Constant time-step model:
+- time-step [sec]	6.640048894e-08
+
+Constant time-step model:
+- time-step [sec]	6.640048894e-08
+
+Selecting the porous measurement model:	dsmcNoPorousMediumMeasurements
+
+Selecting the porous measurement model:	dsmcNoPorousMediumMeasurements
+
+
+Creating dsmcControllers
+
+
+Creating dsmcControllers
+
+--> FOAM Warning : 
+    From bool Foam::rmDir(const fileName &, const bool, const bool)
+    in file POSIX.C at line 1512
+    Failed to remove directory "/home/superxcx/code/DSMC/dsmcFoam++/hyStrath_xcx/case/cylinder_react/mixparallel/finalcheck/omp4_mpi2_replicatedmesh/fieldMeasurements"
+Creating fields: 
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+Resetting fields at output until time: 2.456818091e-06
+ measurement option: write
+ nSamples: 1, time interval: 6.640048894e-08
+ nAverages: 300, time interval: 1.992014668e-05
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Creating fields: 
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+Resetting fields at output until time: 2.456818091e-06
+ measurement option: write
+ nSamples: 1, time interval: 6.640048894e-08
+ nAverages: 300, time interval: 1.992014668e-05
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+Resetting fields at output until time: 2.456818091e-06
+ measurement option: write
+ nSamples: 1, time interval: 6.640048894e-08
+ nAverages: 300, time interval: 1.992014668e-05
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Resetting fields at output until time: 2.456818091e-06
+ measurement option: write
+ nSamples: 1, time interval: 6.640048894e-08
+ nAverages: 300, time interval: 1.992014668e-05
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+Resetting fields at output until time: 2.456818091e-06
+ measurement option: write
+ nSamples: 1, time interval: 6.640048894e-08
+ nAverages: 300, time interval: 1.992014668e-05
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+Resetting fields at output until time: 2.456818091e-06
+ measurement option: write
+ nSamples: 1, time interval: 6.640048894e-08
+ nAverages: 300, time interval: 1.992014668e-05
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+Resetting fields at output until time: 2.456818091e-06
+ measurement option: write
+ nSamples: 1, time interval: 6.640048894e-08
+ nAverages: 300, time interval: 1.992014668e-05
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+Resetting fields at output until time: 2.456818091e-06
+ measurement option: write
+ nSamples: 1, time interval: 6.640048894e-08
+ nAverages: 300, time interval: 1.992014668e-05
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Selecting field: dsmcVolFields
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+Resetting fields at output until time: 2.456818091e-06
+ measurement option: write
+ nSamples: 1, time interval: 6.640048894e-08
+ nAverages: 300, time interval: 1.992014668e-05
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+
+TimeData Statistics: 
+Resetting fields at output until time: 2.456818091e-06
+ measurement option: write
+ nSamples: 1, time interval: 6.640048894e-08
+ nAverages: 300, time interval: 1.992014668e-05
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+Resetting fields at output until time: 2.456818091e-06
+ measurement option: write
+ nSamples: 1, time interval: 6.640048894e-08
+ nAverages: 300, time interval: 1.992014668e-05
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+Resetting fields at output until time: 2.456818091e-06
+ measurement option: write
+ nSamples: 1, time interval: 6.640048894e-08
+ nAverages: 300, time interval: 1.992014668e-05
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Creating the boundary models: 
+
+Selecting dsmcPatchBoundaryModel dsmcDeletionPatch
+Selecting dsmcPatchBoundaryModel dsmcDeletionPatch
+Selecting dsmcPatchBoundaryModel dsmcDiffuseWallPatch
+Selecting dsmcGeneralBoundaryModel dsmcFreeStreamInflowPatch
+Creating the boundary models: 
+
+Selecting dsmcPatchBoundaryModel dsmcDeletionPatch
+Selecting dsmcPatchBoundaryModel dsmcDeletionPatch
+Selecting dsmcPatchBoundaryModel dsmcDiffuseWallPatch
+Selecting dsmcGeneralBoundaryModel dsmcFreeStreamInflowPatch
+Selecting BinaryCollisionModel LarsenBorgnakkeVariableHardSphere
+Selecting BinaryCollisionModel LarsenBorgnakkeVariableHardSphere
+OpenMP enabled for dsmcCloud with 4 thread-local RNG streams using collision schedule 'dynamic' (chunk 8)', move kernel enabled (static, chunk 64), adaptive partition enabled (interval 5, imbalance 1.1, drift 0.1), collision partition cost (candidate x1, active-cell x0)
+OpenMP enabled for dsmcCloud with 4 thread-local RNG streams using collision schedule 'dynamic' (chunk 8)', move kernel enabled (static, chunk 64), adaptive partition enabled (interval 5, imbalance 1.1, drift 0.1), collision partition cost (candidate x1, active-cell x0)
+
+Constructing constant properties for
+    N2
+
+Constructing constant properties for
+    N2
+    O2
+    NO
+    N
+    O
+    O2
+    NO
+    N
+    O
+Replicated mesh: METIS decomposition complete, 60000 cells -> 2 ranks
+Replicated mesh: rank 0 owns 30000 / 60000 cells
+Replicated mesh: rank 1 owns 30000 / 60000 cells
+Local mesh: 30000 owned + 446 halo = 30446 / 60000 cells
+Phase C auto DLB: enabled (ParMETIS AdaptiveRepart), imbalanceThreshold=1.2, dlbSteps=30
+Replicated mesh: initialized with 2 MPI ranks, migrate interval 1
+Replicated mesh: rank 0 starts with 1306745 parcels
+
+Creating dsmcReactions
+
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationExchangeQK
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationExchangeQK
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationExchangeQK
+Selecting the reaction model dissociationExchangeQK
+Selecting the reaction model dissociationQK
+Number of reactions created: 12
+Selecting collisionPartnerSelectionModel noTimeCounter
+Local mesh: 30000 owned + 446 halo = 30446 / 60000 cells
+Phase C auto DLB: enabled (ParMETIS AdaptiveRepart), imbalanceThreshold=1.2, dlbSteps=30
+Replicated mesh: initialized with 2 MPI ranks, migrate interval 1
+
+Initialising the measurement fields
+
+Initialising dsmcVolFields field
+Initialising dsmcVolFields field
+Initialising dsmcVolFields field
+Replicated mesh: rank 1 starts with 0 parcels
+
+Creating dsmcReactions
+
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationExchangeQK
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationExchangeQK
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationExchangeQK
+Selecting the reaction model dissociationExchangeQK
+Selecting the reaction model dissociationQK
+Number of reactions created: 12
+Selecting collisionPartnerSelectionModel noTimeCounter
+Initialising dsmcVolFields field
+
+Initialising the measurement fields
+
+Initialising dsmcVolFields field
+Initialising dsmcVolFields field
+Initialising dsmcVolFields field
+Initialising dsmcVolFields field
+Initialising dsmcVolFields field
+Initialising dsmcVolFields field
+Initialising dsmcVolFields field
+Initialising dsmcVolFields field
+DSMC dynamic load balancing: disabled, mode external-repartition, check interval 1, cooldown 0, max imbalance 0.1, timer gate off
+
+Starting time loop
+
+DSMC dynamic load balancing: disabled, mode external-repartition, check interval 1, cooldown 0, max imbalance 0.1, timer gate off
+
+Starting time loop
+
+Replicated mesh migration[1]: rank 0 sent 737268 parcels, received 0 (global 737268) wall 0.679547144s [pack 0.055310646s MPI 0.013192368s deser 0.348557154s]
+Replicated mesh migration[1]: rank 1 sent 0 parcels, received 737268 (global 737268) wall 1.717057612s [pack 8.907e-06s MPI 1.712759948s deser 0.00400007s]
+Replicated mesh migration[2]: rank 0 sent 123 parcels, received 5078 (global 5201) wall 0.033384867s [pack 3.607e-05s MPI 0.026905086s deser 0.000383873s]
+Replicated mesh migration[2]: rank 1 sent 5078 parcels, received 123 (global 5201) wall 0.013570968s [pack 0.000345934s MPI 0.000613829s deser 0.004489995s]
+ExecutionTime = 5.1 s  ClockTime = 5 s
+
+Replicated mesh migration[3]: rank 0 sent 111 parcels, received 5032 (global 5143) wall 0.04769936s [pack 2.7145e-05s MPI 0.042849129s deser 0.000368677s]
+Replicated mesh migration[3]: rank 1 sent 5032 parcels, received 111 (global 5143) wall 0.012909391s [pack 0.000415601s MPI 0.000367391s deser 0.004078353s]
+ExecutionTime = 5.72 s  ClockTime = 5 s
+
+ExecutionTime = 6.43 s  ClockTime = 5 s
+
+ExecutionTime = 7.16 s  ClockTime = 6 s
+
+ExecutionTime = 7.87 s  ClockTime = 6 s
+
+ExecutionTime = 8.57 s  ClockTime = 6 s
+
+ExecutionTime = 9.34 s  ClockTime = 6 s
+
+ExecutionTime = 10.12 s  ClockTime = 6 s
+
+ExecutionTime = 10.88 s  ClockTime = 6 s
+
+Time = 6.640048894e-07
+
+    Collisions                      = 15200
+    Collision candidates           = 47992
+    Collision acceptance rate      = 0.3167194532
+    Candidate-cell sigmaTcRMax avg/max/min = 1.000001462e-15 / 1.03743477e-15 / 1e-15
+
+    Collisions                      = 12203
+    Collision candidates           = 47930
+    Collision acceptance rate      = 0.254600459
+    Candidate-cell sigmaTcRMax avg/max/min = 1e-15 / 1e-15 / 1e-15
+
+Cloud name: dsmc
+    Number of dsmc particles        = 593276
+    Number of molecules             = 3.559656e+15
+    Mass in system                  = 1.707147725e-10
+    Average linear kinetic energy   = 1.854874195e-19
+    Average rotational energy       = 1.48889585e-21
+    Average vibrational energy      = 2.157552764e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.08551843e-19
+ExecutionTime = 11.76 s  ClockTime = 7 s
+
+Cloud name: dsmc
+    Number of dsmc particles        = 737000
+    Number of molecules             = 4.422e+15
+    Mass in system                  = 2.120710256e-10
+    Average linear kinetic energy   = 1.924686808e-19
+    Average rotational energy       = 1.216708411e-21
+    Average vibrational energy      = 2.157543109e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.152608203e-19
+ExecutionTime = 12.51 s  ClockTime = 7 s
+
+ExecutionTime = 13.27 s  ClockTime = 7 s
+
+ExecutionTime = 14.06 s  ClockTime = 7 s
+
+ExecutionTime = 14.85 s  ClockTime = 7 s
+
+ExecutionTime = 15.66 s  ClockTime = 8 s
+
+ExecutionTime = 16.45 s  ClockTime = 8 s
+
+ExecutionTime = 17.24 s  ClockTime = 8 s
+
+ExecutionTime = 18.05 s  ClockTime = 8 s
+
+ExecutionTime = 18.82 s  ClockTime = 8 s
+
+Time = 1.328009779e-06
+
+    Collisions                      = 24641
+    Collision candidates           = 65701
+    Collision acceptance rate      = 0.375047564
+    Candidate-cell sigmaTcRMax avg/max/min = 1.000017167e-15 / 1.064179658e-15 / 1e-15
+
+    Collisions                      = 12421
+    Collision candidates           = 48147
+    Collision acceptance rate      = 0.2579807672
+    Candidate-cell sigmaTcRMax avg/max/min = 1e-15 / 1e-15 / 1e-15
+
+Cloud name: dsmc
+    Number of dsmc particles        = 616715
+    Number of molecules             = 3.70029e+15
+    Mass in system                  = 1.774532507e-10
+    Average linear kinetic energy   = 1.796176827e-19
+    Average rotational energy       = 1.999951756e-21
+    Average vibrational energy      = 2.157758313e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.031952176e-19
+ExecutionTime = 19.68 s  ClockTime = 9 s
+
+Cloud name: dsmc
+    Number of dsmc particles        = 737226
+    Number of molecules             = 4.423356e+15
+    Mass in system                  = 2.121423414e-10
+    Average linear kinetic energy   = 1.924759186e-19
+    Average rotational energy       = 1.217035214e-21
+    Average vibrational energy      = 2.157377917e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.15266733e-19
+ExecutionTime = 20.51 s  ClockTime = 9 s
+
+ExecutionTime = 21.3 s  ClockTime = 9 s
+
+ExecutionTime = 22.16 s  ClockTime = 9 s
+
+ExecutionTime = 23.06 s  ClockTime = 10 s
+
+ExecutionTime = 23.91 s  ClockTime = 10 s
+
+ExecutionTime = 24.78 s  ClockTime = 10 s
+
+ExecutionTime = 25.63 s  ClockTime = 10 s
+
+ExecutionTime = 26.47 s  ClockTime = 10 s
+
+ExecutionTime = 27.35 s  ClockTime = 11 s
+
+Time = 1.992014668e-06
+
+    Collisions                      = 12447
+    Collision candidates           = 48306
+    Collision acceptance rate      = 0.2576698547
+    Candidate-cell sigmaTcRMax avg/max/min = 1e-15 / 1e-15 / 1e-15
+
+    Collisions                      = 34519
+    Collision candidates           = 85064
+    Collision acceptance rate      = 0.4058003386
+    Candidate-cell sigmaTcRMax avg/max/min = 1.000114574e-15 / 1.116305954e-15 / 1e-15
+
+
+Phase C auto DLB triggered (threshold) at step 30: loadImbalance=1.308230884 > threshold=1.2
+
+Phase C auto DLB triggered (threshold) at step 30: loadImbalance=1.308230884 > threshold=1.2
+Phase C ParMETIS: K=1024 (moveT=4.985008563s, collT=0.975872554s)
+Phase C ParMETIS: AdaptiveRepart (60000 cells, 1 constraints, collScale=2.979555369, ubvec=1.049999952)
+Phase C ParMETIS: K=1024 (moveT=2.922768284s, collT=0.901060793s)
+Phase C ParMETIS: AdaptiveRepart (60000 cells, 1 constraints, collScale=2.316731929, ubvec=1.049999952)
+Replicated mesh: rank 0 owns 30010 / 60000 cells
+Replicated mesh: rank 1 owns 29990 / 60000 cells
+Local mesh: 30010 owned + 448 halo = 30458 / 60000 cellsLocal mesh: 29990 owned + 448 halo = 30438 / 60000 cells
+Phase C ParMETIS AdaptiveRepart: 10 / 60000 cells changed (0.0001666666667)
+
+Phase C ParMETIS AdaptiveRepart: 10 / 60000 cells changed (0.0001666666667)
+Phase C auto DLB complete: rebalance #1
+
+Phase C auto DLB complete: rebalance #1
+
+Cloud name: dsmc
+    Number of dsmc particles        = 640286
+    Number of molecules             = 3.841716e+15
+    Mass in system                  = 1.842412673e-10
+    Average linear kinetic energy   = 1.745970718e-19
+    Average rotational energy       = 2.679330674e-21
+    Average vibrational energy      = 2.157594129e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.988523438e-19
+ExecutionTime = 28.44 s  ClockTime = 11 s
+
+Cloud name: dsmc
+    Number of dsmc particles        = 737219
+    Number of molecules             = 4.423314e+15
+    Mass in system                  = 2.121366944e-10
+    Average linear kinetic energy   = 1.924726516e-19
+    Average rotational energy       = 1.216654796e-21
+    Average vibrational energy      = 2.157473404e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.152640405e-19
+Replicated mesh migration[33]: rank 0 sent 111 parcels, received 5062 (global 5173) wall 0.075231806s [pack 2.9083e-05s MPI 0.066405863s deser 0.000455491s]
+Replicated mesh migration[33]: rank 1 sent 5062 parcels, received 111 (global 5173) wall 0.018027326s [pack 0.00086662s MPI 0.000781281s deser 0.005093184s]
+ExecutionTime = 29.46 s  ClockTime = 11 s
+
+Replicated mesh migration[34]: rank 0 sent 118 parcels, received 5058 (global 5176) wall 0.046482061s [pack 2.8934e-05s MPI 0.037780017s deser 0.000487014s]
+Replicated mesh migration[34]: rank 1 sent 5058 parcels, received 118 (global 5176) wall 0.016621347s [pack 0.000745632s MPI 0.00044738s deser 0.005199592s]
+ExecutionTime = 30.31 s  ClockTime = 11 s
+
+Replicated mesh migration[35]: rank 0 sent 114 parcels, received 4968 (global 5082) wall 0.045683224s [pack 3.1888e-05s MPI 0.036955018s deser 0.000463409s]
+Replicated mesh migration[35]: rank 1 sent 4968 parcels, received 114 (global 5082) wall 0.016785429s [pack 0.000761501s MPI 0.00072047s deser 0.005079453s]
+ExecutionTime = 31.17 s  ClockTime = 12 s
+
+Replicated mesh migration[36]: rank 0 sent 102 parcels, received 4937 (global 5039) wall 0.044581119s [pack 2.9008e-05s MPI 0.035749996s deser 0.000460853s]
+Replicated mesh migration[36]: rank 1 sent 4937 parcels, received 102 (global 5039) wall 0.015517038s [pack 0.00072277s MPI 0.000538144s deser 0.005213549s]
+ExecutionTime = 32.02 s  ClockTime = 12 s
+
+Replicated mesh migration[37]: rank 0 sent 113 parcels, received 5054 (global 5167) wall 0.034685128s [pack 4.9992e-05s MPI 0.026107594s deser 0.00044305s]
+Replicated mesh migration[37]: rank 1 sent 5054 parcels, received 113 (global 5167) wall 0.016008123s [pack 0.000715539s MPI 0.000692052s deser 0.005186517s]
+ExecutionTime = 32.85 s  ClockTime = 12 s
+
+Replicated mesh migration[38]: rank 0 sent 114 parcels, received 5098 (global 5212) wall 0.042971187s [pack 2.9127e-05s MPI 0.034108551s deser 0.000465376s]
+Replicated mesh migration[38]: rank 1 sent 5098 parcels, received 114 (global 5212) wall 0.018394019s [pack 0.000753755s MPI 0.000458295s deser 0.005235242s]
+ExecutionTime = 33.74 s  ClockTime = 12 s
+
+Replicated mesh migration[39]: rank 0 sent 114 parcels, received 5161 (global 5275) wall 0.042835221s [pack 2.5141e-05s MPI 0.036665179s deser 0.000399461s]
+Replicated mesh migration[39]: rank 1 sent 5161 parcels, received 114 (global 5275) wall 0.016880707s [pack 0.000844327s MPI 0.000833658s deser 0.003567764s]
+
+Start sample at time 2.456818091e-06 and step 37
+
+
+Start sample at time 2.456818091e-06 and step 37
+
+
+Start sample at time 2.456818091e-06 and step 37
+
+
+Start sample at time 2.456818091e-06 and step 37
+
+
+Start sample at time 2.456818091e-06 and step 37
+
+
+Start sample at time 2.456818091e-06 and step 37
+
+
+Start sample at time 2.456818091e-06 and step 37
+
+
+Start sample at time 2.456818091e-06 and step 37
+
+
+Start sample at time 2.456818091e-06 and step 37
+
+
+Start sample at time 2.456818091e-06 and step 37
+
+
+Start sample at time 2.456818091e-06 and step 37
+
+
+Start sample at time 2.456818091e-06 and step 37
+
+ExecutionTime = 34.65 s  ClockTime = 13 s
+
+Replicated mesh migration[40]: rank 0 sent Replicated mesh migration[40]: rank 1 sent 5056 parcels, received 119 (global 5175) wall 0.017077106s [pack 0.000841512s MPI 0.000599116s deser 0.005099212s]
+119 parcels, received 5056 (global 5175) wall 0.051927431s [pack 3.1706e-05s MPI 0.044642355s deser 0.000459886s]
+ExecutionTime = 35.49 s  ClockTime = 13 s
+
+Replicated mesh migration[41]: rank 0 sent 125 parcels, received 5022 (global 5147) wall 0.043629162s [pack 2.8561e-05s MPI 0.035490228s deser 0.000430691s]
+Replicated mesh migration[41]: rank 1 sent 5022 parcels, received 125 (global 5147) wall 0.016951771s [pack 0.000761803s MPI 0.000674396s deser 0.004717434s]
+ExecutionTime = 36.39 s  ClockTime = 13 s
+
+Time = 2.656019558e-06
+
+Replicated mesh migration[42]: rank 0 sent 115 parcels, received 4991 (global 5106) wall 0.01716658s [pack 2.8049e-05s MPI 0.009730968s deser 0.00043797s]
+Replicated mesh migration[42]: rank 1 sent 4991 parcels, received 115 (global 5106) wall 0.01569145s [pack 0.000684836s MPI 0.000545812s deser 0.004568395s]
+    Collisions                      = 12422
+    Collision candidates           = 48172
+    Collision acceptance rate      = 0.257867641
+    Candidate-cell sigmaTcRMax avg/max/min = 1e-15 / 1e-15 / 1e-15
+
+    Collisions                      = 44591
+    Collision candidates           = 104426
+    Collision acceptance rate      = 0.4270105146
+    Candidate-cell sigmaTcRMax avg/max/min = 1.00049959e-15 / 1.178149448e-15 / 1e-15
+
+Cloud name: dsmc
+    Number of dsmc particles        = 663664
+    Number of molecules             = 3.981984e+15
+    Mass in system                  = 1.909659835e-10
+    Average linear kinetic energy   = 1.702984144e-19
+    Average rotational energy       = 3.481229468e-21
+    Average vibrational energy      = 2.157672994e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.953563738e-19
+ExecutionTime = 37.34 s  ClockTime = 13 s
+
+Cloud name: dsmc
+    Number of dsmc particles        = 737332
+    Number of molecules             = 4.423992e+15
+    Mass in system                  = 2.121704458e-10
+    Average linear kinetic energy   = 1.924787876e-19
+    Average rotational energy       = 1.216420831e-21
+    Average vibrational energy      = 2.157440939e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.152696178e-19
+Replicated mesh migration[43]: rank 0 sent 109 parcels, received 5140 (global 5249) wall 0.052641335s [pack 2.4483e-05s MPI 0.045804423s deser 0.000446518s]
+Replicated mesh migration[43]: rank 1 sent 5140 parcels, received 109 (global 5249) wall 0.015667142s [pack 0.000676789s MPI 0.0005642s deser 0.004824814s]
+ExecutionTime = 38.28 s  ClockTime = 14 s
+
+Replicated mesh migration[44]: rank 0 sent 129 parcels, received 5082 (global 5211) wall 0.027687637s [pack 3.0541e-05s MPI 0.020679879s deser 0.000433065s]
+Replicated mesh migration[44]: rank 1 sent 5082 parcels, received 129 (global 5211) wall 0.015869601s [pack 0.00076394s MPI 0.000613748s deser 0.004765761s]
+ExecutionTime = 39.13 s  ClockTime = 14 s
+
+Replicated mesh migration[45]: rank 0 sent 116 parcels, received 5138 (global 5254) wall 0.033983345s [pack 2.7586e-05s MPI 0.026869547s deser 0.000418676s]
+Replicated mesh migration[45]: rank 1 sent 5138 parcels, received 116 (global 5254) wall 0.015825145s [pack 0.000726082s MPI 0.000520885s deser 0.004793752s]
+ExecutionTime = 40.01 s  ClockTime = 14 s
+
+Replicated mesh migration[46]: rank 0 sent 122 parcels, received 4963 (global 5085) wall 0.034259225s [pack 3.0993e-05s MPI 0.02721105s deser 0.0004418s]
+Replicated mesh migration[46]: rank 1 sent 4963 parcels, received 122 (global 5085) wall 0.017206042s [pack 0.000759833s MPI 0.000688568s deser 0.004682816s]
+ExecutionTime = 40.89 s  ClockTime = 14 s
+
+Replicated mesh migration[47]: rank 0 sent 103 parcels, received 5119 (global 5222) wall 0.032582199s [pack 2.3784e-05s MPI 0.025512375s deser 0.00041324s]
+Replicated mesh migration[47]: rank 1 sent 5119 parcels, received 103 (global 5222) wall 0.017593834s [pack 0.000816216s MPI 0.000641019s deser 0.004783263s]
+ExecutionTime = 41.77 s  ClockTime = 14 s
+
+Replicated mesh migration[48]: rank 0 sent 111 parcels, received 5159 (global 5270) wall 0.03072169s [pack 2.7754e-05s MPI 0.023637241s deser 0.000394173s]
+Replicated mesh migration[48]: rank 1 sent 5159 parcels, received 111 (global 5270) wall 0.015069773s [pack 0.000755293s MPI 0.000676228s deser 0.003552536s]
+ExecutionTime = 42.64 s  ClockTime = 15 s
+
+Replicated mesh migration[49]: rank 0 sent 117 parcels, received 5066 (global 5183) wall 0.032499498s [pack 2.2169e-05s MPI 0.026339218s deser 0.000385525s]
+Replicated mesh migration[49]: rank 1 sent 5066 parcels, received 117 (global 5183) wall 0.014600375s [pack 0.000690164s MPI 0.00056741s deser 0.003382006s]
+ExecutionTime = 43.49 s  ClockTime = 15 s
+
+Replicated mesh migration[50]: rank 0 sent 117 parcels, received 5020 (global 5137) wall 0.029026678s [pack 4.7667e-05s MPI 0.020874282s deser 0.000424969s]
+Replicated mesh migration[50]: rank 1 sent 5020 parcels, received 117 (global 5137) wall 0.017997717s [pack 0.000773139s MPI 0.000807904s deser 0.005011574s]
+ExecutionTime = 44.33 s  ClockTime = 15 s
+
+Replicated mesh migration[51]: rank 0 sent 108 parcels, received 5086 (global 5194) wall 0.030482742s [pack 3.1072e-05s MPI 0.021913146s deser 0.000411221s]
+Replicated mesh migration[51]: rank 1 sent 5086 parcels, received 108 (global 5194) wall 0.016102817s [pack 0.000693207s MPI 0.000626571s deser 0.004816827s]
+ExecutionTime = 45.2 s  ClockTime = 15 s
+
+Time = 3.320024447e-06
+
+Replicated mesh migration[52]: rank 0 sent 117 parcels, received 5028 (global 5145) wall 0.033009787s [pack 3.0167e-05s MPI 0.024285124s deser 0.000462s]
+Replicated mesh migration[52]: rank 1 sent 5028 parcels, received 117 (global 5145) wall 0.017834761s [pack 0.00077305s MPI 0.000714923s deser 0.004848854s]
+    Collisions                      = 12401
+    Collision candidates           = 48332
+    Collision acceptance rate      = 0.2565794918
+    Candidate-cell sigmaTcRMax avg/max/min = 1e-15 / 1e-15 / 1e-15
+
+    Collisions                      = 54645
+    Collision candidates           = 123816
+    Collision acceptance rate      = 0.441340376
+    Candidate-cell sigmaTcRMax avg/max/min = 1.001297172e-15 / 1.186825534e-15 / 1e-15
+
+Cloud name: dsmc
+    Number of dsmc particles        = 687243
+    Number of molecules             = 4.123458e+15
+    Mass in system                  = 1.977484073e-10
+    Average linear kinetic energy   = 1.665111546e-19
+    Average rotational energy       = 4.357425269e-21
+    Average vibrational energy      = 2.15777724e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.924463523e-19
+ExecutionTime = 46.19 s  ClockTime = 15 s
+
+Cloud name: dsmc
+    Number of dsmc particles        = 737106
+    Number of molecules             = 4.422636e+15
+    Mass in system                  = 2.121068754e-10
+    Average linear kinetic energy   = 1.924730953e-19
+    Average rotational energy       = 1.216918304e-21
+    Average vibrational energy      = 2.1574025e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.152640387e-19
+Replicated mesh migration[53]: rank 0 sent 130 parcels, received 4988 (global 5118) wall 0.057526581s [pack 2.7497e-05s MPI 0.048706082s deser 0.00044703s]
+Replicated mesh migration[53]: rank 1 sent 4988 parcels, received 130 (global 5118) wall 0.017779284s [pack 0.000758513s MPI 0.00069828s deser 0.004761595s]
+ExecutionTime = 47.18 s  ClockTime = 16 s
+
+Replicated mesh migration[54]: rank 0 sent 101 parcels, received 5024 (global 5125) wall 0.031623215s [pack 2.2494e-05s MPI 0.025450033s deser 0.000372978s]
+Replicated mesh migration[54]: rank 1 sent 5024 parcels, received 101 (global 5125) wall 0.014866438s [pack 0.00070988s MPI 0.000647136s deser 0.00332773s]
+ExecutionTime = 48.06 s  ClockTime = 16 s
+
+Replicated mesh migration[55]: rank 0 sent 125 parcels, received 5060 (global 5185) wall 0.028876565s [pack 3.1063e-05s MPI 0.021258476s deser 0.000436887s]
+Replicated mesh migration[55]: rank 1 sent 5060 parcels, received 125 (global 5185) wall 0.018150755s [pack 0.000795407s MPI 0.00070667s deser 0.004791417s]
+ExecutionTime = 48.95 s  ClockTime = 16 s
+
+Replicated mesh migration[56]: rank 0 sent 140 parcels, received 5123 (global 5263) wall 0.026876707s [pack 4.0202e-05s MPI 0.019018381s deser 0.000462394s]
+Replicated mesh migration[56]: rank 1 sent 5123 parcels, received 140 (global 5263) wall 0.018267648s [pack 0.000781382s MPI 0.000798253s deser 0.004827876s]
+ExecutionTime = 49.84 s  ClockTime = 16 s
+
+Replicated mesh migration[57]: rank 0 sent 110 parcels, received 5055 (global 5165) wall 0.031868043s [pack 2.6907e-05s MPI 0.024260621s deser 0.000447631s]
+Replicated mesh migration[57]: rank 1 sent 5055 parcels, received 110 (global 5165) wall 0.018021374s [pack 0.000795396s MPI 0.000680256s deser 0.004846068s]
+ExecutionTime = 50.75 s  ClockTime = 17 s
+
+Replicated mesh migration[58]: rank 0 sent 118 parcels, received 5049 (global 5167) wall 0.026262941s [pack 3.3396e-05s MPI 0.018223331s deser 0.000524687s]
+Replicated mesh migration[58]: rank 1 sent 5049 parcels, received 118 (global 5167) wall 0.018262331s [pack 0.000791822s MPI 0.000691198s deser 0.004874195s]
+ExecutionTime = 51.62 s  ClockTime = 17 s
+
+Replicated mesh migration[59]: rank 0 sent 124 parcels, received 5140 (global 5264) wall 0.033209389s [pack 3.124e-05s MPI 0.024337933s deser 0.000483106s]
+Replicated mesh migration[59]: rank 1 sent 5140 parcels, received 124 (global 5264) wall 0.018392865s [pack 0.000791162s MPI 0.000730829s deser 0.00493568s]
+ExecutionTime = 52.53 s  ClockTime = 17 s
+
+Replicated mesh migration[60]: rank 0 sent 125 parcels, received 5112 (global 5237) wall 0.025336349s [pack 2.9697e-05s MPI 0.017423557s deser 0.000477999s]
+Replicated mesh migration[60]: rank 1 sent 5112 parcels, received 125 (global 5237) wall 0.019469834s [pack 0.000881297s MPI 0.000787168s deser 0.004516673s]
+ExecutionTime = 53.42 s  ClockTime = 17 s
+
+Replicated mesh migration[61]: rank 0 sent 125 parcels, received 4938 (global 5063) wall 0.033132731s [pack 3.1233e-05s MPI 0.024668954s deser 0.000446069s]
+Replicated mesh migration[61]: rank 1 sent 4938 parcels, received 125 (global 5063) wall 0.019302185s [pack 0.000856016s MPI 0.000750617s deser 0.004371544s]
+ExecutionTime = 54.34 s  ClockTime = 18 s
+
+Time = 3.984029336e-06
+
+Replicated mesh migration[62]: rank 0 sent 115 parcels, received 5034 (global 5149) wall 0.029934794s [pack 2.7042e-05s MPI 0.022512917s deser 0.000443168s]
+Replicated mesh migration[62]: rank 1 sent 5034 parcels, received 115 (global 5149) wall 0.019272736s [pack 0.000870284s MPI 0.000809838s deser 0.004399005s]
+    Collisions                      = 12627
+    Collision candidates           = 48342
+    Collision acceptance rate      = 0.2612014397
+    Candidate-cell sigmaTcRMax avg/max/min = 1e-15 / 1e-15 / 1e-15
+
+    Collisions                      = 64458
+    Collision candidates           = 142672
+    Collision acceptance rate      = 0.4517915218
+    Candidate-cell sigmaTcRMax avg/max/min = 1.002443808e-15 / 1.247213962e-15 / 1e-15
+
+Cloud name: dsmc
+    Number of dsmc particles        = 710331
+    Number of molecules             = 4.261986e+15
+    Mass in system                  = 2.043958678e-10
+    Average linear kinetic energy   = 1.63137504e-19
+    Average rotational energy       = 5.273737421e-21
+    Average vibrational energy      = 2.157757079e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.899888122e-19
+ExecutionTime = 55.32 s  ClockTime = 18 s
+
+Cloud name: dsmc
+    Number of dsmc particles        = 737357
+    Number of molecules             = 4.424142e+15
+    Mass in system                  = 2.121723763e-10
+    Average linear kinetic energy   = 1.924679625e-19
+    Average rotational energy       = 1.216724435e-21
+    Average vibrational energy      = 2.157579264e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.152604795e-19
+Replicated mesh migration[63]: rank 0 sent 121 parcels, received 5140 (global 5261) wall 0.069100245s [pack 3.0717e-05s MPI 0.058643508s deser 0.000446187s]
+Replicated mesh migration[63]: rank 1 sent 5140 parcels, received 121 (global 5261) wall 0.019839868s [pack 0.000872604s MPI 0.000775179s deser 0.004600541s]
+ExecutionTime = 56.37 s  ClockTime = 18 s
+
+Replicated mesh migration[64]: rank 0 sent 129 parcels, received 4997 (global 5126) wall 0.030663784s [pack 3.7378e-05s MPI 0.022150813s deser 0.000512756s]
+Replicated mesh migration[64]: rank 1 sent 4997 parcels, received 129 (global 5126) wall 0.02037696s [pack 0.000871197s MPI 0.000791445s deser 0.005194565s]
+ExecutionTime = 57.3 s  ClockTime = 18 s
+
+Replicated mesh migration[65]: rank 0 sent 130 parcels, received 5082 (global 5212) wall 0.026094143s [pack 3.6519e-05s MPI 0.017223988s deser 0.000502797s]
+Replicated mesh migration[65]: rank 1 sent 5082 parcels, received 130 (global 5212) wall 0.020650415s [pack 0.000925669s MPI 0.000789468s deser 0.005165964s]
+ExecutionTime = 58.18 s  ClockTime = 19 s
+
+Replicated mesh migration[66]: rank 0 sent 114 parcels, received 5067 (global 5181) wall 0.04191298s [pack 2.671e-05s MPI 0.034611263s deser 0.00048854s]
+Replicated mesh migration[66]: rank 1 sent 5067 parcels, received 114 (global 5181) wall 0.019342895s [pack 0.000886519s MPI 0.000808559s deser 0.003776736s]
+ExecutionTime = 59.11 s  ClockTime = 19 s
+
+Replicated mesh migration[67]: rank 0 sent 124 parcels, received 5173 (global 5297) wall 0.041194626s [pack 3.5143e-05s MPI 0.031905369s deser 0.000506944s]
+Replicated mesh migration[67]: rank 1 sent 5173 parcels, received 124 (global 5297) wall 0.020163197s [pack 0.000962618s MPI 0.000788726s deser 0.004627411s]
+ExecutionTime = 60.05 s  ClockTime = 19 s
+
+Replicated mesh migration[68]: rank 0 sent 111 parcels, received 5106 (global 5217) wall 0.03146565s [pack 3.0158e-05s MPI 0.021349247s deser 0.000512509s]
+Replicated mesh migration[68]: rank 1 sent 5106 parcels, received 111 (global 5217) wall 0.018662284s [pack 0.000790359s MPI 0.000660368s deser 0.005293828s]
+ExecutionTime = 61.01 s  ClockTime = 19 s
+
+Replicated mesh migration[69]: rank 0 sent 102 parcels, received 5078 (global 5180) wall 0.014462656s [pack 2.5141e-05s MPI 0.005854148s deser 0.000497887s]
+Replicated mesh migration[69]: rank 1 sent 5078 parcels, received 102 (global 5180) wall 0.02466932s [pack 0.000857241s MPI 0.005687208s deser 0.00513543s]
+ExecutionTime = 61.88 s  ClockTime = 20 s
+
+Replicated mesh migration[70]: rank 0 sent 115 parcels, received 5101 (global 5216) wall 0.032752683s [pack 5.0196e-05s MPI 0.023832471s deser 0.00053172s]
+Replicated mesh migration[70]: rank 1 sent 5101 parcels, received 115 (global 5216) wall 0.020907217s [pack 0.00088164s MPI 0.000770494s deser 0.005311653s]
+ExecutionTime = 62.83 s  ClockTime = 20 s
+
+Replicated mesh migration[71]: rank 0 sent 134 parcels, received 5124 (global 5258) wall 0.028305566s [pack 5.8426e-05s MPI 0.01901863s deser 0.000504409s]
+Replicated mesh migration[71]: rank 1 sent 5124 parcels, received 134 (global 5258) wall 0.020968739s [pack 0.00094374s MPI 0.000791542s deser 0.005214645s]
+ExecutionTime = 63.76 s  ClockTime = 20 s
+
+Time = 4.648034226e-06
+
+Replicated mesh migration[72]: rank 0 sent 120 parcels, received 5073 (global 5193) wall 0.025883518s [pack 3.3832e-05s MPI 0.016398646s deser 0.00051137s]
+Replicated mesh migration[72]: rank 1 sent 5073 parcels, received 120 (global 5193) wall 0.021063618s [pack 0.000918084s MPI 0.000801694s deser 0.005211164s]
+    Collisions                      = 12238
+    Collision candidates           = 48305
+    Collision acceptance rate      = 0.2533485146
+    Candidate-cell sigmaTcRMax avg/max/min = 1e-15 / 1e-15 / 1e-15
+
+    Collisions                      = 73492
+    Collision candidates           = 160923
+    Collision acceptance rate      = 0.4566904669
+    Candidate-cell sigmaTcRMax avg/max/min = 1.003869244e-15 / 1.247213962e-15 / 1e-15
+
+Cloud name: dsmc
+    Number of dsmc particles        = 734045
+    Number of molecules             = 4.40427e+15
+    Mass in system                  = 2.112186575e-10
+    Average linear kinetic energy   = 1.601396365e-19
+    Average rotational energy       = 6.196229714e-21
+    Average vibrational energy      = 2.157820204e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.879140682e-19
+ExecutionTime = 64.79 s  ClockTime = 20 s
+
+Cloud name: dsmc
+    Number of dsmc particles        = 737133
+    Number of molecules             = 4.422798e+15
+    Mass in system                  = 2.121071396e-10
+    Average linear kinetic energy   = 1.924535075e-19
+    Average rotational energy       = 1.21556966e-21
+    Average vibrational energy      = 2.157599804e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.152450752e-19
+Replicated mesh migration[73]: rank 0 sent 113 parcels, received 5058 (global 5171) wall 0.068739787s [pack 3.0255e-05s MPI 0.059712146s deser 0.00053563s]
+Replicated mesh migration[73]: rank 1 sent 5058 parcels, received 113 (global 5171) wall 0.017631679s [pack 0.000742409s MPI 0.000632252s deser 0.005293516s]
+ExecutionTime = 65.89 s  ClockTime = 21 s
+
+Replicated mesh migration[74]: rank 0 sent 128 parcels, received 5075 (global 5203) wall 0.012822845s [pack 2.6957e-05s MPI 0.004743414s deser 0.000474315s]
+Replicated mesh migration[74]: rank 1 sent 5075 parcels, received 128 (global 5203) wall 0.023049944s [pack 0.000966195s MPI 0.002277628s deser 0.004450383s]
+ExecutionTime = 66.77 s  ClockTime = 20 s
+
+Replicated mesh migration[75]: rank 0 sent 123 parcels, received 4891 (global 5014) wall 0.033706501s [pack 3.2081e-05s MPI 0.023247321s deser 0.000533697s]
+Replicated mesh migration[75]: rank 1 sent 4891 parcels, received 123 (global 5014) wall 0.021159723s [pack 0.000874882s MPI 0.000761351s deser 0.005178029s]
+ExecutionTime = 67.73 s  ClockTime = 20 s
+
+Replicated mesh migration[76]: rank 0 sent 96 parcels, received 5122 (global 5218) wall 0.018920774s [pack 2.412e-05s MPI 0.010104135s deser 0.000462023s]
+Replicated mesh migration[76]: rank 1 sent 5122 parcels, received 96 (global 5218) wall 0.01756797s [pack 0.000741077s MPI 0.000584365s deser 0.003853157s]
+ExecutionTime = 68.65 s  ClockTime = 21 s
+
+Replicated mesh migration[77]: rank 0 sent 123 parcels, received 5022 (global 5145) wall 0.014611363s [pack 2.7139e-05s MPI 0.005741541s deser 0.000527701s]
+Replicated mesh migration[77]: rank 1 sent 5022 parcels, received 123 (global 5145) wall 0.036310552s [pack 0.00077751s MPI 0.019047047s deser 0.005128629s]
+ExecutionTime = 69.58 s  ClockTime = 21 s
+
+Replicated mesh migration[78]: rank 0 sent 121 parcels, received 5145 (global 5266) wall 0.015109282s [pack 2.7784e-05s MPI 0.00604147s deser 0.000513326s]
+Replicated mesh migration[78]: rank 1 sent 5145 parcels, received 121 (global 5266) wall 0.03040855s [pack 0.001035075s MPI 0.007123775s deser 0.005326587s]
+ExecutionTime = 70.51 s  ClockTime = 21 s
+
+Replicated mesh migration[79]: rank 0 sent 121 parcels, received 5064 (global 5185) wall 0.015053168s [pack 3.0246e-05s MPI 0.006564361s deser 0.0004724s]
+Replicated mesh migration[79]: rank 1 sent 5064 parcels, received 121 (global 5185) wall 0.02057174s [pack 0.000802114s MPI 0.000770913s deser 0.004804653s]
+ExecutionTime = 71.44 s  ClockTime = 21 s
+
+Replicated mesh migration[80]: rank 0 sent 132 parcels, received 5062 (global 5194) wall 0.014149682s [pack 4.2645e-05s MPI 0.005423798s deser 0.000481678s]
+Replicated mesh migration[80]: rank 1 sent 5062 parcels, received 132 (global 5194) wall 0.020539151s [pack 0.000822737s MPI 0.00051859s deser 0.004731045s]
+ExecutionTime = 72.4 s  ClockTime = 21 s
+
+Replicated mesh migration[81]: rank 0 sent 124 parcels, received 5054 (global 5178) wall 0.01875945s [pack 4.0636e-05s MPI 0.011514183s deser 0.000428032s]
+Replicated mesh migration[81]: rank 1 sent 5054 parcels, received 124 (global 5178) wall 0.019069673s [pack 0.000846482s MPI 0.000752161s deser 0.003422258s]
+ExecutionTime = 73.33 s  ClockTime = 22 s
+
+Time = 5.312039115e-06
+
+Replicated mesh migration[82]: rank 0 sent 98 parcels, received 5124 (global 5222) wall 0.017179659s [pack 3.1634e-05s MPI 0.008389591s deser 0.000525465s]
+Replicated mesh migration[82]: rank 1 sent 5124 parcels, received 98 (global 5222) wall 0.018387733s [pack 0.000752033s MPI 0.000641816s deser 0.004839823s]
+    Collisions                      = 12410
+    Collision candidates           = 48161
+    Collision acceptance rate      = 0.2576773738
+    Candidate-cell sigmaTcRMax avg/max/min = 1e-15 / 1e-15 / 1e-15
+
+    Collisions                      = 82541
+    Collision candidates           = 178594
+    Collision acceptance rate      = 0.4621711816
+    Candidate-cell sigmaTcRMax avg/max/min = 1.005460696e-15 / 1.314583551e-15 / 1e-15
+
+Cloud name: dsmc
+    Number of dsmc particles        = 757211
+    Number of molecules             = 4.543266e+15
+    Mass in system                  = 2.178856556e-10
+    Average linear kinetic energy   = 1.574357925e-19
+    Average rotational energy       = 7.125072849e-21
+    Average vibrational energy      = 2.157921528e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.861400807e-19
+ExecutionTime = 74.38 s  ClockTime = 22 s
+
+Cloud name: dsmc
+    Number of dsmc particles        = 737113
+    Number of molecules             = 4.422678e+15
+    Mass in system                  = 2.121014008e-10
+    Average linear kinetic energy   = 1.924588755e-19
+    Average rotational energy       = 1.21528147e-21
+    Average vibrational energy      = 2.157599382e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.152501508e-19
+Replicated mesh migration[83]: rank 0 sent 118 parcels, received 5079 (global 5197) wall 0.07229115s [pack 2.8404e-05s MPI 0.063629508s deser 0.000460592s]
+Replicated mesh migration[83]: rank 1 sent 5079 parcels, received 118 (global 5197) wall 0.017190653s [pack 0.000883859s MPI 0.000544572s deser 0.004306647s]
+ExecutionTime = 75.54 s  ClockTime = 22 s
+
+Replicated mesh migration[84]: rank 0 sent 130 parcels, received 5047 (global 5177) wall 0.020796378s [pack 2.6581e-05s MPI 0.013007377s deser 0.000445632s]
+Replicated mesh migration[84]: rank 1 sent 5047 parcels, received 130 (global 5177) wall 0.018644103s [pack 0.000821003s MPI 0.000546177s deser 0.003375801s]
+ExecutionTime = 76.47 s  ClockTime = 22 s
+
+Replicated mesh migration[85]: rank 0 sent 117 parcels, received 5211 (global 5328) wall 0.027040766s [pack 2.1105e-05s MPI 0.01972647s deser 0.000440481s]
+Replicated mesh migration[85]: rank 1 sent 5211 parcels, received 117 (global 5328) wall 0.018684611s [pack 0.000856902s MPI 0.00053939s deser 0.003496419s]
+ExecutionTime = 77.44 s  ClockTime = 23 s
+
+Replicated mesh migration[86]: rank 0 sent 124 parcels, received 5114 (global 5238) wall 0.016025015s [pack 2.926e-05s MPI 0.008267784s deser 0.000463901s]
+Replicated mesh migration[86]: rank 1 sent 5114 parcels, received 124 (global 5238) wall 0.019782391s [pack 0.000858753s MPI 0.000746803s deser 0.003345055s]
+ExecutionTime = 78.38 s  ClockTime = 23 s
+
+Replicated mesh migration[87]: rank 0 sent 110 parcels, received 5008 (global 5118) wall 0.020676175s [pack 2.3972e-05s MPI 0.012419186s deser 0.00045291s]
+Replicated mesh migration[87]: rank 1 sent 5008 parcels, received 110 (global 5118) wall 0.017424446s [pack 0.000755411s MPI 0.000651114s deser 0.003464823s]
+ExecutionTime = 79.33 s  ClockTime = 23 s
+
+Replicated mesh migration[88]: rank 0 sent 120 parcels, received 4878 (global 4998) wall 0.014263907s [pack 2.2602e-05s MPI 0.006634011s deser 0.000457657s]
+Replicated mesh migration[88]: rank 1 sent 4878 parcels, received 120 (global 4998) wall 0.017125589s [pack 0.00074832s MPI 0.000650897s deser 0.00327508s]
+ExecutionTime = 80.27 s  ClockTime = 23 s
+
+Replicated mesh migration[89]: rank 0 sent 124 parcels, received 5086 (global 5210) wall 0.016981396s [pack 3.186e-05s MPI 0.00788022s deser 0.000505551s]
+Replicated mesh migration[89]: rank 1 sent 5086 parcels, received 124 (global 5210) wall 0.019827802s [pack 0.000895725s MPI 0.000536486s deser 0.003477449s]
+ExecutionTime = 81.2 s  ClockTime = 24 s
+
+Replicated mesh migration[90]: rank 0 sent 119 parcels, received 5100 (global 5219) wall 0.023952605s [pack 2.1952e-05s MPI 0.015970403s deser 0.000461271s]
+Replicated mesh migration[90]: rank 1 sent 5100 parcels, received 119 (global 5219) wall 0.0194571s [pack 0.000896532s MPI 0.000868651s deser 0.003458865s]
+ExecutionTime = 82.17 s  ClockTime = 24 s
+
+Replicated mesh migration[91]: rank 0 sent 114 parcels, received 5112 (global 5226) wall 0.02207171s [pack 4.947e-05s MPI 0.014150372s deser 0.000454841s]
+Replicated mesh migration[91]: rank 1 sent 5112 parcels, received 114 (global 5226) wall 0.01734942s [pack 0.000915905s MPI 0.000929338s deser 0.003540865s]
+ExecutionTime = 83.16 s  ClockTime = 24 s
+
+Time = 5.976044005e-06
+
+Replicated mesh migration[92]: rank 0 sent 140 parcels, received 5024 (global 5164) wall 0.017246669s [pack 3.5602e-05s MPI 0.009312361s deser 0.000441801s]
+Replicated mesh migration[92]: rank 1 sent 5024 parcels, received 140 (global 5164) wall 0.019927511s [pack 0.000898995s MPI 0.000800794s deser 0.003322757s]
+    Collisions                      = 12376
+    Collision candidates           = 48178
+    Collision acceptance rate      = 0.2568807339
+    Candidate-cell sigmaTcRMax avg/max/min = 1e-15 / 1e-15 / 1e-15
+
+    Collisions                      = 90826
+    Collision candidates           = 195601
+    Collision acceptance rate      = 0.4643432293
+    Candidate-cell sigmaTcRMax avg/max/min = 1.007274442e-15 / 1.314583551e-15 / 1e-15
+
+Cloud name: dsmc
+    Number of dsmc particles        = 780498
+    Number of molecules             = 4.682988e+15
+    Mass in system                  = 2.245838707e-10
+    Average linear kinetic energy   = 1.550036408e-19
+    Average rotational energy       = 8.016795035e-21
+    Average vibrational energy      = 2.158020615e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.846006419e-19
+ExecutionTime = 84.26 s  ClockTime = 24 s
+
+Cloud name: dsmc
+    Number of dsmc particles        = 737146
+    Number of molecules             = 4.422876e+15
+    Mass in system                  = 2.121127924e-10
+    Average linear kinetic energy   = 1.924622146e-19
+    Average rotational energy       = 1.214661195e-21
+    Average vibrational energy      = 2.15754954e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.152523712e-19
+Replicated mesh migration[93]: rank 0 sent 109 parcels, received 5096 (global 5205) wall 0.072971223s [pack 2.7537e-05s MPI 0.063704127s deser 0.000571103s]
+Replicated mesh migration[93]: rank 1 sent 5096 parcels, received 109 (global 5205) wall 0.017146912s [pack 0.000746804s MPI 0.000623666s deser 0.005067326s]
+ExecutionTime = 85.46 s  ClockTime = 25 s
+
+Replicated mesh migration[94]: rank 0 sent 117 parcels, received 5016 (global 5133) wall 0.014686138s [pack 3.123e-05s MPI 0.005894939s deser 0.00045095s]
+Replicated mesh migration[94]: rank 1 sent 5016 parcels, received 117 (global 5133) wall 0.03840119s [pack 0.000781402s MPI 0.0218254s deser 0.004714716s]
+ExecutionTime = 86.41 s  ClockTime = 25 s
+
+Replicated mesh migration[95]: rank 0 sent 130 parcels, received 5100 (global 5230) wall 0.014904592s [pack 3.2451e-05s MPI 0.005751198s deser 0.000523052s]
+Replicated mesh migration[95]: rank 1 sent 5100 parcels, received 130 (global 5230) wall 0.026025794s [pack 0.000874344s MPI 0.00653059s deser 0.004841626s]
+ExecutionTime = 87.38 s  ClockTime = 25 s
+
+Replicated mesh migration[96]: rank 0 sent 115 parcels, received 5074 (global 5189) wall 0.013112975s [pack 3.5219e-05s MPI 0.004890691s deser 0.000478438s]
+Replicated mesh migration[96]: rank 1 sent 5074 parcels, received 115 (global 5189) wall 0.02321046s [pack 0.001005143s MPI 0.002601363s deser 0.004067s]
+ExecutionTime = 88.31 s  ClockTime = 25 s
+
+Replicated mesh migration[97]: rank 0 sent 113 parcels, received 5140 (global 5253) wall 0.019697526s [pack 2.5794e-05s MPI 0.011411975s deser 0.000463507s]
+Replicated mesh migration[97]: rank 1 sent 5140 parcels, received 113 (global 5253) wall 0.021531107s [pack 0.000977764s MPI 0.000928077s deser 0.004219575s]
+ExecutionTime = 89.32 s  ClockTime = 26 s
+
+Replicated mesh migration[98]: rank 0 sent 124 parcels, received 4946 (global 5070) wall 0.01489104s [pack 4.424e-05s MPI 0.005807532s deser 0.000524283s]
+Replicated mesh migration[98]: rank 1 sent 4946 parcels, received 124 (global 5070) wall 0.031159797s [pack 0.001137499s MPI 0.009985427s deser 0.004731961s]
+ExecutionTime = 90.31 s  ClockTime = 26 s
+
+Replicated mesh migration[99]: rank 0 sent 131 parcels, received 5116 (global 5247) wall 0.015130057s [pack 3.0708e-05s MPI 0.00589939s deser 0.000509865s]
+Replicated mesh migration[99]: rank 1 sent 5116 parcels, received 131 (global 5247) wall 0.035272809s [pack 0.001010077s MPI 0.01409841s deser 0.004714223s]
+ExecutionTime = 91.32 s  ClockTime = 26 s
+
+Replicated mesh migration[100]: rank 0 sent 123 parcels, received 5203 (global 5326) wall 0.013644887s [pack 2.4733e-05s MPI 0.005086984s deser 0.000490592s]
+Replicated mesh migration[100]: rank 1 sent 5203 parcels, received 123 (global 5326) wall 0.033049937s [pack 0.001114795s MPI 0.011485713s deser 0.003682446s]
+ExecutionTime = 92.3 s  ClockTime = 26 s
+
+Replicated mesh migration[101]: rank 0 sent 109 parcels, received 5104 (global 5213) wall 0.015454378s [pack 2.5882e-05s MPI 0.005789577s deser 0.000533621s]
+Replicated mesh migration[101]: rank 1 sent 5104 parcels, received 109 (global 5213) wall 0.029879495s [pack 0.001194269s MPI 0.006491427s deser 0.004649383s]
+ExecutionTime = 93.3 s  ClockTime = 27 s
+
+Time = 6.640048894e-06
+
+Replicated mesh migration[102]: rank 0 sent 97 parcels, received 5030 (global 5127) wall 0.014953215s [pack 2.3261e-05s MPI 0.005753735s deser 0.000524746s]
+Replicated mesh migration[102]: rank 1 sent 5030 parcels, received 97 (global 5127) wall 0.032239474s [pack 0.001246667s MPI 0.009494424s deser 0.004551236s]
+    Collisions                      = 12294
+    Collision candidates           = 48281
+    Collision acceptance rate      = 0.2546343282
+    Candidate-cell sigmaTcRMax avg/max/min = 1e-15 / 1e-15 / 1e-15
+
+    Collisions                      = 99538
+    Collision candidates           = 213133
+    Collision acceptance rate      = 0.4670229387
+    Candidate-cell sigmaTcRMax avg/max/min = 1.009286306e-15 / 1.314583551e-15 / 1e-15
+
+
+Phase C auto DLB triggered (SAR) at step 100: sar=0.005379087357 loadImbalance=1.069953947
+
+Phase C auto DLB triggered (SAR) at step 100: sar=0.005379095024 loadImbalance=1.069953947
+Phase C ParMETIS: K=1024 (moveT=13.91221494s, collT=3.450845567s)
+Phase C ParMETIS: AdaptiveRepart (60000 cells, 1 constraints, collScale=3.788143606, ubvec=1.049999952)
+Phase C ParMETIS: K=1024 (moveT=9.804057156s, collT=5.176246086s)
+Phase C ParMETIS: AdaptiveRepart (60000 cells, 1 constraints, collScale=1.988727024, ubvec=1.049999952)
+Replicated mesh: rank 0 owns 30010 / 60000 cells
+Replicated mesh: rank 1 owns 29990 / 60000 cells
+Local mesh: Local mesh: 29990 owned + 448 halo = 30438 / 60000 cells
+Phase C ParMETIS AdaptiveRepart: 0 / 60000 cells changed (0)
+30010 owned + 448 halo = 30458 / 60000 cells
+Phase C ParMETIS AdaptiveRepart: 0 / 60000 cells changed (0)
+Replicated mesh migration[103]: rank 0 sent 0 parcels, received 0 (global 0) wall 0.013598292s [pack 1.3269e-05s MPI 0.003218231s deser 0.000423366s]
+Replicated mesh migration[103]: rank 1 sent 0 parcels, received 0 (global 0) wall 0.013622659s [pack 8.176e-06s MPI 1.5009e-05s deser 0.000418124s]
+Phase C auto DLB complete: rebalance #2
+
+Phase C adaptive K (PID): bottleneck=rank1 max/min=1.022023556 error=0.07797644441 integral=0.07797644441 K: 1024 -> 1060
+Phase C auto DLB complete: rebalance #2
+
+Phase C adaptive K (PID): bottleneck=rank1 max/min=1.022023556 error=0.07797644441 integral=0.07797644441 K: 1024 -> 1060
+Cloud name: dsmc
+    Number of dsmc particles        = 803689
+    Number of molecules             = 4.822134e+15
+    Mass in system                  = 2.312551429e-10
+    Average linear kinetic energy   = 1.527574575e-19
+    Average rotational energy       = 8.92662462e-21
+    Average vibrational energy      = 2.158128479e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.832653669e-19
+ExecutionTime = 94.57 s  ClockTime = 27 s
+
+Cloud name: dsmc
+    Number of dsmc particles        = 736926
+    Number of molecules             = 4.421556e+15
+    Mass in system                  = 2.120441833e-10
+    Average linear kinetic energy   = 1.924613186e-19
+    Average rotational energy       = 1.215435272e-21
+    Average vibrational energy      = 2.157689024e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.152536441e-19
+Replicated mesh migration[104]: rank 0 sent 144 parcels, received 5177 (global 5321) wall 0.143539802s [pack 3.2382e-05s MPI 0.133799158s deser 0.00049345s]
+Replicated mesh migration[104]: rank 1 sent 5177 parcels, received 144 (global 5321) wall 0.022495899s [pack 0.00109652s MPI 0.001093221s deser 0.004019937s]
+ExecutionTime = 96.06 s  ClockTime = 27 s
+
+Replicated mesh migration[105]: rank 0 sent 106 parcels, received 5190 (global 5296) wall 0.041901601s [pack 3.0943e-05s MPI 0.031230507s deser 0.000545805s]
+Replicated mesh migration[105]: rank 1 sent 5190 parcels, received 106 (global 5296) wall 0.023997929s [pack 0.001087774s MPI 0.001163659s deser 0.005485437s]
+ExecutionTime = 97.11 s  ClockTime = 28 s
+
+Replicated mesh migration[106]: rank 0 sent 122 parcels, received 5032 (global 5154) wall 0.014877739s [pack 2.4883e-05s MPI 0.005893278s deser 0.000597677s]
+Replicated mesh migration[106]: rank 1 sent 5032 parcels, received 122 (global 5154) wall 0.029149851s [pack 0.001151304s MPI 0.005558312s deser 0.004857086s]
+ExecutionTime = 98.12 s  ClockTime = 28 s
+
+Replicated mesh migration[107]: rank 0 sent 124 parcels, received 4993 (global 5117) wall 0.013683341s [pack 2.613e-05s MPI 0.005050638s deser 0.000487025s]
+Replicated mesh migration[107]: rank 1 sent 4993 parcels, received 124 (global 5117) wall 0.038390222s [pack 0.00115024s MPI 0.016609389s deser 0.00356523s]
+ExecutionTime = 99.11 s  ClockTime = 28 s
+
+Replicated mesh migration[108]: rank 0 sent 114 parcels, received 5135 (global 5249) wall 0.016638526s [pack 3.2963e-05s MPI 0.006026073s deser 0.000547083s]
+Replicated mesh migration[108]: rank 1 sent 5135 parcels, received 114 (global 5249) wall 0.027307096s [pack 0.001162789s MPI 0.003220584s deser 0.005342175s]
+ExecutionTime = 100.12 s  ClockTime = 28 s
+
+Replicated mesh migration[109]: rank 0 sent 105 parcels, received 5029 (global 5134) wall 0.01694689s [pack 2.7408e-05s MPI 0.00645391s deser 0.000561985s]
+Replicated mesh migration[109]: rank 1 sent 5029 parcels, received 105 (global 5134) wall 0.035282569s [pack 0.001189746s MPI 0.011563263s deser 0.0052072s]
+ExecutionTime = 101.13 s  ClockTime = 29 s
+
+Replicated mesh migration[110]: rank 0 sent 135 parcels, received 5151 (global 5286) wall 0.013578264s [pack 2.7311e-05s MPI 0.004831353s deser 0.00048176s]
+Replicated mesh migration[110]: rank 1 sent 5151 parcels, received 135 (global 5286) wall 0.029849068s [pack 0.001226705s MPI 0.007533239s deser 0.003622742s]
+ExecutionTime = 102.1 s  ClockTime = 29 s
+
+Replicated mesh migration[111]: rank 0 sent 140 parcels, received 4947 (global 5087) wall 0.013043383s [pack 2.7607e-05s MPI 0.004557922s deser 0.000459054s]
+Replicated mesh migration[111]: rank 1 sent 4947 parcels, received 140 (global 5087) wall 0.027139549s [pack 0.001068129s MPI 0.005733849s deser 0.003482566s]
+ExecutionTime = 103.07 s  ClockTime = 29 s
+
+Replicated mesh migration[112]: rank 0 sent 123 parcels, received 5055 (global 5178) wall 0.014516893s [pack 2.5315e-05s MPI 0.00536847s deser 0.000481214s]
+Replicated mesh migration[112]: rank 1 sent 5055 parcels, received 123 (global 5178) wall 0.028695737s [pack 0.001094934s MPI 0.006513592s deser 0.004225864s]
+ExecutionTime = 104.11 s  ClockTime = 30 s
+
+Time = 7.304053783e-06
+
+Replicated mesh migration[113]: rank 0 sent 117 parcels, received 5112 (global 5229) wall 0.016510491s [pack 3.1452e-05s MPI 0.006376841s deser 0.000565207s]
+Replicated mesh migration[113]: rank 1 sent 5112 parcels, received 117 (global 5229) wall 0.046992227s [pack 0.001102592s MPI 0.024042054s deser 0.005037039s]
+    Collisions                      = 12312
+    Collision candidates           = 48076
+    Collision acceptance rate      = 0.256094517
+    Candidate-cell sigmaTcRMax avg/max/min = 1e-15 / 1e-15 / 1e-15
+
+    Collisions                      = 107381
+    Collision candidates           = 229444
+    Collision acceptance rate      = 0.4680052649
+    Candidate-cell sigmaTcRMax avg/max/min = 1.011236727e-15 / 1.314583551e-15 / 1e-15
+
+Cloud name: dsmc
+    Number of dsmc particles        = 826904
+    Number of molecules             = 4.961424e+15
+    Mass in system                  = 2.379360107e-10
+    Average linear kinetic energy   = 1.507389894e-19
+    Average rotational energy       = 9.784302643e-21
+    Average vibrational energy      = 2.15825747e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.821058667e-19
+ExecutionTime = 105.34 s  ClockTime = 30 s
+
+Cloud name: dsmc
+    Number of dsmc particles        = 736827
+    Number of molecules             = 4.420962e+15
+    Mass in system                  = 2.120192236e-10
+    Average linear kinetic energy   = 1.924651544e-19
+    Average rotational energy       = 1.215848443e-21
+    Average vibrational energy      = 2.157596274e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.152569655e-19
+Replicated mesh migration[114]: rank 0 sent 139 parcels, received 5042 (global 5181) wall 0.084490857s [pack 4.7002e-05s MPI 0.075595513s deser 0.00053022s]
+Replicated mesh migration[114]: rank 1 sent 5042 parcels, received 139 (global 5181) wall 0.021356448s [pack 0.00103898s MPI 0.000950033s deser 0.003672076s]
+ExecutionTime = 106.64 s  ClockTime = 30 s
+
+Replicated mesh migration[115]: rank 0 sent 113 parcels, received 5230 (global 5343) wall 0.016891277s [pack 2.954e-05s MPI 0.006470701s deser 0.00056603s]
+Replicated mesh migration[115]: rank 1 sent 5230 parcels, received 113 (global 5343) wall 0.040724818s [pack 0.001146316s MPI 0.017454202s deser 0.005119706s]
+ExecutionTime = 107.72 s  ClockTime = 30 s
+
+Replicated mesh migration[116]: rank 0 sent 131 parcels, received 5205 (global 5336) wall 0.013447397s [pack 2.5366e-05s MPI 0.005027285s deser 0.000493455s]
+Replicated mesh migration[116]: rank 1 sent 5205 parcels, received 131 (global 5336) wall 0.046637095s [pack 0.000954021s MPI 0.028179053s deser 0.003574063s]
+ExecutionTime = 108.77 s  ClockTime = 31 s
+
+Replicated mesh migration[117]: rank 0 sent 127 parcels, received 5025 (global 5152) wall 0.016824592s [pack 3.3168e-05s MPI 0.006376861s deser 0.000574479s]
+Replicated mesh migration[117]: rank 1 sent 5025 parcels, received 127 (global 5152) wall 0.043591434s [pack 0.001112171s MPI 0.019656745s deser 0.005081338s]
+ExecutionTime = 109.83 s  ClockTime = 31 s
+
+Replicated mesh migration[118]: rank 0 sent 107 parcels, received 5024 (global 5131) wall 0.016534759s [pack 3.4329e-05s MPI 0.006139569s deser 0.000571847s]
+Replicated mesh migration[118]: rank 1 sent 5024 parcels, received 107 (global 5131) wall 0.054879611s [pack 0.001229578s MPI 0.028668213s deser 0.005072632s]
+ExecutionTime = 110.91 s  ClockTime = 31 s
+
+Replicated mesh migration[119]: rank 0 sent 123 parcels, received 5106 (global 5229) wall 0.016916232s [pack 3.9509e-05s MPI 0.006456178s deser 0.000571436s]
+Replicated mesh migration[119]: rank 1 sent 5106 parcels, received 123 (global 5229) wall 0.051623092s [pack 0.000850458s MPI 0.033143313s deser 0.005196823s]
+ExecutionTime = 112 s  ClockTime = 32 s
+
+Replicated mesh migration[120]: rank 0 sent 111 parcels, received 5167 (global 5278) wall 0.016720412s [pack 3.1575e-05s MPI 0.006437513s deser 0.000508091s]
+Replicated mesh migration[120]: rank 1 sent 5167 parcels, received 111 (global 5278) wall 0.056648552s [pack 0.000860016s MPI 0.038077686s deser 0.005118504s]
+ExecutionTime = 113.04 s  ClockTime = 32 s
+
+Replicated mesh migration[121]: rank 0 sent 115 parcels, received 4985 (global 5100) wall 0.016695961s [pack 3.5038e-05s MPI 0.006264501s deser 0.000563974s]
+Replicated mesh migration[121]: rank 1 sent 4985 parcels, received 115 (global 5100) wall 0.048577905s [pack 0.000841937s MPI 0.02960836s deser 0.004968073s]
+ExecutionTime = 114.1 s  ClockTime = 32 s
+
+Replicated mesh migration[122]: rank 0 sent 116 parcels, received 4966 (global 5082) wall 0.017048667s [pack 2.8738e-05s MPI Replicated mesh migration[122]: rank 1 sent 4966 parcels, received 116 (global 5082) wall 0.053091094s [pack 0.001142317s MPI 0.027671291s deser 0.005395059s]
+0.006671527s deser 0.000717818s]
+ExecutionTime = 115.18 s  ClockTime = 32 s
+
+Time = 7.968058673e-06
+
+Replicated mesh migration[123]: rank 0 sent 110 parcels, received 4922 (global 5032) wall 0.015191544s [pack 3.1575e-05s MPI 0.005669558s deser 0.00054682s]
+Replicated mesh migration[123]: rank 1 sent 4922 parcels, received 110 (global 5032) wall 0.038095259s [pack 0.001123097s MPI 0.015451612s deser 0.004356439s]
+    Collisions                      = 12595
+    Collision candidates           = 48179
+    Collision acceptance rate      = 0.261420951
+    Candidate-cell sigmaTcRMax avg/max/min = 1e-15 / 1e-15 / 1e-15
+
+    Collisions                      = 114948
+    Collision candidates           = 244464
+    Collision acceptance rate      = 0.4702042018
+    Candidate-cell sigmaTcRMax avg/max/min = 1.013392197e-15 / 1.32462746e-15 / 1e-15
+
+
+Phase C auto DLB triggered (SAR) at step 120: sar=0.079821205 loadImbalance=1.145396355
+
+Phase C auto DLB triggered (SAR) at step 120: sar=0.079820476 loadImbalance=1.145396355
+Phase C ParMETIS: K=1060 (moveT=16.78047653s, collT=4.196266851s)
+Phase C ParMETIS: AdaptiveRepart (60000 cells, 1 constraints, collScale=3.827205648, ubvec=1.049999952)
+Phase C ParMETIS: K=1060 (moveT=12.09377064s, collT=6.919601204s)
+Phase C ParMETIS: AdaptiveRepart (60000 cells, 1 constraints, collScale=1.985637346, ubvec=1.049999952)
+Replicated mesh: rank 0 owns 30010 / 60000 cells
+Replicated mesh: rank 1 owns 29990 / 60000 cells
+Local mesh: 30010 owned + 448 halo = 30458 / 60000 cells
+Phase C ParMETIS AdaptiveRepart: 0 / 60000 cells changed (Local mesh: 29990 owned + 448 halo = 30438 / 60000 cells
+Phase C ParMETIS AdaptiveRepart: 0 / 60000 cells changed (0)
+0)
+Replicated mesh migration[124]: rank 0 sent 0 parcels, received 0 (global 0) wall 0.014258047s [pack 1.2221e-05s MPI 0.003374193s deser 0.000431077s]
+Phase C auto DLB complete: rebalance #3
+
+Phase C adaptive K (PID): bottleneck=rank0 max/min=1.116054936 error=-0.01605493594 integral=0.02293328626 K: 1060 -> 1046
+Replicated mesh migration[124]: rank 1 sent 0 parcels, received 0 (global 0) wall 0.014260751s [pack 7.298e-06s MPI 1.4143e-05s deser 0.000431046s]
+Phase C auto DLB complete: rebalance #3
+
+Phase C adaptive K (PID): bottleneck=rank0 max/min=1.116054936 error=-0.01605493594 integral=0.02293328626 K: 1060 -> 1046
+Cloud name: dsmc
+    Number of dsmc particles        = 849580
+    Number of molecules             = 5.09748e+15
+    Mass in system                  = 2.444675699e-10
+    Average linear kinetic energy   = 1.489030258e-19
+    Average rotational energy       = 1.061318577e-20
+    Average vibrational energy      = 2.158258921e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.810988008e-19
+ExecutionTime = 116.55 s  ClockTime = 33 s
+
+Cloud name: dsmc
+    Number of dsmc particles        = 736792
+    Number of molecules             = 4.420752e+15
+    Mass in system                  = 2.120058043e-10
+    Average linear kinetic energy   = 1.924436726e-19
+    Average rotational energy       = 1.216243463e-21
+    Average vibrational energy      = 2.157684333e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.152367594e-19
+Replicated mesh migration[125]: rank 0 sent 148 parcels, received 4998 (global 5146) wall 0.134099314s [pack 5.1997e-05s MPI 0.120326376s deser 0.000577664s]
+Replicated mesh migration[125]: rank 1 sent 4998 parcels, received 148 (global 5146) wall 0.02360737s [pack 0.001018876s MPI 0.001006491s deser 0.005391698s]
+ExecutionTime = 118.25 s  ClockTime = 33 s
+
+Replicated mesh migration[126]: rank 0 sent 112 parcels, received 5065 (global 5177) wall 0.017836623s [pack 3.3085e-05s MPI 0.006726978s deser 0.000538864s]
+Replicated mesh migration[126]: rank 1 sent 5065 parcels, received 112 (global 5177) wall 0.055403623s [pack 0.001108317s MPI 0.030646609s deser 0.005263991s]
+ExecutionTime = 119.35 s  ClockTime = 33 s
+
+Replicated mesh migration[127]: rank 0 sent 129 parcels, received 5062 (global 5191) wall 0.01771236s [pack 3.5419e-05s MPI 0.006769406s deser 0.000583996s]
+Replicated mesh migration[127]: rank 1 sent 5062 parcels, received 129 (global 5191) wall 0.057276422s [pack 0.001165114s MPI 0.032450563s deser 0.005277703s]
+ExecutionTime = 120.47 s  ClockTime = 34 s
+
+Replicated mesh migration[128]: rank 0 sent 109 parcels, received 5070 (global 5179) wall 0.017419853s [pack 3.3157e-05s MPI 0.006626838s deser 0.000544209s]
+Replicated mesh migration[128]: rank 1 sent 5070 parcels, received 109 (global 5179) wall 0.068890037s [pack 0.000931245s MPI 0.048600218s deser 0.005199742s]
+ExecutionTime = 121.63 s  ClockTime = 34 s
+
+Replicated mesh migration[129]: rank 0 sent 99 parcels, received 5083 (global 5182) wall 0.017805717s [pack 3.0557e-05s MPI 0.006632367s deser 0.000550437s]
+Replicated mesh migration[129]: rank 1 sent 5083 parcels, received 99 (global 5182) wall 0.067884831s [pack 0.000970106s MPI 0.047350145s deser 0.00526688s]
+ExecutionTime = 122.76 s  ClockTime = 34 s
+
+Replicated mesh migration[130]: rank 0 sent 135 parcels, received 5036 (global 5171) wall 0.017708567s [pack 3.8225e-05s MPI 0.006715096s deser 0.000568198s]
+Replicated mesh migration[130]: rank 1 sent 5036 parcels, received 135 (global 5171) wall 0.063965863s [pack 0.000934749s MPI 0.043175312s deser 0.005302647s]
+ExecutionTime = 123.88 s  ClockTime = 35 s
+
+Replicated mesh migration[131]: rank 0 sent 107 parcels, received 5182 (global 5289) wall 0.018488308s [pack 3.0502e-05s MPI 0.006988574s deser 0.000574384s]
+Replicated mesh migration[131]: rank 1 sent 5182 parcels, received 107 (global 5289) wall 0.067096634s [pack 0.000969666s MPI 0.046187106s deser 0.005468644s]
+ExecutionTime = 124.99 s  ClockTime = 35 s
+
+Replicated mesh migration[132]: rank 0 sent 114 parcels, received 5036 (global 5150) wall 0.01912174s [pack 3.625e-05s MPI 0.006975476s deser 0.000614255s]
+Replicated mesh migration[132]: rank 1 sent 5036 parcels, received 114 (global 5150) wall 0.070281992s [pack 0.000988822s MPI 0.048557375s deser 0.005433489s]
+ExecutionTime = 126.12 s  ClockTime = 35 s
+
+Replicated mesh migration[133]: rank 0 sent 122 parcels, received 5055 (global 5177) wall 0.018690304s [pack 3.7647e-05s MPI 0.006847967s deser 0.000639524s]
+Replicated mesh migration[133]: rank 1 sent 5055 parcels, received 122 (global 5177) wall 0.065234961s [pack 0.001205926s MPI 0.039138981s deser 0.005559559s]
+ExecutionTime = 127.24 s  ClockTime = 35 s
+
+Time = 8.632063562e-06
+
+Replicated mesh migration[134]: rank 0 sent 125 parcels, received 4978 (global 5103) wall 0.019129841s [pack 4.0483e-05s MPI 0.007083217s deser 0.000672949s]
+Replicated mesh migration[134]: rank 1 sent 4978 parcels, received 125 (global 5103) wall 0.064668108s [pack 0.001225061s MPI 0.038407561s deser 0.005657641s]
+    Collisions                      = 12310
+    Collision candidates           = 48155
+    Collision acceptance rate      = 0.2556328522
+    Candidate-cell sigmaTcRMax avg/max/min = 1e-15 / 1e-15 / 1e-15
+
+    Collisions                      = 122710
+    Collision candidates           = 259962
+    Collision acceptance rate      = 0.4720305275
+    Candidate-cell sigmaTcRMax avg/max/min = 1.015408306e-15 / 1.32462746e-15 / 1e-15
+
+Cloud name: dsmc
+    Number of dsmc particles        = 872092
+    Number of molecules             = 5.232552e+15
+    Mass in system                  = 2.509468987e-10
+    Average linear kinetic energy   = 1.471719286e-19
+    Average rotational energy       = 1.140424276e-20
+    Average vibrational energy      = 2.158267195e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.801588433e-19
+ExecutionTime = 128.58 s  ClockTime = 36 s
+
+Cloud name: dsmc
+    Number of dsmc particles        = 736873
+    Number of molecules             = 4.421238e+15
+    Mass in system                  = 2.120261393e-10
+    Average linear kinetic energy   = 1.924500969e-19
+    Average rotational energy       = 1.215052424e-21
+    Average vibrational energy      = 2.157762495e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.152427743e-19
+Replicated mesh migration[135]: rank 0 sent 105 parcels, received 5030 (global 5135) wall 0.083558272s [pack 3.5509e-05s MPI 0.071037483s deser 0.000627599s]
+Replicated mesh migration[135]: rank 1 sent 5030 parcels, received 105 (global 5135) wall 0.022642402s [pack 0.000932073s MPI 0.001164647s deser 0.005820036s]
+ExecutionTime = 129.98 s  ClockTime = 36 s
+
+Replicated mesh migration[136]: rank 0 sent 124 parcels, received 5019 (global 5143) wall 0.018890938s [pack 3.5498e-05s MPI 0.006935669s deser 0.000615534s]
+Replicated mesh migration[136]: rank 1 sent 5019 parcels, received 124 (global 5143) wall 0.089005212s [pack 0.001251577s MPI 0.062789921s deser 0.005410335s]
+ExecutionTime = 131.12 s  ClockTime = 37 s
+
+Replicated mesh migration[137]: rank 0 sent 136 parcels, received 5076 (global 5212) wall 0.019070716s [pack 4.0171e-05s MPI 0.0070489s deser 0.000676183s]
+Replicated mesh migration[137]: rank 1 sent 5076 parcels, received 136 (global 5212) wall 0.067202054s [pack 0.001202875s MPI 0.040946504s deser 0.005539081s]
+ExecutionTime = 132.26 s  ClockTime = 37 s
+
+Replicated mesh migration[138]: rank 0 sent 119 parcels, received 5059 (global 5178) wall 0.018974644s [pack 3.8217e-05s MPI 0.006982158s deser 0.000592327s]
+Replicated mesh migration[138]: rank 1 sent 5059 parcels, received 119 (global 5178) wall 0.068542033s [pack 0.001212437s MPI 0.042155826s deser 0.005432791s]
+ExecutionTime = 133.42 s  ClockTime = 37 s
+
+Replicated mesh migration[139]: rank 0 sent 111 parcels, received 5174 (global 5285) wall 0.017873161s [pack 3.1782e-05s MPI 0.006577791s deser 0.000605632s]
+Replicated mesh migration[139]: rank 1 sent 5174 parcels, received 111 (global 5285) wall 0.068483184s [pack 0.001119938s MPI 0.045068667s deser 0.005236193s]
+ExecutionTime = 134.6 s  ClockTime = 37 s
+
+Replicated mesh migration[140]: rank 0 sent 118 parcels, received 5058 (global 5176) wall 0.017864098s [pack 3.4134e-05s MPI 0.00645913s deser 0.000639875s]
+Replicated mesh migration[140]: rank 1 sent 5058 parcels, received 118 (global 5176) wall 0.07679517s [pack 0.001178032s MPI 0.052041735s deser 0.005221871s]
+ExecutionTime = 135.79 s  ClockTime = 38 s
+
+Replicated mesh migration[141]: rank 0 sent 105 parcels, received 5064 (global 5169) wall 0.018164339s [pack 3.3479e-05s MPI 0.006404737s deser 0.000670655s]
+Replicated mesh migration[141]: rank 1 sent 5064 parcels, received 105 (global 5169) wall 0.079723406s [pack 0.001004374s MPI 0.05925951s deser 0.005183756s]
+ExecutionTime = 136.95 s  ClockTime = 38 s
+
+Replicated mesh migration[142]: rank 0 sent 129 parcels, received 5104 (global 5233) wall 0.017828029s [pack 3.9375e-05s MPI 0.006338136s deser 0.000537542s]
+Replicated mesh migration[142]: rank 1 sent 5104 parcels, received 129 (global 5233) wall 0.075067752s [pack 0.000840234s MPI 0.056556493s deser 0.005148332s]
+ExecutionTime = 138.13 s  ClockTime = 38 s
+
+Replicated mesh migration[143]: rank 0 sent 112 parcels, received 5009 (global 5121) wall 0.018382514s [pack 3.474e-05s MPI 0.006529879s deser 0.000622555s]
+Replicated mesh migration[143]: rank 1 sent 5009 parcels, received 112 (global 5121) wall 0.110927096s [pack 0.000909714s MPI 0.090800263s deser 0.005120113s]
+ExecutionTime = 139.33 s  ClockTime = 39 s
+
+Time = 9.296068452e-06
+
+Replicated mesh migration[144]: rank 0 sent 102 parcels, received 5069 (global 5171) wall 0.017831235s [pack 3.0491e-05s MPI 0.006322226s deser 0.000602376s]
+Replicated mesh migration[144]: rank 1 sent 5069 parcels, received 102 (global 5171) wall 0.080452595s [pack 0.000859947s MPI 0.061112247s deser 0.005119954s]
+    Collisions                      = 12490
+    Collision candidates           = 48167
+    Collision acceptance rate      = 0.259306164
+    Candidate-cell sigmaTcRMax avg/max/min = 1e-15 / 1e-15 / 1e-15
+
+    Collisions                      = 129613
+    Collision candidates           = 273783
+    Collision acceptance rate      = 0.4734150769
+    Candidate-cell sigmaTcRMax avg/max/min = 1.017463347e-15 / 1.32462746e-15 / 1e-15
+
+
+Phase C auto DLB triggered (SAR) at step 140: sar=0.0349664865 loadImbalance=1.274824271
+
+Phase C auto DLB triggered (SAR) at step 140: sar=0.034966395 loadImbalance=1.274824271
+Phase C ParMETIS: K=1046 (moveT=19.62791867s, collT=4.916688457s)
+Phase C ParMETIS: AdaptiveRepart (60000 cells, 1 constraints, collScale=3.827562282, ubvec=1.049999952)
+Phase C ParMETIS: K=1046 (moveT=14.60422864s, collT=8.871071015s)
+Phase C ParMETIS: AdaptiveRepart (60000 cells, 1 constraints, collScale=1.975934925, ubvec=1.049999952)
+Replicated mesh: rank 0 owns 26446 / 60000 cells
+Replicated mesh: rank 1 owns 33554 / 60000 cells
+Local mesh: 26446 owned + 414 halo = 26860 / 60000 cells
+Phase C ParMETIS AdaptiveRepart: 3564 / 60000 cells changed (0.0594)
+Local mesh: 33554 owned + 414 halo = 33968 / 60000 cells
+Phase C ParMETIS AdaptiveRepart: 3564 / 60000 cells changed (0.0594)
+Replicated mesh migration[145]: rank 0 sent 106096 parcels, received 0 (global 106096) wall 0.168916121s [pack 0.017735254s MPI 0.008962362s deser 0.069342644s]
+Phase C auto DLB complete: rebalance #4
+
+Phase C adaptive K (PID): bottleneck=rank0 max/min=1.250588063 error=-0.150588063 integral=-0.1391214199 K: 1046 -> 977
+Replicated mesh migration[145]: rank 1 sent 0 parcels, received 106096 (global 106096) wall 0.16872924s [pack 1.0452e-05s MPI 0.151825396s deser 0.004377875s]
+Phase C auto DLB complete: rebalance #4
+
+Phase C adaptive K (PID): bottleneck=rank0 max/min=1.250588063 error=-0.150588063 integral=-0.1391214199 K: 1046 -> 977
+Cloud name: dsmc
+    Number of dsmc particles        = 788329
+    Number of molecules             = 4.729974e+15
+    Mass in system                  = 2.268417648e-10
+    Average linear kinetic energy   = 1.393237857e-19
+    Average rotational energy       = 1.362685078e-20
+    Average vibrational energy      = 2.158685699e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.745374934e-19
+ExecutionTime = 141.28 s  ClockTime = 39 s
+
+Cloud name: dsmc
+    Number of dsmc particles        = 842948
+    Number of molecules             = 5.057688e+15
+    Mass in system                  = 2.425482482e-10
+    Average linear kinetic energy   = 1.92453259e-19
+    Average rotational energy       = 1.215410661e-21
+    Average vibrational energy      = 2.157754843e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.152462181e-19
+Replicated mesh migration[146]: rank 0 sent 339 parcels, received 4389 (global 4728) wall 0.177697s [pack 0.000138919s MPI 0.167252345s deser 0.000538346s]
+Replicated mesh migration[146]: rank 1 sent 4389 parcels, received 339 (global 4728) wall 0.02505042s [pack 0.000850001s MPI 0.001234578s deser 0.006131039s]
+ExecutionTime = 142.99 s  ClockTime = 40 s
+
+Replicated mesh migration[147]: rank 0 sent 323 parcels, received 4351 (global 4674) wall 0.02804763s [pack 0.00011347s MPI 0.01689237s deser 0.000536708s]
+Replicated mesh migration[147]: rank 1 sent 4351 parcels, received 323 (global 4674) wall 0.024127475s [pack 0.000830655s MPI 0.000963759s deser 0.004992568s]
+ExecutionTime = 144.08 s  ClockTime = 40 s
+
+Replicated mesh migration[148]: rank 0 sent 298 parcels, received 4345 (global 4643) wall 0.033412152s [pack 0.000107644s MPI 0.022488099s deser 0.000527527s]
+Replicated mesh migration[148]: rank 1 sent 4345 parcels, received 298 (global 4643) wall 0.023630439s [pack 0.000855351s MPI 0.000944949s deser 0.005008638s]
+ExecutionTime = 145.19 s  ClockTime = 40 s
+
+Replicated mesh migration[149]: rank 0 sent 330 parcels, received 4368 (global 4698) wall 0.017972556s [pack 8.6859e-05s MPI 0.007202937s deser 0.000579557s]
+Replicated mesh migration[149]: rank 1 sent 4368 parcels, received 330 (global 4698) wall 0.022070598s [pack 0.000787291s MPI 0.000984353s deser 0.005209792s]
+ExecutionTime = 146.28 s  ClockTime = 40 s
+
+Replicated mesh migration[150]: rank 0 sent 338 parcels, received 4246 (global 4584) wall 0.014524304s [pack 6.0735e-05s MPI 0.005044817s deser 0.000452301s]
+Replicated mesh migration[150]: rank 1 sent 4246 parcels, received 338 (global 4584) wall 0.025645065s [pack 0.000934091s MPI 0.001727882s deser 0.004367295s]
+ExecutionTime = 147.34 s  ClockTime = 41 s
+
+Replicated mesh migration[151]: rank 0 sent 326 parcels, received 4388 (global 4714) wall 0.031246471s [pack 7.4452e-05s MPI 0.020468969s deser 0.000516143s]
+Replicated mesh migration[151]: rank 1 sent 4388 parcels, received 326 (global 4714) wall 0.023909319s [pack 0.000845762s MPI 0.001075432s deser 0.005079348s]
+ExecutionTime = 148.48 s  ClockTime = 41 s
+
+Replicated mesh migration[152]: rank 0 sent 332 parcels, received 4406 (global 4738) wall Replicated mesh migration[152]: rank 1 sent 4406 parcels, received 332 (global 4738) wall 0.026057927s [pack 0.000845861s MPI 0.002928715s deser 0.005308985s]
+0.016152824s [pack 5.735e-05s MPI 0.006277371s deser 0.000627094s]
+ExecutionTime = 149.57 s  ClockTime = 41 s
+
+Replicated mesh migration[153]: rank 0 sent 335 parcels, received 4347 (global 4682) wall 0.018867645s [pack 8.7714e-05s MPI 0.007071215s deser 0.000608088s]
+Replicated mesh migration[153]: rank 1 sent 4347 parcels, received 335 (global 4682) wall 0.051821207s [pack 0.001035204s MPI 0.024973363s deser 0.005339189s]
+ExecutionTime = 150.65 s  ClockTime = 42 s
+
+Replicated mesh migration[154]: rank 0 sent 336 parcels, received 4399 (global 4735) wall 0.015681711s [pack 5.6428e-05s MPI 0.005751758s deser 0.000507814s]
+Replicated mesh migration[154]: rank 1 sent 4399 parcels, received 336 (global 4735) wall 0.037310012s [pack 0.000936006s MPI 0.013554853s deser 0.004160027s]
+ExecutionTime = 151.71 s  ClockTime = 42 s
+
+Time = 9.960073341e-06
+
+Replicated mesh migration[155]: rank 0 sent 359 parcels, received 4322 (global 4681) wall 0.01938096s [pack 6.8708e-05s MPI 0.008812321s deser 0.000526316s]
+Replicated mesh migration[155]: rank 1 sent 4322 parcels, received 359 (global 4681) wall 0.026148594s [pack 0.000961286s MPI 0.001110498s deser 0.004532133s]
+    Collisions                      = 14185
+    Collision candidates           = 55229
+    Collision acceptance rate      = 0.2568397038
+    Candidate-cell sigmaTcRMax avg/max/min = 1e-15 / 1e-15 / 1e-15
+
+    Collisions                      = 135457
+    Collision candidates           = 280670
+    Collision acceptance rate      = 0.4826201589
+    Candidate-cell sigmaTcRMax avg/max/min = 1.022545405e-15 / 1.363504239e-15 / 1e-15
+
+Cloud name: dsmc
+    Number of dsmc particles        = 810726
+    Number of molecules             = 4.864356e+15
+    Mass in system                  = 2.332893264e-10
+    Average linear kinetic energy   = 1.379051992e-19
+    Average rotational energy       = 1.440565022e-20
+    Average vibrational energy      = 2.158778138e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.738986308e-19
+ExecutionTime = 152.99 s  ClockTime = 42 s
+
+Cloud name: dsmc
+    Number of dsmc particles        = 842895
+    Number of molecules             = 5.05737e+15
+    Mass in system                  = 2.425336598e-10
+    Average linear kinetic energy   = 1.924580993e-19
+    Average rotational energy       = 1.215313089e-21
+    Average vibrational energy      = 2.157739629e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.152508087e-19
+Replicated mesh migration[156]: rank 0 sent 311 parcels, received 4459 (global 4770) wall 0.115386423s [pack 5.5493e-05s MPI 0.104915468s deser 0.000521964s]
+Replicated mesh migration[156]: rank 1 sent 4459 parcels, received 311 (global 4770) wall 0.021544915s [pack 0.000815479s MPI 0.001039749s deser 0.004858127s]
+ExecutionTime = 154.44 s  ClockTime = 43 s
+
+Replicated mesh migration[157]: rank 0 sent 352 parcels, received 4216 (global 4568) wall 0.01756267s [pack 6.4529e-05s MPI 0.005946062s deser 0.000590597s]Replicated mesh migration[157]: rank 1 sent 4216 parcels, received 352 (global 4568) wall 0.032070461s [pack 0.00080207s MPI 0.011984761s deser 0.004543705s]
+
+ExecutionTime = 155.56 s  ClockTime = 43 s
+
+Replicated mesh migration[158]: rank 0 sent 302 parcels, received 4301 (global 4603) wall 0.017601596s [pack 5.9768e-05s MPI 0.006132525s deser 0.000595066s]
+Replicated mesh migration[158]: rank 1 sent 4301 parcels, received 302 (global 4603) wall 0.033856916s [pack 0.001040726s MPI 0.007143695s deser 0.005013915s]
+ExecutionTime = 156.7 s  ClockTime = 43 s
+
+Replicated mesh migration[159]: rank 0 sent 324 parcels, received 4343 (global 4667) wall 0.017640983s [pack 6.2476e-05s MPI 0.006261979s deser 0.000557365s]
+Replicated mesh migration[159]: rank 1 sent 4343 parcels, received 324 (global 4667) wall 0.046568195s [pack 0.000973448s MPI 0.020224287s deser 0.004589345s]
+ExecutionTime = 157.8 s  ClockTime = 43 s
+
+Replicated mesh migration[160]: rank 0 sent 303 parcels, received 4323 (global 4626) wall 0.018104522s [pack 6.0467e-05s MPI 0.006083468s deser 0.000623301s]
+Replicated mesh migration[160]: rank 1 sent 4323 parcels, received 303 (global 4626) wall 0.024097192s [pack 0.001009139s MPI 0.001167355s deser 0.00485945s]
+ExecutionTime = 158.93 s  ClockTime = 44 s
+
+Replicated mesh migration[161]: rank 0 sent 322 parcels, received 4310 (global 4632) wall 0.017385588s [pack 5.8909e-05s MPI 0.005689217s deser 0.000594583s]
+Replicated mesh migration[161]: rank 1 sent 4310 parcels, received 322 (global 4632) wall 0.035604908s [pack 0.001060646s MPI 0.008937262s deser 0.004575958s]
+ExecutionTime = 160.07 s  ClockTime = 44 s
+
+Replicated mesh migration[162]: rank 0 sent 340 parcels, received 4368 (global 4708) wall 0.018212455s [pack 5.7502e-05s MPI 0.006142344s deser 0.000619896s]
+Replicated mesh migration[162]: rank 1 sent 4368 parcels, received 340 (global 4708) wall 0.037008567s [pack 0.001102344s MPI 0.010169909s deser 0.004587325s]
+ExecutionTime = 161.21 s  ClockTime = 44 s
+
+Replicated mesh migration[163]: rank 0 sent 329 parcels, received 4252 (global 4581) wall 0.017583922s [pack 5.5718e-05s MPI 0.005864742s deser 0.000569646s]
+Replicated mesh migration[163]: rank 1 sent 4252 parcels, received 329 (global 4581) wall 0.034166815s [pack 0.001003939s MPI 0.013609368s deser 0.004690059s]
+ExecutionTime = 162.34 s  ClockTime = 45 s
+
+Replicated mesh migration[164]: rank 0 sent 312 parcels, received 4371 (global 4683) wall 0.014950787s [pack 6.3013e-05s MPI 0.004933658s deser 0.000511822s]
+Replicated mesh migration[164]: rank 1 sent 4371 parcels, received 312 (global 4683) wall 0.046645467s [pack 0.000800545s MPI 0.027570592s deser 0.003147299s]
+ExecutionTime = 163.44 s  ClockTime = 45 s
+
+Time = 1.062407823e-05
+
+Replicated mesh migration[165]: rank 0 sent 354 parcels, received 4419 (global 4773) wall 0.019109137s [pack 7.7432e-05s MPI 0.007001089s deser 0.000584021s]
+Replicated mesh migration[165]: rank 1 sent 4419 parcels, received 354 (global 4773) wall 0.039603614s [pack 0.001280564s MPI 0.0123816s deser 0.004998992s]
+    Collisions                      = 14056
+    Collision candidates           = 55162
+    Collision acceptance rate      = 0.254813096
+    Candidate-cell sigmaTcRMax avg/max/min = 1.000005154e-15 / 1.11836786e-15 / 1e-15
+
+    Collisions                      = 142716
+    Collision candidates           = 295118
+    Collision acceptance rate      = 0.483589615
+    Candidate-cell sigmaTcRMax avg/max/min = 1.024745083e-15 / 1.363504239e-15 / 1e-15
+
+Cloud name: dsmc
+    Number of dsmc particles        = 832661
+    Number of molecules             = 4.995966e+15
+    Mass in system                  = 2.396017937e-10
+    Average linear kinetic energy   = 1.365097266e-19
+    Average rotational energy       = 1.518927331e-20
+    Average vibrational energy      = 2.158953454e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.732885344e-19
+ExecutionTime = 164.77 s  ClockTime = 45 s
+
+Cloud name: dsmc
+    Number of dsmc particles        = 842855
+    Number of molecules             = 5.05713e+15
+    Mass in system                  = 2.425221424e-10
+    Average linear kinetic energy   = 1.924682414e-19
+    Average rotational energy       = 1.214846455e-21
+    Average vibrational energy      = 2.157739812e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.152604859e-19
+Replicated mesh migration[166]: rank 0 sent 374 parcels, received 4361 (global 4735) wall 0.109657471s [pack 6.4893e-05s MPI 0.096709629s deser 0.000512238s]
+Replicated mesh migration[166]: rank 1 sent 4361 parcels, received 374 (global 4735) wall 0.02376942s [pack 0.000899743s MPI 0.001158418s deser 0.004650059s]
+ExecutionTime = 166.28 s  ClockTime = 46 s
+
+Replicated mesh migration[167]: rank 0 sent 313 parcels, received 4362 (global 4675) wall 0.014364471s [pack 4.3166e-05s MPI 0.004959011s deser 0.00047113s]
+Replicated mesh migration[167]: rank 1 sent 4362 parcels, received 313 (global 4675) wall 0.040877902s [pack 0.000731824s MPI 0.023281409s deser 0.003590078s]
+ExecutionTime = 167.41 s  ClockTime = 46 s
+
+Replicated mesh migration[168]: rank 0 sent 355 parcels, received 4379 (global 4734) wall 0.016619813s [pack 5.2868e-05s MPI 0.005861709s deser 0.000520738s]
+Replicated mesh migration[168]: rank 1 sent 4379 parcels, received 355 (global 4734) wall 0.05146395s [pack 0.000950739s MPI 0.027146384s deser 0.004140638s]
+ExecutionTime = 168.56 s  ClockTime = 46 s
+
+Replicated mesh migration[169]: rank 0 sent 314 parcels, received 4253 (global 4567) wall 0.018574336s [pack 4.1128e-05s MPI 0.005639475s deser 0.000521338s]
+Replicated mesh migration[169]: rank 1 sent 4253 parcels, received 314 (global 4567) wall 0.033148338s [pack 0.001018528s MPI 0.005204874s deser 0.004003397s]
+ExecutionTime = 169.68 s  ClockTime = 46 s
+
+Replicated mesh migration[170]: rank 0 sent 311 parcels, received 4369 (global 4680) wall 0.028999752s [pack 6.3149e-05s MPI 0.014566685s deser 0.000545192s]
+Replicated mesh migration[170]: rank 1 sent 4369 parcels, received 311 (global 4680) wall 0.02780708s [pack 0.000907041s MPI 0.001134249s deser 0.004680738s]
+ExecutionTime = 170.82 s  ClockTime = 47 s
+
+Replicated mesh migration[171]: rank 0 sent 313 parcels, received 4397 (global 4710) wall 0.016666111s [pack 4.2576e-05s MPI 0.005418746s deser 0.000564298s]
+Replicated mesh migration[171]: rank 1 sent 4397 parcels, received 313 (global 4710) wall 0.03604782s [pack 0.001048901s MPI 0.011493827s deser 0.004103952s]
+ExecutionTime = 171.97 s  ClockTime = 47 s
+
+Replicated mesh migration[172]: rank 0 sent 351 parcels, received 4336 (global 4687) wall 0.016208208s [pack 4.7135e-05s MPI 0.005276129s deser 0.000538366s]
+Replicated mesh migration[172]: rank 1 sent 4336 parcels, received 351 (global 4687) wall 0.037613233s [pack 0.000748458s MPI 0.019253263s deser 0.00409043s]
+ExecutionTime = 173.12 s  ClockTime = 47 s
+
+Replicated mesh migration[173]: rank 0 sent 314 parcels, received 4406 (global 4720) wall 0.014731019s [pack 3.8104e-05s MPI 0.004692793s deser 0.000512416s]
+Replicated mesh migration[173]: rank 1 sent 4406 parcels, received 314 (global 4720) wall 0.030036884s [pack 0.000996782s MPI 0.005512545s deser 0.003454384s]
+ExecutionTime = 174.28 s  ClockTime = 48 s
+
+Replicated mesh migration[174]: rank 0 sent 355 parcels, received 4385 (global 4740) wall 0.016620846s [pack 5.2995e-05s MPI 0.005383479s deser 0.000587344s]
+Replicated mesh migration[174]: rank 1 sent 4385 parcels, received 355 (global 4740) wall 0.03607119s [pack 0.001025835s MPI 0.010952151s deser 0.004074327s]
+ExecutionTime = 175.45 s  ClockTime = 48 s
+
+Time = 1.128808312e-05
+
+Replicated mesh migration[175]: rank 0 sent 306 parcels, received 4367 (global 4673) wall 0.016535311s [pack 4.1906e-05s MPI 0.004779707s deser 0.000555651s]
+Replicated mesh migration[175]: rank 1 sent 4367 parcels, received 306 (global 4673) wall 0.027531722s [pack 0.001009959s MPI 0.002661115s deser 0.00407091s]
+    Collisions                      = 14168
+    Collision candidates           = 55211
+    Collision acceptance rate      = 0.2566155295
+    Candidate-cell sigmaTcRMax avg/max/min = 1.000005153e-15 / 1.11836786e-15 / 1e-15
+
+    Collisions                      = 149682
+    Collision candidates           = 309892
+    Collision acceptance rate      = 0.4830134369
+    Candidate-cell sigmaTcRMax avg/max/min = 1.027216683e-15 / 1.463149476e-15 / 1e-15
+
+Cloud name: dsmc
+    Number of dsmc particles        = 854549
+    Number of molecules             = 5.127294e+15
+    Mass in system                  = 2.458971362e-10
+    Average linear kinetic energy   = 1.352139299e-19
+    Average rotational energy       = 1.594466271e-20
+    Average vibrational energy      = 2.159200039e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.72750593e-19
+ExecutionTime = 176.83 s  ClockTime = 48 s
+
+Cloud name: dsmc
+    Number of dsmc particles        = 842788
+    Number of molecules             = 5.056728e+15
+    Mass in system                  = 2.425035685e-10
+    Average linear kinetic energy   = 1.924711714e-19
+    Average rotational energy       = 1.214879612e-21
+    Average vibrational energy      = 2.157723609e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.152632871e-19
+Replicated mesh migration[176]: rank 0 sent 343 parcels, received 4353 (global 4696) wall 0.111872662s [pack 4.7973e-05s MPI 0.101565242s deser 0.000526293s]
+Replicated mesh migration[176]: rank 1 sent 4353 parcels, received 343 (global 4696) wall 0.023534855s [pack 0.000942142s MPI 0.001364727s deser 0.003156059s]
+ExecutionTime = 178.37 s  ClockTime = 49 s
+
+Replicated mesh migration[177]: rank 0 sent 341 parcels, received 4345 (global 4686) wall 0.014457414s [pack 4.0833e-05s MPI 0.004265696s deser 0.000497751s]
+Replicated mesh migration[177]: rank 1 sent 4345 parcels, received 341 (global 4686) wall 0.026123848s [pack 0.001025766s MPI 0.001728015s deser 0.003559952s]
+ExecutionTime = 179.53 s  ClockTime = 49 s
+
+Replicated mesh migration[178]: rank 0 sent 322 parcels, received 4391 (global 4713) wall 0.017568266s [pack 4.4801e-05s MPI 0.005774677s deser 0.000543862s]
+Replicated mesh migration[178]: rank 1 sent 4391 parcels, received 322 (global 4713) wall 0.042301987s [pack 0.00103785s MPI 0.016505745s deser 0.004037296s]
+ExecutionTime = 180.72 s  ClockTime = 49 s
+
+Replicated mesh migration[179]: rank 0 sent 326 parcels, received 4433 (global 4759) wall 0.016797315s [pack 4.3166e-05s MPI 0.005195616s deser 0.000550855s]
+Replicated mesh migration[179]: rank 1 sent 4433 parcels, received 326 (global 4759) wall 0.032311331s [pack 0.001081174s MPI 0.006904288s deser 0.00406958s]
+ExecutionTime = 181.92 s  ClockTime = 49 s
+
+Replicated mesh migration[180]: rank 0 sent 324 parcels, received 4423 (global 4747) wall 0.017342092s [pack 5.789e-05s MPI 0.005866909s deser 0.000544049s]
+Replicated mesh migration[180]: rank 1 sent 4423 parcels, received 324 (global 4747) wall 0.047913038s [pack 0.000748694s MPI 0.028972264s deser 0.00423288s]
+ExecutionTime = 183.08 s  ClockTime = 50 s
+
+Replicated mesh migration[181]: rank 0 sent 358 parcels, received 4230 (global 4588) wall 0.017116499s [pack 5.1104e-05s MPI 0.005484221s deser 0.000565795s]
+Replicated mesh migration[181]: rank 1 sent 4230 parcels, received 358 (global 4588) wall 0.040118s [pack 0.000989228s MPI 0.016809753s deser 0.003857568s]
+ExecutionTime = 184.24 s  ClockTime = 50 s
+
+Replicated mesh migration[182]: rank 0 sent 327 parcels, received 4334 (global 4661) wall 0.018847285s [pack 4.9895e-05s MPI 0.006181163s deser 0.000617328s]
+Replicated mesh migration[182]: rank 1 sent 4334 parcels, received 327 (global 4661) wall 0.049551649s [pack 0.001116053s MPI 0.023925244s deser 0.004361702s]
+ExecutionTime = 185.42 s  ClockTime = 50 s
+
+Replicated mesh migration[183]: rank 0 sent 302 parcels, received 4283 (global 4585) wall 0.018941467s [pack 4.924e-05s MPI 0.006225622s deser 0.000637956s]
+Replicated mesh migration[183]: rank 1 sent 4283 parcels, received 302 (global 4585) wall 0.04645186s [pack 0.001181871s MPI 0.02080097s deser 0.004450834s]
+ExecutionTime = 186.6 s  ClockTime = 51 s
+
+Replicated mesh migration[184]: rank 0 sent 321 parcels, received 4367 (global 4688) wall 0.019000398s [pack 5.026e-05s MPI 0.006159665s deser 0.000597376s]
+Replicated mesh migration[184]: rank 1 sent 4367 parcels, received 321 (global 4688) wall 0.043020082s [pack 0.001110154s MPI 0.017239147s deser 0.00441524s]
+ExecutionTime = 187.76 s  ClockTime = 51 s
+
+Time = 1.195208801e-05
+
+Replicated mesh migration[185]: rank 0 sent 343 parcels, received 4328 (global 4671) wall 0.019554669s [pack 5.4171e-05s MPI 0.006477192s deser 0.000622936s]
+Replicated mesh migration[185]: rank 1 sent 4328 parcels, received 343 (global 4671) wall 0.042921475s [pack 0.001076192s MPI 0.017496972s deser 0.00435316s]
+    Collisions                      = 14158
+    Collision candidates           = 55190
+    Collision acceptance rate      = 0.2565319804
+    Candidate-cell sigmaTcRMax avg/max/min = 1.000026415e-15 / 1.255662467e-15 / 1e-15
+
+    Collisions                      = 156649
+    Collision candidates           = 323450
+    Collision acceptance rate      = 0.4843066935
+    Candidate-cell sigmaTcRMax avg/max/min = 1.029248901e-15 / 1.463149476e-15 / 1e-15
+
+
+Phase C auto DLB triggered (SAR) at step 180: sar=0.003710582417 loadImbalance=1.098093534
+
+Phase C auto DLB triggered (SAR) at step 180: sar=0.00371077725 loadImbalance=1.098093534
+Phase C ParMETIS: K=977 (moveT=25.89776769s, collT=6.603878874s)
+Phase C ParMETIS: AdaptiveRepart (60000 cells, 1 constraints, collScale=3.896130459, ubvec=1.049999952)
+Phase C ParMETIS: K=977 (moveT=19.26882843s, collT=13.01961956s)
+Phase C ParMETIS: AdaptiveRepart (60000 cells, 1 constraints, collScale=1.812418985, ubvec=1.049999952)
+Replicated mesh: rank 0 owns 26390 / 60000 cells
+Replicated mesh: rank 1 owns 33610 / 60000 cells
+Local mesh: 33610 owned + 404 halo = 34014 / 60000 cells
+Phase C ParMETIS AdaptiveRepart: 64 / 60000 cells changed (Local mesh: 0.001066666667)
+26390 owned + 404 halo = 26794 / 60000 cells
+Phase C ParMETIS AdaptiveRepart: 64 / 60000 cells changed (0.001066666667)
+Replicated mesh migration[186]: rank 0 sent 1394 parcels, received 121 (global 1515) wall 0.020081059s [pack 0.000290324s MPI 0.000318709s deser 0.005444072s]
+Replicated mesh migration[186]: rank 1 sent 121 parcels, received 1394 (global 1515) wall 0.020134758s [pack 2.9202e-05s MPI 0.005543851s deser 0.000549544s]
+Phase C auto DLB complete: rebalance #5
+
+Phase C auto DLB complete: rebalance #5
+
+Phase C adaptive K (PID): bottleneck=rank0 max/min=Phase C adaptive K (PID): bottleneck=rank0 max/min=1.107591386 error=-0.007591385885 integral=-0.07715209583 K: 977 -> 985
+1.107591386 error=-0.007591385885 integral=-0.07715209583 K: 977 -> 985
+Cloud name: dsmc
+    Number of dsmc particles        = 874802
+    Number of molecules             = 5.248812e+15
+    Mass in system                  = 2.517255497e-10
+    Average linear kinetic energy   = 1.339786715e-19
+    Average rotational energy       = 1.663194867e-20
+    Average vibrational energy      = 2.159478137e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.722054015e-19
+ExecutionTime = 189.36 s  ClockTime = 51 s
+
+Cloud name: dsmc
+    Number of dsmc particles        = 843878
+    Number of molecules             = 5.063268e+15
+    Mass in system                  = 2.428157814e-10
+    Average linear kinetic energy   = 1.924710242e-19
+    Average rotational energy       = 1.214969795e-21
+    Average vibrational energy      = 2.157756295e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.15263557e-19
+Replicated mesh migration[187]: rank 0 sent 246 parcels, received 4228 (global 4474) wall 0.175623144s [pack 3.3145e-05s MPI 0.165081494s deser 0.00054775s]
+Replicated mesh migration[187]: rank 1 sent 4228 parcels, received 246 (global 4474) wall 0.025491707s [pack 0.001030487s MPI 0.001357513s deser 0.00388872s]
+ExecutionTime = 191.32 s  ClockTime = 52 s
+
+Replicated mesh migration[188]: rank 0 sent 250 parcels, received 4340 (global 4590) wall 0.015934806s [pack 3.3005e-05s MPI 0.005108322s deser 0.000574524s]
+Replicated mesh migration[188]: rank 1 sent 4340 parcels, received 250 (global 4590) wall 0.044840564s [pack 0.000886615s MPI 0.023953266s deser 0.003116592s]
+ExecutionTime = 192.49 s  ClockTime = 52 s
+
+Replicated mesh migration[189]: rank 0 sent 284 parcels, received 4213 (global 4497) wall 0.017671284s [pack 3.7293e-05s MPI 0.006329766s deser 0.000578907s]
+Replicated mesh migration[189]: rank 1 sent 4213 parcels, received 284 (global 4497) wall 0.056049585s [pack 0.000852071s MPI 0.034859168s deser 0.004539623s]
+ExecutionTime = 193.71 s  ClockTime = 52 s
+
+Replicated mesh migration[190]: rank 0 sent 276 parcels, received 4245 (global 4521) wall 0.019312714s [pack Replicated mesh migration[190]: rank 1 sent 4245 parcels, received 276 (global 4521) wall 0.055010332s [pack 0.001141s MPI 0.027345527s deser 0.004513729s]
+4.1557e-05s MPI 0.00638705s deser 0.000579551s]
+ExecutionTime = 194.96 s  ClockTime = 52 s
+
+Replicated mesh migration[191]: rank 0 sent 262 parcels, received 4288 (global 4550) wall 0.020164175s [pack 3.653e-05s MPI 0.006796943s deser 0.00074575s]
+Replicated mesh migration[191]: rank 1 sent 4288 parcels, received 262 (global 4550) wall 0.06592355s [pack 0.000858305s MPI 0.043787298s deser 0.004905506s]
+ExecutionTime = 196.21 s  ClockTime = 52 s
+
+Replicated mesh migration[192]: rank 0 sent 254 parcels, received 4375 (global 4629) wall 0.019783322s [pack 4.3513e-05s MPI 0.006233218s deser 0.000632111s]
+Replicated mesh migration[192]: rank 1 sent 4375 parcels, received 254 (global 4629) wall 0.069224317s [pack 0.000808667s MPI 0.04848637s deser 0.004654143s]
+ExecutionTime = 197.43 s  ClockTime = 53 s
+
+Replicated mesh migration[193]: rank 0 sent 284 parcels, received 4187 (global 4471) wall 0.019058867s [pack 4.1483e-05s MPI 0.005841148s deser 0.000565843s]
+Replicated mesh migration[193]: rank 1 sent 4187 parcels, received 284 (global 4471) wall 0.050591194s [pack 0.000788844s MPI 0.030843746s deser 0.004395298s]
+ExecutionTime = 198.66 s  ClockTime = 53 s
+
+Replicated mesh migration[194]: rank 0 sent 268 parcels, received 4387 (global 4655) wall 0.018569029s [pack 3.6171e-05s MPI 0.006097164s deser 0.000595863s]
+Replicated mesh migration[194]: rank 1 sent 4387 parcels, received 268 (global 4655) wall 0.066415194s [pack 0.001158728s MPI 0.03891242s deser 0.004370843s]
+ExecutionTime = 199.94 s  ClockTime = 53 s
+
+Replicated mesh migration[195]: rank 0 sent 260 parcels, received 4330 (global 4590) wall 0.017965424s [pack 3.9594e-05s MPI 0.005723491s deser 0.000536377s]
+Replicated mesh migration[195]: rank 1 sent 4330 parcels, received 260 (global 4590) wall 0.067426282s [pack 0.001085759s MPI 0.043001008s deser 0.00407659s]
+ExecutionTime = 201.15 s  ClockTime = 54 s
+
+Time = 1.26160929e-05
+
+Replicated mesh migration[196]: rank 0 sent 271 parcels, received 4208 (global 4479) wall 0.018042931s [pack 4.4346e-05s MPI 0.005843038s deser 0.000571752s]
+Replicated mesh migration[196]: rank 1 sent 4208 parcels, received 271 (global 4479) wall 0.055260014s [pack 0.000806568s MPI 0.035117384s deser 0.004217027s]
+    Collisions                      = 14220
+    Collision candidates           = 55209
+    Collision acceptance rate      = 0.2575667011
+    Candidate-cell sigmaTcRMax avg/max/min = 1.000029029e-15 / 1.255662467e-15 / 1e-15
+
+    Collisions                      = 162867
+    Collision candidates           = 336102
+    Collision acceptance rate      = 0.4845761108
+    Candidate-cell sigmaTcRMax avg/max/min = 1.031575906e-15 / 1.463149476e-15 / 1e-15
+
+Cloud name: dsmc
+    Number of dsmc particles        = 896004
+    Number of molecules             = 5.376024e+15
+    Mass in system                  = 2.578256057e-10
+    Average linear kinetic energy   = 1.328452088e-19
+    Average rotational energy       = 1.732056605e-20
+    Average vibrational energy      = 2.159746382e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.717632387e-19
+ExecutionTime = 202.59 s  ClockTime = 54 s
+
+Cloud name: dsmc
+    Number of dsmc particles        = 844142
+    Number of molecules             = 5.064852e+15
+    Mass in system                  = 2.428940052e-10
+    Average linear kinetic energy   = 1.924701287e-19
+    Average rotational energy       = 1.214743035e-21
+    Average vibrational energy      = 2.157704392e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.152619157e-19
+Replicated mesh migration[197]: rank 0 sent 274 parcels, received 4222 (global 4496) wall 0.112514014s [pack 3.7158e-05s MPI 0.100816954s deser 0.000531786s]
+Replicated mesh migration[197]: rank 1 sent 4222 parcels, received 274 (global 4496) wall 0.025765188s [pack 0.001080988s MPI 0.001289336s deser 0.004616329s]
+ExecutionTime = 204.22 s  ClockTime = 54 s
+
+Replicated mesh migration[198]: rank 0 sent 262 parcels, received 4345 (global 4607) wall 0.018542039s [pack 3.8728e-05s MPI 0.006081216s deser 0.000554578s]
+Replicated mesh migration[198]: rank 1 sent 4345 parcels, received 262 (global 4607) wall 0.060538274s [pack 0.001069843s MPI 0.035335173s deser 0.004279836s]
+ExecutionTime = 205.44 s  ClockTime = 55 s
+
+Replicated mesh migration[199]: rank 0 sent 256 parcels, received 4386 (global 4642) wall 0.017867179s [pack 3.445e-05s MPI 0.005673427s deser 0.000558615s]
+Replicated mesh migration[199]: rank 1 sent 4386 parcels, received 256 (global 4642) wall 0.055351695s [pack 0.000784068s MPI 0.035973834s deser 0.004306282s]
+ExecutionTime = 206.65 s  ClockTime = 55 s
+
+Replicated mesh migration[200]: rank 0 sent 262 parcels, received 4320 (global 4582) wall 0.018247213s [pack 3.9382e-05s MPI 0.005785173s deser 0.00056857s]
+Replicated mesh migration[200]: rank 1 sent 4320 parcels, received 262 (global 4582) wall 0.054770027s [pack 0.000803216s MPI 0.0342949s deser 0.004118641s]
+ExecutionTime = 207.85 s  ClockTime = 55 s
+
+Replicated mesh migration[201]: rank 0 sent 262 parcels, received 4226 (global 4488) wall 0.01822129s [pack 4.195e-05s MPI 0.005805397s deser 0.000536367s]
+Replicated mesh migration[201]: rank 1 sent 4226 parcels, received 262 (global 4488) wall 0.044640167s [pack 0.001026615s MPI 0.019381777s deser 0.003973574s]
+ExecutionTime = 209.06 s  ClockTime = 56 s
+
+Replicated mesh migration[202]: rank 0 sent 280 parcels, received 4218 (global 4498) wall 0.016079591s [pack 3.1671e-05s MPI 0.005537371s deser 0.000486081s]
+Replicated mesh migration[202]: rank 1 sent 4218 parcels, received 280 (global 4498) wall 0.051254829s [pack 0.000820098s MPI 0.031280863s deser 0.002862164s]
+ExecutionTime = 210.3 s  ClockTime = 56 s
+
+Replicated mesh migration[203]: rank 0 sent 284 parcels, received 4370 (global 4654) wall 0.019210011s [pack 4.8654e-05s MPI 0.006316425s deser 0.000561755s]
+Replicated mesh migration[203]: rank 1 sent 4370 parcels, received 284 (global 4654) wall 0.069578834s [pack 0.001117309s MPI 0.043220411s deser 0.004354131s]
+ExecutionTime = 211.54 s  ClockTime = 56 s
+
+Replicated mesh migration[204]: rank 0 sent 287 parcels, received 4346 (global 4633) wall 0.018624136s [pack 6.0594e-05s MPI 0.005885733s deser 0.000604954s]
+Replicated mesh migration[204]: rank 1 sent 4346 parcels, received 287 (global 4633) wall 0.054880614s [pack 0.001123853s MPI 0.03037582s deser 0.004275587s]
+ExecutionTime = 212.81 s  ClockTime = 57 s
+
+Replicated mesh migration[205]: rank 0 sent 239 parcels, received 4260 (global 4499) wall 0.018625898s [pack 5.0607e-05s MPI 0.006001324s deser 0.000557135s]
+Replicated mesh migration[205]: rank 1 sent 4260 parcels, received 239 (global 4499) wall 0.064650127s [pack 0.000809427s MPI 0.044093968s deser 0.004084312s]
+ExecutionTime = 214.1 s  ClockTime = 57 s
+
+Time = 1.328009779e-05
+
+Replicated mesh migration[206]: rank 0 sent 273 parcels, received 4294 (global 4567) wall 0.018966911s [pack 4.203e-05s MPI 0.005974052s deser 0.000581689s]
+Replicated mesh migration[206]: rank 1 sent 4294 parcels, received 273 (global 4567) wall 0.067628531s [pack 0.001138421s MPI 0.041424918s deser 0.004122668s]
+    Collisions                      = 14159
+    Collision candidates           = 55255
+    Collision acceptance rate      = 0.2562483033
+    Candidate-cell sigmaTcRMax avg/max/min = 1.000046206e-15 / 1.255662467e-15 / 1e-15
+
+    Collisions                      = 169354
+    Collision candidates           = 349516
+    Collision acceptance rate      = 0.4845386191
+    Candidate-cell sigmaTcRMax avg/max/min = 1.033742874e-15 / 1.463149476e-15 / 1e-15
+
+Cloud name: dsmc
+    Number of dsmc particles        = 916837
+    Number of molecules             = 5.501022e+15
+    Mass in system                  = 2.638196125e-10
+    Average linear kinetic energy   = 1.317999767e-19
+    Average rotational energy       = 1.792752446e-20
+    Average vibrational energy      = 2.159983397e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.713273352e-19
+ExecutionTime = 215.56 s  ClockTime = 57 s
+
+Cloud name: dsmc
+    Number of dsmc particles        = 844336
+    Number of molecules             = 5.066016e+15
+    Mass in system                  = 2.429495611e-10
+    Average linear kinetic energy   = 1.92471606e-19
+    Average rotational energy       = 1.216093519e-21
+    Average vibrational energy      = 2.157710492e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.152648044e-19
+Replicated mesh migration[207]: rank 0 sent 249 parcels, received 4254 (global 4503) wall 0.103527517s [pack 3.5004e-05s MPI 0.092801129s deser 0.000542779s]
+Replicated mesh migration[207]: rank 1 sent 4254 parcels, received 249 (global 4503) wall 0.026303639s [pack 0.001119061s MPI 0.001186934s deser 0.004514682s]
+ExecutionTime = 217.2 s  ClockTime = 58 s
+
+Replicated mesh migration[208]: rank 0 sent 293 parcels, received 4342 (global 4635) wall 0.018970083s [pack 4.3369e-05s MPI 0.00618813s deser 0.000601088s]
+Replicated mesh migration[208]: rank 1 sent 4342 parcels, received 293 (global 4635) wall 0.066121453s [pack 0.001174985s MPI 0.039262763s deser 0.004225684s]
+ExecutionTime = 218.49 s  ClockTime = 58 s
+
+Replicated mesh migration[209]: rank 0 sent 240 parcels, received 4221 (global 4461) wall 0.016398861s [pack 3.6938e-05s MPI 0.005159528s deser 0.000563662s]
+Replicated mesh migration[209]: rank 1 sent 4221 parcels, received 240 (global 4461) wall 0.069987185s [pack 0.001224256s MPI 0.042844933s deser 0.003032221s]
+ExecutionTime = 219.75 s  ClockTime = 58 s
+
+Replicated mesh migration[210]: rank 0 sent 276 parcels, received 4314 (global 4590) wall 0.020613907s [pack 4.5425e-05s MPI 0.006838373s deser 0.000649098s]
+Replicated mesh migration[210]: rank 1 sent 4314 parcels, received 276 (global 4590) wall 0.053071001s [pack 0.001310228s MPI 0.024697114s deser 0.004738697s]
+ExecutionTime = 221.03 s  ClockTime = 59 s
+
+Replicated mesh migration[211]: rank 0 sent 257 parcels, received 4316 (global 4573) wall 0.02089296s [pack 4.8004e-05s MPI 0.00700268s deser 0.000628297s]
+Replicated mesh migration[211]: rank 1 sent 4316 parcels, received 257 (global 4573) wall 0.066273065s [pack 0.001261945s MPI 0.036858237s deser 0.004725632s]
+ExecutionTime = 222.35 s  ClockTime = 59 s
+
+Replicated mesh migration[212]: rank 0 sent 240 parcels, received 4369 (global 4609) wall 0.0208352s [pack 3.9065e-05s MPI 0.007038618s deser 0.00066516s]
+Replicated mesh migration[212]: rank 1 sent 4369 parcels, received 240 (global 4609) wall 0.070149504s [pack 0.001293618s MPI 0.040892108s deser 0.004904176s]
+ExecutionTime = 223.66 s  ClockTime = 59 s
+
+Replicated mesh migration[213]: rank 0 sent 282 parcels, received 4297 (global 4579) wall 0.02162513s [pack 5.5837e-05s MPI 0.007356328s deser 0.000696801Replicated mesh migration[213]: rank 1 sent 4297 parcels, received 282 (global 4579) wall 0.067961912s [pack 0.001259699s MPI 0.038648561s deser 0.00506439s]
+s]
+ExecutionTime = 224.96 s  ClockTime = 60 s
+
+Replicated mesh migration[214]: rank 0 sent 269 parcels, received 4266 (global 4535) wall 0.020931983s [pack 4.5028e-05s MPI 0.006987981s deser 0.000636463s]
+Replicated mesh migration[214]: rank 1 sent 4266 parcels, received 269 (global 4535) wall 0.063478878s [pack 0.001254467s MPI 0.0348342s deser 0.004777129s]
+ExecutionTime = 226.22 s  ClockTime = 60 s
+
+Replicated mesh migration[215]: rank 0 sent 261 parcels, received 4316 (global 4577) wall 0.020673686s [pack 5.0281e-05s MPI 0.006793903s deser 0.000597859s]
+Replicated mesh migration[215]: rank 1 sent 4316 parcels, received 261 (global 4577) wall 0.066392334s [pack 0.00127689s MPI 0.037788709s deser 0.004594115s]
+ExecutionTime = 227.51 s  ClockTime = 60 s
+
+Time = 1.394410268e-05
+
+Replicated mesh migration[216]: rank 0 sent 293 parcels, received 4260 (global 4553) wall 0.017807912s [pack 4.2192e-05s MPI 0.005866891s deser 0.000573728s]
+Replicated mesh migration[216]: rank 1 sent 4260 parcels, received 293 (global 4553) wall 0.052870508s [pack 0.001203229s MPI 0.026500695s deser 0.003856585s]
+    Collisions                      = 14299
+    Collision candidates           = 55344
+    Collision acceptance rate      = 0.2583658572
+    Candidate-cell sigmaTcRMax avg/max/min = 1.000053184e-15 / 1.255662467e-15 / 1e-15
+
+    Collisions                      = 175301
+    Collision candidates           = 361572
+    Collision acceptance rate      = 0.4848301307
+    Candidate-cell sigmaTcRMax avg/max/min = 1.036015375e-15 / 1.463149476e-15 / 1e-15
+
+Cloud name: dsmc
+    Number of dsmc particles        = 937707
+    Number of molecules             = 5.626242e+15
+    Mass in system                  = 2.698254914e-10
+    Average linear kinetic energy   = 1.308103949e-19
+    Average rotational energy       = 1.852573709e-20
+    Average vibrational energy      = 2.160086789e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.709369999e-19
+ExecutionTime = 228.98 s  ClockTime = 61 s
+
+Cloud name: dsmc
+    Number of dsmc particles        = 844588
+    Number of molecules             = 5.067528e+15
+    Mass in system                  = 2.430253505e-10
+    Average linear kinetic energy   = 1.92487208e-19
+    Average rotational energy       = 1.2158594e-21
+    Average vibrational energy      = 2.157635262e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.1527942e-19
+Replicated mesh migration[217]: rank 0 sent 252 parcels, received 4278 (global 4530) wall 0.118930862s [pack 4.722e-05s MPI 0.104456851s deser 0.000655168s]
+Replicated mesh migration[217]: rank 1 sent 4278 parcels, received 252 (global 4530) wall 0.02769086s [pack 0.001185738s MPI 0.001302686s deser 0.004854388s]
+ExecutionTime = 230.65 s  ClockTime = 61 s
+
+Replicated mesh migration[218]: rank 0 sent 298 parcels, received 4234 (global 4532) wall 0.01561352s [pack 3.9132e-05s MPI 0.004905505s deser 0.0005642s]
+Replicated mesh migration[218]: rank 1 sent 4234 parcels, received 298 (global 4532) wall 0.048023995s [pack 0.001135915s MPI 0.022914584s deser 0.002890644s]
+ExecutionTime = 231.97 s  ClockTime = 62 s
+
+Replicated mesh migration[219]: rank 0 sent 266 parcels, received 4346 (global 4612) wall 0.019492546s [pack 4.3715e-05s MPI 0.0062596s deser 0.000594418s]
+Replicated mesh migration[219]: rank 1 sent 4346 parcels, received 266 (global 4612) wall 0.082695594s [pack 0.001322569s MPI 0.055055399s deser 0.004209405s]
+ExecutionTime = 233.26 s  ClockTime = 62 s
+
+Replicated mesh migration[220]: rank 0 sent 272 parcels, received 4354 (global 4626) wall 0.018717366s [pack 4.309e-05s MPI 0.006136777s deser 0.000627858s]
+Replicated mesh migration[220]: rank 1 sent 4354 parcels, received 272 (global 4626) wall 0.063645422s [pack 0.001177433s MPI 0.036760221s deser 0.004114985s]
+ExecutionTime = 234.54 s  ClockTime = 62 s
+
+Replicated mesh migration[221]: rank 0 sent 255 parcels, received 4373 (global 4628) wall 0.017602211s [pack 4.1983e-05s MPI 0.005694401s deser 0.0005697s]
+Replicated mesh migration[221]: rank 1 sent 4373 parcels, received 255 (global 4628) wall 0.059796289s [pack 0.000846583s MPI 0.038689556s deser 0.003755911s]
+ExecutionTime = 235.86 s  ClockTime = 63 s
+
+Replicated mesh migration[222]: rank 0 sent 292 parcels, received 4237 (global 4529) wall 0.01556496s [pack 3.6946e-05s MPI 0.004857842s deser 0.000582895s]
+Replicated mesh migration[222]: rank 1 sent 4237 parcels, received 292 (global 4529) wall 0.0972151s [pack 0.000880286s MPI 0.077770367s deser 0.002919028s]
+ExecutionTime = 237.16 s  ClockTime = 63 s
+
+Replicated mesh migration[223]: rank 0 sent 272 parcels, received 4300 (global 4572) wall 0.019506084s [pack 6.0102e-05s MPI 0.006205924s deser 0.000625109s]
+Replicated mesh migration[223]: rank 1 sent 4300 parcels, received 272 (global 4572) wall 0.088868993s [pack 0.000775169s MPI 0.066512082s deser 0.004402534s]
+ExecutionTime = 238.5 s  ClockTime = 63 s
+
+Replicated mesh migration[224]: rank 0 sent 265 parcels, received 4261 (global 4526) wall 0.019647662s [pack 4.7462e-05s MPI 0.00623885s deser 0.000617001s]
+Replicated mesh migration[224]: rank 1 sent 4261 parcels, received 265 (global 4526) wall 0.083506238s [pack 0.001170161s MPI 0.056779558s deser 0.004307893s]
+ExecutionTime = 239.85 s  ClockTime = 64 s
+
+Replicated mesh migration[225]: rank 0 sent 259 parcels, received 4321 (global 4580) wall 0.019679421s [pack 4.9537e-05s MPI 0.006171717s deser 0.000606716s]
+Replicated mesh migration[225]: rank 1 sent 4321 parcels, received 259 (global 4580) wall 0.090797482s [pack 0.0011755s MPI 0.063960176s deser 0.004258478s]
+ExecutionTime = 241.2 s  ClockTime = 64 s
+
+Time = 1.460810757e-05
+
+Replicated mesh migration[226]: rank 0 sent 298 parcels, received 4381 (global 4679) wall 0.019757372s [pack 6.0253e-05s MPI 0.006193081s deser 0.000631132s]
+Replicated mesh migration[226]: rank 1 sent 4381 parcels, received 298 (global 4679) wall 0.097455549s [pack 0.001189672s MPI 0.070652733s deser 0.004280224s]
+    Collisions                      = 14277
+    Collision candidates           = 55278
+    Collision acceptance rate      = 0.2582763486
+    Candidate-cell sigmaTcRMax avg/max/min = 1.000059654e-15 / 1.207348605e-15 / 1e-15
+
+    Collisions                      = 182278
+    Collision candidates           = 374269
+    Collision acceptance rate      = 0.4870240389
+    Candidate-cell sigmaTcRMax avg/max/min = 1.038255326e-15 / 1.463149476e-15 / 1e-15
+
+
+Phase C auto DLB triggered (SAR) at step 220: sar=0.02564330558 loadImbalance=1.242410131
+
+Phase C auto DLB triggered (SAR) at step 220: sar=0.02564292917 loadImbalance=1.242410131
+Phase C ParMETIS: K=985 (moveT=32.44426693s, collT=8.306464511s)
+Phase C ParMETIS: AdaptiveRepart (60000 cells, 1 constraints, collScale=3.909940651, ubvec=1.049999952)
+Phase C ParMETIS: K=985 (moveT=24.52268217s, collT=17.82117964s)
+Phase C ParMETIS: AdaptiveRepart (60000 cells, 1 constraints, collScale=1.851641997, ubvec=1.049999952)
+Replicated mesh: rank 0 owns 26386 / 60000 cells
+Replicated mesh: rank 1 owns 33614 / 60000 cells
+Local mesh: 26386 owned + 404 halo = 26790 / 60000 cells
+Phase C ParMETIS AdaptiveRepart: 4 / 60000 cells changed (6.666666667e-05)
+Local mesh: 33614 owned + 404 halo = 34018 / 60000 cells
+Phase C ParMETIS AdaptiveRepart: 4 / 60000 cells changed (6.666666667e-05)
+Replicated mesh migration[227]: rank 0 sent 108 parcels, received 0 (global 108) wall 0.021606712s [pack 2.9361e-05s MPI 0.003059005s deser 0.004940024s]
+Replicated mesh migration[227]: rank 1 sent 0 parcels, received 108 (global 108) wall 0.02146889s [pack 8.955e-06s MPI 0.004437768s deser 0.000520819s]
+Phase C auto DLB complete: rebalance #6
+
+Phase C adaptive K (PID): bottleneck=rankPhase C auto DLB complete: rebalance #6
+
+Phase C adaptive K (PID): bottleneck=rank0 max/min=0 max/min=1.21897325 error=-0.11897325 integral=-0.1575492979 K: 985 -> 931
+1.21897325 error=-0.11897325 integral=-0.1575492979 K: 985 -> 931
+Cloud name: dsmc
+    Number of dsmc particles        = 958175
+    Number of molecules             = 5.74905e+15
+    Mass in system                  = 2.757141679e-10
+    Average linear kinetic energy   = 1.298380199e-19
+    Average rotational energy       = 1.913272542e-20
+    Average vibrational energy      = 2.160363547e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.705743808e-19
+ExecutionTime = 242.99 s  ClockTime = 64 s
+
+Cloud name: dsmc
+    Number of dsmc particles        = 844555
+    Number of molecules             = 5.06733e+15
+    Mass in system                  = 2.430124892e-10
+    Average linear kinetic energy   = 1.924801191e-19
+    Average rotational energy       = 1.215248434e-21
+    Average vibrational energy      = 2.157712488e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.152724924e-19
+Replicated mesh migration[228]: rank 0 sent 270 parcels, received 4260 (global 4530) wall 0.144944555s [pack 4.9556e-05s MPI 0.13036535s deser 0.000651851s]
+Replicated mesh migration[228]: rank 1 sent 4260 parcels, received 270 (global 4530) wall 0.0257957s [pack 0.001051739s MPI 0.001220574s deser 0.004734192s]
+ExecutionTime = 245.06 s  ClockTime = 65 s
+
+Replicated mesh migration[229]: rank 0 sent 247 parcels, received 4295 (global 4542) wall 0.020003553s [pack 4.3997e-05s MPI 0.006286694s deser 0.000637558s]
+Replicated mesh migration[229]: rank 1 sent 4295 parcels, received 247 (global 4542) wall 0.076041404s [pack 0.000763505s MPI 0.056466474s deser 0.004517603s]
+ExecutionTime = 246.36 s  ClockTime = 65 s
+
+Replicated mesh migration[230]: rank 0 sent 266 parcels, received 4257 (global 4523) wall 0.017465278s [pack 3.9293e-05s MPI 0.005283213s deser 0.0005517s]
+Replicated mesh migration[230]: rank 1 sent 4257 parcels, received 266 (global 4523) wall 0.066690255s [pack 0.001147246s MPI 0.042080178s deser 0.003512711s]
+ExecutionTime = 247.63 s  ClockTime = 66 s
+
+Replicated mesh migration[231]: rank 0 sent 278 parcels, received 4268 (global 4546) wall 0.019819872s [pack 4.3714e-05s MPI 0.006334731s deser 0.000638908s]
+Replicated mesh migration[231]: rank 1 sent 4268 parcels, received 278 (global 4546) wall 0.07541558s [pack 0.000832401s MPI 0.054526885s deser 0.004398546s]
+ExecutionTime = 248.92 s  ClockTime = 66 s
+
+Replicated mesh migration[232]: rank 0 sent 248 parcels, received 4201 (global 4449) wall 0.018676455s [pack 4.2804e-05s MPI 0.005825128s deser 0.000603876s]
+Replicated mesh migration[232]: rank 1 sent 4201 parcels, received 248 (global 4449) wall 0.072356083s [pack 0.000815608s MPI 0.0519847s deser 0.003865244s]
+ExecutionTime = 250.22 s  ClockTime = 66 s
+
+Replicated mesh migration[233]: rank 0 sent 249 parcels, received 4332 (global 4581) wall 0.021182769s [pack 5.0228e-05s MPI 0.006571062s deser 0.000665171s]
+Replicated mesh migration[233]: rank 1 sent 4332 parcels, received 249 (global 4581) wall 0.081706771s [pack 0.000813448s MPI 0.061026519s deser 0.004801324s]
+ExecutionTime = 251.57 s  ClockTime = 67 s
+
+Replicated mesh migration[234]: rank 0 sent 290 parcels, received 4328 (global 4618) wall 0.020698807s [pack 5.285e-05s MPI 0.006380582s deser 0.000644113s]
+Replicated mesh migration[234]: rank 1 sent 4328 parcels, received 290 (global 4618) wall 0.097686898s [pack 0.000904138s MPI 0.075515178s deser 0.004547949s]
+ExecutionTime = 252.92 s  ClockTime = 67 s
+
+Replicated mesh migration[235]: rank 0 sent 278 parcels, received 4325 (global 4603) wall 0.017423697s [pack 4.6328e-05s MPI 0.005077691s deser 0.000595389s]
+Replicated mesh migration[235]: rank 1 sent 4325 parcels, received 278 (global 4603) wall 0.079646862s [pack 0.001197223s MPI 0.054350684s deser 0.003071039s]
+ExecutionTime = 254.22 s  ClockTime = 67 s
+
+Replicated mesh migration[236]: rank 0 sent 266 parcels, received 4325 (global 4591) wall 0.018391536s [pack 4.2568e-05s MPI 0.006102388s deser 0.000588222s]
+Replicated mesh migration[236]: rank 1 sent 4325 parcels, received 266 (global 4591) wall 0.078535267s [pack 0.001253543s MPI 0.050800948s deser 0.003922993s]
+ExecutionTime = 255.56 s  ClockTime = 68 s
+
+Time = 1.527211246e-05
+
+Replicated mesh migration[237]: rank 0 sent 240 parcels, received 4306 (global 4546) wall 0.021892473s [pack 4.4233e-05s MPI 0.007200164s deser 0.000682447s]
+Replicated mesh migration[237]: rank 1 sent 4306 parcels, received 240 (global 4546) wall 0.089917462s [pack 0.001297271s MPI 0.060614404s deser 0.005027678s]
+    Collisions                      = 14165
+    Collision candidates           = 55306
+    Collision acceptance rate      = 0.2561204933
+    Candidate-cell sigmaTcRMax avg/max/min = 1.000115448e-15 / 1.292839482e-15 / 1e-15
+
+    Collisions                      = 187476
+    Collision candidates           = 385305
+    Collision acceptance rate      = 0.4865651886
+    Candidate-cell sigmaTcRMax avg/max/min = 1.040477411e-15 / 1.463149476e-15 / 1e-15
+
+Cloud name: dsmc
+    Number of dsmc particles        = 978217
+    Number of molecules             = 5.869302e+15
+    Mass in system                  = 2.814772777e-10
+    Average linear kinetic energy   = 1.28924532e-19
+    Average rotational energy       = 1.971968087e-20
+    Average vibrational energy      = 2.160793085e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.702521437e-19
+ExecutionTime = 257.16 s  ClockTime = 68 s
+
+Cloud name: dsmc
+    Number of dsmc particles        = 844358
+    Number of molecules             = 5.066148e+15
+    Mass in system                  = 2.42951886e-10
+    Average linear kinetic energy   = 1.924814867e-19
+    Average rotational energy       = 1.216934328e-21
+    Average vibrational energy      = 2.157802418e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.152764452e-19
+Replicated mesh migration[238]: rank 0 sent 240 parcels, received 4273 (global 4513) wall 0.110467606s [pack 5.4182e-05s MPI 0.093353658s deser 0.000660809s]
+Replicated mesh migration[238]: rank 1 sent 4273 parcels, received 240 (global 4513) wall 0.027811579s [pack 0.001133769s MPI 0.001299109s deser 0.005282643s]
+ExecutionTime = 258.85 s  ClockTime = 69 s
+
+Replicated mesh migration[239]: rank 0 sent 259 parcels, received 4357 (global 4616) wall 0.021118187s [pack 4.6887e-05s MPI 0.006551088s deser 0.000681115s]
+Replicated mesh migration[239]: rank 1 sent 4357 parcels, received 259 (global 4616) wall 0.091980029s [pack 0.000860464s MPI 0.06842703s deser 0.004690296s]
+ExecutionTime = 260.19 s  ClockTime = 69 s
+
+Replicated mesh migration[240]: rank 0 sent 268 parcels, received 4353 (global 4621) wall 0.021991576Replicated mesh migration[240]: rank 1 sent 4353 parcels, received 268 (global 4621) wall 0.092595969s [pack 0.001329095s MPI 0.064732239s deser 0.005126781s]
+s [pack 5.488e-05s MPI 0.007150775s deser 0.000724101s]
+ExecutionTime = 261.54 s  ClockTime = 69 s
+
+Replicated mesh migration[241]: rank 0 sent 277 parcels, received 4220 (global 4497) wall 0.01990007s [pack 6.3918e-05s MPI 0.005957993s deser 0.000637412s]Replicated mesh migration[241]: rank 1 sent 4220 parcels, received 277 (global 4497) wall 0.077341104s [pack 0.000829564s MPI 0.056699906s deser 0.004286873s]
+
+ExecutionTime = 262.88 s  ClockTime = 70 s
+
+Replicated mesh migration[242]: rank 0 sent 260 parcels, received 4290 (global 4550) wall 0.020220486s [pack 5.7297e-05s MPI 0.006199785s deser 0.000637531s]
+Replicated mesh migration[242]: rank 1 sent 4290 parcels, received 260 (global 4550) wall 0.079058541s [pack 0.001219754s MPI 0.051721612s deser 0.004222239s]
+ExecutionTime = 264.26 s  ClockTime = 70 s
+
+Replicated mesh migration[243]: rank 0 sent 274 parcels, received 4265 (global 4539) wall 0.020392097s [pack 4.6062e-05s MPI 0.006278319s deser 0.000635403s]
+Replicated mesh migration[243]: rank 1 sent 4265 parcels, received 274 (global 4539) wall 0.154358873s [pack 0.00118618s MPI 0.127055649s deser 0.004289527s]
+ExecutionTime = 265.9 s  ClockTime = 70 s
+
+Replicated mesh migration[244]: rank 0 sent 259 parcels, received 4295 (global 4554) wall 0.023430364s [pack 5.8232e-05s MPI 0.008513055s deser 0.001352884s]
+Replicated mesh migration[244]: rank 1 sent 4295 parcels, received 259 (global 4554) wall 0.099594823s [pack 0.000759661s MPI 0.077695262s deser 0.007270649s]
+ExecutionTime = 267.5 s  ClockTime = 71 s
+
+Replicated mesh migration[245]: rank 0 sent 235 parcels, received 4274 (global 4509) wall 0.019951729s [pack 4.1797e-05s MPI 0.006188709s deser 0.000658042s]
+Replicated mesh migration[245]: rank 1 sent 4274 parcels, received 235 (global 4509) wall 0.095277563s [pack 0.001159436s MPI 0.068207372s deser 0.004257106s]
+ExecutionTime = 268.92 s  ClockTime = 71 s
+
+Replicated mesh migration[246]: rank 0 sent 258 parcels, received 4237 (global 4495Replicated mesh migration[246]: rank 1 sent 4237 parcels, received 258 (global 4495) wall 0.0888524s [pack 0.001186527s MPI 0.062177539s deser 0.003960631s]
+) wall 0.018319127s [pack 5.1709e-05s MPI 0.005951331s deser 0.00058622s]
+ExecutionTime = 270.33 s  ClockTime = 71 s
+
+Time = 1.593611735e-05
+
+Replicated mesh migration[247]: rank 0 sent 267 parcels, received 4278 (global 4545) wall 0.021361897s [pack 4.3666e-05s MPI 0.006866527s deser 0.000683375s]
+Replicated mesh migration[247]: rank 1 sent 4278 parcels, received 267 (global 4545) wall 0.102172217s [pack 0.00118274s MPI 0.074328635s deser 0.00491319s]
+    Collisions                      = 14138
+    Collision candidates           = 55252
+    Collision acceptance rate      = 0.25588214
+    Candidate-cell sigmaTcRMax avg/max/min = 1.000106397e-15 / 1.292839482e-15 / 1e-15
+
+    Collisions                      = 193599
+    Collision candidates           = 396739
+    Collision acceptance rate      = 0.4879757221
+    Candidate-cell sigmaTcRMax avg/max/min = 1.042628996e-15 / 1.463149476e-15 / 1e-15
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 2
+Cloud name: dsmc
+    Number of dsmc particles        = 998305
+    Number of molecules             = 5.98983e+15
+    Mass in system                  = 2.872583038e-10
+    Average linear kinetic energy   = 1.280995352e-19
+    Average rotational energy       = 2.025470123e-20
+    Average vibrational energy      = 2.160874158e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.69962978e-19
+ExecutionTime = 271.99 s  ClockTime = 72 s
+
+Cloud name: dsmc
+    Number of dsmc particles        = 844172
+    Number of molecules             = 5.065032e+15
+    Mass in system                  = 2.428995154e-10
+    Average linear kinetic energy   = 1.924785297e-19
+    Average rotational energy       = 1.217105235e-21
+    Average vibrational energy      = 2.157776061e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.152733956e-19
+Replicated mesh migration[248]: rank 0 sent 256 parcels, received 4307 (global 4563) wall 0.017008341s [pack 4.0127e-05s MPI 0.005431962s deser 0.000634986s]
+Replicated mesh migration[248]: rank 1 sent 4307 parcels, received 256 (global 4563) wall 0.028558095s [pack 0.001149582s MPI 0.002403191s deser 0.004523019s]
+ExecutionTime = 273.65 s  ClockTime = 72 s
+
+Replicated mesh migration[249]: rank 0 sent 268 parcels, received 4184 (global 4452) wall 0.019993904s [pack 4.9711e-05s MPI 0.005914535s deser 0.000632272s]
+Replicated mesh migration[249]: rank 1 sent 4184 parcels, received 268 (global 4452) wall 0.09470394s [pack 0.000863388s MPI 0.073791797s deser 0.004321114s]
+ExecutionTime = 275.04 s  ClockTime = 73 s
+
+Replicated mesh migration[250]: rank 0 sent 279 parcels, received 4306 (global 4585) wall 0.017913725s [pack 4.5496e-05s MPI 0.005551596s deser 0.000601312s]
+Replicated mesh migration[250]: rank 1 sent 4306 parcels, received 279 (global 4585) wall 0.09665707s [pack 0.000770578s MPI 0.077486596s deser 0.003617874s]
+ExecutionTime = 276.34 s  ClockTime = 73 s
+
+Replicated mesh migration[251]: rank 0 sent 240 parcels, received 4259 (global 4499) wall 0.017542792s [pack 3.785e-05s MPI 0.005496278s deser 0.000545348s]
+Replicated mesh migration[251]: rank 1 sent 4259 parcels, received 240 (global 4499) wall 0.057432252s [pack 0.001130951s MPI 0.033471017s deser 0.003576485s]
+ExecutionTime = 277.6 s  ClockTime = 73 s
+
+Replicated mesh migration[252]: rank 0 sent 248 parcels, received 4318 (global 4566) wall 0.020072002s [pack 3.899e-05s MPI 0.006380614s deser 0.000651547s]
+Replicated mesh migration[252]: rank 1 sent 4318 parcels, received 248 (global 4566) wall 0.068330344s [pack 0.001257605s MPI 0.04015623s deser 0.004199564s]
+ExecutionTime = 279.01 s  ClockTime = 74 s
+
+Replicated mesh migration[253]: rank 0 sent 268 parcels, received 4368 (global 4636) wall 0.017940374s [pack 3.9076e-05s MPI 0.005544303s deser 0.000681834s]
+Replicated mesh migration[253]: rank 1 sent 4368 parcels, received 268 (global 4636) wall 0.097536391s [pack 0.001001973s MPI 0.075941161s deser 0.003350113s]
+ExecutionTime = 280.39 s  ClockTime = 74 s
+
+Replicated mesh migration[254]: rank 0 sent 299 parcels, received 4248 (global 4547) wall 0.018082087s [pack 4.7327e-05s MPI 0.005687154s deser 0.000597397s]
+Replicated mesh migration[254]: rank 1 sent 4248 parcels, received 299 (global 4547) wall 0.079137639s [pack 0.001282821s MPI 0.051092368s deser 0.003220648s]
+ExecutionTime = 281.8 s  ClockTime = 74 s
+
+Replicated mesh migration[255]: rank 0 sent 297 parcels, received 4278 (global 4575) wall 0.022241502s [pack 6.0983e-05s MPI 0.006731116s deser 0.000671713s]
+Replicated mesh migration[255]: rank 1 sent 4278 parcels, received 297 (global 4575) wall 0.111501766s [pack 0.001293339s MPI 0.082433291s deser 0.004619235s]
+ExecutionTime = 283.23 s  ClockTime = 75 s
+
+Replicated mesh migration[256]: rank 0 sent 263 parcels, received 4366 (global 4629) wall 0.022016695s [pack 5.2237e-05s MPI 0.006635762s deser 0.000692976s]
+Replicated mesh migration[256]: rank 1 sent 4366 parcels, received 263 (global 4629) wall 0.096306898s [pack 0.001334865s MPI 0.066941266s deser 0.004728415s]
+ExecutionTime = 284.67 s  ClockTime = 75 s
+
+Time = 1.660012224e-05
+
+Replicated mesh migration[257]: rank 0 sent 246 parcels, received 4262 (global 4508) wall 0.021968315s [pack 4.8918e-05s MPI 0.006668692s deser 0.000636022s]
+Replicated mesh migration[257]: rank 1 sent 4262 parcels, received 246 (global 4508) wall 0.107769049s [pack 0.001263901s MPI 0.078690067s deser 0.004534819s]
+    Collisions                      = 14313
+    Collision candidates           = 55329
+    Collision acceptance rate      = 0.2586889335
+    Candidate-cell sigmaTcRMax avg/max/min = 1.000110822e-15 / 1.292839482e-15 / 1e-15
+
+    Collisions                      = 198828
+    Collision candidates           = 408195
+    Collision acceptance rate      = 0.4870907287
+    Candidate-cell sigmaTcRMax avg/max/min = 1.044727786e-15 / 1.463149476e-15 / 1e-15
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+
+Phase C auto DLB triggered (threshold) at step 250: loadImbalance=1.299356919 > threshold=1.2
+
+Phase C auto DLB triggered (threshold) at step 250: loadImbalance=1.299356919 > threshold=1.2
+Phase C ParMETIS: K=931 (moveT=37.38365045s, collT=9.607340608s)
+Phase C ParMETIS: K=931 (moveT=28.81342644s, collT=21.87117187s)
+Phase C ParMETIS: AdaptiveRepart (60000 cells, 1 constraints, collScale=3.932954832, ubvec=1.049999952)
+Phase C ParMETIS: AdaptiveRepart (60000 cells, 1 constraints, collScale=1.884665981, ubvec=1.049999952)
+Replicated mesh: rank 0 owns 25438 / 60000 cells
+Replicated mesh: rank 1 owns 34562 / 60000 cells
+Local mesh: 25438 owned + 520 halo = 25958 / 60000 cells
+Phase C ParMETIS AdaptiveRepart: 948 / 60000 cells changed (0.0158)
+Local mesh: 34562 owned + 524 halo = 35086 / 60000 cells
+Phase C ParMETIS AdaptiveRepart: 948 / 60000 cells changed (0.0158)
+Replicated mesh migration[258]: rank 0 sent 81228 parcels, received 0 (global 81228) wall 0.155918371s [pack 0.009489611s MPI 0.010634983s deser 0.072880452s]
+Phase C auto DLB complete: rebalance #7
+
+Phase C adaptive K (PID): bottleneck=rank0 max/min=1.336600883 error=-0.2366008831 integral=-0.315375532 K: 931 -> 839
+Replicated mesh migration[258]: rank 1 sent 0 parcels, received 81228 (global 81228) wall 0.155657507s [pack 1.025e-05s MPI 0.131258604s deser 0.006343375s]
+Phase C auto DLB complete: rebalance #7
+
+Phase C adaptive K (PID): bottleneck=rank0 max/min=1.336600883 error=-0.2366008831 integral=-0.315375532 K: 931 -> 839
+Cloud name: dsmc
+    Number of dsmc particles        = 936811
+    Number of molecules             = 5.620866e+15
+    Mass in system                  = 2.695504422e-10
+    Average linear kinetic energy   = 1.330055496e-19
+    Average rotational energy       = 1.927719997e-20
+    Average vibrational energy      = 2.160824393e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.738909935e-19
+ExecutionTime = 286.87 s  ClockTime = 76 s
+
+Cloud name: dsmc
+    Number of dsmc particles        = 925556
+    Number of molecules             = 5.553336e+15
+    Mass in system                  = 2.663318521e-10
+    Average linear kinetic energy   = 1.810203386e-19
+    Average rotational energy       = 4.43137623e-21
+    Average vibrational energy      = 2.158337485e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.070350897e-19
+Replicated mesh migration[259]: rank 0 sent 1104 parcels, received 5015 (global 6119) wall 0.17208644s [pack 0.000301563s MPI 0.157736177s deser 0.000586052s]
+Replicated mesh migration[259]: rank 1 sent 5015 parcels, received 1104 (global 6119) wall 0.030537629s [pack 0.001371244s MPI 0.002500382s deser 0.004771574s]
+ExecutionTime = 288.74 s  ClockTime = 76 s
+
+Replicated mesh migration[260]: rank 0 sent 1064 parcels, received 5028 (global 6092) wall 0.024378974s [pack 0.00027785s MPI 0.008180779s deser 0.00065015s]
+Replicated mesh migration[260]: rank 1 sent 5028 parcels, received 1064 (global 6092) wall 0.03336538s [pack 0.001051342s MPI 0.008297211s deser 0.005482514s]
+ExecutionTime = 290.06 s  ClockTime = 77 s
+
+Replicated mesh migration[261]: rank 0 sent 1066 parcels, received 5093 (global 6159) wall 0.023804859s [pack 0.000288658s MPI 0.007800968s deser 0.000675367s]
+Replicated mesh migration[261]: rank 1 sent 5093 parcels, received 1066 (global 6159) wall 0.039544091s [pack 0.001607579s MPI 0.012775421s deser 0.004431151s]
+ExecutionTime = 291.36 s  ClockTime = 77 s
+
+Replicated mesh migration[262]: rank 0 sent 1069 parcels, received 5056 (global 6125) wall 0.021721032s [pack 0.000240472s MPI 0.008029848s deser 0.00061505s]
+Replicated mesh migration[262]: rank 1 sent 5056 parcels, received 1069 (global 6125) wall 0.039914503s [pack 0.001176993s MPI 0.017466039s deser 0.004958369s]
+ExecutionTime = 292.64 s  ClockTime = 77 s
+
+Replicated mesh migration[263]: rank 0 sent 1031 parcels, received 4977 (global 6008) wall 0.02313297s [pack 0.000256527s MPI 0.007970355s deser 0.000571596s]
+Replicated mesh migration[263]: rank 1 sent 4977 parcels, received 1031 (global 6008) wall 0.029638702s [pack 0.001250818s MPI 0.002224338s deser 0.00460056s]
+ExecutionTime = 293.97 s  ClockTime = 78 s
+
+Replicated mesh migration[264]: rank 0 sent 1081 parcels, received 5023 (global 6104) wall 0.021600343s [pack 0.000243971s MPI 0.006721949s deser 0.000598414s]
+Replicated mesh migration[264]: rank 1 sent 5023 parcels, received 1081 (global 6104) wall 0.040655372s [pack 0.001365466s MPI 0.014023354s deser 0.004304707s]
+ExecutionTime = 295.29 s  ClockTime = 78 s
+
+Replicated mesh migration[265]: rank 0 sent 1059 parcels, received 4953 (global 6012) wall 0.022458939s [pack 0.000232497s MPI 0.007548113s deser 0.000623902s]
+Replicated mesh migration[265]: rank 1 sent 4953 parcels, received 1059 (global 6012) wall 0.049232433s [pack 0.001320527s MPI 0.021960332s deser 0.004322493s]
+ExecutionTime = 296.63 s  ClockTime = 78 s
+
+Replicated mesh migration[266]: rank 0 sent 1075 parcels, received 4839 (global 5914) wall 0.02247521s [pack 0.000220551s MPI 0.0077572s deser 0.000622957s]
+Replicated mesh migration[266]: rank 1 sent 4839 parcels, received 1075 (global 5914) wall 0.056297204s [pack 0.001303272s MPI 0.034420734s deser 0.004463674s]
+ExecutionTime = 297.97 s  ClockTime = 79 s
+
+Replicated mesh migration[267]: rank 0 sent 1061 parcels, received 4933 (global 5994) wall 0.022930374s [pack 0.000245232s MPI 0.007916609s deser 0.000597134s]
+Replicated mesh migration[267]: rank 1 sent 4933 parcels, received 1061 (global 5994) wall 0.059456177s [pack 0.001160771s MPI 0.037490607s deser 0.004153204s]
+ExecutionTime = 299.3 s  ClockTime = 79 s
+
+Time = 1.726412712e-05
+
+Replicated mesh migration[268]: rank 0 sent 1078 parcels, received 5048 (global 6126) wall 0.022129353s [pack 0.000220787s MPI 0.007544577s deser 0.000623361s]
+Replicated mesh migration[268]: rank 1 sent 5048 parcels, received 1078 (global 6126) wall 0.056509728s [pack 0.000917736s MPI 0.035839954s deser 0.004702287s]
+    Collisions                      = 53775
+    Collision candidates           = 131284
+    Collision acceptance rate      = 0.4096081777
+    Candidate-cell sigmaTcRMax avg/max/min = 1.002779039e-15 / 1.330031253e-15 / 1e-15
+
+    Collisions                      = 165164
+    Collision candidates           = 336631
+    Collision acceptance rate      = 0.4906381171
+    Candidate-cell sigmaTcRMax avg/max/min = 1.040989694e-15 / 1.463149476e-15 / 1e-15
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Cloud name: dsmc
+    Number of dsmc particles        = 955293
+    Number of molecules             = 5.731758e+15
+    Mass in system                  = 2.748765648e-10
+    Average linear kinetic energy   = 1.321905302e-19
+    Average rotational energy       = 1.982533597e-20
+    Average vibrational energy      = 2.160945977e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.736253259e-19
+ExecutionTime = 300.96 s  ClockTime = 79 s
+
+Cloud name: dsmc
+    Number of dsmc particles        = 926604
+    Number of molecules             = 5.559624e+15
+    Mass in system                  = 2.6662901e-10
+    Average linear kinetic energy   = 1.808284685e-19
+    Average rotational energy       = 4.476062854e-21
+    Average vibrational energy      = 2.1585279e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.068898103e-19
+Replicated mesh migration[269]: rank 0 sent 1097 parcels, received 5001 (global 6098) wall 0.100085111s [pack 0.00023099s MPI 0.084571991s deser 0.000599428s]
+Replicated mesh migration[269]: rank 1 sent 5001 parcels, received 1097 (global 6098) wall 0.02460236s [pack 0.000868346s MPI 0.002310542s deser 0.005270997s]
+ExecutionTime = 302.58 s  ClockTime = 80 s
+
+Replicated mesh migration[270]: rank 0 sent 1009 parcels, received 4983 (global 5992) wall 0.017771681s [pack 0.000157805s MPI 0.005880166s deser 0.000551219s]
+Replicated mesh migration[270]: rank 1 sent 4983 parcels, received 1009 (global 5992) wall 0.040825487s [pack 0.001267147s MPI 0.016638447s deser 0.002812626s]
+ExecutionTime = 303.88 s  ClockTime = 80 s
+
+Replicated mesh migration[271]: rank 0 sent 1044 parcels, received 5045 (global 6089) wall 0.017748665s [pack 0.00017569s MPI 0.005615956s deser 0.000546857s]
+Replicated mesh migration[271]: rank 1 sent 5045 parcels, received 1044 (global 6089) wall 0.032535426s [pack 0.001377225s MPI 0.006021051s deser 0.003254437s]
+ExecutionTime = 305.19 s  ClockTime = 80 s
+
+Replicated mesh migration[272]: rank 0 sent 1100 parcels, received 4987 (global 6087) wall 0.022109617s [pack 0.000213076s MPI 0.007437414s deser 0.000593145s]
+Replicated mesh migration[272]: rank 1 sent 4987 parcels, received 1100 (global 6087) wall 0.048471231s [pack 0.000941836s MPI 0.02597345s deser 0.004134256s]
+ExecutionTime = 306.52 s  ClockTime = 81 s
+
+Replicated mesh migration[273]: rank 0 sent 1074 parcels, received 4998 (global 6072) wall 0.020473244s [pack 0.000182052s MPI 0.007107485s deser 0.000586802s]
+Replicated mesh migration[273]: rank 1 sent 4998 parcels, received 1074 (global 6072) wall 0.038451708s [pack 0.001398537s MPI 0.0120507s deser 0.003891959s]
+ExecutionTime = 307.87 s  ClockTime = 81 s
+
+Replicated mesh migration[274]: rank 0 sent 1068 parcels, received 5022 (global 6090) wall 0.019764023s [pack 0.000194807s MPI 0.006804401s deser 0.000544168s]
+Replicated mesh migration[274]: rank 1 sent 5022 parcels, received 1068 (global 6090) wall 0.055603345s [pack 0.00089209s MPI 0.035882343s deser 0.003928261s]
+ExecutionTime = 309.21 s  ClockTime = 81 s
+
+Replicated mesh migration[275]: rank 0 sent 1098 parcels, received 4883 (global 5981) wall 0.021989216s [pack 0.000235087s MPI 0.00715071s deser 0.000593676s]
+Replicated mesh migration[275]: rank 1 sent 4883 parcels, received 1098 (global 5981) wall 0.057048488s [pack 0.000875929s MPI 0.037478493s deser 0.003517041s]
+ExecutionTime = 310.58 s  ClockTime = 82 s
+
+Replicated mesh migration[276]: rank 0 sent 1045 parcels, received 4930 (global 5975) wall 0.022529682s [pack 0.000208082s MPI 0.007339154s deser 0.00064557s]
+Replicated mesh migration[276]: rank 1 sent 4930 parcels, received 1045 (global 5975) wall 0.05272767s [pack 0.000913334s MPI 0.03218185s deser 0.004522333s]
+ExecutionTime = 311.92 s  ClockTime = 82 s
+
+Replicated mesh migration[277]: rank 0 sent 1096 parcels, received 5099 (global 6195) wall 0.0230504s [pack 0.000235324s MPI 0.007375712s deser 0.000618348s]Replicated mesh migration[277]: rank 1 sent 5099 parcels, received 1096 (global 6195) wall 0.042943814s [pack 0.001452262s MPI 0.016174359s deser 0.004166215s]
+
+ExecutionTime = 313.24 s  ClockTime = 82 s
+
+Time = 1.792813201e-05
+
+Replicated mesh migration[278]: rank 0 sent 1110 parcels, received 4905 (global 6015) wall 0.02348236s [pack 0.000235993s MPI 0.007378608s deser 0.000631997s]
+Replicated mesh migration[278]: rank 1 sent 4905 parcels, received 1110 (global 6015) wall 0.048260075s [pack 0.000882026s MPI 0.027644292s deser 0.003892678s]
+    Collisions                      = 54470
+    Collision candidates           = 134246
+    Collision acceptance rate      = 0.4057476573
+    Candidate-cell sigmaTcRMax avg/max/min = 1.003672634e-15 / 1.343139332e-15 / 1e-15
+
+    Collisions                      = 169844
+    Collision candidates           = 346450
+    Collision acceptance rate      = 0.490241016
+    Candidate-cell sigmaTcRMax avg/max/min = 1.042820185e-15 / 1.463149476e-15 / 1e-15
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Cloud name: dsmc
+    Number of dsmc particles        = 973596
+    Number of molecules             = 5.841576e+15
+    Mass in system                  = 2.801388042e-10
+    Average linear kinetic energy   = 1.31388467e-19
+    Average rotational energy       = 2.036966505e-20
+    Average vibrational energy      = 2.16105198e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.733686518e-19
+ExecutionTime = 314.93 s  ClockTime = 83 s
+
+Cloud name: dsmc
+    Number of dsmc particles        = 927821
+    Number of molecules             = 5.566926e+15
+    Mass in system                  = 2.669818195e-10
+    Average linear kinetic energy   = 1.806781064e-19
+    Average rotational energy       = 4.509850769e-21
+    Average vibrational energy      = 2.158582344e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.067737806e-19
+Replicated mesh migration[279]: rank 0 sent 1019 parcels, received 5002 (global 6021) wall 0.110046018s [pack 0.000228508s MPI 0.093446075s deser 0.000602319s]
+Replicated mesh migration[279]: rank 1 sent 5002 parcels, received 1019 (global 6021) wall 0.031288632s [pack 0.001432302s MPI 0.00270079s deser 0.004896096s]
+ExecutionTime = 316.63 s  ClockTime = 83 s
+
+Replicated mesh migration[280]: rank 0 sent 1050 parcels, received 5044 (global 6094) wall 0.022402533s [pack 0.000201826s MPI 0.00752864s deser 0.000661217s]
+Replicated mesh migration[280]: rank 1 sent 5044 parcels, received 1050 (global 6094) wall 0.060685378s [pack 0.001463072s MPI 0.032262982s deser 0.004050223s]
+ExecutionTime = 318.03 s  ClockTime = 84 s
+
+Replicated mesh migration[281]: rank 0 sent 1047 parcels, received 4927 (global 5974) wall 0.02553074s [pack 0.000238709s MPI 0.00879713s deser 0.00071441s]
+Replicated mesh migration[281]: rank 1 sent 4927 parcels, received 1047 (global 5974) wall 0.055454209s [pack 0.001465705s MPI 0.024821132s deser 0.00507234s]
+ExecutionTime = 319.43 s  ClockTime = 83 s
+
+Replicated mesh migration[282]: rank 0 sent 1088 parcels, received 4993 (global 6081) wall 0.024933784s [pack 0.000222905s MPI 0.008014635s deser 0.00066718s]
+Replicated mesh migration[282]: rank 1 sent 4993 parcels, received 1088 (global 6081) wall 0.063839491s [pack 0.001493564s MPI 0.035149729s deser 0.004471614s]
+ExecutionTime = 320.84 s  ClockTime = 84 s
+
+Replicated mesh migration[283]: rank 0 sent 1102 parcels, received 5026 (global 6128) wall 0.025183235s [pack 0.000240031s MPI 0.008315196s deser 0.000708877s]
+Replicated mesh migration[283]: rank 1 sent 5026 parcels, received 1102 (global 6128) wall 0.073303627s [pack 0.000995129s MPI 0.050352882s deser 0.005297642s]
+ExecutionTime = 322.24 s  ClockTime = 84 s
+
+Replicated mesh migration[284]: rank 0 sent 1000 parcels, received 4982 (global 5982) wall 0.020581717s [pack 0.000177577s MPI 0.006443165s deser 0.000606186s]
+Replicated mesh migration[284]: rank 1 sent 4982 parcels, received 1000 (global 5982) wall 0.091814743s [pack 0.001541922s MPI 0.062421424s deser 0.002848058s]
+ExecutionTime = 323.58 s  ClockTime = 84 s
+
+Replicated mesh migration[285]: rank 0 sent 1069 parcels, received 5013 (global 6082) wall 0.022307039s [pack 0.000210195s MPI 0.007761871s deser 0.000604026s]
+Replicated mesh migration[285]: rank 1 sent 5013 parcels, received 1069 (global 6082) wall 0.059712682s [pack 0.001043703s MPI 0.035712467s deser 0.004194675s]
+ExecutionTime = 324.97 s  ClockTime = 85 s
+
+Replicated mesh migration[286]: rank 0 sent 1031 parcels, received 5060 (global 6091) wall 0.024981259s [pack 0.000217727s MPI 0.00785645s deser 0.000700937s]
+Replicated mesh migration[286]: rank 1 sent 5060 parcels, received 1031 (global 6091) wall 0.065201965s [pack 0.000988253s MPI 0.042854947s deser 0.004948548s]
+ExecutionTime = 326.34 s  ClockTime = 85 s
+
+Replicated mesh migration[287]: rank 0 sent 1108 parcels, received 4868 (global 5976) wall 0.125961949s [pack 0.000255621s MPI 0.105757266s deser 0.000570627s]
+Replicated mesh migration[287]: rank 1 sent 4868 parcels, received 1108 (global 5976) wall 0.023676899s [pack 0.00092935s MPI 0.002398212s deser 0.00347644s]
+ExecutionTime = 328.08 s  ClockTime = 86 s
+
+Time = 1.85921369e-05
+
+Replicated mesh migration[288]: rank 0 sent 967 parcels, received 4939 (global 5906) wall 0.026443021s [pack 0.000182385s MPI 0.008088575s deser 0.000715401s]
+Replicated mesh migration[288]: rank 1 sent 4939 parcels, received 967 (global 5906) wall 0.044773608s [pack 0.001647441s MPI 0.01334438s deser 0.004893449s]
+    Collisions                      = 55628
+    Collision candidates           = 136698
+    Collision acceptance rate      = 0.4069408477
+    Candidate-cell sigmaTcRMax avg/max/min = 1.004134078e-15 / 1.343139332e-15 / 1e-15
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 1
+    Collisions                      = 175193
+    Collision candidates           = 356646
+    Collision acceptance rate      = 0.4912237905
+    Candidate-cell sigmaTcRMax avg/max/min = 1.044882567e-15 / 1.463149476e-15 / 1e-15
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Cloud name: dsmc
+    Number of dsmc particles        = 991626
+    Number of molecules             = 5.949756e+15
+    Mass in system                  = 2.85329921e-10
+    Average linear kinetic energy   = 1.306053014e-19
+    Average rotational energy       = 2.08755834e-20
+    Average vibrational energy      = 2.161213508e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.730930198e-19
+ExecutionTime = 329.76 s  ClockTime = 86 s
+
+Cloud name: dsmc
+    Number of dsmc particles        = 928775
+    Number of molecules             = 5.57265e+15
+    Mass in system                  = 2.672558094e-10
+    Average linear kinetic energy   = 1.804960996e-19
+    Average rotational energy       = 4.551895377e-21
+    Average vibrational energy      = 2.15858719e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.066338668e-19
+Replicated mesh migration[289]: rank 0 sent 1059 parcels, received 5050 (global 6109) wall 0.098054442s [pack 0.000224549s MPI 0.078586674s deser 0.000675079s]
+Replicated mesh migration[289]: rank 1 sent 5050 parcels, received 1059 (global 6109) wall 0.03014311s [pack 0.001362404s MPI 0.002677387s deser 0.005288995s]
+ExecutionTime = 331.42 s  ClockTime = 86 s
+
+Replicated mesh migration[290]: rank 0 sent 1151 parcels, received 5039 (global 6190) wall 0.026202123s [pack 0.000222196s MPI 0.008415418s deser 0.000646083s]
+Replicated mesh migration[290]: rank 1 sent 5039 parcels, received 1151 (global 6190) wall 0.047789184s [pack 0.001723061s MPI 0.016361061s deser 0.00477677s]
+ExecutionTime = 332.79 s  ClockTime = 87 s
+
+Replicated mesh migration[291]: rank 0 sent 1073 parcels, received 4987 (global 6060) wall 0.020936364s [pack 0.000221612s MPI 0.006908219s deser 0.00061677s]
+Replicated mesh migration[291]: rank 1 sent 4987 parcels, received 1073 (global 6060) wall 0.046389608s [pack 0.00180168s MPI 0.017830055s deser 0.003693335s]
+ExecutionTime = 334.15 s  ClockTime = 87 s
+
+Replicated mesh migration[292]: rank 0 sent 1079 parcels, received 5021 (global 6100) wall 0.018756735s [pack 0.000169053s MPI 0.006071524s deser 0.000639279s]
+Replicated mesh migration[292]: rank 1 sent 5021 parcels, received 1079 (global 6100) wall 0.041131154s [pack 0.001000775s MPI 0.020216809s deser 0.002881145s]
+ExecutionTime = 335.5 s  ClockTime = 87 s
+
+Replicated mesh migration[293]: rank 0 sent 1069 parcels, received 5001 (global 6070) wall 0.024225209s [pack 0.000202674s MPI 0.007607259s deser 0.0006168s]
+Replicated mesh migration[293]: rank 1 sent 5001 parcels, received 1069 (global 6070) wall 0.049732415s [pack 0.001568444s MPI 0.021819549s deser 0.004215639s]
+ExecutionTime = 336.9 s  ClockTime = 88 s
+
+Replicated mesh migration[294]: rank 0 sent 1084 parcels, received 5025 (global 6109) wall 0.021482588s [pack 0.000176226s MPI 0.006683853s deser 0.000618735s]
+Replicated mesh migration[294]: rank 1 sent 5025 parcels, received 1084 (global 6109) wall 0.040215177s [pack 0.001551286s MPI 0.012398241s deser 0.003596351s]
+ExecutionTime = 338.15 s  ClockTime = 88 s
+
+Replicated mesh migration[295]: rank 0 sent 1044 parcels, received 5048 (global 6092) wall 0.041297118s [pack 0.000185301s MPI 0.026238066s deser 0.000669912s]
+Replicated mesh migration[295]: rank 1 sent 5048 parcels, received 1044 (global 6092) wall 0.029836699s [pack 0.001426106s MPI 0.00243967s deser 0.004322208s]
+ExecutionTime = 339.54 s  ClockTime = 88 s
+
+Replicated mesh migration[296]: rank 0 sent 1085 parcels, received 5066 (global 6151) wall 0.019248673s [pack 0.000167591s MPI 0.005675292s deser 0.000581073s]
+Replicated mesh migration[296]: rank 1 sent 5066 parcels, received 1085 (global 6151) wall 0.035960097s [pack 0.001545475s MPI 0.008359759s deser 0.002834285s]
+ExecutionTime = 340.91 s  ClockTime = 89 s
+
+Replicated mesh migration[297]: rank 0 sent 1032 parcels, received 5155 (global 6187) wall 0.024654991s [pack 0.00020115s MPI 0.007901443s deser 0.000664448s]
+Replicated mesh migration[297]: rank 1 sent 5155 parcels, received 1032 (global 6187) wall 0.052663051s [pack 0.001531755s MPI 0.02287626s deser 0.004331878s]
+ExecutionTime = 342.3 s  ClockTime = 89 s
+
+Time = 1.925614179e-05
+
+Replicated mesh migration[298]: rank 0 sent 1053 parcels, received 5029 (global 6082) wall 0.020281461s [pack 0.00016449s MPI 0.006114026s deser 0.00061502s]
+Replicated mesh migration[298]: rank 1 sent 5029 parcels, received 1053 (global 6082) wall 0.134840541s [pack 0.001950537s MPI 0.104972574s deser 0.002781522s]
+    Collisions                      = 55721
+    Collision candidates           = 137477
+    Collision acceptance rate      = 0.4053114339
+    Candidate-cell sigmaTcRMax avg/max/min = 1.004428629e-15 / 1.365534808e-15 / 1e-15
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+    Collisions                      = 180019
+    Collision candidates           = 365835
+    Collision acceptance rate      = 0.4920770293
+    Candidate-cell sigmaTcRMax avg/max/min = 1.046831726e-15 / 1.463149476e-15 / 1e-15
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 1
+Cloud name: dsmc
+    Number of dsmc particles        = 1009626
+    Number of molecules             = 6.057756e+15
+    Mass in system                  = 2.905052388e-10
+    Average linear kinetic energy   = 1.297739364e-19
+    Average rotational energy       = 2.142619515e-20
+    Average vibrational energy      = 2.161428558e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.728144171e-19
+ExecutionTime = 344.4 s  ClockTime = 90 s
+
+Cloud name: dsmc
+    Number of dsmc particles        = 929184
+    Number of molecules             = 5.575104e+15
+    Mass in system                  = 2.673718672e-10
+    Average linear kinetic energy   = 1.803555956e-19
+    Average rotational energy       = 4.585321074e-21
+    Average vibrational energy      = 2.158704436e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.06527961e-19
+Replicated mesh migration[299]: rank 0 sent 1053 parcels, received 4982 (global 6035) wall 0.106682897s [pack 0.000207165s MPI 0.08890006s deser 0.00063006s]
+Replicated mesh migration[299]: rank 1 sent 4982 parcels, received 1053 (global 6035) wall 0.030417374s [pack 0.001740783s MPI 0.002263454s deser 0.004844492s]
+ExecutionTime = 346.12 s  ClockTime = 90 s
+
+Replicated mesh migration[300]: rank 0 sent 1086 parcels, received 5017 (global 6103) wall 0.019677912s [pack 0.000178569s MPI 0.006234982s deser 0.000586966s]
+Replicated mesh migration[300]: rank 1 sent 5017 parcels, received 1086 (global 6103) wall 0.059269668s [pack 0.00145461s MPI 0.032953025s deser 0.002703641s]
+ExecutionTime = 347.49 s  ClockTime = 90 s
+
+Replicated mesh migration[301]: rank 0 sent 1062 parcels, received 5081 (global 6143) wall 0.021754375s [pack 0.000205078s MPI 0.006980289s deser 0.00059997s]
+Replicated mesh migration[301]: rank 1 sent 5081 parcels, received 1062 (global 6143) wall 0.047584177s [pack 0.001453648s MPI 0.020676281s deser 0.003501987s]
+ExecutionTime = 348.84 s  ClockTime = 91 s
+
+Replicated mesh migration[302]: rank 0 sent 1101 parcels, received 5054 (global 6155) wall 0.153626752s [pack 0.000198735s MPI 0.139460493s deser 0.000605689s]
+Replicated mesh migration[302]: rank 1 sent 5054 parcels, received 1101 (global 6155) wall 0.028974436s [pack 0.001498738s MPI 0.002580639s deser 0.003260157s]
+ExecutionTime = 350.72 s  ClockTime = 91 s
+
+Replicated mesh migration[303]: rank 0 sent 1085 parcels, received 5031 (global 6116) wall 0.021651731s [pack 0.000245226s MPI 0.007109468s deser 0.000612595s]
+Replicated mesh migration[303]: rank 1 sent 5031 parcels, received 1085 (global 6116) wall 0.045594198s [pack 0.001900904s MPI 0.017542195s deser 0.003729258s]
+ExecutionTime = 352.12 s  ClockTime = 92 s
+
+Replicated mesh migration[304]: rank 0 sent 1066 parcels, received 5026 (global 6092) wall 0.021422754s [pack 0.00017555s MPI 0.006336538s deser 0.000610406s]
+Replicated mesh migration[304]: rank 1 sent 5026 parcels, received 1066 (global 6092) wall 0.037816719s [pack 0.001504509s MPI 0.009786038s deser 0.003648511s]
+ExecutionTime = 353.49 s  ClockTime = 92 s
+
+Replicated mesh migration[305]: rank 0 sent 1077 parcels, received 5026 (global 6103) wall Replicated mesh migration[305]: rank 1 sent 5026 parcels, received 1077 (global 6103) wall 0.052838866s [pack 0.002139051s MPI 0.022772223s deser 0.004847748s]
+0.026966618s [pack 0.000213912s MPI 0.008401911s deser 0.000760427s]
+ExecutionTime = 355.03 s  ClockTime = 92 s
+
+Replicated mesh migration[306]: rank 0 sent 1079 parcels, received 5063 (global 6142) wall 0.020555524s [pack 0.000171807s MPI 0.006549359s deser 0.000636022s]
+Replicated mesh migration[306]: rank 1 sent 5063 parcels, received 1079 (global 6142) wall 0.062739488s [pack 0.001599381s MPI 0.037397908s deser 0.002776223s]
+ExecutionTime = 356.41 s  ClockTime = 93 s
+
+Replicated mesh migration[307]: rank 0 sent 1112 parcels, received 5017 (global 6129) wall 0.026932546s [pack 0.000233961s MPI 0.008808148s deser 0.000688765s]
+Replicated mesh migration[307]: rank 1 sent 5017 parcels, received 1112 (global 6129) wall 0.054458038s [pack 0.000976101s MPI 0.028112489s deser 0.005179921s]
+dsmcVolFields final profiling [N2]
+    calls                 = 0
+    sample accumulation   = 9.129854491 s
+    shared cache build    = 9.043490827 s
+      cache allocate      = 0.002972774 s
+      cache reset         = 0 s
+      parcel accumulate   = 9.040015309 s
+    field combine         = 0.08617589 s
+    cell reduction        = 0.059120024 s
+    boundary accumulation = 0.150147296 s
+    output compute        = 0 s
+    field writes          = 0 s
+    output reset          = 0 s
+    output-time block     = 0 s
+
+dsmcVolFields final profiling [O2]
+    calls                 = 0
+    sample accumulation   = 0.103367596 s
+    shared cache build    = 0.00026081 s
+      cache allocate      = 0 s
+      cache reset         = 0 s
+      parcel accumulate   = 0 s
+    field combine         = 0.1030159 s
+    cell reduction        = 0.066396104 s
+    boundary accumulation = 0.160190728 s
+    output compute        = 0 s
+    field writes          = 0 s
+    output reset          = 0 s
+    output-time block     = 0 s
+
+dsmcVolFields final profiling [NO]
+    calls                 = 0
+    sample accumulation   = 0.106681369 s
+    shared cache build    = 0.000179722 s
+      cache allocate      = 0 s
+      cache reset         = 0 s
+      parcel accumulate   = 0 s
+    field combine         = 0.106427924 s
+    cell reduction        = 0.055223854 s
+    boundary accumulation = 0.162159411 s
+    output compute        = 0 s
+    field writes          = 0 s
+    output reset          = 0 s
+    output-time block     = 0 s
+
+dsmcVolFields final profiling [N]
+    calls                 = 0
+    sample accumulation   = 0.096335896 s
+    shared cache build    = 0.00015669 s
+      cache allocate      = 0 s
+      cache reset         = 0 s
+      parcel accumulate   = 0 s
+    field combine         = 0.09605516 s
+    cell reduction        = 0.056871142 s
+    boundary accumulation = 0.159529646 s
+    output compute        = 0 s
+    field writes          = 0 s
+    output reset          = 0 s
+    output-time block     = 0 s
+
+dsmcVolFields final profiling [O]
+    calls                 = 0
+    sample accumulation   = 0.095414298 s
+    shared cache build    = 0.00015269 s
+      cache allocate      = 0 s
+      cache reset         = 0 s
+      parcel accumulate   = 0 s
+    field combine         = 0.095180379 s
+    cell reduction        = 0.055892699 s
+    boundary accumulation = 0.156214581 s
+    output compute        = 0 s
+    field writes          = 0 s
+    output reset          = 0 s
+    output-time block     = 0 s
+
+dsmcVolFields final profiling [mixture]
+    calls                 = 0
+    sample accumulation   = 0.638300695 s
+    shared cache build    = 0.000142975 s
+      cache allocate      = 0 s
+      cache reset         = 0 s
+      parcel accumulate   = 0 s
+    field combine         = 0.638036394 s
+    cell reduction        = 0.064392015 s
+    boundary accumulation = 0.649374657 s
+    output compute        = 0 s
+    field writes          = 0 s
+    output reset          = 0 s
+    output-time block     = 0 s
+
+dsmcVolFields final profiling [N2]
+    calls                 = 0
+    sample accumulation   = 9.383711224 s
+    shared cache build    = 9.304527104 s
+      cache allocate      = 0.004016199 s
+      cache reset         = 0 s
+      parcel accumulate   = 9.299995472 s
+    field combine         = 0.078919662 s
+    cell reduction        = 0.058675707 s
+    boundary accumulation = 0.156572156 s
+    output compute        = 0 s
+    field writes          = 0 s
+    output reset          = 0 s
+    output-time block     = 0 s
+
+dsmcVolFields final profiling [O2]
+    calls                 = 0
+    sample accumulation   = 0.092565246 s
+    shared cache build    = 0.000266051 s
+      cache allocate      = 0 s
+      cache reset         = 0 s
+      parcel accumulate   = 0 s
+    field combine         = 0.092170175 s
+    cell reduction        = 0.061157473 s
+    boundary accumulation = 0.162035359 s
+    output compute        = 0 s
+    field writes          = 0 s
+    output reset          = 0 s
+    output-time block     = 0 s
+
+dsmcVolFields final profiling [NO]
+    calls                 = 0
+    sample accumulation   = 0.095581572 s
+    shared cache build    = 0.000186918 s
+      cache allocate      = 0 s
+      cache reset         = 0 s
+      parcel accumulate   = 0 s
+    field combine         = 0.095334639 s
+    cell reduction        = 0.055262938 s
+    boundary accumulation = 0.169549788 s
+    output compute        = 0 s
+    field writes          = 0 s
+    output reset          = 0 s
+    output-time block     = 0 s
+
+dsmcVolFields final profiling [N]
+    calls                 = 0
+    sample accumulation   = 0.084113119 s
+    shared cache build    = 0.00017434 s
+      cache allocate      = 0 s
+      cache reset         = 0 s
+      parcel accumulate   = 0 s
+    field combine         = 0.083886097 s
+    cell reduction        = 0.055922088 s
+    boundary accumulation = 0.160091707 s
+    output compute        = 0 s
+    field writes          = 0 s
+    output reset          = 0 s
+    output-time block     = 0 s
+
+dsmcVolFields final profiling [O]
+    calls                 = 0
+    sample accumulation   = 0.086831329 s
+    shared cache build    = 0.000237634 s
+      cache allocate      = 0 s
+      cache reset         = 0 s
+      parcel accumulate   = 0 s
+    field combine         = 0.086519348 s
+    cell reduction        = 0.055385031 s
+    boundary accumulation = 0.158938175 s
+    output compute        = 0 s
+    field writes          = 0 s
+    output reset          = 0 s
+    output-time block     = 0 s
+
+dsmcVolFields final profiling [mixture]
+    calls                 = 0
+    sample accumulation   = 0.60764324 s
+    shared cache build    = 0.000171239 s
+      cache allocate      = 0 s
+      cache reset         = 0 s
+      parcel accumulate   = 0 s
+    field combine         = 0.607357674 s
+    cell reduction        = 0.059551806 s
+    boundary accumulation = 0.631305971 s
+    output compute        = 0 s
+    field writes          = 0 s
+    output reset          = 0 s
+    output-time block     = 0 s
+
+ExecutionTime = 357.84 s  ClockTime = 93 s
+
+Time = 1.992014668e-05
+
+Replicated mesh migration[308]: rank 0 sent 1084 parcels, received 5019 (global 6103) wall 0.025006285s [pack 0.000201664s MPI 0.007812011s deser 0.000663669s]
+Replicated mesh migration[308]: rank 1 sent 5019 parcels, received 1084 (global 6103) wall 0.070967435s [pack 0.001589583s MPI 0.040091838s deser 0.004333753s]
+    Collisions                      = 56057
+    Collision candidates           = 138550
+    Collision acceptance rate      = 0.4045976182
+    Candidate-cell sigmaTcRMax avg/max/min = 1.004682331e-15 / 1.365534808e-15 / 1e-15
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 1
+    Collisions                      = 184616
+    Collision candidates           = 374699
+    Collision acceptance rate      = 0.4927048111
+    Candidate-cell sigmaTcRMax avg/max/min = 1.048706121e-15 / 1.463149476e-15 / 1e-15
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Cloud name: dsmc
+    Number of dsmc particles        = 1027496
+    Number of molecules             = 6.164976e+15
+    Mass in system                  = 2.956428983e-10
+    Average linear kinetic energy   = 1.290268218e-19
+    Average rotational energy       = 2.188941952e-20
+    Average vibrational energy      = 2.161678886e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.725330301e-19
+ExecutionTime = 359.64 s  ClockTime = 94 s
+
+
+Main loop profiling summary:
+    main loop wall time [s]      = 92.08798739
+
+Move profiling summary:
+    move calls                    = 600
+    move pre-control/partition [s]= 0.105374058
+    move reset/setup [s]          = 0.001522393
+    move extract parcels [s]      = 0.659007244
+    move parallel kernel wall [s] = 33.87195526
+    move commit/survivor rebuild [s] = 0.545038716
+    move transfer/delete finalize [s] = 0
+    total profiled [s]            = 35.18289768
+
+BuildCellOccupancy profiling summary:
+    buildCellOccupancy calls      = 301
+    extract parcels [s]           = 0.005046852
+    count/reduce [s]              = 1.451399584
+    allocate/fill [s]             = 1.572053328
+    total profiled [s]            = 3.028499764
+
+Collision profiling summary:
+    collision calls               = 300
+    precompute candidates [s]     = 0.065180294
+    rebuild partition [s]         = 1.8322e-05
+    selection/collide [s]         = 28.04321389
+    total profiled [s]            = 28.10841251
+
+Evolve profiling summary:
+    evolve calls                  = 300
+    move only [s]                 = 35.93673082
+    buildCellOccupancy [s]        = 13.06413516
+    coordSystem [s]               = 0.000376229
+    collision phase [s]           = 28.10968773
+    reaction/output [s]           = 0.00024022
+    post fields/output [s]        = 12.75711826
+    total profiled [s]            = 89.86828841
+
+
+Replicated mesh profiling summary:
+    migration calls             = 308
+    migration wall time [s]     = 11.10337617
+    local particles (final)     = 1027496
+    particles per rank          = min 929923 max 1027496 max/min 1.104925892
+Cloud name: dsmc
+    Number of dsmc particles        = 929923
+    Number of molecules             = 5.579538e+15
+    Mass in system                  = 2.675874206e-10
+    Average linear kinetic energy   = 1.802489801e-19
+    Average rotational energy       = 4.618426204e-21
+    Average vibrational energy      = 2.158700059e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.064544069e-19
+Move profiling summary:
+    move calls                    = 600
+    move pre-control/partition [s]= 3.300753881
+    move reset/setup [s]          = 0.001894338
+    move extract parcels [s]      = 1.071269136
+    move parallel kernel wall [s] = 39.56475965
+    move commit/survivor rebuild [s] = 0.575137036
+    move transfer/delete finalize [s] = 0
+    total profiled [s]            = 44.51381404
+
+BuildCellOccupancy profiling summary:
+    buildCellOccupancy calls      = 301
+    extract parcels [s]           = 0.00067697
+    count/reduce [s]              = 1.767933912
+    allocate/fill [s]             = 1.910578679
+    total profiled [s]            = 3.679189561
+
+Collision profiling summary:
+    collision calls               = 300
+    precompute candidates [s]     = 0.054106953
+    rebuild partition [s]         = 2.4823e-05
+    selection/collide [s]         = 12.78181815
+    total profiled [s]            = 12.83594992
+
+Evolve profiling summary:
+    evolve calls                  = 300
+    move only [s]                 = 46.31161896
+    buildCellOccupancy [s]        = 16.44228039
+    coordSystem [s]               =     rank wall time (evolve, 300 steps): min 88.18235681 max 89.87056864 max/min 1.019144553
+    Phase C auto DLB rebalances = 7
+
+End
+
+--> FOAM Warning : 
+    From static void Foam::UPstream::shutdown(int)
+    in file UPstream.C at line 680
+    Finalizing MPI, but was initialized elsewhere
+0.000312934
+    collision phase [s]           = 12.83703844
+    reaction/output [s]           = 0.000231949
+    post fields/output [s]        = 12.5885833
+    total profiled [s]            = 88.18006597
+
+
+Replicated mesh profiling summary:
+    migration calls             = 308
+    migration wall time [s]     = 14.85487814
+    local particles (final)     = 929923
+    particles per rank          = min 929923 max 1027496 max/min 1.104925892
+    rank wall time (evolve, 300 steps): min 88.18235681 max 89.87056864 max/min 1.019144553
+    Phase C auto DLB rebalances = 7
+
+--> FOAM Warning : 
+    From static void Foam::UPstream::shutdown(int)
+    in file UPstream.C at line 680
+    Finalizing MPI, but was initialized elsewhere

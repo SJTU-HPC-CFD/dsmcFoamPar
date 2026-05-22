@@ -219,7 +219,9 @@ void dissociationQK::testDissociation
         forAll(vibLevelP, m)
         {
             const scalar thetaVP = cloud_.constProps(typeIdP).thetaV_m(m);
-            const scalar EVibP_m = cloud_.constProps(typeIdP).eVib_m(m, vibLevelP[m]);
+            const scalar EVibP_m =
+                constant::physicoChemical::k.value()
+              * thetaVP * vibLevelP[m];
             const label idP = cloud_.constProps(typeIdP).charDissQuantumLevel_m(m);
 
             collisionEnergy = translationalEnergy + EVibP_m;
@@ -261,7 +263,9 @@ void dissociationQK::dissociateParticleByPartner
     }
 
     //- Dissociation of parcel p
+    #pragma omp atomic
     nTotDissociationReactions_[nReac]++;
+    #pragma omp atomic
     nDissociationReactionsPerTimeStep_[nReac]++;
 
     if (allowSplitting_)
@@ -311,18 +315,18 @@ void dissociationQK::dissociateParticleByPartner
 
         //- Energy left for the 2 products
         const scalar ERotP = p.ERot();
-        const scalar EVibP_tot =
-            cloud_.constProps(typeIdP).eVib_tot
-            (
-                p.vibLevel()
-            );
+        const scalar kBoltzmann = constant::physicoChemical::k.value();
+        const scalarList& thetaV = cloud_.constProps(typeIdP).thetaV();
+        const labelList& vibLevels = p.vibLevel();
+
+        scalar EVibP_tot = 0.0;
+        forAll(thetaV, m)
+        {
+            EVibP_tot += kBoltzmann*thetaV[m]*vibLevels[m];
+        }
 
         const scalar EVibP_mdisso =
-            cloud_.constProps(typeIdP).eVib_m
-            (
-                vibModeDisso,
-                p.vibLevel()[vibModeDisso]
-            );
+            kBoltzmann*thetaV[vibModeDisso]*vibLevels[vibModeDisso];
         const scalar EVibP_nondisso = EVibP_tot - EVibP_mdisso;
         const scalar EEleP = cloud_.constProps(typeIdP).electronicEnergyList()[p.ELevel()];
         //- Assumption: no energy redistribution for the particle being split

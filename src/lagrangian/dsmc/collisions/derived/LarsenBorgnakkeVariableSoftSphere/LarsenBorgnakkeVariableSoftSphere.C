@@ -206,13 +206,14 @@ void Foam::LarsenBorgnakkeVariableSoftSphere::redistribute
         const scalarList& thetaVP = cP.thetaV();
         const scalarList& ZrefP = cP.Zref();
         const scalarList& refTempZvP = cP.TrefZv();
-        const scalarList& preCollisionEVibP = cP.eVib(p.vibLevel());
 
         forAll(thetaVP, i)
         {
             //- Collision energy of particle P: relative translational energy
-            //    + pre-collision vibrational energy
-            const scalar EcP = translationalEnergy + preCollisionEVibP[i];
+            //    + pre-collision vibrational energy (without zero-point energy)
+            const scalar preEVibP_i =
+                physicoChemical::k.value() * thetaVP[i] * p.vibLevel()[i];
+            const scalar EcP = translationalEnergy + preEVibP_i;
 
             //- Maximum possible quantum level (equation 3, Bird 2010)
             const label iMaxP = EcP/(physicoChemical::k.value()*thetaVP[i]);
@@ -236,7 +237,10 @@ void Foam::LarsenBorgnakkeVariableSoftSphere::redistribute
                         p.cell()
                     );
 
-                translationalEnergy = EcP - cP.eVib_m(i, p.vibLevel()[i]);
+                translationalEnergy = max(
+                    EcP - physicoChemical::k.value()
+                        * thetaVP[i] * p.vibLevel()[i],
+                    0.0);
             }
         }
     }

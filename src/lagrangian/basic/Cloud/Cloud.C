@@ -846,9 +846,7 @@ void Foam::Cloud<ParticleType>::move
         );
     const bool useParticlePartition =
         useOpenMPMove && cloudOpenMP::hasParticlePartition(cloud, 0);
-    const bool useMoveParticlePartition =
-        useParticlePartition && !Pstream::parRun()
-     && !cloudOpenMP::hasReplicatedMesh(cloud, 0);
+    const bool useMoveParticlePartition = false;
     #else
     const bool useOpenMPMove = false;
     const label moveThreads = 1;

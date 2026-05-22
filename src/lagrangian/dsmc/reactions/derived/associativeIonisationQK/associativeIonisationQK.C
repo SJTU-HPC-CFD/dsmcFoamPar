@@ -544,7 +544,9 @@ void associativeIonisationQK::forwardAssociativeIonisation
     const label typeIdQ = q.typeId();
 
     //- Forward associative ionisation
+    #pragma omp atomic
     nTotAssociativeIonisationReactions_++;
+    #pragma omp atomic
     nAssociativeIonisationReactionsPerTimeStep_++;
 
     if (allowSplitting_)
@@ -633,7 +635,9 @@ void associativeIonisationQK::reverseAssociativeIonisation
     const label typeIdQ = q.typeId();
 
     //- Reverse associative ionisation
+    #pragma omp atomic
     nTotAssociativeIonisationReactions_++;
+    #pragma omp atomic
     nAssociativeIonisationReactionsPerTimeStep_++;
 
     if (allowSplitting_)

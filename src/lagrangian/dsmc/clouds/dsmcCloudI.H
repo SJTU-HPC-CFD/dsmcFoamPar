@@ -98,7 +98,19 @@ inline bool Foam::dsmcCloud::replicatedMeshActive() const
     return replicatedMesh_.valid();
 }
 
+inline bool Foam::dsmcCloud::isOutputRank() const
+{
+    if (Pstream::parRun()) return Pstream::master();
+    if (replicatedMesh_.valid()) return replicatedMesh_->myRank() == 0;
+    return true;
+}
+
 inline const Foam::dsmcReplicatedMesh& Foam::dsmcCloud::replicatedMesh() const
+{
+    return replicatedMesh_();
+}
+
+inline Foam::dsmcReplicatedMesh& Foam::dsmcCloud::replicatedMeshRef()
 {
     return replicatedMesh_();
 }
@@ -163,9 +175,9 @@ inline Foam::label Foam::dsmcCloud::ompNumThreads() const
     return ompNumThreads_;
 }
 
-inline const Foam::word& Foam::dsmcCloud::openmpCollisionStrategy() const
+inline const Foam::word& Foam::dsmcCloud::openmpCollisionSchedule() const
 {
-    return openmpCollisionStrategy_;
+    return openmpCollisionSchedule_;
 }
 
 inline Foam::label Foam::dsmcCloud::openmpCollisionChunk() const

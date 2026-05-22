@@ -837,6 +837,49 @@ void Foam::dsmcCloud::endMoveAppendCapture()
 {
     moveAppendCaptureActive_ = false;
     moveAppendToPending_ = false;
+    moveAppendedParcels_.clear();
+}
+
+
+void Foam::dsmcCloud::beginCollisionPhase()
+{
+    if (!openmpEnabled_) return;
+
+    collisionPhaseActive_ = true;
+    const label nThreads = max(ompNumThreads_, label(1));
+    collisionNewParcels_.setSize(nThreads);
+    forAll(collisionNewParcels_, i)
+    {
+        collisionNewParcels_[i].clear();
+    }
+}
+
+
+void Foam::dsmcCloud::endCollisionPhase()
+{
+    if (!collisionPhaseActive_) return;
+
+    collisionPhaseActive_ = false;
+
+    label totalNew = 0;
+    forAll(collisionNewParcels_, threadI)
+    {
+        totalNew += collisionNewParcels_[threadI].size();
+    }
+
+    if (totalNew == 0) return;
+
+    forAll(collisionNewParcels_, threadI)
+    {
+        forAll(collisionNewParcels_[threadI], i)
+        {
+            dsmcParcel* pPtr = collisionNewParcels_[threadI][i];
+            Cloud<dsmcParcel>::addParticle(pPtr);
+        }
+        collisionNewParcels_[threadI].clear();
+    }
+
+    buildCellOccupancy();
 }
 
 
@@ -1942,7 +1985,7 @@ void Foam::dsmcCloud::collisions()
     precomputeCollisionCandidates();
     const auto t1 = clock_type::now();
 
-    if (openmpEnabled_ && openmpCollisionStrategy_ == "partition")
+    if (openmpEnabled_ && openmpCollisionSchedule_ == "partition")
     {
         rebuildCollisionLoadPartition();
     }
@@ -1961,204 +2004,6 @@ void Foam::dsmcCloud::collisions()
 }
 
 
-
-void Foam::dsmcCloud::replicatedMeshCollisionOffload()
-{
-    if (nCandidatesPerCell_.size() == 0) return;
-    const label myRank = replicatedMesh_->myRank();
-    const label peer = 1 - myRank;
-    const label nCells = mesh_.nCells();
-    MPI_Request rq[2];
-
-    // Exchange candidate counts
-    label localCands = 0;
-    forAll(nCandidatesPerCell_, i) localCands += nCandidatesPerCell_[i];
-    label peerCands = 0;
-    MPI_Irecv(&peerCands, 1, MPI_INT, peer, 50, MPI_COMM_WORLD, &rq[0]);
-    MPI_Isend(&localCands, 1, MPI_INT, peer, 50, MPI_COMM_WORLD, &rq[1]);
-    MPI_Waitall(2, rq, MPI_STATUSES_IGNORE);
-
-    const scalar imbalance = (localCands + peerCands) > 0
-        ? scalar(max(localCands, peerCands)) / (0.5 * scalar(localCands + peerCands))
-        : 1.0;
-    const scalar threshold = mesh_.time().controlDict()
-        .lookupOrDefault<scalar>("dlbOffloadImbalance", 1.20);
-    const scalar maxFraction = mesh_.time().controlDict()
-        .lookupOrDefault<scalar>("dlbOffloadMaxFraction", 0.30);
-    const bool isDonor = (localCands > peerCands) && (imbalance >= threshold);
-    offloadedCells_.setSize(nCells, false);
-
-    // Donor: select cells + serialize parcels with writeBinaryFast
-    OCharStream taskStream(IOstreamOption::BINARY);
-    label nOffload = 0;
-    if (isDonor)
-    {
-        label targetCands = label(0.5 * scalar(localCands + peerCands));
-        // Remote collision costs ~3x more than local due to serialization+MPI
-        const scalar remoteCostFactor = 3.0;
-        label budget = min(
-            localCands - targetCands,                      // donor excess
-            label(peerCands / remoteCostFactor));          // cap to helper spare
-        if (budget <= 0) budget = 0;
-
-        labelList sorted(occupancyCollisionCells_.size());
-        forAll(occupancyCollisionCells_, i) sorted[i] = occupancyCollisionCells_[i];
-        std::sort(sorted.begin(), sorted.end(),
-            [this](label a, label b)
-            { return nCandidatesPerCell_[a] > nCandidatesPerCell_[b]; });
-
-        label accum = 0;
-        DynamicList<label> selected;
-        forAll(sorted, i)
-        {
-            if (accum >= budget) break;
-            selected.append(sorted[i]);
-            accum += nCandidatesPerCell_[sorted[i]];
-            offloadedCells_[sorted[i]] = true;
-            nCandidatesPerCell_[sorted[i]] = 0;   // skip current-step collision
-        }
-        nOffload = selected.size();
-
-        taskStream.write(reinterpret_cast<const char*>(&nOffload), sizeof(label));
-        forAll(selected, si)
-        {
-            const label cellI = selected[si];
-            label nP = 0;
-            if (cellOccupancy_.size() > cellI) nP = cellOccupancy_[cellI].size();
-            label nC = nCandidatesPerCell_[cellI];
-            scalar sig = sigmaTcRMax_[cellI];
-            taskStream.write(reinterpret_cast<const char*>(&cellI), sizeof(label));
-            taskStream.write(reinterpret_cast<const char*>(&nC), sizeof(label));
-            taskStream.write(reinterpret_cast<const char*>(&sig), sizeof(scalar));
-            taskStream.write(reinterpret_cast<const char*>(&nP), sizeof(label));
-            if (nP > 0)
-            {
-                forAll(cellOccupancy_[cellI], pi)
-                {
-                    cellOccupancy_[cellI][pi]->writeBinaryFast(taskStream);
-                }
-            }
-        }
-    }
-    else
-    {
-        taskStream.write(reinterpret_cast<const char*>(&nOffload), sizeof(label));
-    }
-
-    // Exchange task
-    auto taskBuf = taskStream.release();
-    label taskSendSize = taskBuf.size();
-    label taskRecvSize = 0;
-    MPI_Irecv(&taskRecvSize, 1, MPI_INT, peer, 51, MPI_COMM_WORLD, &rq[0]);
-    MPI_Isend(&taskSendSize, 1, MPI_INT, peer, 51, MPI_COMM_WORLD, &rq[1]);
-    MPI_Waitall(2, rq, MPI_STATUSES_IGNORE);
-    List<char> taskRecvBuf(taskRecvSize);
-    MPI_Irecv(taskRecvBuf.data(), taskRecvSize, MPI_BYTE, peer, 52, MPI_COMM_WORLD, &rq[0]);
-    MPI_Isend(taskBuf.data(), taskSendSize, MPI_BYTE, peer, 52, MPI_COMM_WORLD, &rq[1]);
-    MPI_Waitall(2, rq, MPI_STATUSES_IGNORE);
-
-    // Helper: deserialize + execute collision + serialize result
-    OCharStream resStream(IOstreamOption::BINARY);
-    label nRes = 0;
-    if (!isDonor && taskRecvSize > label(sizeof(label)))
-    {
-        ISpanStream tis(taskRecvBuf.data(), taskRecvSize, IOstreamOption::BINARY);
-        tis.read(reinterpret_cast<char*>(&nRes), sizeof(label));
-
-        resStream.write(reinterpret_cast<const char*>(&nRes), sizeof(label));
-        for (label ti = 0; ti < nRes; ++ti)
-        {
-            label cellI, nC, nP;
-            scalar sig;
-            tis.read(reinterpret_cast<char*>(&cellI), sizeof(label));
-            tis.read(reinterpret_cast<char*>(&nC), sizeof(label));
-            tis.read(reinterpret_cast<char*>(&sig), sizeof(scalar));
-            tis.read(reinterpret_cast<char*>(&nP), sizeof(label));
-
-            DynamicList<dsmcParcel*> tp(nP);
-            for (label pi = 0; pi < nP; ++pi)
-            {
-                tp.append(new dsmcParcel(mesh_, tis));
-            }
-
-            // Execute collision
-            scalar sigUpd = sig;
-            label accepted = 0;
-            if (nP > 1 && nC > 0)
-            {
-                for (label ci = 0; ci < nC; ++ci)
-                {
-                    label i = rndGen_.position<label>(0, nP - 1);
-                    label j = rndGen_.position<label>(0, nP - 2);
-                    if (j >= i) ++j;
-                    scalar stcr = binaryCollisionModel_->sigmaTcR(*tp[i], *tp[j]);
-                    sigUpd = max(sigUpd, stcr);
-                    if (stcr > sig * rndGen_.sample01<scalar>())
-                    {
-                        binaryCollisionModel_->collide(*tp[i], *tp[j], cellI);
-                        ++accepted;
-                    }
-                }
-            }
-
-            // Write result: cellI + accepted + sigUpd + nP + parcels
-            resStream.write(reinterpret_cast<const char*>(&cellI), sizeof(label));
-            resStream.write(reinterpret_cast<const char*>(&accepted), sizeof(label));
-            resStream.write(reinterpret_cast<const char*>(&sigUpd), sizeof(scalar));
-            resStream.write(reinterpret_cast<const char*>(&nP), sizeof(label));
-            forAll(tp, pi) { tp[pi]->writeBinaryFast(resStream); }
-            forAll(tp, pi) delete tp[pi];
-        }
-    }
-    else
-    {
-        resStream.write(reinterpret_cast<const char*>(&nRes), sizeof(label));
-    }
-
-    // Exchange result
-    auto resBuf = resStream.release();
-    label resSendSize = resBuf.size();
-    label resRecvSize = 0;
-    MPI_Irecv(&resRecvSize, 1, MPI_INT, peer, 53, MPI_COMM_WORLD, &rq[0]);
-    MPI_Isend(&resSendSize, 1, MPI_INT, peer, 53, MPI_COMM_WORLD, &rq[1]);
-    MPI_Waitall(2, rq, MPI_STATUSES_IGNORE);
-    List<char> resRecvBuf(resRecvSize);
-    MPI_Irecv(resRecvBuf.data(), resRecvSize, MPI_BYTE, peer, 54, MPI_COMM_WORLD, &rq[0]);
-    MPI_Isend(resBuf.data(), resSendSize, MPI_BYTE, peer, 54, MPI_COMM_WORLD, &rq[1]);
-    MPI_Waitall(2, rq, MPI_STATUSES_IGNORE);
-
-    // Donor: apply results
-    if (isDonor && resRecvSize > label(sizeof(label)))
-    {
-        ISpanStream ris(resRecvBuf.data(), resRecvSize, IOstreamOption::BINARY);
-        label nR;
-        ris.read(reinterpret_cast<char*>(&nR), sizeof(label));
-        for (label ri = 0; ri < nR; ++ri)
-        {
-            label cellI, acc, nP;
-            scalar sigUpd;
-            ris.read(reinterpret_cast<char*>(&cellI), sizeof(label));
-            ris.read(reinterpret_cast<char*>(&acc), sizeof(label));
-            ris.read(reinterpret_cast<char*>(&sigUpd), sizeof(scalar));
-            ris.read(reinterpret_cast<char*>(&nP), sizeof(label));
-            sigmaTcRMax_[cellI] = max(sigmaTcRMax_[cellI], sigUpd);
-
-            // Read back modified parcels and apply to local
-            if (cellOccupancy_.size() > cellI)
-            {
-                const DynamicList<dsmcParcel*>& localP = cellOccupancy_[cellI];
-                for (label pi = 0; pi < min(nP, localP.size()); ++pi)
-                {
-                    dsmcParcel tempP(mesh_, ris);
-                    localP[pi]->U() = tempP.U();
-                    localP[pi]->ERot() = tempP.ERot();
-                    localP[pi]->ELevel() = tempP.ELevel();
-                    localP[pi]->vibLevel() = tempP.vibLevel();
-                }
-            }
-        }
-    }
-}
 
 void Foam::dsmcCloud::insertInflowParcels()
 {
@@ -2416,10 +2261,10 @@ void Foam::dsmcCloud::initOpenMP()
     const dictionary& controlDict = mesh_.time().controlDict();
 
     openmpEnabled_ = controlDict.lookupOrDefault<bool>("useOpenMP", false);
-    openmpMoveEnabled_ = controlDict.lookupOrDefault<bool>("openmpMove", false);
+    openmpMoveEnabled_ = controlDict.lookupOrDefault<bool>("openmpMove", openmpEnabled_);
     ompNumThreads_ = controlDict.lookupOrDefault<label>("openmpThreads", 0);
-    openmpCollisionStrategy_ =
-        controlDict.lookupOrDefault<word>("openmpCollisionStrategy", "dynamic");
+    openmpCollisionSchedule_ =
+        controlDict.lookupOrDefault<word>("openmpCollisionSchedule", "dynamic");
     openmpCollisionChunk_ =
         controlDict.lookupOrDefault<label>("openmpCollisionChunk", 1);
     openmpMoveSchedule_ =
@@ -2439,7 +2284,7 @@ void Foam::dsmcCloud::initOpenMP()
     openmpCollisionCostCandidateWeight_ =
         controlDict.lookupOrDefault<scalar>("openmpCollisionCostCandidateWeight", 1.0);
     openmpCollisionCostActiveCellWeight_ =
-        controlDict.lookupOrDefault<scalar>("openmpCollisionCostActiveCellWeight", 16.0);
+        controlDict.lookupOrDefault<scalar>("openmpCollisionCostActiveCellWeight", 0.0);
     const bool legacyCollisionProfile =
         controlDict.lookupOrDefault<bool>("profileCollisionPhases", false);
     const bool legacyEvolveProfile =
@@ -2465,16 +2310,16 @@ void Foam::dsmcCloud::initOpenMP()
     {
         if
         (
-            openmpCollisionStrategy_ != "dynamic"
-         && openmpCollisionStrategy_ != "partition"
+            openmpCollisionSchedule_ != "dynamic"
+         && openmpCollisionSchedule_ != "partition"
         )
         {
             WarningInFunction
-                << "Unknown openmpCollisionStrategy '"
-                << openmpCollisionStrategy_
+                << "Unknown openmpCollisionSchedule '"
+                << openmpCollisionSchedule_
                 << "'. Falling back to 'dynamic'." << endl;
 
-            openmpCollisionStrategy_ = "dynamic";
+            openmpCollisionSchedule_ = "dynamic";
         }
 
         if
@@ -2575,7 +2420,7 @@ void Foam::dsmcCloud::initOpenMP()
 
         Info<< "OpenMP enabled for dsmcCloud with "
             << ompNumThreads_ << " thread-local RNG streams"
-            << " using collision strategy '" << openmpCollisionStrategy_
+            << " using collision schedule '" << openmpCollisionSchedule_
             << "' (chunk " << openmpCollisionChunk_ << ")"
             << "', move kernel "
             << (openmpMoveEnabled_ ? "enabled" : "disabled")
@@ -2641,7 +2486,7 @@ void Foam::dsmcCloud::initOpenMPMoveGuardCells()
     openmpMoveGuardCellCount_ = 0;
 
     const bool replicated = replicatedMesh_.valid() && replicatedMesh_->active();
-    if (!(openmpEnabled_ && openmpMoveEnabled_ && (Pstream::parRun() || replicated)))
+    if (!(openmpEnabled_ && openmpMoveEnabled_ && Pstream::parRun()))
     {
         return;
     }
@@ -2654,14 +2499,14 @@ void Foam::dsmcCloud::initOpenMPMoveGuardCells()
         const polyPatch& pp = mesh_.boundaryMesh()[patchi];
 
         // Standard parallel: guard processor-patch cells for transfer.
-        // Replicated mesh: guard physical-boundary cells for injection.
-        if (replicated)
+        // Replicated mesh or pure OpenMP: guard physical-boundary cells.
+        if (Pstream::parRun() && !replicated)
         {
-            if (isA<processorPolyPatch>(pp)) continue;
+            if (!isA<processorPolyPatch>(pp)) continue;
         }
         else
         {
-            if (!isA<processorPolyPatch>(pp)) continue;
+            if (isA<processorPolyPatch>(pp)) continue;
         }
 
         const labelUList& faceCells = pp.faceCells();
@@ -3326,7 +3171,7 @@ Foam::dsmcCloud::dsmcCloud
     openmpMoveEnabled_(false),
     trackerActive_(true),
     ompNumThreads_(1),
-    openmpCollisionStrategy_("dynamic"),
+    openmpCollisionSchedule_("dynamic"),
     openmpCollisionChunk_(1),
     openmpMoveSchedule_("static"),
     openmpMoveChunk_(64),
@@ -3338,7 +3183,7 @@ Foam::dsmcCloud::dsmcCloud
     openmpPartitionImbalanceThreshold_(1.10),
     openmpPartitionDriftThreshold_(0.10),
     openmpCollisionCostCandidateWeight_(1.0),
-    openmpCollisionCostActiveCellWeight_(16.0),
+    openmpCollisionCostActiveCellWeight_(0.0),
     collisionProfileEnabled_(false),
     evolveProfileEnabled_(false),
     profilingDetailEnabled_(false),
@@ -3377,6 +3222,10 @@ Foam::dsmcCloud::dsmcCloud
     collisionPartitionWallTime_(0.0),
     collisionSelectionWallTime_(0.0),
     collisionProfileCalls_(0),
+    cumulativeCollisions_(0),
+    cumulativeCollisionCandidates_(0),
+    collisionPhaseActive_(false),
+    collisionNewParcels_(),
     buildOccupancyExtractWallTime_(0.0),
     buildOccupancyCountWallTime_(0.0),
     buildOccupancyAssembleWallTime_(0.0),
@@ -3520,7 +3369,7 @@ Foam::dsmcCloud::dsmcCloud
     // Phase A: replicated mesh DLB (all ranks hold full mesh, cellOwner_ routing)
     const bool replicatedMesh =
         mesh_.time().controlDict().lookupOrDefault<bool>("replicatedMesh", false);
-    if (replicatedMesh)
+    if (replicatedMesh && readFields)
     {
         replicatedMesh_.reset(new dsmcReplicatedMesh(*this, mesh_));
         replicatedMesh_->initialize();
@@ -3623,6 +3472,14 @@ void Foam::dsmcCloud::addNewParcel
 )
 {
     dsmcParcel* pPtr = new dsmcParcel(mesh_, coordinates, cellI, tetFaceI, tetPtI, U, RWF, ERot, ELevel, typeId, newParcel, classification, vibLevel);
+
+    if (collisionPhaseActive_)
+    {
+        const label threadI = currentThreadId();
+        collisionNewParcels_[threadI].append(pPtr);
+        return;
+    }
+
     Cloud<dsmcParcel>::addParticle(pPtr);
     recordMoveAppendedParcel(pPtr);
 }
@@ -3645,6 +3502,14 @@ void Foam::dsmcCloud::addNewParcel
 )
 {
     dsmcParcel* pPtr = new dsmcParcel(mesh_, position, cellI, U, RWF, ERot, ELevel, typeId, newParcel, classification, vibLevel);
+
+    if (collisionPhaseActive_)
+    {
+        const label threadI = currentThreadId();
+        collisionNewParcels_[threadI].append(pPtr);
+        return;
+    }
+
     Cloud<dsmcParcel>::addParticle(pPtr);
     recordMoveAppendedParcel(pPtr);
 }
@@ -4107,6 +3972,15 @@ void Foam::dsmcCloud::evolve()
         logEvolveStage("after pre-move migration (initial)");
     }
 
+    // Delayed-receive: finish previous step's async migration
+    const bool delayedReceive = replicatedMesh_.valid()
+        && mesh_.time().controlDict().lookupOrDefault<bool>
+           ("replicatedMeshDelayedReceive", false);
+    if (delayedReceive && replicatedMesh_->asyncMigrationPending())
+    {
+        replicatedMesh_->migrateFinish();
+    }
+
     logEvolveStage("before move");
     Cloud<dsmcParcel>::move(*this, td, mesh_.time().deltaTValue());
     logEvolveStage("after move");
@@ -4126,11 +4000,22 @@ void Foam::dsmcCloud::evolve()
     {
         if (replicatedMesh_->stepCounter() % replicatedMesh_->migrateInterval() == 0)
         {
-            logEvolveStage("before migrateParticlesByCellOwner");
-            replicatedMesh_->migrateParticlesByCellOwner();
-            replicatedMesh_->updateParticleCounts();
-            cellOccupancyMaterialized_ = false;
-            logEvolveStage("after migrateParticlesByCellOwner");
+            if (delayedReceive)
+            {
+                logEvolveStage("before migrateBegin");
+                replicatedMesh_->migrateBegin();
+                replicatedMesh_->updateParticleCounts();
+                cellOccupancyMaterialized_ = false;
+                logEvolveStage("after migrateBegin");
+            }
+            else
+            {
+                logEvolveStage("before migrateParticlesByCellOwner");
+                replicatedMesh_->migrateParticlesByCellOwner();
+                replicatedMesh_->updateParticleCounts();
+                cellOccupancyMaterialized_ = false;
+                logEvolveStage("after migrateParticlesByCellOwner");
+            }
         }
         replicatedMesh_->advanceStepCounter();
     }
@@ -4141,12 +4026,6 @@ void Foam::dsmcCloud::evolve()
         replicatedMesh_->updateParticleCounts();
         replicatedMesh_->advanceStepCounter();
         logEvolveStage("after migrateParticlesByCellOwner (first step)");
-    }
-
-    // TACF: accumulate cell costs periodically (every 10 steps)
-    if (replicatedMesh_.valid() && replicatedMesh_->stepCounter() % 10 == 0)
-    {
-        replicatedMesh_->accumulateCellCosts();
     }
 
     // Phase B: reassign cellOwner_ at configured steps and redistribute
@@ -4189,7 +4068,9 @@ void Foam::dsmcCloud::evolve()
     logEvolveStage("after boundaries controlBeforeCollisions");
 
     logEvolveStage("before collisions");
+    beginCollisionPhase();
     collisions();
+    endCollisionPhase();
     logEvolveStage("after collisions");
 
     const auto t4 = clock_type::now();
@@ -4273,50 +4154,38 @@ void Foam::dsmcCloud::evolve()
 
         if (profilingDetailEnabled_ && emitStepDiagnostics_)
         {
-            scalar moveSum = localMoveParcels;
             scalar moveMax = localMoveParcels;
             scalar moveMin = localMoveParcels;
-            scalar candSum = localCollisionCandidates;
             scalar candMax = localCollisionCandidates;
             scalar candMin = localCollisionCandidates;
-            scalar collSum = localAcceptedCollisions;
             scalar collMax = localAcceptedCollisions;
             scalar collMin = localAcceptedCollisions;
 
             if (Pstream::parRun())
             {
-                reduce(moveSum, sumOp<scalar>());
                 reduce(moveMax, maxOp<scalar>());
                 reduce(moveMin, minOp<scalar>());
-                reduce(candSum, sumOp<scalar>());
                 reduce(candMax, maxOp<scalar>());
                 reduce(candMin, minOp<scalar>());
-                reduce(collSum, sumOp<scalar>());
                 reduce(collMax, maxOp<scalar>());
                 reduce(collMin, minOp<scalar>());
             }
 
             if (Pstream::master())
             {
-                const scalar nWorkers =
-                    Pstream::parRun() ? scalar(Pstream::nProcs()) : scalar(max(label(1), moveThreadParticleCounts_.size()));
-                const scalar moveAvg = moveSum/max(nWorkers, scalar(1));
-                const scalar candAvg = candSum/max(nWorkers, scalar(1));
-                const scalar collAvg = collSum/max(nWorkers, scalar(1));
-
                 Info<< "Load balance summary:" << nl
-                    << "    move particles avg/max/min    = "
-                    << moveAvg << " / " << moveMax << " / " << moveMin << nl
-                    << "    move imbalance max/avg        = "
-                    << (moveAvg > SMALL ? moveMax/moveAvg : 0.0) << nl
-                    << "    collision cand avg/max/min    = "
-                    << candAvg << " / " << candMax << " / " << candMin << nl
+                    << "    move particles max/min        = "
+                    << moveMax << " / " << moveMin << nl
+                    << "    move imbalance max/min        = "
+                    << (moveMin > SMALL ? moveMax/moveMin : 0.0) << nl
+                    << "    collision cand max/min        = "
+                    << candMax << " / " << candMin << nl
                     << "    collision cand imbalance      = "
-                    << (candAvg > SMALL ? candMax/candAvg : 0.0) << nl
-                    << "    accepted coll avg/max/min     = "
-                    << collAvg << " / " << collMax << " / " << collMin << nl
+                    << (candMin > SMALL ? candMax/candMin : 0.0) << nl
+                    << "    accepted coll max/min         = "
+                    << collMax << " / " << collMin << nl
                     << "    accepted coll imbalance       = "
-                    << (collAvg > SMALL ? collMax/collAvg : 0.0) << nl;
+                    << (collMin > SMALL ? collMax/collMin : 0.0) << nl;
 
                 if (!Pstream::parRun() && moveThreadParticleCounts_.size())
                 {
@@ -4361,7 +4230,8 @@ void Foam::dsmcCloud::loadBalanceCheck()
 
 void Foam::dsmcCloud::info() const
 {
-    label nParcels = this->size();
+    const label localParcels = this->size();
+    label nParcels = localParcels;
     reduce(nParcels, sumOp<label>());
 
     scalar mass = 0.0;
@@ -4388,8 +4258,20 @@ void Foam::dsmcCloud::info() const
     reduce(vibrationalEnergy, sumOp<scalar>());
     reduce(electronicEnergy, sumOp<scalar>());
 
-    Info<< "Cloud name: " << this->name() << nl
-        << "    Number of dsmc particles        = " << nParcels << nl;
+    if (replicatedMeshActive() && !Pstream::parRun())
+    {
+        const label myRank = replicatedMesh_->myRank();
+        Info<< "Cloud name: " << this->name()
+            << " [rank " << myRank << "]" << nl
+            << "    Number of dsmc particles        = " << localParcels << nl;
+    }
+    else
+    {
+        if (!isOutputRank()) return;
+
+        Info<< "Cloud name: " << this->name() << nl
+            << "    Number of dsmc particles        = " << nParcels << nl;
+    }
 
     if (nParcels)
     {
@@ -4657,6 +4539,17 @@ void Foam::dsmcCloud::recordCollisionThreadProfile
 }
 
 
+void Foam::dsmcCloud::accumulateCollisionCounts
+(
+    label candidates,
+    label collisions
+)
+{
+    cumulativeCollisionCandidates_ = candidates;
+    cumulativeCollisions_ = collisions;
+}
+
+
 void Foam::dsmcCloud::resetLoadStats()
 {
     moveThreadParticleCounts_.clear();
@@ -4688,7 +4581,7 @@ void Foam::dsmcCloud::deleteParcel(dsmcParcel* p)
 
 void Foam::dsmcCloud::reportProfiling() const
 {
-    if (moveProfileCalls_ > 0 && Pstream::master())
+    if (moveProfileCalls_ > 0 && isOutputRank())
     {
         const scalar totalProfiled =
             movePreControlWallTime_
@@ -4807,7 +4700,7 @@ void Foam::dsmcCloud::reportProfiling() const
         }
     }
 
-    if (buildOccupancyProfileCalls_ > 0 && Pstream::master())
+    if (buildOccupancyProfileCalls_ > 0 && isOutputRank())
     {
         const scalar totalProfiled =
             buildOccupancyExtractWallTime_
@@ -4877,7 +4770,7 @@ void Foam::dsmcCloud::reportProfiling() const
         }
     }
 
-    if (collisionProfileCalls_ > 0 && Pstream::master())
+    if (collisionProfileCalls_ > 0 && isOutputRank())
     {
         const scalar totalProfiled =
             collisionPrecomputeWallTime_
@@ -4893,7 +4786,7 @@ void Foam::dsmcCloud::reportProfiling() const
             << endl;
     }
 
-    if (evolveProfileCalls_ > 0 && Pstream::master())
+    if (evolveProfileCalls_ > 0 && isOutputRank())
     {
         const scalar totalProfiled =
             evolveMoveWallTime_
@@ -4939,25 +4832,19 @@ void Foam::dsmcCloud::reportProfiling() const
      && (localMoveParcels || localCollisionCandidates || localAcceptedCollisions)
     )
     {
-        scalar moveSum = localMoveParcels;
         scalar moveMax = localMoveParcels;
         scalar moveMin = localMoveParcels;
-        scalar candSum = localCollisionCandidates;
         scalar candMax = localCollisionCandidates;
         scalar candMin = localCollisionCandidates;
-        scalar collSum = localAcceptedCollisions;
         scalar collMax = localAcceptedCollisions;
         scalar collMin = localAcceptedCollisions;
 
         if (Pstream::parRun())
         {
-            reduce(moveSum, sumOp<scalar>());
             reduce(moveMax, maxOp<scalar>());
             reduce(moveMin, minOp<scalar>());
-            reduce(candSum, sumOp<scalar>());
             reduce(candMax, maxOp<scalar>());
             reduce(candMin, minOp<scalar>());
-            reduce(collSum, sumOp<scalar>());
             reduce(collMax, maxOp<scalar>());
             reduce(collMin, minOp<scalar>());
         }
@@ -4971,27 +4858,21 @@ void Foam::dsmcCloud::reportProfiling() const
             collMin = scalar(min(collisionThreadAcceptedCounts_));
         }
 
-        if (Pstream::master())
+        if (isOutputRank())
         {
-            const scalar nWorkers =
-                Pstream::parRun() ? scalar(Pstream::nProcs()) : scalar(max(label(1), moveThreadParticleCounts_.size()));
-            const scalar moveAvg = moveSum/max(nWorkers, scalar(1));
-            const scalar candAvg = candSum/max(nWorkers, scalar(1));
-            const scalar collAvg = collSum/max(nWorkers, scalar(1));
-
             Info<< "Profiling detail load-balance summary:" << nl
-                << "    move particles avg/max/min    = "
-                << moveAvg << " / " << moveMax << " / " << moveMin << nl
-                << "    move imbalance max/avg        = "
-                << (moveAvg > SMALL ? moveMax/moveAvg : 0.0) << nl
-                << "    collision cand avg/max/min    = "
-                << candAvg << " / " << candMax << " / " << candMin << nl
+                << "    move particles max/min        = "
+                << moveMax << " / " << moveMin << nl
+                << "    move imbalance max/min        = "
+                << (moveMin > SMALL ? moveMax/moveMin : 0.0) << nl
+                << "    collision cand max/min        = "
+                << candMax << " / " << candMin << nl
                 << "    collision cand imbalance      = "
-                << (candAvg > SMALL ? candMax/candAvg : 0.0) << nl
-                << "    accepted coll avg/max/min     = "
-                << collAvg << " / " << collMax << " / " << collMin << nl
+                << (candMin > SMALL ? candMax/candMin : 0.0) << nl
+                << "    accepted coll max/min         = "
+                << collMax << " / " << collMin << nl
                 << "    accepted coll imbalance       = "
-                << (collAvg > SMALL ? collMax/collAvg : 0.0) << nl;
+                << (collMin > SMALL ? collMax/collMin : 0.0) << nl;
 
             if (!Pstream::parRun() && moveThreadParticleCounts_.size())
             {
@@ -5089,7 +4970,47 @@ void Foam::dsmcCloud::reportProfiling() const
         const_cast<dsmcCloud&>(*this).resetLoadStats();
     }
 
-    if (replicatedMesh_.valid())
+    if (replicatedMeshActive() && !Pstream::parRun())
+    {
+        const label myRank = replicatedMesh_->myRank();
+        const label nProcs = replicatedMesh_->nProcs();
+        const label localParcels = this->size();
+
+        labelList allParcels(nProcs, 0);
+        labelList allCollisions(nProcs, 0);
+        labelList allCandidates(nProcs, 0);
+        allParcels[myRank] = localParcels;
+        allCollisions[myRank] = cumulativeCollisions_;
+        allCandidates[myRank] = cumulativeCollisionCandidates_;
+
+        MPI_Allreduce(MPI_IN_PLACE, allParcels.data(), nProcs, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+        MPI_Allreduce(MPI_IN_PLACE, allCollisions.data(), nProcs, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+        MPI_Allreduce(MPI_IN_PLACE, allCandidates.data(), nProcs, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+
+        if (myRank == 0)
+        {
+            const label totalParcels = sum(allParcels);
+            const label totalCollisions = sum(allCollisions);
+            const label totalCandidates = sum(allCandidates);
+
+            Info<< "Replicated mesh final summary:" << nl
+                << "    total dsmc particles            = " << totalParcels << nl
+                << "    last-step collisions            = " << totalCollisions << nl
+                << "    last-step candidates            = " << totalCandidates << nl
+                << "    last-step acceptance rate       = "
+                << (totalCandidates > 0 ? scalar(totalCollisions)/scalar(totalCandidates) : 0)
+                << nl;
+            for (label r = 0; r < nProcs; ++r)
+            {
+                Info<< "    rank " << r << ": particles=" << allParcels[r]
+                    << " collisions=" << allCollisions[r]
+                    << " candidates=" << allCandidates[r] << nl;
+            }
+            Info<< endl;
+        }
+    }
+
+    if (replicatedMesh_.valid() && evolveProfileEnabled_)
     {
         replicatedMesh_->report();
     }

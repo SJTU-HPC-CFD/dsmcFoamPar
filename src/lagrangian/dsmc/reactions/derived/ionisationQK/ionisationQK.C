@@ -224,7 +224,9 @@ void ionisationQK::ioniseParticleByPartner
     }
 
     //- Ionisation of parcel p
+    #pragma omp atomic
     nTotIonisationReactions_[nReac]++;
+    #pragma omp atomic
     nIonisationReactionsPerTimeStep_[nReac]++;
 
     if (allowSplitting_)
@@ -274,7 +276,13 @@ void ionisationQK::ioniseParticleByPartner
 
         //- Energy left for the 2 products
         const scalar ERotP = p.ERot();
-        const scalar EVibP = cloud_.constProps(typeIdP).eVib_tot(p.vibLevel());
+        const scalarList& thetaV = cloud_.constProps(typeIdP).thetaV();
+        const labelList& vibLevels = p.vibLevel();
+        scalar EVibP = 0.0;
+        forAll(thetaV, m)
+        {
+            EVibP += constant::physicoChemical::k.value()*thetaV[m]*vibLevels[m];
+        }
         //- Assumption: no energy redistribution for the particle being split
         //  All the remaining energy is stored in the translational mode
         const scalar translationalEnergyLeft = ERotP + EVibP;

@@ -314,7 +314,9 @@ void chargeExchangeQK::chargeExchange
     const label typeIdP = p.typeId();
     const label typeIdQ = q.typeId();
 
+    #pragma omp atomic
     nTotChargeExchangeReactions_++;
+    #pragma omp atomic
     nChargeExchangeReactionsPerTimeStep_++;
 
     if (allowSplitting_)
@@ -342,9 +344,22 @@ void chargeExchangeQK::chargeExchange
         const scalar mQChEx = cloud_.constProps(typeIdNeutral).mass();
         const scalar mRChEx = mPChEx*mQChEx/(mPChEx + mQChEx);
 
-        const scalar EVibP = cloud_.constProps(typeIdP).eVib_tot(p.vibLevel());
+        const scalar kBoltzmann = constant::physicoChemical::k.value();
+        const scalarList& thetaVP = cloud_.constProps(typeIdP).thetaV();
+        const labelList& vibLevelsP = p.vibLevel();
+        scalar EVibP = 0.0;
+        forAll(thetaVP, m)
+        {
+            EVibP += kBoltzmann*thetaVP[m]*vibLevelsP[m];
+        }
         const scalar EEleP = cloud_.constProps(typeIdP).electronicEnergyList()[p.ELevel()];
-        const scalar EVibQ = cloud_.constProps(typeIdQ).eVib_tot(q.vibLevel());
+        const scalarList& thetaVQ = cloud_.constProps(typeIdQ).thetaV();
+        const labelList& vibLevelsQ = q.vibLevel();
+        scalar EVibQ = 0.0;
+        forAll(thetaVQ, m)
+        {
+            EVibQ += kBoltzmann*thetaVQ[m]*vibLevelsQ[m];
+        }
         const scalar EEleQ = cloud_.constProps(typeIdQ).electronicEnergyList()[q.ELevel()];
 
         //- Assumption: no energy redistribution for both particles

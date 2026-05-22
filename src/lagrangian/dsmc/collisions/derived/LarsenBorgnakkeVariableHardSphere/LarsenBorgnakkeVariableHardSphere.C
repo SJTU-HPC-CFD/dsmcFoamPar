@@ -180,17 +180,21 @@ void Foam::LarsenBorgnakkeVariableHardSphere::redistribute
 
     if (cP.nVibrationalModes() > 0)
     {
-        const scalarList preCollisionEVib = cP.eVib(p.vibLevel());
-
         forAll(cP.thetaV(), i)
         {
-            const scalar Ec = translationalEnergy + preCollisionEVib[i];
+            const scalar preEVib_i =
+                constant::physicoChemical::k.value()
+              * cP.thetaV_m(i) * p.vibLevel()[i];
+            const scalar Ec = translationalEnergy + preEVib_i;
             const label iMax = Ec/(constant::physicoChemical::k.value()*cP.thetaV_m(i));
 
             if (iMax > 0)
             {
                 p.vibLevel()[i] = cloud_.postCollisionVibrationalEnergyLevel(postReaction, p.vibLevel()[i], iMax, cP.thetaV_m(i), cP.thetaD(), cP.TrefZv_m(i), omegaPQ, cP.Zref_m(i), Ec, vibrationalRelaxationCollisionNumber_, invZvFormulation_, p.cell());
-                translationalEnergy = max(Ec - cP.eVib_m(i, p.vibLevel()[i]), 0.0);
+                translationalEnergy = max(
+                    Ec - constant::physicoChemical::k.value()
+                       * cP.thetaV_m(i) * p.vibLevel()[i],
+                    0.0);
             }
         }
     }

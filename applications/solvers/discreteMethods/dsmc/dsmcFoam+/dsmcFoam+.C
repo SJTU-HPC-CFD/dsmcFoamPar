@@ -59,7 +59,7 @@ int main(int argc, char *argv[])
         const bool emitStepDiagnostics = (infoCounter >= dsmc.nTerminalOutputs());
         dsmc.setStepDiagnosticOutput(emitStepDiagnostics);
 
-        if (emitStepDiagnostics)
+        if (emitStepDiagnostics && dsmc.isOutputRank())
         {
             Info<< "Time = " << runTime.timeName() << nl << endl;
         }
@@ -124,7 +124,26 @@ int main(int argc, char *argv[])
                 << " time " << runTime.timeName()
                 << ": before runTime.write" << nl << endl;
         }
-        runTime.write();
+        if (dsmc.replicatedMeshActive())
+        {
+            const bool isOutput = runTime.outputTime();
+            if (isOutput)
+            {
+                dsmc.replicatedMeshRef().gatherParcelsToRank0();
+            }
+            if (dsmc.isOutputRank())
+            {
+                runTime.write();
+            }
+            if (isOutput)
+            {
+                dsmc.replicatedMeshRef().migrateParticlesByCellOwner();
+            }
+        }
+        else
+        {
+            runTime.write();
+        }
         if (solverStageProbe)
         {
             Pout<< "Solver stage rank " << Pstream::myProcNo()
@@ -132,7 +151,10 @@ int main(int argc, char *argv[])
                 << " time " << runTime.timeName()
                 << ": after runTime.write" << nl << endl;
         }
-        runTime.printExecutionTime(Info);
+        if (dsmc.isOutputRank())
+        {
+            runTime.printExecutionTime(Info);
+        }
     }
 
     const scalar mainLoopWallTime =
@@ -141,18 +163,27 @@ int main(int argc, char *argv[])
             std::chrono::steady_clock::now() - loopStart
         ).count();
 
-    Info<< nl
-        << "Main loop profiling summary:" << nl
-        << "    main loop wall time [s]      = "
-        << mainLoopWallTime << nl
-        << endl;
+    if (dsmc.isOutputRank())
+    {
+        Info<< nl
+            << "Main loop profiling summary:" << nl
+            << "    main loop wall time [s]      = "
+            << mainLoopWallTime << nl
+            << endl;
+    }
 
     dsmc.reportProfiling();
 
-    Info<< "End\n" << endl;
+    if (dsmc.isOutputRank())
+    {
+        Info<< "End\n" << endl;
+    }
 
-    // The migrated lagrangian stack still has a destructor-time cleanup issue.
-    // Exit directly after a successful run to avoid tearing down stale state.
+    if (dsmc.replicatedMeshActive() && !Pstream::parRun())
+    {
+        MPI_Finalize();
+    }
+
     UPstream::exit(0);
 }
 

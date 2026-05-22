@@ -1,0 +1,2066 @@
+/*---------------------------------------------------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  2506                                  |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+Build  : 95a5dfacc7-20250714 OPENFOAM=2506 version=v2506
+Arch   : "LSB;label=32;scalar=64"
+Exec   : /home/superxcx/code/DSMC/dsmcFoam++/hyStrath_xcx/platforms/linux64IcxDPInt32Opt/bin/dsmcFoam+
+Date   : May 21 2026
+Time   : 06:38:33
+Host   : SuperXCX-ROG
+PID    : 763633
+I/O    : uncollated
+Case   : /home/superxcx/code/DSMC/dsmcFoam++/hyStrath_xcx/case/cylinder_react/mixparallel/finalcheck/omp4_mpi2_replicatedmesh
+nProcs : 1
+trapFpe: Floating point exception trapping enabled (FOAM_SIGFPE).
+/*---------------------------------------------------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  2506                                  |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+Build  : 95a5dfacc7-20250714 OPENFOAM=2506 version=v2506
+Arch   : "LSB;label=32;scalar=64"
+Exec   : /home/superxcx/code/DSMC/dsmcFoam++/hyStrath_xcx/platforms/linux64IcxDPInt32Opt/bin/dsmcFoam+
+Date   : May 21 2026
+Time   : 06:38:33
+Host   : SuperXCX-ROG
+PID    : 763634
+I/O    : uncollated
+Case   : /home/superxcx/code/DSMC/dsmcFoam++/hyStrath_xcx/case/cylinder_react/mixparallel/finalcheck/omp4_mpi2_replicatedmesh
+nProcs : 1
+trapFpe: Floating point exception trapping enabled (FOAM_SIGFPE).
+fileModificationChecking : Monitoring run-time modified files using timeStampMaster (fileModificationSkew 5, maxFileModificationPolls 20)
+allowSystemOperations : Allowing user-supplied system call operations
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+Create time
+
+fileModificationChecking : Monitoring run-time modified files using timeStampMaster (fileModificationSkew 5, maxFileModificationPolls 20)
+allowSystemOperations : Allowing user-supplied system call operations
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+Create time
+
+--> FOAM Warning : 
+    From static Foam::IOstreamOption::compressionType Foam::IOstreamOption::compressionEnum(const word &, const compressionType)
+    in file db/options/IOstreamOption.C at line 189
+    Unknown compression specifier 'uncompressed' using compression off
+Create mesh for time = 0
+
+
+Constructing dsmcCloud
+--> FOAM Warning : 
+    From static Foam::IOstreamOption::compressionType Foam::IOstreamOption::compressionEnum(const word &, const compressionType)
+    in file db/options/IOstreamOption.C at line 189
+    Unknown compression specifier 'uncompressed' using compression off
+Create mesh for time = 0
+
+
+Constructing dsmcCloud
+Selecting the coordinate system model:	dsmcCartesian
+
+Selecting the time-step model:	dsmcConstantTimeStepModel
+
+Constant time-step model:
+- time-step [sec]	6.640048894e-08
+
+Selecting the coordinate system model:	dsmcCartesian
+
+Selecting the time-step model:	dsmcConstantTimeStepModel
+
+Constant time-step model:
+- time-step [sec]	6.640048894e-08
+
+Selecting the porous measurement model:	dsmcNoPorousMediumMeasurements
+
+
+Creating dsmcControllers
+
+Creating fields: 
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+Resetting fields at output until time: 2.456818091e-06
+ measurement option: write
+ nSamples: 1, time interval: 6.640048894e-08
+ nAverages: 300, time interval: 1.992014668e-05
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Selecting the porous measurement model:	dsmcNoPorousMediumMeasurements
+
+
+Creating dsmcControllers
+
+Creating fields: 
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+Resetting fields at output until time: 2.456818091e-06
+ measurement option: write
+ nSamples: 1, time interval: 6.640048894e-08
+ nAverages: 300, time interval: 1.992014668e-05
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+Resetting fields at output until time: 2.456818091e-06
+ measurement option: write
+ nSamples: 1, time interval: 6.640048894e-08
+ nAverages: 300, time interval: 1.992014668e-05
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+Resetting fields at output until time: 2.456818091e-06
+ measurement option: write
+ nSamples: 1, time interval: 6.640048894e-08
+ nAverages: 300, time interval: 1.992014668e-05
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+Resetting fields at output until time: 2.456818091e-06
+ measurement option: write
+ nSamples: 1, time interval: 6.640048894e-08
+ nAverages: 300, time interval: 1.992014668e-05
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+Resetting fields at output until time: 2.456818091e-06
+ measurement option: write
+ nSamples: 1, time interval: 6.640048894e-08
+ nAverages: 300, time interval: 1.992014668e-05
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+Resetting fields at output until time: 2.456818091e-06
+ measurement option: write
+ nSamples: 1, time interval: 6.640048894e-08
+ nAverages: 300, time interval: 1.992014668e-05
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+Resetting fields at output until time: 2.456818091e-06
+ measurement option: write
+ nSamples: 1, time interval: 6.640048894e-08
+ nAverages: 300, time interval: 1.992014668e-05
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+Resetting fields at output until time: 2.456818091e-06
+ measurement option: write
+ nSamples: 1, time interval: 6.640048894e-08
+ nAverages: 300, time interval: 1.992014668e-05
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+Resetting fields at output until time: 2.456818091e-06
+ measurement option: write
+ nSamples: 1, time interval: 6.640048894e-08
+ nAverages: 300, time interval: 1.992014668e-05
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+Resetting fields at output until time: 2.456818091e-06
+ measurement option: write
+ nSamples: 1, time interval: 6.640048894e-08
+ nAverages: 300, time interval: 1.992014668e-05
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+Resetting fields at output until time: 2.456818091e-06
+ measurement option: write
+ nSamples: 1, time interval: 6.640048894e-08
+ nAverages: 300, time interval: 1.992014668e-05
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Creating the boundary models: 
+
+Selecting dsmcPatchBoundaryModel dsmcDeletionPatch
+Selecting dsmcPatchBoundaryModel dsmcDeletionPatch
+Selecting dsmcPatchBoundaryModel dsmcDiffuseWallPatch
+Selecting dsmcGeneralBoundaryModel dsmcFreeStreamInflowPatch
+Creating the boundary models: 
+
+Selecting dsmcPatchBoundaryModel dsmcDeletionPatch
+Selecting dsmcPatchBoundaryModel dsmcDeletionPatch
+Selecting dsmcPatchBoundaryModel dsmcDiffuseWallPatch
+Selecting dsmcGeneralBoundaryModel dsmcFreeStreamInflowPatch
+Selecting BinaryCollisionModel LarsenBorgnakkeVariableHardSphere
+OpenMP enabled for dsmcCloud with 4 thread-local RNG streams using collision schedule 'dynamic' (chunk 8)', move kernel enabled (static, chunk 64), adaptive partition enabled (interval 5, imbalance 1.1, drift 0.1), collision partition cost (candidate x1, active-cell x0)
+
+Constructing constant properties for
+    N2
+    O2
+    NO
+    N
+    O
+Selecting BinaryCollisionModel LarsenBorgnakkeVariableHardSphere
+OpenMP enabled for dsmcCloud with 4 thread-local RNG streams using collision schedule 'dynamic' (chunk 8)', move kernel enabled (static, chunk 64), adaptive partition enabled (interval 5, imbalance 1.1, drift 0.1), collision partition cost (candidate x1, active-cell x0)
+
+Constructing constant properties for
+    N2
+    O2
+    NO
+    N
+    O
+Replicated mesh: METIS decomposition complete, 60000 cells -> 2 ranks
+Replicated mesh: rank 0 owns 30000 / 60000 cells
+Replicated mesh: rank 1 owns 30000 / 60000 cells
+Local mesh: 30000 owned + 446 halo = 30446 / 60000 cells
+Phase C auto DLB: enabled (ParMETIS AdaptiveRepart), imbalanceThreshold=1.2, dlbSteps=30
+Replicated mesh: initialized with 2 MPI ranks, migrate interval 1
+Replicated mesh: rank 0 starts with 1306745 parcels
+
+Creating dsmcReactions
+
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationExchangeQK
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationExchangeQK
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationExchangeQK
+Selecting the reaction model dissociationExchangeQK
+Selecting the reaction model dissociationQK
+Number of reactions created: 12
+Selecting collisionPartnerSelectionModel noTimeCounter
+Local mesh: 30000 owned + 446 halo = 30446 / 60000 cells
+Phase C auto DLB: enabled (ParMETIS AdaptiveRepart), imbalanceThreshold=1.2, dlbSteps=30
+Replicated mesh: initialized with 2 MPI ranks, migrate interval 1
+
+Initialising the measurement fields
+
+Initialising dsmcVolFields field
+Initialising dsmcVolFields field
+Initialising dsmcVolFields field
+Replicated mesh: rank 1 starts with 0 parcels
+
+Creating dsmcReactions
+
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationExchangeQK
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationExchangeQK
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationExchangeQK
+Selecting the reaction model dissociationExchangeQK
+Selecting the reaction model dissociationQK
+Number of reactions created: 12
+Selecting collisionPartnerSelectionModel noTimeCounter
+Initialising dsmcVolFields field
+
+Initialising the measurement fields
+
+Initialising dsmcVolFields field
+Initialising dsmcVolFields field
+Initialising dsmcVolFields field
+Initialising dsmcVolFields field
+Initialising dsmcVolFields field
+Initialising dsmcVolFields field
+Initialising dsmcVolFields field
+Initialising dsmcVolFields field
+DSMC dynamic load balancing: disabled, mode external-repartition, check interval 1, cooldown 0, max imbalance 0.1, timer gate off
+
+Starting time loop
+
+DSMC dynamic load balancing: disabled, mode external-repartition, check interval 1, cooldown 0, max imbalance 0.1, timer gate off
+
+Starting time loop
+
+ExecutionTime = 5.12 s  ClockTime = 4 s
+
+ExecutionTime = 5.8 s  ClockTime = 4 s
+
+ExecutionTime = 6.48 s  ClockTime = 4 s
+
+ExecutionTime = 7.2 s  ClockTime = 5 s
+
+ExecutionTime = 7.96 s  ClockTime = 5 s
+
+ExecutionTime = 8.77 s  ClockTime = 5 s
+
+ExecutionTime = 9.5 s  ClockTime = 5 s
+
+ExecutionTime = 10.25 s  ClockTime = 5 s
+
+ExecutionTime = 11.03 s  ClockTime = 6 s
+
+Time = 6.640048894e-07
+
+Replicated mesh migration[11]: rank 0 sent 109 parcels, received 5130 (global 5239) wall 0.052373089s [pack 2.67e-05s MPI 0.046428763s deser 0.000392053s]
+Replicated mesh migration[11]: rank 1 sent 5130 parcels, received 109 (global 5239) wall 0.014387064s [pack 0.000574083s MPI 0.000439783s deser 0.004651969s]
+    Collisions [rank 0]              = 15321
+    Collision candidates           = 48193
+    Collision acceptance rate      = 0.3179092399
+
+    Collisions [rank 1]              = 12086
+    Collision candidates           = 47881
+    Collision acceptance rate      = 0.2524174516
+
+Cloud name: dsmc [rank 0]
+    Number of dsmc particles        = 593320
+    Number of molecules             = 3.55992e+15
+    Mass in system                  = 1.707276046e-10
+    Average linear kinetic energy   = 1.854787004e-19
+    Average rotational energy       = 1.488058274e-21
+    Average vibrational energy      = 2.157531426e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.085420729e-19
+ExecutionTime = 11.84 s  ClockTime = 6 s
+
+Cloud name: dsmc [rank 1]
+    Number of dsmc particles        = 736998
+    Number of molecules             = 4.421988e+15
+    Mass in system                  = 2.120707854e-10
+    Average linear kinetic energy   = 1.92470999e-19
+    Average rotational energy       = 1.216410532e-21
+    Average vibrational energy      = 2.157534293e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.152627525e-19
+ExecutionTime = 12.59 s  ClockTime = 6 s
+
+ExecutionTime = 13.37 s  ClockTime = 6 s
+
+ExecutionTime = 14.17 s  ClockTime = 6 s
+
+ExecutionTime = 14.99 s  ClockTime = 7 s
+
+ExecutionTime = 15.81 s  ClockTime = 7 s
+
+ExecutionTime = 16.62 s  ClockTime = 7 s
+
+ExecutionTime = 17.45 s  ClockTime = 7 s
+
+ExecutionTime = 18.29 s  ClockTime = 7 s
+
+ExecutionTime = 19.14 s  ClockTime = 8 s
+
+Time = 1.328009779e-06
+
+Replicated mesh migration[21]: rank 0 sent 110 parcels, received 5062 (global 5172) wall 0.064531391s [pack 2.8313e-05s MPI 0.057990362s deser 0.000396965s]
+Replicated mesh migration[21]: rank 1 sent 5062 parcels, received 110 (global 5172) wall 0.016158423s [pack 0.000780135s MPI 0.000500479s deser 0.004927851s]
+    Collisions [rank 1]              = 12426
+    Collision candidates           = 48177
+    Collision acceptance rate      = 0.2579239056
+
+    Collisions [rank 0]              = 24368
+    Collision candidates           = 65543
+    Collision acceptance rate      = 0.3717864608
+
+Cloud name: dsmc [rank 0]
+    Number of dsmc particles        = 616621
+    Number of molecules             = 3.699726e+15
+    Mass in system                  = 1.774273027e-10
+    Average linear kinetic energy   = 1.796071549e-19
+    Average rotational energy       = 1.99312229e-21
+    Average vibrational energy      = 2.157726259e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.031775398e-19
+ExecutionTime = 20.11 s  ClockTime = 8 s
+
+Cloud name: dsmc [rank 1]
+    Number of dsmc particles        = 737329
+    Number of molecules             = 4.423974e+15
+    Mass in system                  = 2.121717536e-10
+    Average linear kinetic energy   = 1.924789073e-19
+    Average rotational energy       = 1.216279208e-21
+    Average vibrational energy      = 2.157383877e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.152690253e-19
+ExecutionTime = 20.94 s  ClockTime = 8 s
+
+ExecutionTime = 21.83 s  ClockTime = 8 s
+
+ExecutionTime = 22.67 s  ClockTime = 8 s
+
+ExecutionTime = 23.52 s  ClockTime = 9 s
+
+ExecutionTime = 24.34 s  ClockTime = 9 s
+
+ExecutionTime = 25.26 s  ClockTime = 9 s
+
+ExecutionTime = 26.13 s  ClockTime = 9 s
+
+ExecutionTime = 27.02 s  ClockTime = 10 s
+
+ExecutionTime = 27.86 s  ClockTime = 10 s
+
+Time = 1.992014668e-06
+
+Replicated mesh migration[31]: rank 0 sent 109 parcels, received 5201 (global 5310) wall 0.051909035s [pack 2.2897e-05s MPI 0.045752331s deser 0.000465114s]
+Replicated mesh migration[31]: rank 1 sent 5201 parcels, received 109 (global 5310) wall 0.015968455s [pack 0.000784733s MPI 0.000502975s deser 0.004206553s]
+    Collisions [rank 1]              = 12268
+    Collision candidates           = 48102
+    Collision acceptance rate      = 0.2550413704
+
+    Collisions [rank 0]              = 34519
+    Collision candidates           = 85322
+    Collision acceptance rate      = 0.4045732636
+
+
+Phase C auto DLB triggered (threshold) at step 30: loadImbalance=1.261318105 > threshold=1.2
+
+Phase C auto DLB triggered (threshold) at step 30: loadImbalance=1.261318105 > threshold=1.2
+Phase C ParMETIS: K=1024 (moveT=0s, collT=0s)
+Phase C ParMETIS: AdaptiveRepart (60000 cells, 1 constraints, collScale=1, ubvec=1.049999952)
+Phase C ParMETIS: K=1024 (moveT=0s, collT=0s)
+Phase C ParMETIS: AdaptiveRepart (60000 cells, 1 constraints, collScale=1, ubvec=1.049999952)
+Replicated mesh: rank 0 owns 30010 / 60000 cells
+Replicated mesh: rank 1 owns 29990 / 60000 cells
+Local mesh: 29990 owned + 448 halo = 30438 / 60000 cells
+Phase C ParMETIS AdaptiveRepart: 10 / 60000 cells changed (0.0001666666667)
+Local mesh: 30010 owned + 448 halo = 30458 / 60000 cells
+Phase C ParMETIS AdaptiveRepart: 10 / 60000 cells changed (0.0001666666667)
+Replicated mesh migration[32]: rank 0 sent 0 parcels, received 132 (global 132) wall 0.008838792s [pack 1.0902e-05s MPI 0.002095147s deser 0.000450344s]
+Replicated mesh migration[32]: rank 1 sent 132 parcels, received 0 (global 132) wall 0.008864131s [pack 3.4349e-05s MPI 2.515e-05s deser 0.000905733s]
+Phase C auto DLB complete: rebalance #1
+
+Phase C auto DLB complete: rebalance #1
+
+Cloud name: dsmc [rank 0]
+    Number of dsmc particles        = 640339
+    Number of molecules             = 3.842034e+15
+    Mass in system                  = 1.842561734e-10
+    Average linear kinetic energy   = 1.745690534e-19
+    Average rotational energy       = 2.684868399e-21
+    Average vibrational energy      = 2.157614224e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.98830064e-19
+ExecutionTime = 28.91 s  ClockTime = 10 s
+
+Cloud name: dsmc [rank 1]
+    Number of dsmc particles        = 737154
+    Number of molecules             = 4.422924e+15
+    Mass in system                  = 2.121198305e-10
+    Average linear kinetic energy   = 1.924880688e-19
+    Average rotational energy       = 1.216426461e-21
+    Average vibrational energy      = 2.157425035e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.152787457e-19
+ExecutionTime = 29.93 s  ClockTime = 10 s
+
+ExecutionTime = 30.8 s  ClockTime = 11 s
+
+ExecutionTime = 31.66 s  ClockTime = 11 s
+
+ExecutionTime = 32.48 s  ClockTime = 11 s
+
+ExecutionTime = 33.33 s  ClockTime = 11 s
+
+ExecutionTime = 34.23 s  ClockTime = 11 s
+
+
+Start sample at time 2.456818091e-06 and step 37
+
+
+Start sample at time 2.456818091e-06 and step 37
+
+
+Start sample at time 2.456818091e-06 and step 37
+
+
+Start sample at time 2.456818091e-06 and step 37
+
+
+Start sample at time 2.456818091e-06 and step 37
+
+
+Start sample at time 2.456818091e-06 and step 37
+
+
+Start sample at time 2.456818091e-06 and step 37
+
+
+Start sample at time 2.456818091e-06 and step 37
+
+
+Start sample at time 2.456818091e-06 and step 37
+
+
+Start sample at time 2.456818091e-06 and step 37
+
+
+Start sample at time 2.456818091e-06 and step 37
+
+
+Start sample at time 2.456818091e-06 and step 37
+
+ExecutionTime = 35.15 s  ClockTime = 12 s
+
+ExecutionTime = 36.01 s  ClockTime = 12 s
+
+ExecutionTime = 36.91 s  ClockTime = 12 s
+
+Time = 2.656019558e-06
+
+Replicated mesh migration[42]: rank 0 sent 106 parcels, received 5061 (global 5167) wall 0.025056583s [pack 2.9575e-05s MPI Replicated mesh migration[42]: rank 1 sent 5061 parcels, received 106 (global 5167) wall 0.016288517s [pack 0.000750626s MPI 0.000624509s deser 0.004720953s]
+0.018025374s deser 0.000409739s]
+    Collisions [rank 1]              = 12388
+    Collision candidates           = 48282
+    Collision acceptance rate      = 0.2565759496
+
+    Collisions [rank 0]              = 44796
+    Collision candidates           = 104717
+    Collision acceptance rate      = 0.4277815445
+
+Cloud name: dsmc [rank 0]
+    Number of dsmc particles        = 663787
+    Number of molecules             = 3.982722e+15
+    Mass in system                  = 1.910000225e-10
+    Average linear kinetic energy   = 1.702718383e-19
+    Average rotational energy       = 3.483479745e-21
+    Average vibrational energy      = 2.157761692e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.95332935e-19
+ExecutionTime = 37.83 s  ClockTime = 12 s
+
+Cloud name: dsmc [rank 1]
+    Number of dsmc particles        = 737254
+    Number of molecules             = 4.423524e+15
+    Mass in system                  = 2.121499548e-10
+    Average linear kinetic energy   = 1.924817879e-19
+    Average rotational energy       = 1.216238309e-21
+    Average vibrational energy      = 2.157389582e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.15271922e-19
+ExecutionTime = 38.77 s  ClockTime = 12 s
+
+ExecutionTime = 39.62 s  ClockTime = 13 s
+
+ExecutionTime = 40.49 s  ClockTime = 13 s
+
+ExecutionTime = 41.31 s  ClockTime = 13 s
+
+ExecutionTime = 42.17 s  ClockTime = 13 s
+
+ExecutionTime = 43.05 s  ClockTime = 14 s
+
+ExecutionTime = 43.92 s  ClockTime = 14 s
+
+ExecutionTime = 44.74 s  ClockTime = 14 s
+
+ExecutionTime = 45.62 s  ClockTime = 14 s
+
+Time = 3.320024447e-06
+
+Replicated mesh migration[52]: rank 0 sent 103 parcels, received 5033 (global 5136) wall 0.018605922s [pack 2.7762e-05s MPI 0.011135546s deser 0.000418s]
+Replicated mesh migration[52]: rank 1 sent 5033 parcels, received 103 (global 5136) wall 0.018262891s [pack 0.000840304s MPI 0.00060669s deser 0.004770095s]
+    Collisions [rank 1]              = 12350
+    Collision candidates           = 48259
+    Collision acceptance rate      = 0.2559108146
+
+    Collisions [rank 0]              = 54770
+    Collision candidates           = 124236
+    Collision acceptance rate      = 0.4408545027
+
+Cloud name: dsmc [rank 0]
+    Number of dsmc particles        = 687319
+    Number of molecules             = 4.123914e+15
+    Mass in system                  = 1.977712398e-10
+    Average linear kinetic energy   = 1.664614931e-19
+    Average rotational energy       = 4.367106925e-21
+    Average vibrational energy      = 2.157874434e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.924073444e-19
+ExecutionTime = 46.56 s  ClockTime = 14 s
+
+Cloud name: dsmc [rank 1]
+    Number of dsmc particles        = 737113
+    Number of molecules             = 4.422678e+15
+    Mass in system                  = 2.12109742e-10
+    Average linear kinetic energy   = 1.92472493e-19
+    Average rotational energy       = 1.216510871e-21
+    Average vibrational energy      = 2.157380095e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.152628048e-19
+ExecutionTime = 47.6 s  ClockTime = 15 s
+
+ExecutionTime = 48.44 s  ClockTime = 15 s
+
+ExecutionTime = 49.31 s  ClockTime = 15 s
+
+ExecutionTime = 50.24 s  ClockTime = 15 s
+
+ExecutionTime = 51.19 s  ClockTime = 16 s
+
+ExecutionTime = 52.13 s  ClockTime = 16 s
+
+ExecutionTime = 52.99 s  ClockTime = 16 s
+
+ExecutionTime = 53.88 s  ClockTime = 16 s
+
+ExecutionTime = 54.82 s  ClockTime = 17 s
+
+Time = 3.984029336e-06
+
+Replicated mesh migration[62]: rank 0 sent 125 parcels, received 5014 (global 5139) wall 0.023213707s [pack 3.2071e-05s MPI 0.014830987s deser 0.000436616s]
+Replicated mesh migration[62]: rank 1 sent 5014 parcels, received 125 (global 5139) wall 0.016756859s [pack 0.000746706s MPI 0.000535637s deser 0.004745191s]
+    Collisions [rank 1]              = 12558
+    Collision candidates           = 48255
+    Collision acceptance rate      = 0.2602424619
+
+    Collisions [rank 0]              = 64329
+    Collision candidates           = 142783
+    Collision acceptance rate      = 0.4505368286
+
+Cloud name: dsmc [rank 0]
+    Number of dsmc particles        = 710502
+    Number of molecules             = 4.263012e+15
+    Mass in system                  = 2.044464763e-10
+    Average linear kinetic energy   = 1.631021228e-19
+    Average rotational energy       = 5.292600179e-21
+    Average vibrational energy      = 2.157769088e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.899724139e-19
+ExecutionTime = 55.82 s  ClockTime = 17 s
+
+Cloud name: dsmc [rank 1]
+    Number of dsmc particles        = 737236
+    Number of molecules             = 4.423416e+15
+    Mass in system                  = 2.121369491e-10
+    Average linear kinetic energy   = 1.924420686e-19
+    Average rotational energy       = 1.217005112e-21
+    Average vibrational energy      = 2.157595293e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.152350266e-19
+ExecutionTime = 56.9 s  ClockTime = 17 s
+
+ExecutionTime = 57.8 s  ClockTime = 17 s
+
+ExecutionTime = 58.65 s  ClockTime = 17 s
+
+ExecutionTime = 59.56 s  ClockTime = 18 s
+
+ExecutionTime = 60.46 s  ClockTime = 18 s
+
+ExecutionTime = 61.43 s  ClockTime = 18 s
+
+ExecutionTime = 62.36 s  ClockTime = 18 s
+
+ExecutionTime = 63.26 s  ClockTime = 19 s
+
+ExecutionTime = 64.19 s  ClockTime = 19 s
+
+Time = 4.648034226e-06
+
+Replicated mesh migration[72]: rank 0 sent 93 parcels, received 5044 (global 5137) wall 0.019229989s [pack 2.8153e-05s MPI 0.010655066s deser 0.000487925s]
+Replicated mesh migration[72]: rank 1 sent 5044 parcels, received 93 (global 5137) wall 0.019596113s [pack 0.000841375s MPI 0.000444623s deser 0.00488015s]
+    Collisions [rank 1]              = 12404
+    Collision candidates           = 48297
+    Collision acceptance rate      = 0.2568275462
+
+    Collisions [rank 0]              = 73807
+    Collision candidates           = 161823
+    Collision acceptance rate      = 0.4560970937
+
+Cloud name: dsmc [rank 0]
+    Number of dsmc particles        = 734113
+    Number of molecules             = 4.404678e+15
+    Mass in system                  = 2.112374309e-10
+    Average linear kinetic energy   = 1.600993936e-19
+    Average rotational energy       = 6.197120179e-21
+    Average vibrational energy      = 2.157966363e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.878761774e-19
+ExecutionTime = 65.25 s  ClockTime = 19 s
+
+Cloud name: dsmc [rank 1]
+    Number of dsmc particles        = 737084
+    Number of molecules             = 4.422504e+15
+    Mass in system                  = 2.120955341e-10
+    Average linear kinetic energy   = 1.924280347e-19
+    Average rotational energy       = 1.216227688e-21
+    Average vibrational energy      = 2.157534235e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.152196047e-19
+ExecutionTime = 66.36 s  ClockTime = 19 s
+
+ExecutionTime = 67.29 s  ClockTime = 20 s
+
+ExecutionTime = 68.2 s  ClockTime = 20 s
+
+ExecutionTime = 69.12 s  ClockTime = 20 s
+
+ExecutionTime = 70.04 s  ClockTime = 20 s
+
+ExecutionTime = 70.98 s  ClockTime = 21 s
+
+ExecutionTime = 71.95 s  ClockTime = 21 s
+
+ExecutionTime = 72.87 s  ClockTime = 21 s
+
+ExecutionTime = 73.83 s  ClockTime = 21 s
+
+Time = 5.312039115e-06
+
+Replicated mesh migration[82]: rank 0 sent 125 parcels, received 5062 (global 5187) wall 0.02250775s [pack 2.8163e-05s MPI 0.013997408s deser 0.000440336s]
+Replicated mesh migration[82]: rank 1 sent 5062 parcels, received 125 (global 5187) wall 0.019605214s [pack 0.000820316s MPI 0.000510448s deser 0.004327598s]
+    Collisions [rank 1]              = 12312
+    Collision candidates           = 48234
+    Collision acceptance rate      = 0.2552556288
+
+    Collisions [rank 0]              = 82664
+    Collision candidates           = 179094
+    Collision acceptance rate      = 0.4615676684
+
+Cloud name: dsmc [rank 0]
+    Number of dsmc particles        = 757367
+    Number of molecules             = 4.544202e+15
+    Mass in system                  = 2.17926439e-10
+    Average linear kinetic energy   = 1.574292456e-19
+    Average rotational energy       = 7.104933113e-21
+    Average vibrational energy      = 2.158145667e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.861156353e-19
+ExecutionTime = 74.93 s  ClockTime = 22 s
+
+Cloud name: dsmc [rank 1]
+    Number of dsmc particles        = 737070
+    Number of molecules             = 4.42242e+15
+    Mass in system                  = 2.120935346e-10
+    Average linear kinetic energy   = 1.924427886e-19
+    Average rotational energy       = 1.215424566e-21
+    Average vibrational energy      = 2.157480889e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.15233022e-19
+ExecutionTime = 76.11 s  ClockTime = 22 s
+
+ExecutionTime = 77.1 s  ClockTime = 22 s
+
+ExecutionTime = 78.02 s  ClockTime = 22 s
+
+ExecutionTime = 79.01 s  ClockTime = 23 s
+
+ExecutionTime = 79.96 s  ClockTime = 23 s
+
+ExecutionTime = 80.93 s  ClockTime = 23 s
+
+ExecutionTime = 81.89 s  ClockTime = 23 s
+
+ExecutionTime = 82.89 s  ClockTime = 24 s
+
+ExecutionTime = 83.89 s  ClockTime = 24 s
+
+Time = 5.976044005e-06
+
+Replicated mesh migration[92]: rank 0 sent 118 parcels, received 5092 (global 5210) wall 0.012255783s [pack 2.3524e-05s MPI 0.004421904s deser 0.000445105s]
+Replicated mesh migration[92]: rank 1 sent 5092 parcels, received 118 (global 5210) wall 0.029884942s [pack 0.000957768s MPI 0.010250436s deser 0.003399402s]
+    Collisions [rank 1]              = 12297
+    Collision candidates           = 48175
+    Collision acceptance rate      = 0.255256876
+
+    Collisions [rank 0]              = 90580
+    Collision candidates           = 195711
+    Collision acceptance rate      = 0.4628252883
+
+Cloud name: dsmc [rank 0]
+    Number of dsmc particles        = 780614
+    Number of molecules             = 4.683684e+15
+    Mass in system                  = 2.246214778e-10
+    Average linear kinetic energy   = 1.550289494e-19
+    Average rotational energy       = 7.981790366e-21
+    Average vibrational energy      = 2.158095045e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.845916902e-19
+ExecutionTime = 84.98 s  ClockTime = 24 s
+
+Cloud name: dsmc [rank 1]
+    Number of dsmc particles        = 737079
+    Number of molecules             = 4.422474e+15
+    Mass in system                  = 2.120874661e-10
+    Average linear kinetic energy   = 1.924475339e-19
+    Average rotational energy       = 1.215002823e-21
+    Average vibrational energy      = 2.157708523e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.15239622e-19
+ExecutionTime = 86.21 s  ClockTime = 24 s
+
+ExecutionTime = 87.21 s  ClockTime = 25 s
+
+ExecutionTime = 88.23 s  ClockTime = 25 s
+
+ExecutionTime = 89.23 s  ClockTime = 25 s
+
+ExecutionTime = 90.21 s  ClockTime = 25 s
+
+ExecutionTime = 91.22 s  ClockTime = 26 s
+
+ExecutionTime = 92.25 s  ClockTime = 26 s
+
+ExecutionTime = 93.27 s  ClockTime = 26 s
+
+ExecutionTime = 94.3 s  ClockTime = 26 s
+
+Time = 6.640048894e-06
+
+Replicated mesh migration[102]: rank 0 sent 116 parcels, received 5040 (global 5156) wall 0.015208016s [pack 2.7928e-05s MPI 0.005686966s deser 0.000532371s]
+Replicated mesh migration[102]: rank 1 sent 5040 parcels, received 116 (global 5156) wall 0.036385986s [pack 0.001010539s MPI 0.014816854s deser 0.004883508s]
+    Collisions [rank 1]              = 12463
+    Collision candidates           = 48346
+    Collision acceptance rate      = 0.2577876143
+
+    Collisions [rank 0]              = 99315
+    Collision candidates           = 212867
+    Collision acceptance rate      = 0.4665589312
+
+
+Phase C auto DLB triggered (SAR) at step 100: sar=0.01144485979 loadImbalance=1.083136975
+
+Phase C auto DLB triggered (SAR) at step 100: sar=0.0114448934 loadImbalance=1.083136975
+Phase C ParMETIS: K=1024 (moveT=0s, collT=0s)
+Phase C ParMETIS: AdaptiveRepart (60000 cells, 1 constraints, collScale=1, ubvec=1.049999952)
+Phase C ParMETIS: K=1024 (moveT=0s, collT=0s)
+Phase C ParMETIS: AdaptiveRepart (60000 cells, 1 constraints, collScale=1, ubvec=1.049999952)
+Replicated mesh: rank 0 owns 30010 / 60000 cells
+Replicated mesh: rank 1 owns 29990 / 60000 cells
+Local mesh: 29990 owned + 448 halo = 30438 / 60000 cells
+Phase C ParMETIS AdaptiveRepart: 0 / 60000 cells changed (Local mesh: 30010 owned + 448 halo = 30458 / 60000 cells
+Phase C ParMETIS AdaptiveRepart: 0 / 60000 cells changed (0)
+0)
+Replicated mesh migration[103]: rank 0 sent 0 parcels, received 0 (global 0) wall 0.016223788s [pack 1.1519e-05s MPI 0.003450195s deser 0.000402972s]
+Replicated mesh migration[103]: rank 1 sent 0 parcels, received 0 (global 0) wall 0.016240025s [pack 1.182e-05s MPI 1.7449e-05s deser 0.000403753s]
+Phase C auto DLB complete: rebalance #2
+
+Phase C adaptive K (PID): bottleneck=rank0 max/min=0 error=1.1 integral=1.1 K: 1024 -> 1024
+Phase C auto DLB complete: rebalance #2
+
+Phase C adaptive K (PID): bottleneck=rank0 max/min=0 error=1.1 integral=1.1 K: 1024 -> 1024
+Cloud name: dsmc [rank 0]
+    Number of dsmc particles        = 803768
+    Number of molecules             = 4.822608e+15
+    Mass in system                  = 2.312795274e-10
+    Average linear kinetic energy   = 1.528204399e-19
+    Average rotational energy       = 8.871438332e-21
+    Average vibrational energy      = 2.158282299e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.832747012e-19
+ExecutionTime = 95.64 s  ClockTime = 27 s
+
+Cloud name: dsmc [rank 1]
+    Number of dsmc particles        = 736925
+    Number of molecules             = 4.42155e+15
+    Mass in system                  = 2.120468039e-10
+    Average linear kinetic energy   = 1.924389182e-19
+    Average rotational energy       = 1.216309061e-21
+    Average vibrational energy      = 2.157612546e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.152313527e-19
+ExecutionTime = 97.25 s  ClockTime = 27 s
+
+ExecutionTime = 98.31 s  ClockTime = 27 s
+
+ExecutionTime = 99.33 s  ClockTime = 28 s
+
+ExecutionTime = 100.37 s  ClockTime = 28 s
+
+ExecutionTime = 101.42 s  ClockTime = 28 s
+
+ExecutionTime = 102.46 s  ClockTime = 28 s
+
+ExecutionTime = 103.56 s  ClockTime = 29 s
+
+ExecutionTime = 104.63 s  ClockTime = 29 s
+
+ExecutionTime = 105.69 s  ClockTime = 29 s
+
+Time = 7.304053783e-06
+
+Replicated mesh migration[113]: rank 0 sent 138 parcels, received 4983 (global 5121) wall 0.016788682s [pack 4.0417e-05s MPI 0.006365732s deser 0.000533584s]Replicated mesh migration[113]: rank 1 sent 4983 parcels, received 138 (global 5121) wall 0.049390794s [pack 0.001043352s MPI 0.026458722s deser 0.004787154s]
+
+    Collisions [rank 1]              = 12418
+    Collision candidates           = 48263
+    Collision acceptance rate      = 0.2572985517
+
+    Collisions [rank 0]              = 107678
+    Collision candidates           = 229948
+    Collision acceptance rate      = 0.4682710874
+
+Cloud name: dsmc [rank 0]
+    Number of dsmc particles        = 827141
+    Number of molecules             = 4.962846e+15
+    Mass in system                  = 2.380034444e-10
+    Average linear kinetic energy   = 1.507727631e-19
+    Average rotational energy       = 9.736031761e-21
+    Average vibrational energy      = 2.15851259e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.820939207e-19
+ExecutionTime = 106.91 s  ClockTime = 30 s
+
+Cloud name: dsmc [rank 1]
+    Number of dsmc particles        = 736608
+    Number of molecules             = 4.419648e+15
+    Mass in system                  = 2.119541903e-10
+    Average linear kinetic energy   = 1.924525663e-19
+    Average rotational energy       = 1.216362395e-21
+    Average vibrational energy      = 2.157649332e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.15245422e-19
+ExecutionTime = 108.26 s  ClockTime = 30 s
+
+ExecutionTime = 109.35 s  ClockTime = 30 s
+
+ExecutionTime = 110.36 s  ClockTime = 30 s
+
+ExecutionTime = 111.44 s  ClockTime = 31 s
+
+ExecutionTime = 112.53 s  ClockTime = 31 s
+
+ExecutionTime = 113.64 s  ClockTime = 31 s
+
+ExecutionTime = 114.75 s  ClockTime = 31 s
+
+ExecutionTime = 115.83 s  ClockTime = 32 s
+
+ExecutionTime = 116.93 s  ClockTime = 32 s
+
+Time = 7.968058673e-06
+
+Replicated mesh migration[123]: rank 0 sent 116 parcels, received 5234 (global 5350) wall 0.015059758s [pack 4.709e-05s MPI 0.005757024s deser 0.000509067s]
+Replicated mesh migration[123]: rank 1 sent 5234 parcels, received 116 (global 5350) wall 0.051020488s [pack 0.00116229s MPI 0.027775058s deser 0.004314182s]
+    Collisions [rank 1]              = 12463
+    Collision candidates           = 48119
+    Collision acceptance rate      = 0.2590037199
+
+    Collisions [rank 0]              = 115818
+    Collision candidates           = 246175
+    Collision acceptance rate      = 0.470470194
+
+
+Phase C auto DLB triggered (SAR) at step 120: sar=0.011289343 loadImbalance=1.169274723
+
+Phase C auto DLB triggered (SAR) at step 120: sar=0.01129066 loadImbalance=1.169274723
+Phase C ParMETIS: K=1024 (moveT=0s, collT=0s)
+Phase C ParMETIS: K=1024 (moveT=0s, collT=0s)
+Phase C ParMETIS: AdaptiveRepart (60000 cells, 1 constraints, collScale=1, ubvec=1.049999952)
+Phase C ParMETIS: AdaptiveRepart (60000 cells, 1 constraints, collScale=1, ubvec=1.049999952)
+Replicated mesh: rank 0 owns 30010 / 60000 cells
+Replicated mesh: rank 1 owns 29990 / 60000 cells
+Local mesh: 30010 owned + 448 halo = 30458 / 60000 cells
+Phase C ParMETIS AdaptiveRepart: 0 / 60000 cells changed (0)
+Local mesh: 29990 owned + 448 halo = 30438 / 60000 cells
+Phase C ParMETIS AdaptiveRepart: 0 / 60000 cells changed (0)
+Replicated mesh migration[124]: rank 0 sent 0 parcels, received 0 (global 0) wall 0.013720831s [pack 1.6652e-05s MPI 0.003071178s deser 0.000386144s]
+Phase C auto DLB complete: rebalance #3
+
+Phase C adaptive K (PID): bottleneck=rank0 max/min=0 error=1.1 integral=1.65 K: 1024 -> 1024
+Replicated mesh migration[124]: rank 1 sent 0 parcels, received 0 (global 0) wall 0.013719731s [pack 7.935e-06s MPI 1.3736e-05s deser 0.000382547s]
+Phase C auto DLB complete: rebalance #3
+
+Phase C adaptive K (PID): bottleneck=rank0 max/min=0 error=1.1 integral=1.65 K: 1024 -> 1024
+Cloud name: dsmc [rank 0]
+    Number of dsmc particles        = 849888
+    Number of molecules             = 5.099328e+15
+    Mass in system                  = 2.445542963e-10
+    Average linear kinetic energy   = 1.489526439e-19
+    Average rotational energy       = 1.052302108e-20
+    Average vibrational energy      = 2.158482035e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.810604853e-19
+ExecutionTime = 118.32 s  ClockTime = 32 s
+
+Cloud name: dsmc [rank 1]
+    Number of dsmc particles        = 736581
+    Number of molecules             = 4.419486e+15
+    Mass in system                  = 2.119464587e-10
+    Average linear kinetic energy   = 1.924394639e-19
+    Average rotational energy       = 1.216584132e-21
+    Average vibrational energy      = 2.157648346e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.152325315e-19
+ExecutionTime = 120.03 s  ClockTime = 33 s
+
+ExecutionTime = 121.13 s  ClockTime = 33 s
+
+ExecutionTime = 122.22 s  ClockTime = 33 s
+
+ExecutionTime = 123.37 s  ClockTime = 34 s
+
+ExecutionTime = 124.45 s  ClockTime = 34 s
+
+ExecutionTime = 125.58 s  ClockTime = 34 s
+
+ExecutionTime = 126.71 s  ClockTime = 34 s
+
+ExecutionTime = 127.87 s  ClockTime = 35 s
+
+ExecutionTime = 129.02 s  ClockTime = 35 s
+
+Time = 8.632063562e-06
+
+Replicated mesh migration[134]: rank 0 sent 123 parcels, received 5241 (global 5364) wall 0.017124148s [pack 3.715e-05s MPI 0.006287755s deser 0.000567028s]
+Replicated mesh migration[134]: rank 1 sent 5241 parcels, received 123 (global 5364) wall 0.079254855s [pack 0.000982077s MPI 0.059273255s deser 0.005178024s]
+    Collisions [rank 1]              = 12469
+    Collision candidates           = 48261
+    Collision acceptance rate      = 0.2583659684
+
+    Collisions [rank 0]              = 122996
+    Collision candidates           = 260302
+    Collision acceptance rate      = 0.4725126968
+
+Cloud name: dsmc [rank 0]
+    Number of dsmc particles        = 872173
+    Number of molecules             = 5.233038e+15
+    Mass in system                  = 2.509717618e-10
+    Average linear kinetic energy   = 1.472496021e-19
+    Average rotational energy       = 1.134354347e-20
+    Average vibrational energy      = 2.158500866e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.801781542e-19
+ExecutionTime = 130.37 s  ClockTime = 35 s
+
+Cloud name: dsmc [rank 1]
+    Number of dsmc particles        = 736770
+    Number of molecules             = 4.42062e+15
+    Mass in system                  = 2.119970845e-10
+    Average linear kinetic energy   = 1.924389131e-19
+    Average rotational energy       = 1.214909981e-21
+    Average vibrational energy      = 2.157747181e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.152312949e-19
+ExecutionTime = 131.75 s  ClockTime = 36 s
+
+ExecutionTime = 132.91 s  ClockTime = 36 s
+
+ExecutionTime = 134.03 s  ClockTime = 36 s
+
+ExecutionTime = 135.18 s  ClockTime = 37 s
+
+ExecutionTime = 136.35 s  ClockTime = 37 s
+
+ExecutionTime = 137.55 s  ClockTime = 37 s
+
+ExecutionTime = 138.69 s  ClockTime = 37 s
+
+ExecutionTime = 139.84 s  ClockTime = 38 s
+
+ExecutionTime = 141.03 s  ClockTime = 38 s
+
+Time = 9.296068452e-06
+
+Replicated mesh migration[144]: rank 0 sent 137 parcels, received 5158 (global 5295) wall 0.017656894s [pack 3.9746e-05s MPI 0.006385792s deser 0.000548373s]
+Replicated mesh migration[144]: rank 1 sent 5158 parcels, received 137 (global 5295) wall 0.065514875s [pack 0.001175435s MPI 0.040334014s deser 0.005014405s]
+    Collisions [rank 1]              = 12413
+    Collision candidates           = 48301
+    Collision acceptance rate      = 0.2569926088
+
+    Collisions [rank 0]              = 130480
+    Collision candidates           = 275526
+    Collision acceptance rate      = 0.4735669229
+
+
+Phase C auto DLB triggered (SAR) at step 140: sar=0.0125040195 loadImbalance=1.254609363
+
+Phase C auto DLB triggered (SAR) at step 140: sar=0.0125053855 loadImbalance=1.254609363
+Phase C ParMETIS: K=1024 (moveT=0s, collT=0s)
+Phase C ParMETIS: AdaptiveRepart (60000 cells, 1 constraints, collScale=1, ubvec=1.049999952)
+Phase C ParMETIS: K=1024 (moveT=0s, collT=0s)
+Phase C ParMETIS: AdaptiveRepart (60000 cells, 1 constraints, collScale=1, ubvec=1.049999952)
+Replicated mesh: rank 0 owns 26750 / 60000 cells
+Replicated mesh: rank 1 owns 33250 / 60000 cells
+Local mesh: 26750 owned + 440 halo = 27190 / 60000 cells
+Phase C ParMETIS AdaptiveRepart: 3260 / 60000 cells changed (0.05433333333)
+Local mesh: 33250 owned + 440 halo = 33690 / 60000 cells
+Phase C ParMETIS AdaptiveRepart: 3260 / 60000 cells changed (0.05433333333)
+Replicated mesh migration[145]: rank 0 sent 98961 parcels, received 0 (global 98961) wall 0.126831984s [pack 0.012737089s MPI 0.007067749s deser 0.039169205s]
+Phase C auto DLB complete: rebalance #4
+
+Phase C adaptive K (PID): bottleneck=rank0 max/min=0 error=1.1 integral=1.925 K: 1024 -> 1024
+Replicated mesh migration[145]: rank 1 sent 0 parcels, received 98961 (global 98961) wall 0.126766858s [pack 1.1602e-05s MPI 0.113142371s deser 0.00267678s]
+Phase C auto DLB complete: rebalance #4
+
+Phase C adaptive K (PID): bottleneck=rank0 max/min=0 error=1.1 integral=1.925 K: 1024 -> 1024
+Cloud name: dsmc [rank 0]
+    Number of dsmc particles        = 795408
+    Number of molecules             = 4.772448e+15
+    Mass in system                  = 2.28881033e-10
+    Average linear kinetic energy   = 1.39843446e-19
+    Average rotational energy       = 1.350284461e-20
+    Average vibrational energy      = 2.158827797e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.749345686e-19
+ExecutionTime = 142.97 s  ClockTime = 39 s
+
+Cloud name: dsmc [rank 1]
+    Number of dsmc particles        = 835733
+    Number of molecules             = 5.014398e+15
+    Mass in system                  = 2.404798538e-10
+    Average linear kinetic energy   = 1.924438443e-19
+    Average rotational energy       = 1.214884755e-21
+    Average vibrational energy      = 2.157577785e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.152345069e-19
+ExecutionTime = 144.66 s  ClockTime = 39 s
+
+ExecutionTime = 145.74 s  ClockTime = 39 s
+
+ExecutionTime = 146.84 s  ClockTime = 40 s
+
+ExecutionTime = 147.92 s  ClockTime = 40 s
+
+ExecutionTime = 149.03 s  ClockTime = 40 s
+
+ExecutionTime = 150.14 s  ClockTime = 40 s
+
+ExecutionTime = 151.23 s  ClockTime = 41 s
+
+ExecutionTime = 152.36 s  ClockTime = 41 s
+
+ExecutionTime = 153.43 s  ClockTime = 41 s
+
+Time = 9.960073341e-06
+
+Replicated mesh migration[155]: rank 0 sent 354 parcels, received 4331 (global 4685) wall 0.016252274s [pack 7.2344e-05s MPI 0.005804756s deser 0.000460549s]
+Replicated mesh migration[155]: rank 1 sent 4331 parcels, received 354 (global 4685) wall 0.037672078s [pack 0.000782162s MPI 0.018271127s deser 0.004530445s]
+    Collisions [rank 1]              = 14123
+    Collision candidates           = 54613
+    Collision acceptance rate      = 0.2586014319
+
+    Collisions [rank 0]              = 136275
+    Collision candidates           = 283612
+    Collision acceptance rate      = 0.4804980043
+
+Cloud name: dsmc [rank 0]
+    Number of dsmc particles        = 817750
+    Number of molecules             = 4.9065e+15
+    Mass in system                  = 2.35314481e-10
+    Average linear kinetic energy   = 1.383903871e-19
+    Average rotational energy       = 1.427337416e-20
+    Average vibrational energy      = 2.158800584e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.742517671e-19
+ExecutionTime = 154.72 s  ClockTime = 42 s
+
+Cloud name: dsmc [rank 1]
+    Number of dsmc particles        = 835719
+    Number of molecules             = 5.014314e+15
+    Mass in system                  = 2.404670506e-10
+    Average linear kinetic energy   = 1.924178487e-19
+    Average rotational energy       = 1.214537774e-21
+    Average vibrational energy      = 2.157781254e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.15210199e-19
+ExecutionTime = 156.21 s  ClockTime = 42 s
+
+ExecutionTime = 157.3 s  ClockTime = 42 s
+
+ExecutionTime = 158.44 s  ClockTime = 42 s
+
+ExecutionTime = 159.56 s  ClockTime = 43 s
+
+ExecutionTime = 160.67 s  ClockTime = 43 s
+
+ExecutionTime = 161.85 s  ClockTime = 43 s
+
+ExecutionTime = 162.99 s  ClockTime = 44 s
+
+ExecutionTime = 164.1 s  ClockTime = 44 s
+
+ExecutionTime = 165.24 s  ClockTime = 44 s
+
+Time = 1.062407823e-05
+
+Replicated mesh migration[165]: rank 0 sent 323 parcels, received 4376 (global 4699) wall 0.013351235s [pack 4.6536e-05s MPI 0.00434285s deser 0.000474826s]
+Replicated mesh migration[165]: rank 1 sent 4376 parcels, received 323 (global 4699) wall 0.043653484s [pack 0.00097088s MPI 0.022138233s deser 0.002676766s]
+    Collisions [rank 1]              = 14092
+    Collision candidates           = 54705
+    Collision acceptance rate      = 0.2575998538
+
+    Collisions [rank 0]              = 142626
+    Collision candidates           = 297170
+    Collision acceptance rate      = 0.4799475048
+
+Cloud name: dsmc [rank 0]
+    Number of dsmc particles        = 839745
+    Number of molecules             = 5.03847e+15
+    Mass in system                  = 2.416346321e-10
+    Average linear kinetic energy   = 1.369943876e-19
+    Average rotational energy       = 1.50564276e-20
+    Average vibrational energy      = 2.159259988e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.73643415e-19
+ExecutionTime = 166.56 s  ClockTime = 44 s
+
+Cloud name: dsmc [rank 1]
+    Number of dsmc particles        = 835986
+    Number of molecules             = 5.015916e+15
+    Mass in system                  = 2.405486137e-10
+    Average linear kinetic energy   = 1.924294875e-19
+    Average rotational energy       = 1.213731751e-21
+    Average vibrational energy      = 2.157671438e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.152199337e-19
+ExecutionTime = 168.07 s  ClockTime = 45 s
+
+ExecutionTime = 169.24 s  ClockTime = 45 s
+
+ExecutionTime = 170.44 s  ClockTime = 45 s
+
+ExecutionTime = 171.58 s  ClockTime = 46 s
+
+ExecutionTime = 172.73 s  ClockTime = 46 s
+
+ExecutionTime = 173.92 s  ClockTime = 46 s
+
+ExecutionTime = 175.11 s  ClockTime = 47 s
+
+ExecutionTime = 176.29 s  ClockTime = 47 s
+
+ExecutionTime = 177.49 s  ClockTime = 47 s
+
+Time = 1.128808312e-05
+
+Replicated mesh migration[175]: rank 0 sent 403 parcels, received 4370 (global 4773) wall 0.017722939s [pack 6.312e-05s MPI 0.006143205s deser 0.000553775s]
+Replicated mesh migration[175]: rank 1 sent 4370 parcels, received 403 (global 4773) wall 0.053662529s [pack 0.001077232s MPI 0.028799445s deser 0.004124569s]
+    Collisions [rank 1]              = 14203
+    Collision candidates           = 54957
+    Collision acceptance rate      = 0.2584384155
+
+    Collisions [rank 0]              = 149818
+    Collision candidates           = 310675
+    Collision acceptance rate      = 0.4822338457
+
+
+Phase C auto DLB triggered (SAR) at step 170: sar=0.017001979 loadImbalance=1.140047132
+
+Phase C auto DLB triggered (SAR) at step 170: sar=0.01700441667 loadImbalance=1.140047132
+Phase C ParMETIS: K=1024 (moveT=0s, collT=0s)
+Phase C ParMETIS: K=1024 (moveT=0s, collT=0s)
+Phase C ParMETIS: AdaptiveRepart (60000 cells, 1 constraints, collScale=1, ubvec=1.049999952)
+Phase C ParMETIS: AdaptiveRepart (60000 cells, 1 constraints, collScale=1, ubvec=1.049999952)
+Replicated mesh: rank 0 owns 26758 / 60000 cells
+Replicated mesh: rank 1 owns 33242 / 60000 cells
+Local mesh: 26758 owned + 440 halo = 27198 / 60000 cells
+Phase C ParMETIS AdaptiveRepart: 8 / 60000 cells changed (0.0001333333333)
+Local mesh: 33242 owned + 440 halo = 33682 / 60000 cells
+Phase C ParMETIS AdaptiveRepart: 8 / 60000 cells changed (0.0001333333333)
+Replicated mesh migration[176]: rank 0 sent 0 parcels, received 116 (global 116) wall Replicated mesh migration[176]: rank 1 sent 116 parcels, received 0 (global 116) wall 0.015718322s [pack 3.9637e-05s MPI 3.1111e-05s deser 0.001028106s]
+Phase C auto DLB complete: rebalance #5
+
+0.015772935s [pack 1.2717e-05s MPI 0.004900622s deser 0.000459731s]
+Phase C auto DLB complete: rebalance #5
+
+Phase C adaptive K (PID): bottleneck=rank0 max/min=0 error=1.1Phase C adaptive K (PID): bottleneck=rank0 max/min=0 error=1.1 integral=2.0625 K: 1024 -> 1024
+ integral=2.0625 K: 1024 -> 1024
+Cloud name: dsmc [rank 0]
+    Number of dsmc particles        = 861638
+    Number of molecules             = 5.169828e+15
+    Mass in system                  = 2.47939115e-10
+    Average linear kinetic energy   = 1.35766291e-19
+    Average rotational energy       = 1.57911632e-20
+    Average vibrational energy      = 2.159282027e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.731502745e-19
+ExecutionTime = 179.07 s  ClockTime = 48 s
+
+Cloud name: dsmc [rank 1]
+    Number of dsmc particles        = 835890
+    Number of molecules             = 5.01534e+15
+    Mass in system                  = 2.405165867e-10
+    Average linear kinetic energy   = 1.924321664e-19
+    Average rotational energy       = 1.2146092e-21
+    Average vibrational energy      = 2.157773531e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.152245109e-19
+ExecutionTime = 181.01 s  ClockTime = 48 s
+
+ExecutionTime = 182.23 s  ClockTime = 48 s
+
+ExecutionTime = 183.42 s  ClockTime = 49 s
+
+ExecutionTime = 184.62 s  ClockTime = 49 s
+
+ExecutionTime = 185.84 s  ClockTime = 49 s
+
+ExecutionTime = 187.05 s  ClockTime = 50 s
+
+ExecutionTime = 188.28 s  ClockTime = 50 s
+
+ExecutionTime = 189.46 s  ClockTime = 50 s
+
+ExecutionTime = 190.62 s  ClockTime = 50 s
+
+Time = 1.195208801e-05
+
+Replicated mesh migration[186]: rank 0 sent 381 parcels, received 4455 (global 4836) wall 0.017151477s [pack 6.1094e-05s MPI 0.005657639s deser 0.000533904s]
+Replicated mesh migration[186]: rank 1 sent 4455 parcels, received 381 (global 4836) wall 0.04388512s [pack 0.001124964s MPI 0.019833264s deser 0.003792424s]
+    Collisions [rank 1]              = 14107
+    Collision candidates           = 54754
+    Collision acceptance rate      = 0.2576432772
+
+    Collisions [rank 0]              = 157279
+    Collision candidates           = 324860
+    Collision acceptance rate      = 0.4841439389
+
+Cloud name: dsmc [rank 0]
+    Number of dsmc particles        = 882961
+    Number of molecules             = 5.297766e+15
+    Mass in system                  = 2.540789278e-10
+    Average linear kinetic energy   = 1.345873182e-19
+    Average rotational energy       = 1.645557388e-20
+    Average vibrational energy      = 2.159414949e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.726370416e-19
+ExecutionTime = 192.04 s  ClockTime = 51 s
+
+Cloud name: dsmc [rank 1]
+    Number of dsmc particles        = 835863
+    Number of molecules             = 5.015178e+15
+    Mass in system                  = 2.405070677e-10
+    Average linear kinetic energy   = 1.924406508e-19
+    Average rotational energy       = 1.216010289e-21
+    Average vibrational energy      = 2.157814105e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.152348021e-19
+ExecutionTime = 193.62 s  ClockTime = 51 s
+
+ExecutionTime = 194.83 s  ClockTime = 51 s
+
+ExecutionTime = 196.1 s  ClockTime = 52 s
+
+ExecutionTime = 197.34 s  ClockTime = 52 s
+
+ExecutionTime = 198.55 s  ClockTime = 52 s
+
+ExecutionTime = 199.75 s  ClockTime = 53 s
+
+ExecutionTime = 201 s  ClockTime = 53 s
+
+ExecutionTime = 202.28 s  ClockTime = 53 s
+
+ExecutionTime = 203.55 s  ClockTime = 54 s
+
+Time = 1.26160929e-05
+
+Replicated mesh migration[196]: rank 0 sent 364 parcels, received 4414 (global 4778) wall 0.016014036s [pack 4.9048e-05s MPI 0.005188533s deser 0.000558911s]
+Replicated mesh migration[196]: rank 1 sent 4414 parcels, received 364 (global 4778) wall 0.063790221s [pack 0.000770632s MPI 0.043439385s deser 0.003616865s]
+    Collisions [rank 1]              = 14191
+    Collision candidates           = 54626
+    Collision acceptance rate      = 0.2597847179
+
+    Collisions [rank 0]              = 163728
+    Collision candidates           = 338149
+    Collision acceptance rate      = 0.4841889226
+
+Cloud name: dsmc [rank 0]
+    Number of dsmc particles        = 904232
+    Number of molecules             = 5.425392e+15
+    Mass in system                  = 2.601984731e-10
+    Average linear kinetic energy   = 1.334355966e-19
+    Average rotational energy       = 1.712050881e-20
+    Average vibrational energy      = 2.159612715e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.721522326e-19
+ExecutionTime = 204.96 s  ClockTime = 54 s
+
+Cloud name: dsmc [rank 1]
+    Number of dsmc particles        = 835808
+    Number of molecules             = 5.014848e+15
+    Mass in system                  = 2.40491961e-10
+    Average linear kinetic energy   = 1.92450249e-19
+    Average rotational energy       = 1.217452551e-21
+    Average vibrational energy      = 2.15779744e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.15245676e-19
+ExecutionTime = 206.53 s  ClockTime = 54 s
+
+ExecutionTime = 207.79 s  ClockTime = 55 s
+
+ExecutionTime = 209.07 s  ClockTime = 55 s
+
+ExecutionTime = 210.35 s  ClockTime = 55 s
+
+ExecutionTime = 211.62 s  ClockTime = 55 s
+
+ExecutionTime = 212.88 s  ClockTime = 56 s
+
+ExecutionTime = 214.16 s  ClockTime = 56 s
+
+ExecutionTime = 215.45 s  ClockTime = 56 s
+
+ExecutionTime = 216.75 s  ClockTime = 57 s
+
+Time = 1.328009779e-05
+
+Replicated mesh migration[206]: rank 0 sent 418 parcels, received 4292 (global 4710) wall 0.01497504s [pack 5.9116e-05s MPI 0.004751758s deser 0.00050007s]
+Replicated mesh migration[206]: rank 1 sent 4292 parcels, received 418 (global 4710) wall 0.064835334s [pack 0.001176328s MPI 0.040212514s deser 0.002492324s]
+    Collisions [rank 1]              = 14068
+    Collision candidates           = 54697
+    Collision acceptance rate      = 0.2571987495
+
+    Collisions [rank 0]              = 169283
+    Collision candidates           = 350645
+    Collision acceptance rate      = 0.482776027
+
+Cloud name: dsmc [rank 0]
+    Number of dsmc particles        = 924998
+    Number of molecules             = 5.549988e+15
+    Mass in system                  = 2.661714037e-10
+    Average linear kinetic energy   = 1.323526132e-19
+    Average rotational energy       = 1.778550417e-20
+    Average vibrational energy      = 2.15991407e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.717372581e-19
+ExecutionTime = 218.28 s  ClockTime = 57 s
+
+Cloud name: dsmc [rank 1]
+    Number of dsmc particles        = 836124
+    Number of molecules             = 5.016744e+15
+    Mass in system                  = 2.405825876e-10
+    Average linear kinetic energy   = 1.924627555e-19
+    Average rotational energy       = 1.217839474e-21
+    Average vibrational energy      = 2.157804345e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.152586384e-19
+ExecutionTime = 219.91 s  ClockTime = 58 s
+
+ExecutionTime = 221.17 s  ClockTime = 58 s
+
+ExecutionTime = 222.48 s  ClockTime = 58 s
+
+ExecutionTime = 223.81 s  ClockTime = 59 s
+
+ExecutionTime = 225.14 s  ClockTime = 59 s
+
+ExecutionTime = 226.43 s  ClockTime = 59 s
+
+ExecutionTime = 227.74 s  ClockTime = 59 s
+
+ExecutionTime = 229.04 s  ClockTime = 60 s
+
+ExecutionTime = 230.33 s  ClockTime = 60 s
+
+Time = 1.394410268e-05
+
+Replicated mesh migration[216]: rank 0 sent 365 parcels, received 4368 (global 4733) wall 0.020684943s [pack 6.6775e-05s MPI 0.006651691s deser 0.000724219s]
+Replicated mesh migration[216]: rank 1 sent 4368 parcels, received 365 (global 4733) wall 0.071616121s [pack 0.001157428s MPI 0.046179848s deser 0.004774672s]
+    Collisions [rank 1]              = 14120
+    Collision candidates           = 54671
+    Collision acceptance rate      = 0.2582722101
+
+    Collisions [rank 0]              = 175780
+    Collision candidates           = 362866
+    Collision acceptance rate      = 0.4844212464
+
+
+Phase C auto DLB triggered (SAR) at step 210: sar=0.01634278033 loadImbalance=1.22773189
+
+Phase C auto DLB triggered (SAR) at step 210: sar=0.01634404858 loadImbalance=1.22773189
+Phase C ParMETIS: K=1024 (moveT=0s, collT=0s)
+Phase C ParMETIS: K=1024 (moveT=0s, collT=0s)
+Phase C ParMETIS: AdaptiveRepart (60000 cells, 1 constraints, collScale=1, ubvec=1.049999952)
+Phase C ParMETIS: AdaptiveRepart (60000 cells, 1 constraints, collScale=1, ubvec=1.049999952)
+Replicated mesh: rank 0 owns 26676 / 60000 cells
+Replicated mesh: rank 1 owns 33324 / 60000 cells
+Local mesh: 26676 owned + 425 halo = 27101 / 60000 cells
+Phase C ParMETIS AdaptiveRepart: 82 / 60000 cells changed (0.001366666667)
+Local mesh: 33324 owned + 426 halo = 33750 / 60000 cells
+Phase C ParMETIS AdaptiveRepart: 82 / 60000 cells changed (0.001366666667)
+Replicated mesh migration[217]: rank 0 sent 1965 parcels, received 0 (global 1965) wall Replicated mesh migration[217]: rank 1 sent 0 parcels, received 1965 (global 1965) wall 0.021554244s [pack 8.368e-06s MPI 0.004770901s deser 0.000539355s]
+0.021711686s [pack 0.00030905s MPI 0.003644418s deser 0.005135931s]
+Phase C auto DLB complete: rebalance #6
+
+Phase C adaptive K (PID): bottleneck=rank0 max/min=Phase C auto DLB complete: rebalance #6
+
+Phase C adaptive K (PID): bottleneck=rank0 max/min=0 error=1.1 integral=2.13125 K: 1024 -> 1024
+0 error=1.1 integral=2.13125 K: 1024 -> 1024
+Cloud name: dsmc [rank 0]
+    Number of dsmc particles        = 943771
+    Number of molecules             = 5.662626e+15
+    Mass in system                  = 2.715697381e-10
+    Average linear kinetic energy   = 1.312289133e-19
+    Average rotational energy       = 1.843924103e-20
+    Average vibrational energy      = 2.160309401e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.712712483e-19
+ExecutionTime = 232.11 s  ClockTime = 61 s
+
+Cloud name: dsmc [rank 1]
+    Number of dsmc particles        = 837728
+    Number of molecules             = 5.026368e+15
+    Mass in system                  = 2.410494473e-10
+    Average linear kinetic energy   = 1.924617514e-19
+    Average rotational energy       = 1.217675368e-21
+    Average vibrational energy      = 2.157681008e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.152562369e-19
+ExecutionTime = 234.13 s  ClockTime = 61 s
+
+ExecutionTime = 235.43 s  ClockTime = 61 s
+
+ExecutionTime = 236.77 s  ClockTime = 62 s
+
+ExecutionTime = 238.12 s  ClockTime = 62 s
+
+ExecutionTime = 239.43 s  ClockTime = 62 s
+
+ExecutionTime = 240.81 s  ClockTime = 63 s
+
+ExecutionTime = 242.16 s  ClockTime = 63 s
+
+ExecutionTime = 243.51 s  ClockTime = 63 s
+
+ExecutionTime = 244.85 s  ClockTime = 64 s
+
+Time = 1.460810757e-05
+
+Replicated mesh migration[227]: rank 0 sent 320 parcels, received 4453 (global 4773) wall 0.019935454s [pack 6.1644e-05s MPI 0.00625679s deser 0.000565098s]
+Replicated mesh migration[227]: rank 1 sent 4453 parcels, received 320 (global 4773) wall 0.08112713s [pack 0.00125478s MPI 0.054099395s deser 0.004100102s]
+    Collisions [rank 1]              = 14207
+    Collision candidates           = 54699
+    Collision acceptance rate      = 0.2597305252
+
+    Collisions [rank 0]              = 181770
+    Collision candidates           = 374158
+    Collision acceptance rate      = 0.4858108072
+
+Cloud name: dsmc [rank 0]
+    Number of dsmc particles        = 964672
+    Number of molecules             = 5.788032e+15
+    Mass in system                  = 2.775883175e-10
+    Average linear kinetic energy   = 1.303059951e-19
+    Average rotational energy       = 1.903250378e-20
+    Average vibrational energy      = 2.160307227e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.709415711e-19
+ExecutionTime = 246.44 s  ClockTime = 64 s
+
+Cloud name: dsmc [rank 1]
+    Number of dsmc particles        = 837330
+    Number of molecules             = 5.02398e+15
+    Mass in system                  = 2.409298258e-10
+    Average linear kinetic energy   = 1.924731094e-19
+    Average rotational energy       = 1.217838671e-21
+    Average vibrational energy      = 2.157799043e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.152689385e-19
+ExecutionTime = 248.13 s  ClockTime = 65 s
+
+ExecutionTime = 249.46 s  ClockTime = 65 s
+
+ExecutionTime = 250.83 s  ClockTime = 65 s
+
+ExecutionTime = 252.06 s  ClockTime = 66 s
+
+ExecutionTime = 253.35 s  ClockTime = 66 s
+
+ExecutionTime = 254.66 s  ClockTime = 66 s
+
+ExecutionTime = 256.02 s  ClockTime = 67 s
+
+ExecutionTime = 257.4 s  ClockTime = 67 s
+
+ExecutionTime = 258.75 s  ClockTime = 67 s
+
+Time = 1.527211246e-05
+
+Replicated mesh migration[237]: rank 0 sent 313 parcels, received 4268 (global 4581) wall 0.016293606s [pack 5.5295e-05s MPI 0.004885378s deser 0.000577569s]
+Replicated mesh migration[237]: rank 1 sent 4268 parcels, received 313 (global 4581) wall 0.075699282s [pack 0.001208922s MPI 0.051148844s deser 0.002899325s]
+    Collisions [rank 1]              = 14182
+    Collision candidates           = 54978
+    Collision acceptance rate      = 0.2579577285
+
+    Collisions [rank 0]              = 187560
+    Collision candidates           = 386350
+    Collision acceptance rate      = 0.4854665459
+
+Cloud name: dsmc [rank 0]
+    Number of dsmc particles        = 984811
+    Number of molecules             = 5.908866e+15
+    Mass in system                  = 2.833751538e-10
+    Average linear kinetic energy   = 1.293487999e-19
+    Average rotational energy       = 1.964300047e-20
+    Average vibrational energy      = 2.160639963e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.705982e-19
+ExecutionTime = 260.31 s  ClockTime = 68 s
+
+Cloud name: dsmc [rank 1]
+    Number of dsmc particles        = 837527
+    Number of molecules             = 5.025162e+15
+    Mass in system                  = 2.409940038e-10
+    Average linear kinetic energy   = 1.92478718e-19
+    Average rotational energy       = 1.218169593e-21
+    Average vibrational energy      = 2.157625647e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.152731441e-19
+ExecutionTime = 261.92 s  ClockTime = 68 s
+
+ExecutionTime = 263.25 s  ClockTime = 69 s
+
+ExecutionTime = 264.89 s  ClockTime = 69 s
+
+ExecutionTime = 266.24 s  ClockTime = 69 s
+
+ExecutionTime = 267.64 s  ClockTime = 70 s
+
+ExecutionTime = 269.02 s  ClockTime = 70 s
+
+ExecutionTime = 270.39 s  ClockTime = 70 s
+
+ExecutionTime = 271.79 s  ClockTime = 71 s
+
+ExecutionTime = 273.13 s  ClockTime = 71 s
+
+Time = 1.593611735e-05
+
+Replicated mesh migration[247]: rank 0 sent 331 parcels, received 4403 (global 4734) wall 0.020633898s [pack 6.4118e-05s MPI 0.006028782s deser Replicated mesh migration[247]: rank 1 sent 4403 parcels, received 331 (global 4734) wall 0.09393171s [pack 0.00120034s MPI 0.06829514s deser 0.004292407s]
+0.000635689s]
+    Collisions [rank 1]              = 14181
+    Collision candidates           = 54855
+    Collision acceptance rate      = 0.2585179109
+
+    Collisions [rank 0]              = 193931
+    Collision candidates           = 398860
+    Collision acceptance rate      = 0.4862132076
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 1
+
+Phase C auto DLB triggered (SAR) at step 240: sar=0.006409915667 loadImbalance=1.308484832
+
+Phase C auto DLB triggered (SAR) at step 240: sar=0.006411634667 loadImbalance=1.308484832
+Phase C ParMETIS: K=1024 (moveT=0s, collT=0s)
+Phase C ParMETIS: K=1024 (moveT=0s, collT=0s)
+Phase C ParMETIS: AdaptiveRepart (60000 cells, 1 constraints, collScale=1, ubvec=1.049999952)
+Phase C ParMETIS: AdaptiveRepart (60000 cells, 1 constraints, collScale=1, ubvec=1.049999952)
+Replicated mesh: rank 0 owns 21607 / 60000 cells
+Replicated mesh: rank 1 owns 38393 / 60000 cells
+Local mesh: 21607 owned + 566 halo = 22173 / 60000 cells
+Phase C ParMETIS AdaptiveRepart: 5089 / 60000 cells changed (0.08481666667)
+Local mesh: 38393 owned + 566 halo = 38959 / 60000 cells
+Phase C ParMETIS AdaptiveRepart: 5089 / 60000 cells changed (0.08481666667)
+Replicated mesh migration[248]: rank 0 sent 75697 parcels, received 252 (global 75949) wall 0.111627724s [pack 0.008780928s MPI 0.004537084s deser 0.044758383s]
+Replicated mesh migration[248]: rank 1 sent 252 parcels, received 75697 (global 75949) wall 0.111165705s [pack 7.3067e-05s MPI 0.091786157s deser 0.002306086s]
+Phase C auto DLB complete: rebalance #7
+
+Phase C adaptive K (PID): bottleneck=rank0 max/min=0 error=1.1Phase C auto DLB complete: rebalance #7
+
+Phase C adaptive K (PID): bottleneck=rank0 max/min=0 error=1.1 integral=2.165625 K: 1024 -> 1024
+ integral=2.165625 K: 1024 -> 1024
+Cloud name: dsmc [rank 0]
+    Number of dsmc particles        = 929658
+    Number of molecules             = 5.577948e+15
+    Mass in system                  = 2.675098726e-10
+    Average linear kinetic energy   = 1.243234493e-19
+    Average rotational energy       = 2.115470484e-20
+    Average vibrational energy      = 2.160929761e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.670874518e-19
+ExecutionTime = 275.32 s  ClockTime = 72 s
+
+Cloud name: dsmc [rank 1]
+    Number of dsmc particles        = 913081
+    Number of molecules             = 5.478486e+15
+    Mass in system                  = 2.627249381e-10
+    Average linear kinetic energy   = 1.915157797e-19
+    Average rotational energy       = 1.725979712e-21
+    Average vibrational energy      = 2.157886736e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.148206267e-19
+ExecutionTime = 277.33 s  ClockTime = 72 s
+
+ExecutionTime = 278.66 s  ClockTime = 72 s
+
+ExecutionTime = 280.06 s  ClockTime = 73 s
+
+ExecutionTime = 281.43 s  ClockTime = 73 s
+
+ExecutionTime = 282.75 s  ClockTime = 73 s
+
+ExecutionTime = 284.12 s  ClockTime = 74 s
+
+ExecutionTime = 285.5 s  ClockTime = 74 s
+
+ExecutionTime = 286.87 s  ClockTime = 75 s
+
+ExecutionTime = 288.29 s  ClockTime = 75 s
+
+Time = 1.660012224e-05
+
+Replicated mesh migration[258]: rank 0 sent 788 parcels, received 4632 (global 5420) wall 0.021213319s [pack 0.000178354s MPI 0.006570388s deser 0.000601353s]
+Replicated mesh migration[258]: rank 1 sent 4632 parcels, received 788 (global 5420) wall 0.077056185s [pack 0.000820908s MPI 0.056248646s deser 0.004307158s]
+    Collisions [rank 1]              = 16983
+    Collision candidates           = 61427
+    Collision acceptance rate      = 0.2764745145
+
+    Collisions [rank 0]              = 197125
+    Collision candidates           = 403359
+    Collision acceptance rate      = 0.4887085698
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Cloud name: dsmc [rank 0]
+    Number of dsmc particles        = 947807
+    Number of molecules             = 5.686842e+15
+    Mass in system                  = 2.727304567e-10
+    Average linear kinetic energy   = 1.235595028e-19
+    Average rotational energy       = 2.164835789e-20
+    Average vibrational energy      = 2.161467754e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.668225382e-19
+ExecutionTime = 290 s  ClockTime = 75 s
+
+Cloud name: dsmc [rank 1]
+    Number of dsmc particles        = 914800
+    Number of molecules             = 5.4888e+15
+    Mass in system                  = 2.632164948e-10
+    Average linear kinetic energy   = 1.913612608e-19
+    Average rotational energy       = 1.8184198e-21
+    Average vibrational energy      = 2.157976854e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.147594492e-19
+ExecutionTime = 291.67 s  ClockTime = 76 s
+
+ExecutionTime = 293.01 s  ClockTime = 76 s
+
+ExecutionTime = 294.36 s  ClockTime = 76 s
+
+ExecutionTime = 295.77 s  ClockTime = 77 s
+
+ExecutionTime = 297.12 s  ClockTime = 77 s
+
+ExecutionTime = 298.52 s  ClockTime = 77 s
+
+ExecutionTime = 299.94 s  ClockTime = 78 s
+
+ExecutionTime = 301.3 s  ClockTime = 78 s
+
+ExecutionTime = 302.72 s  ClockTime = 79 s
+
+Time = 1.726412712e-05
+
+Replicated mesh migration[268]: rank 0 sent 820 parcels, received 4661 (global 5481) wall 0.022394859s [pack 0.000165504s MPI 0.006804815s deser 0.000648374s]
+Replicated mesh migration[268]: rank 1 sent 4661 parcels, received 820 (global 5481) wall 0.081818816s [pack 0.001183651s MPI 0.055107161s deser 0.004128206s]
+    Collisions [rank 1]              = 17350
+    Collision candidates           = 62133
+    Collision acceptance rate      = 0.2792396955
+
+    Collisions [rank 0]              = 202113
+    Collision candidates           = 414140
+    Collision acceptance rate      = 0.4880306177
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Cloud name: dsmc [rank 0]
+    Number of dsmc particles        = 965830
+    Number of molecules             = 5.79498e+15
+    Mass in system                  = 2.779204547e-10
+    Average linear kinetic energy   = 1.228869739e-19
+    Average rotational energy       = 2.208639206e-20
+    Average vibrational energy      = 2.161691486e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.665902808e-19
+ExecutionTime = 304.47 s  ClockTime = 79 s
+
+Cloud name: dsmc [rank 1]
+    Number of dsmc particles        = 916223
+    Number of molecules             = 5.497338e+15
+    Mass in system                  = 2.636280096e-10
+    Average linear kinetic energy   = 1.91173189e-19
+    Average rotational energy       = 1.911869913e-21
+    Average vibrational energy      = 2.15798046e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.146648635e-19
+ExecutionTime = 306.23 s  ClockTime = 79 s
+
+ExecutionTime = 307.94 s  ClockTime = 80 s
+
+ExecutionTime = 309.39 s  ClockTime = 80 s
+
+ExecutionTime = 310.8 s  ClockTime = 81 s
+
+ExecutionTime = 312.22 s  ClockTime = 81 s
+
+ExecutionTime = 313.69 s  ClockTime = 81 s
+
+ExecutionTime = 315.13 s  ClockTime = 82 s
+
+ExecutionTime = 316.56 s  ClockTime = 82 s
+
+ExecutionTime = 317.98 s  ClockTime = 82 s
+
+Time = 1.792813201e-05
+
+Replicated mesh migration[278]: rank 0 sent 882 parcels, received 4819 (global 5701) wall 0.022209634s [pack 0.000176977s MPI 0.006843217s deser 0.000657438s]
+Replicated mesh migration[278]: rank 1 sent 4819 parcels, received 882 (global 5701) wall 0.076205431s [pack 0.000910033s MPI 0.053771891s deser 0.004048268s]
+    Collisions [rank 1]              = 17665
+    Collision candidates           = 62798
+    Collision acceptance rate      = 0.2812987675
+
+    Collisions [rank 0]              = 206483
+    Collision candidates           = 423260
+    Collision acceptance rate      = 0.4878396258
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 1
+
+Phase C auto DLB triggered (threshold) at step 270: loadImbalance=1.219854519 > threshold=1.2
+
+Phase C auto DLB triggered (threshold) at step 270: loadImbalance=1.219854519 > threshold=1.2
+Phase C ParMETIS: K=1024 (moveT=0s, collT=0s)
+Phase C ParMETIS: K=1024 (moveT=0s, collT=0s)
+Phase C ParMETIS: AdaptiveRepart (60000 cells, 1 constraints, collScale=1, ubvec=1.049999952)
+Phase C ParMETIS: AdaptiveRepart (60000 cells, 1 constraints, collScale=1, ubvec=1.049999952)
+Replicated mesh: rank 0 owns 21607 / 60000 cells
+Replicated mesh: rank 1 owns 38393 / 60000 cells
+Local mesh: 21607 owned + 566 halo = 22173 / 60000 cells
+Phase C ParMETIS AdaptiveRepart: 0 / 60000 cells changed (0)
+Local mesh: 38393 owned + 566 halo = 38959 / 60000 cells
+Phase C ParMETIS AdaptiveRepart: 0 / 60000 cells changed (0)
+Replicated mesh migration[279]: rank 0 sent 0 parcels, received 0 (global 0) wall 0.017499164s [pack 1.2663e-05s MPI 0.001835185s deser 0.000534444s]
+Phase C auto DLB complete: rebalance #8
+
+Replicated mesh migration[279]: rank 1 sent 0 parcels, received 0 (global 0) wall 0.017161984s [pack 1.2294e-05s MPI 1.8422e-05s deser 0.000538181s]
+Phase C auto DLB complete: rebalance #8
+
+Phase C adaptive K (PID): bottleneck=rank0 max/min=0 error=1.1 integral=2.1828125 K: 1024 -> 1024
+Phase C adaptive K (PID): bottleneck=rank0 max/min=0 error=1.1 integral=2.1828125 K: 1024 -> 1024
+Cloud name: dsmc [rank 0]
+    Number of dsmc particles        = 983082
+    Number of molecules             = 5.898492e+15
+    Mass in system                  = 2.828882328e-10
+    Average linear kinetic energy   = 1.222545961e-19
+    Average rotational energy       = 2.252277864e-20
+    Average vibrational energy      = 2.161892682e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.663963015e-19
+ExecutionTime = 319.91 s  ClockTime = 83 s
+
+Cloud name: dsmc [rank 1]
+    Number of dsmc particles        = 918164
+    Number of molecules             = 5.508984e+15
+    Mass in system                  = 2.641838875e-10
+    Average linear kinetic energy   = 1.90969634e-19
+    Average rotational energy       = 2.024223891e-21
+    Average vibrational energy      = 2.158052278e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.145743807e-19
+ExecutionTime = 322.21 s  ClockTime = 83 s
+
+ExecutionTime = 323.65 s  ClockTime = 84 s
+
+ExecutionTime = 325.04 s  ClockTime = 84 s
+
+ExecutionTime = 326.45 s  ClockTime = 84 s
+
+ExecutionTime = 327.96 s  ClockTime = 85 s
+
+ExecutionTime = 329.39 s  ClockTime = 85 s
+
+ExecutionTime = 330.81 s  ClockTime = 86 s
+
+ExecutionTime = 332.27 s  ClockTime = 86 s
+
+ExecutionTime = 333.67 s  ClockTime = 86 s
+
+Time = 1.85921369e-05
+
+Replicated mesh migration[289]: rank 0 sent 904 parcels, received 4709 (global 5613) wall 0.022831707s [pack 0.000162586s MPI 0.006895252s deser 0.00064426s]
+Replicated mesh migration[289]: rank 1 sent 4709 parcels, received 904 (global 5613) wall 0.063703506s [pack 0.000898269s MPI 0.037167184s deser 0.004274204s]
+    Collisions [rank 1]              = 18259
+    Collision candidates           = 63322
+    Collision acceptance rate      = 0.2883515998
+
+    Collisions [rank 0]              = 211898
+    Collision candidates           = 434037
+    Collision acceptance rate      = 0.4882026187
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Cloud name: dsmc [rank 0]
+    Number of dsmc particles        = 1000281
+    Number of molecules             = 6.001686e+15
+    Mass in system                  = 2.878316524e-10
+    Average linear kinetic energy   = 1.216190377e-19
+    Average rotational energy       = 2.297354705e-20
+    Average vibrational energy      = 2.162308777e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.662156725e-19
+ExecutionTime = 335.39 s  ClockTime = 87 s
+
+Cloud name: dsmc [rank 1]
+    Number of dsmc particles        = 919728
+    Number of molecules             = 5.518368e+15
+    Mass in system                  = 2.64638753e-10
+    Average linear kinetic energy   = 1.907364112e-19
+    Average rotational energy       = 2.134724296e-21
+    Average vibrational energy      = 2.157868449e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.144498199e-19
+ExecutionTime = 337.17 s  ClockTime = 87 s
+
+ExecutionTime = 338.68 s  ClockTime = 88 s
+
+ExecutionTime = 340.1 s  ClockTime = 88 s
+
+ExecutionTime = 341.58 s  ClockTime = 88 s
+
+ExecutionTime = 342.98 s  ClockTime = 89 s
+
+ExecutionTime = 344.46 s  ClockTime = 89 s
+
+ExecutionTime = 345.93 s  ClockTime = 89 s
+
+ExecutionTime = 347.39 s  ClockTime = 90 s
+
+ExecutionTime = 348.94 s  ClockTime = 90 s
+
+Time = 1.925614179e-05
+
+Replicated mesh migration[299]: rank 0 sent 949 parcels, received 4677 (global 5626) wall 0.020031373s [pack 0.00015572s MPI 0.006434116s deser 0.000575495s]
+Replicated mesh migration[299]: rank 1 sent 4677 parcels, received 949 (global 5626) wall 0.088412298s [pack 0.001356053s MPI 0.059989313s deser 0.003056447s]
+    Collisions [rank 1]              = 18567
+    Collision candidates           = 64201
+    Collision acceptance rate      = 0.2892011028
+
+    Collisions [rank 0]              = 217146
+    Collision candidates           = 444322
+    Collision acceptance rate      = 0.4887131405
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Cloud name: dsmc [rank 0]
+    Number of dsmc particles        = 1017498
+    Number of molecules             = 6.104988e+15
+    Mass in system                  = 2.92785337e-10
+    Average linear kinetic energy   = 1.210584439e-19
+    Average rotational energy       = 2.33441739e-20
+    Average vibrational energy      = 2.162673181e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.660293496e-19
+ExecutionTime = 350.77 s  ClockTime = 91 s
+
+Cloud name: dsmc [rank 1]
+    Number of dsmc particles        = 921487
+    Number of molecules             = 5.528922e+15
+    Mass in system                  = 2.651390071e-10
+    Average linear kinetic energy   = 1.904959988e-19
+    Average rotational energy       = 2.251127892e-21
+    Average vibrational energy      = 2.158083091e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.143279576e-19
+ExecutionTime = 352.63 s  ClockTime = 91 s
+
+ExecutionTime = 354.06 s  ClockTime = 91 s
+
+ExecutionTime = 355.89 s  ClockTime = 92 s
+
+ExecutionTime = 357.4 s  ClockTime = 92 s
+
+ExecutionTime = 358.92 s  ClockTime = 93 s
+
+ExecutionTime = 360.44 s  ClockTime = 93 s
+
+ExecutionTime = 361.91 s  ClockTime = 93 s
+
+ExecutionTime = 363.42 s  ClockTime = 94 s
+
+ExecutionTime = 364.93 s  ClockTime = 94 s
+
+Time = 1.992014668e-05
+
+Replicated mesh migration[309]: rank 0 sent 1009 parcels, received 4800 (global 5809) wall 0.023422911s [pack 0.000183895s MPI 0.007075779s deser 0.000662635s]
+Replicated mesh migration[309]: rank 1 sent 4800 parcels, received 1009 (global 5809) wall 0.093735627s [pack 0.001436164s MPI 0.064308357s deser 0.003721674s]
+    Collisions [rank 1]              = 19201
+    Collision candidates           = 65066
+    Collision acceptance rate      = 0.2951003596
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 1
+    Collisions [rank 0]              = 221841
+    Collision candidates           = 453346
+    Collision acceptance rate      = 0.4893414743
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Cloud name: dsmc [rank 0]
+    Number of dsmc particles        = 1033439
+    Number of molecules             = 6.200634e+15
+    Mass in system                  = 2.973773366e-10
+    Average linear kinetic energy   = 1.204487145e-19
+    Average rotational energy       = 2.3706921e-20
+    Average vibrational energy      = 2.162828726e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.657839228e-19
+ExecutionTime = 366.82 s  ClockTime = 95 s
+
+
+Main loop profiling summary:
+    main loop wall time [s]      = 91.27297327
+
+Cloud name: dsmc [rank 1]
+    Number of dsmc particles        = 924012
+    Number of molecules             = 5.544072e+15
+    Mass in system                  = 2.658613958e-10
+    Average linear kinetic energy   = 1.902385373e-19
+    Average rotational energy       = 2.400485075e-21
+    Average vibrational energy      = 2.158206269e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.142210851e-19
+Replicated mesh final summary:
+    total dsmc particles            = 1957451
+    total collisions (cumulative)   = 42975149
+    total candidates (cumulative)   = 97375572
+    acceptance rate                 = 0.4413339826
+    rank 0: particles=1033439 collisions=38760710 candidates=81379612
+    rank 1: particles=924012 collisions=4214439 candidates=15995960
+
+
+Replicated mesh profiling summary:
+    migration calls             = 309
+    migration wall time [s]     = 10.20276223
+    local particles (final)     = 1033439
+    particles per rank          = min 924012 max 1033439 max/min 1.118425951
+    rank wall time (evolve, 300 steps): min 87.28695261 max 89.14433769 max/min 1.021279069
+    Phase C auto DLB rebalances = 8
+
+End
+
