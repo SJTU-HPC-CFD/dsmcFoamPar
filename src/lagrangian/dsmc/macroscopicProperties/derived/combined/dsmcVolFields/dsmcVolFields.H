@@ -66,6 +66,7 @@ protected:
         scalar nTimeSteps_;
         
         scalar mfpTref_;
+        label nMinParcelsTvib_;
         word fieldName_;
         
         labelList speciesIds_;

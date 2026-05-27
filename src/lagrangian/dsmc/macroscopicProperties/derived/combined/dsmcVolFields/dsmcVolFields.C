@@ -97,6 +97,7 @@ dsmcVolFields::dsmcVolFields
     sampleCounter_(0),
     nTimeSteps_(0.0),
     mfpTref_(273.0),
+    nMinParcelsTvib_(1),
     fieldName_(propsDict_.lookup("fieldName")),
     speciesIds_(),
     dsmcN_
@@ -1045,6 +1046,9 @@ void dsmcVolFields::createField()
     mfpTref_ =
         propsDict_.lookupOrDefault<scalar>("mfpReferenceTemperature", 273.0);
 
+    nMinParcelsTvib_ =
+        propsDict_.lookupOrDefault<label>("nMinParcelsTvib", 1);
+
     averagingAcrossManyRuns_ =
         propsDict_.lookupOrDefault<bool>("averagingAcrossManyRuns", false);
 
@@ -1445,7 +1449,7 @@ void dsmcVolFields::calculateField()
                         if
                         (
                             dsmcSpeciesEvibModCum_[i][mod][celli] > VSMALL
-                         && dsmcNSpeciesCum_[i][celli] > SMALL
+                         && dsmcNSpeciesCum_[i][celli] >= nMinParcelsTvib_
                          && speciesZetaVibMod.size() > SMALL
                         )
                         {
