@@ -1047,7 +1047,7 @@ void dsmcVolFields::createField()
         propsDict_.lookupOrDefault<scalar>("mfpReferenceTemperature", 273.0);
 
     nMinParcelsTvib_ =
-        propsDict_.lookupOrDefault<label>("nMinParcelsTvib", 1);
+        mesh_.time().controlDict().lookupOrDefault<label>("nMinParcelsTvib", 1);
 
     averagingAcrossManyRuns_ =
         propsDict_.lookupOrDefault<bool>("averagingAcrossManyRuns", false);
