@@ -189,15 +189,10 @@ public:
                 return nTrackingRescues_;
             }
 
-            //- Increment the nTrackingRescues counter
+            //- Increment the nTrackingRescues counter (thread-safe)
             void trackingRescue() const
             {
-                nTrackingRescues_++;
-                if (cloud::debug && size() && (nTrackingRescues_ % size() == 0))
-                {
-                    Pout<< "    " << nTrackingRescues_
-                        << " tracking rescues " << endl;
-                }
+                __sync_fetch_and_add(&nTrackingRescues_, 1);
             }
 
             //- Whether each cell has any wall faces (demand driven data)

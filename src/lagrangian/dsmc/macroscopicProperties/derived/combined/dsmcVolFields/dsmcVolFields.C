@@ -1126,7 +1126,7 @@ void dsmcVolFields::calculateField()
                 {
                     const dsmcParcel::constantProperties& cP =
                         cloud_.constProps(p.typeId());
-                    
+
                     //- Local copies
                     const label cell = p.cell();
                     const scalar nParticles = cloud_.nParticles(cell);

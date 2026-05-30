@@ -1006,7 +1006,8 @@ public:
     {
         // Private data
 
-
+            //- Thread ID for OpenMP parallel move (-1 = serial/main thread)
+            label threadId_;
 
     public:
 
@@ -1015,9 +1016,24 @@ public:
             //- Construct from components
             trackingData(dsmcCloud& cloud)
             :
-                particle::TrackingData<dsmcCloud>(cloud)
+                particle::TrackingData<dsmcCloud>(cloud),
+                threadId_(-1)
             {}
 
+            //- Construct with thread ID for parallel move
+            trackingData(dsmcCloud& cloud, label tid)
+            :
+                particle::TrackingData<dsmcCloud>(cloud),
+                threadId_(tid)
+            {}
+
+        // Access
+
+            //- Return thread ID (-1 = serial)
+            label threadId() const { return threadId_; }
+
+            //- Set thread ID
+            void setThreadId(label tid) { threadId_ = tid; }
     };
 
 

@@ -152,6 +152,12 @@ inline const Foam::dsmcParcel::constantProperties& Foam::dsmcCloud::constProps
 
 inline Foam::Random& Foam::dsmcCloud::rndGen()
 {
+    #ifdef _OPENMP
+    if (omp_in_parallel())
+    {
+        return threadRng_[omp_get_thread_num()];
+    }
+    #endif
     return rndGen_;
 }
 

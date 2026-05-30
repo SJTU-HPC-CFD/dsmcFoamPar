@@ -262,6 +262,12 @@ void dsmcPatchBoundary::calculateWallUnitVectors
 
 void dsmcPatchBoundary::measurePropertiesBeforeControl(dsmcParcel& p)
 {
+    // Skip measurements during parallel move to avoid thread-safety issues
+    if (cloud_.parallelMoveActive())
+    {
+        return;
+    }
+
     if (measurePropertiesAtWall_)
     {
         const label spId = p.typeId();
@@ -361,6 +367,12 @@ void dsmcPatchBoundary::measurePropertiesAfterControl
     const scalar& heatOfReaction
 )
 {
+    // Skip measurements during parallel move to avoid thread-safety issues
+    if (cloud_.parallelMoveActive())
+    {
+        return;
+    }
+
     if (measurePropertiesAtWall_)
     {
         const label spId = p.typeId();

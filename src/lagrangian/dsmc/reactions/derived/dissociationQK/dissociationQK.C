@@ -602,20 +602,21 @@ void dissociationQK::outputResults(const label& counterIndex)
 {
     if (writeRatesToTerminal_)
     {
-        //- measure density
-        const List<DynamicList<dsmcParcel*>>& cellOccupancy = cloud_.cellOccupancy();
+        //- measure density using cell index (OMP-compatible)
+        const labelList& cellFirst = cloud_.cellFirst();
+        const labelList& cellNext = cloud_.cellNext();
+        const DynamicList<dsmcParcel*>& parcelPtrs = cloud_.parcelPtrs();
+        const label nCells = mesh_.nCells();
 
         volume_ = 0.0;
 
         labelList molsReactants(label(2), 0);
 
-        forAll(cellOccupancy, c)
+        for (label c = 0; c < nCells; c++)
         {
-            const List<dsmcParcel*>& parcelsInCell = cellOccupancy[c];
-
-            forAll(parcelsInCell, pIC)
+            for (label ip = cellFirst[c]; ip >= 0; ip = cellNext[ip])
             {
-                dsmcParcel* p = parcelsInCell[pIC];
+                dsmcParcel* p = parcelPtrs[ip];
 
                 const label pos = findIndex(reactantIds_, p->typeId());
 

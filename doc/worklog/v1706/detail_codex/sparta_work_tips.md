@@ -1,0 +1,4 @@
+工作中要注意以下几点：
+1. 每步工作的进展、测试数据结果、分析，都记录在/home/superxcx/code/OpenFoam/OF-1706/work/v1706-sparta/doc/worklog/v1706/detail_codex中
+2. 测试算例在/home/superxcx/code/OpenFoam/OF-1706/work/v1706-sparta/run/omp_performance/pal-phd3.3.1-2dcylinder/react中，mpi作为正确性和性能基准，小测试可以只用omp8测试性能，每阶段整体测试需要omp1 2 4 8线程测试对比分析，所有测试都要保证正确性（粒子数、碰撞数、能量），测试要保留dsmcFoam+的完整输出到对应/home/superxcx/code/OpenFoam/OF-1706/work/v1706-sparta/run/omp_performance/pal-phd3.3.1-2dcylinder/react/算例的文件夹下
+3. 运行环境只需要 source /home/superxcx/code/OpenFoam/OF-1706/work/v1706-sparta/doc/scripts/env.sh，编译只需要 source /home/superxcx/code/OpenFoam/OF-1706/work/v1706-sparta/doc/scripts/build-dsmcFoam.sh

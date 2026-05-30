@@ -26,6 +26,10 @@ License
 #include "dsmcCloud.H"
 #include "constants.H"
 #include "zeroGradientFvPatchFields.H"
+#include "emptyPolyPatch.H"
+#include "processorPolyPatch.H"
+#include "symmetryPolyPatch.H"
+#include "meshTools.H"
 
 using namespace Foam::constant;
 
@@ -62,15 +66,393 @@ void Foam::dsmcCloud::buildConstProps()
 
 void Foam::dsmcCloud::buildCellOccupancy()
 {
-    forAll(cellOccupancy_, celli)
-    {
-        cellOccupancy_[celli].clear();
-    }
+    const label nCells = cellOccupancy_.size();
 
+    // If cell index is available and up-to-date, use it for parallel rebuild
+    if (cellFirst_.size() == nCells && parcelPtrs_.size() > 0)
+    {
+        #pragma omp parallel for schedule(static)
+        for (label cellI = 0; cellI < nCells; cellI++)
+        {
+            // Pre-size to exact count (avoids realloc during fill)
+            cellOccupancy_[cellI].setSize(cellCount_[cellI]);
+
+            label idx = 0;
+            for (label ip = cellFirst_[cellI]; ip >= 0; ip = cellNext_[ip])
+            {
+                cellOccupancy_[cellI][idx++] = parcelPtrs_[ip];
+            }
+        }
+    }
+    else
+    {
+        // Fallback: serial rebuild from IDLList
+        #pragma omp parallel for schedule(static)
+        for (label i = 0; i < nCells; i++)
+        {
+            cellOccupancy_[i].clear();
+        }
+
+        forAllIter(dsmcCloud, *this, iter)
+        {
+            cellOccupancy_[iter().cell()].append(&iter());
+        }
+    }
+}
+
+
+void Foam::dsmcCloud::buildParcelPtrs()
+{
+    const label nPart = this->size();
+    parcelPtrs_.setSize(nPart);
+
+    // Serial IDLList traversal (unavoidable for linked list)
+    label i = 0;
     forAllIter(dsmcCloud, *this, iter)
     {
-        cellOccupancy_[iter().cell()].append(&iter());
+        parcelPtrs_[i++] = &iter();
     }
+}
+
+
+void Foam::dsmcCloud::buildCellIndex()
+{
+    const label nCells = mesh_.nCells();
+    const label nPart = parcelPtrs_.size();
+
+    cellFirst_.setSize(nCells);
+    cellCount_.setSize(nCells);
+    cellNext_.setSize(nPart);
+
+    // Step 1: parallel count particles per cell
+    cellCount_ = 0;
+
+    #pragma omp parallel
+    {
+        // Thread-local count
+        labelList localCount(nCells, 0);
+
+        #pragma omp for schedule(static)
+        for (label i = 0; i < nPart; i++)
+        {
+            localCount[parcelPtrs_[i]->cell()]++;
+        }
+
+        // Merge into global count
+        #pragma omp critical
+        {
+            for (label c = 0; c < nCells; c++)
+            {
+                cellCount_[c] += localCount[c];
+            }
+        }
+    }
+
+    // Step 2: serial build linked list (O(n), cache-friendly reverse scan)
+    cellFirst_ = -1;
+    cellNext_ = -1;
+
+    for (label i = nPart - 1; i >= 0; --i)
+    {
+        const label cellI = parcelPtrs_[i]->cell();
+        cellNext_[i] = cellFirst_[cellI];
+        cellFirst_[cellI] = i;
+    }
+}
+
+void Foam::dsmcCloud::validateCellIndex() const
+{
+    // Check total particle count
+    label totalFromIndex = 0;
+    forAll(cellCount_, c)
+    {
+        totalFromIndex += cellCount_[c];
+    }
+
+    if (totalFromIndex != parcelPtrs_.size())
+    {
+        FatalErrorInFunction
+            << "Cell index total (" << totalFromIndex
+            << ") != parcelPtrs size (" << parcelPtrs_.size() << ")"
+            << exit(FatalError);
+    }
+
+    // Check against cellOccupancy
+    forAll(cellOccupancy_, c)
+    {
+        if (cellCount_[c] != cellOccupancy_[c].size())
+        {
+            FatalErrorInFunction
+                << "Cell " << c << ": cellCount=" << cellCount_[c]
+                << " but cellOccupancy size=" << cellOccupancy_[c].size()
+                << exit(FatalError);
+        }
+    }
+}
+
+
+Foam::Random& Foam::dsmcCloud::rng(const label tid)
+{
+    if (tid < 0)
+    {
+        return rndGen_;
+    }
+    return threadRng_[tid];
+}
+
+
+void Foam::dsmcCloud::buildBoundaryCellMarking()
+{
+    const label nCells = mesh_.nCells();
+    boundaryCell_.setSize(nCells);
+    boundaryCell_ = false;  // Force reset all to false
+
+    const polyBoundaryMesh& pbMesh = mesh_.boundaryMesh();
+
+    Info<< "DSMC OpenMP move: scanning " << pbMesh.size()
+        << " patches for boundary cells" << endl;
+
+    forAll(pbMesh, patchI)
+    {
+        const polyPatch& pp = pbMesh[patchI];
+
+        // Only mark cells adjacent to patches that cause particle interactions:
+        // wall, processor, inlet/outlet (generic patch type).
+        // Skip: empty, symmetry, symmetryPlane, wedge — these don't
+        // cause boundary interactions in DSMC.
+        const word& pType = pp.type();
+        if
+        (
+            pp.size() > 0
+         && pType != "empty"
+         && pType != "symmetry"
+         && pType != "symmetryPlane"
+         && pType != "wedge"
+        )
+        {
+            forAll(pp, faceI)
+            {
+                const label cellI = mesh_.faceOwner()[pp.start() + faceI];
+                boundaryCell_[cellI] = true;
+            }
+        }
+    }
+
+    label nBoundary = 0;
+    forAll(boundaryCell_, c)
+    {
+        if (boundaryCell_[c]) nBoundary++;
+    }
+
+    Info<< "DSMC OpenMP move: " << nBoundary << " boundary cells / "
+        << nCells << " total ("
+        << 100.0*scalar(nBoundary)/max(scalar(nCells), SMALL) << "%)"
+        << endl;
+}
+
+
+void Foam::dsmcCloud::moveParallel(const scalar trackTime)
+{
+    // Phase 5: Parallel move with boundary cell classification
+    // Internal particles (not in boundary cells) are moved in parallel.
+    // Boundary particles are moved serially with full OF tracking.
+
+    // Ensure boundary cell marking is initialized
+    if (boundaryCell_.size() != mesh_.nCells())
+    {
+        buildBoundaryCellMarking();
+    }
+
+    // Force lazy-evaluated mesh data to be computed before entering
+    // parallel region. Call trackToFace once in serial to trigger ALL
+    // demand-driven mesh data that tracking might need.
+    (void)mesh_.tetBasePtIs();
+    (void)mesh_.cellCentres();
+    (void)mesh_.cellVolumes();
+    (void)mesh_.cells();
+    (void)mesh_.faceOwner();
+    (void)mesh_.faceNeighbour();
+    (void)mesh_.faces();
+    (void)mesh_.points();
+    (void)mesh_.boundaryMesh();
+    (void)this->cellHasWallFaces();
+
+    // Warm up: do one serial tracking step to ensure all lazy data is computed
+    if (parcelPtrs_.size() > 0)
+    {
+        dsmcParcel& firstP = *parcelPtrs_[0];
+        dsmcParcel::trackingData warmupTd(*this);
+        warmupTd.switchProcessor = false;
+        warmupTd.keepParticle = true;
+        // Track with zero displacement (no-op but triggers all lazy paths)
+        firstP.trackToFace(firstP.position(), warmupTd, true);
+    }
+
+    // Pre-compute cell sizes for parallel use (avoid lazy mesh queries)
+    const scalarField& cellVols = mesh_.cellVolumes();
+
+    dsmcParcel::trackingData td(*this);
+
+    buildParcelPtrs();
+    const label nPart = parcelPtrs_.size();
+
+    // Reset stepFraction for all particles (same as Cloud::move() does)
+    // Parallelized since parcelPtrs_ provides random access
+    #pragma omp parallel for schedule(static)
+    for (label i = 0; i < nPart; i++)
+    {
+        parcelPtrs_[i]->stepFraction() = 0;
+    }
+
+    // Classify particles: internal vs boundary
+    DynamicList<label> internalParcels(nPart);
+    DynamicList<label> boundaryParcels;
+
+    for (label i = 0; i < nPart; i++)
+    {
+        if (boundaryCell_[parcelPtrs_[i]->cell()])
+        {
+            boundaryParcels.append(i);
+        }
+        else
+        {
+            internalParcels.append(i);
+        }
+    }
+
+    // --- Parallel move for internal particles ---
+    // Use trackToFace for proper cell crossing, but only for internal particles.
+    // cloud.labels() has been made local in particleTemplates.C (thread-safe).
+    // Boundary measurements are skipped during parallel move (parallelMoveActive_).
+    // Boundary particles are handled serially.
+
+    parallelMoveActive_ = true;
+
+    label nParallelMoved = 0;
+    DynamicList<dsmcParcel*> parallelDeleteList;
+
+    #pragma omp parallel reduction(+:nParallelMoved)
+    {
+        #ifdef _OPENMP
+            const int tid = omp_get_thread_num();
+        #else
+            const int tid = 0;
+        #endif
+
+        DynamicList<dsmcParcel*> myDeleteList;
+
+        #pragma omp for schedule(dynamic, 256)
+        for (label ii = 0; ii < internalParcels.size(); ii++)
+        {
+            const label idx = internalParcels[ii];
+            dsmcParcel& p = *parcelPtrs_[idx];
+
+            dsmcParcel::trackingData localTd(*this);
+            localTd.switchProcessor = false;
+            localTd.keepParticle = true;
+
+            if (p.isFree())
+            {
+                if (p.newParcel() != -1)
+                {
+                    p.stepFraction() = rng(tid).sample01<scalar>();
+                    p.newParcel() = -1;
+                }
+
+                const label orgCell = p.cell();
+                scalar tEnd =
+                    (1.0 - p.stepFraction()) * deltaTValue(orgCell);
+                vector Utracking = p.U();
+
+                while (localTd.keepParticle && !localTd.switchProcessor
+                       && tEnd > ROOTVSMALL)
+                {
+                    Utracking = p.U();
+
+                    // 2D/reduced-D constraints (critical for 2D cases!)
+                    if (coordSystem().type() == "dsmcCartesian")
+                    {
+                        meshTools::constrainToMeshCentre(mesh_, p.position());
+                        meshTools::constrainDirection
+                        (
+                            mesh_, mesh_.solutionD(), Utracking
+                        );
+                    }
+
+                    scalar dt = tEnd;
+                    const label orgCellLocal = p.cell();
+                    dt *= p.trackToFace
+                    (
+                        p.position() + dt*Utracking, localTd, true
+                    );
+                    tEnd -= dt;
+                    p.stepFraction() = 1.0 - tEnd/deltaTValue(orgCellLocal);
+
+                    if (p.onBoundary() && localTd.keepParticle)
+                    {
+                        if (isA<processorPolyPatch>
+                            (mesh_.boundaryMesh()[p.patch(p.face())]))
+                        {
+                            localTd.switchProcessor = true;
+                        }
+                    }
+                }
+
+                nParallelMoved++;
+            }
+
+            if (!localTd.keepParticle)
+            {
+                myDeleteList.append(&p);
+            }
+        }
+
+        #pragma omp critical
+        {
+            forAll(myDeleteList, i)
+            {
+                parallelDeleteList.append(myDeleteList[i]);
+            }
+        }
+    } // end omp parallel
+
+    parallelMoveActive_ = false;
+
+    // Mark deleted particles with stepFraction = -1 (dead flag)
+    // Actual deletion deferred to after boundary move
+    forAll(parallelDeleteList, i)
+    {
+        parallelDeleteList[i]->stepFraction() = -1.0;
+    }
+
+    // Serial move for boundary particles
+    forAll(boundaryParcels, bi)
+    {
+        dsmcParcel& p = *parcelPtrs_[boundaryParcels[bi]];
+        if (p.stepFraction() < 0) continue; // skip if already dead
+        td.switchProcessor = false;
+        td.keepParticle = true;
+        p.move(td, trackTime);
+        if (!td.keepParticle)
+        {
+            p.stepFraction() = -1.0; // mark dead
+        }
+    }
+
+    // Now delete all dead particles and compact parcelPtrs_
+    label writeIdx = 0;
+    for (label i = 0; i < parcelPtrs_.size(); i++)
+    {
+        if (parcelPtrs_[i]->stepFraction() < 0)
+        {
+            deleteParticle(*parcelPtrs_[i]);
+        }
+        else
+        {
+            parcelPtrs_[writeIdx++] = parcelPtrs_[i];
+        }
+    }
+    parcelPtrs_.setSize(writeIdx);
 }
 
 
@@ -501,7 +883,7 @@ Foam::scalar Foam::dsmcCloud::energyRatio
 
     if (ChiAMinusOne < SMALL && ChiBMinusOne < SMALL)
     {
-        return rndGen_.sample01<scalar>();
+        return rndGen().sample01<scalar>();
     }
 
     scalar energyRatio;
@@ -512,7 +894,7 @@ Foam::scalar Foam::dsmcCloud::energyRatio
     {
         P = 0;
 
-        energyRatio = rndGen_.sample01<scalar>();
+        energyRatio = rndGen().sample01<scalar>();
 
         if (ChiAMinusOne < SMALL)
         {
@@ -537,7 +919,7 @@ Foam::scalar Foam::dsmcCloud::energyRatio
                     ChiBMinusOne
                 );
         }
-    } while (P < rndGen_.sample01<scalar>());
+    } while (P < rndGen().sample01<scalar>());
 
     return energyRatio;
 }
@@ -555,7 +937,7 @@ Foam::scalar Foam::dsmcCloud::PSIm
 
     if (DOFm == 2.0 && DOFtot == 4.0)
     {
-        return rndGen_.sample01<scalar>();
+        return rndGen().sample01<scalar>();
     }
 
     if (DOFtot < 4.0)
@@ -572,9 +954,9 @@ Foam::scalar Foam::dsmcCloud::PSIm
 
     do
     {
-        rPSIm = rndGen_.sample01<scalar>();
+        rPSIm = rndGen().sample01<scalar>();
         prob = pow(h1,h1)/(pow(h2,h2)*pow(h3,h3))*pow(rPSIm,h2)*pow(1.0-rPSIm,h3);
-    } while (prob < rndGen_.sample01<scalar>());
+    } while (prob < rndGen().sample01<scalar>());
 
     return rPSIm;
 }
@@ -612,6 +994,26 @@ Foam::dsmcCloud::dsmcCloud
     nTerminalOutputs_
     (
         controlDict_.lookupOrDefault<label>("nTerminalOutputs", 1)
+    ),
+    ompTimingEnabled_
+    (
+        controlDict_.lookupOrDefault<Switch>("ompTimingEnabled", true)
+    ),
+    parallelMoveActive_(false),
+    timeMove_(0),
+    timeBuildCellOccupancy_(0),
+    timeCoordSystem_(0),
+    timeCollisions_(0),
+    timeFields_(0),
+    timeControllersBeforeMove_(0),
+    timeBoundariesBeforeMove_(0),
+    timeControllersBeforeCollisions_(0),
+    timeControllersAfterCollisions_(0),
+    timeOther_(0),
+    timingStepCounter_(0),
+    timingOutputInterval_
+    (
+        controlDict_.lookupOrDefault<label>("timingOutputInterval", 100)
     ),
     cellOccupancy_(),
     rhoNMeanElectron_(mesh_.nCells(), 0.0),
@@ -677,6 +1079,30 @@ Foam::dsmcCloud::dsmcCloud
     buildCellOccupancyFromScratch();
     buildCollisionSelectionRemainderFromScratch();
 
+    // Initialize per-thread RNG
+    {
+        label nThreads = 1;
+        #ifdef _OPENMP
+            nThreads = omp_get_max_threads();
+        #endif
+        threadRng_.setSize(nThreads);
+        for (label t = 0; t < nThreads; t++)
+        {
+            threadRng_.set
+            (
+                t,
+                new Random(label(rndGen_.sample01<scalar>() * 1000000) + t + 1)
+            );
+        }
+        Info<< "DSMC OpenMP: initialized " << nThreads
+            << " thread RNGs" << endl;
+    }
+
+    // Build parallel data structures
+    buildBoundaryCellMarking();
+    buildParcelPtrs();
+    buildCellIndex();
+
     collisionPartnerSelectionModel_ = autoPtr<collisionPartnerSelection>
     (
         collisionPartnerSelection::New(mesh, *this, particleProperties_)
@@ -722,6 +1148,26 @@ Foam::dsmcCloud::dsmcCloud
     nTerminalOutputs_
     (
         controlDict_.lookupOrDefault<label>("nTerminalOutputs", 1)
+    ),
+    ompTimingEnabled_
+    (
+        controlDict_.lookupOrDefault<Switch>("ompTimingEnabled", true)
+    ),
+    parallelMoveActive_(false),
+    timeMove_(0),
+    timeBuildCellOccupancy_(0),
+    timeCoordSystem_(0),
+    timeCollisions_(0),
+    timeFields_(0),
+    timeControllersBeforeMove_(0),
+    timeBoundariesBeforeMove_(0),
+    timeControllersBeforeCollisions_(0),
+    timeControllersAfterCollisions_(0),
+    timeOther_(0),
+    timingStepCounter_(0),
+    timingOutputInterval_
+    (
+        controlDict_.lookupOrDefault<label>("timingOutputInterval", 100)
     ),
     cellOccupancy_(),
     rhoNMeanElectron_(),
@@ -820,6 +1266,59 @@ void Foam::dsmcCloud::evolve()
 {
     evolve_moveAndCollide();
     evolve_fields();
+
+    // --- Phase timing output ---
+    if (ompTimingEnabled_)
+    {
+        timingStepCounter_++;
+
+        if (timingStepCounter_ >= timingOutputInterval_)
+        {
+            const scalar N = scalar(timingStepCounter_);
+            const scalar totalTime = timeMove_ + timeBuildCellOccupancy_
+                + timeCoordSystem_ + timeCollisions_ + timeFields_
+                + timeControllersBeforeMove_ + timeBoundariesBeforeMove_
+                + timeControllersBeforeCollisions_
+                + timeControllersAfterCollisions_;
+
+            Info<< nl
+                << "DSMC phase timings (last " << timingStepCounter_
+                << " steps, wall-time seconds):" << nl
+                << "  move                    " << timeMove_ << " ("
+                << 100.0*timeMove_/max(totalTime, SMALL) << "%)" << nl
+                << "  buildCellOccupancy      " << timeBuildCellOccupancy_ << " ("
+                << 100.0*timeBuildCellOccupancy_/max(totalTime, SMALL) << "%)" << nl
+                << "  coordSystem             " << timeCoordSystem_ << " ("
+                << 100.0*timeCoordSystem_/max(totalTime, SMALL) << "%)" << nl
+                << "  collisions              " << timeCollisions_ << " ("
+                << 100.0*timeCollisions_/max(totalTime, SMALL) << "%)" << nl
+                << "  fields                  " << timeFields_ << " ("
+                << 100.0*timeFields_/max(totalTime, SMALL) << "%)" << nl
+                << "  controllersBeforeMove   " << timeControllersBeforeMove_ << nl
+                << "  boundariesBeforeMove    " << timeBoundariesBeforeMove_ << nl
+                << "  controllersBefCollision " << timeControllersBeforeCollisions_ << nl
+                << "  controllersAftCollision " << timeControllersAfterCollisions_ << nl
+                << "  total                   " << totalTime << nl
+                << "  per-step average        " << totalTime/N << nl
+                << "DSMC diagnostics:" << nl
+                << "  nParticles              " << this->size() << nl
+                << "  nCells                  " << mesh_.nCells() << nl
+                << endl;
+
+            // Reset accumulators
+            timeMove_ = 0;
+            timeBuildCellOccupancy_ = 0;
+            timeCoordSystem_ = 0;
+            timeCollisions_ = 0;
+            timeFields_ = 0;
+            timeControllersBeforeMove_ = 0;
+            timeBoundariesBeforeMove_ = 0;
+            timeControllersBeforeCollisions_ = 0;
+            timeControllersAfterCollisions_ = 0;
+            timeOther_ = 0;
+            timingStepCounter_ = 0;
+        }
+    }
 }
 
 
@@ -836,81 +1335,133 @@ void Foam::dsmcCloud::evolve_moveAndCollide()
         this->dumpParticlePositions();
     }
 
+    // --- Phase timing ---
+    scalar t0 = 0, t1 = 0;
+    #ifdef _OPENMP
+        #define DSMC_WTIME() omp_get_wtime()
+    #else
+        #define DSMC_WTIME() mesh_.time().elapsedClockTime()
+    #endif
+
+    t0 = DSMC_WTIME();
     controllers_.controlBeforeMove();
+    t1 = DSMC_WTIME();
+    timeControllersBeforeMove_ += (t1 - t0);
+
+    t0 = t1;
     boundaries_.controlBeforeMove();
+    t1 = DSMC_WTIME();
+    timeBoundariesBeforeMove_ += (t1 - t0);
 
     //- Remove electrons
     if (findIndex(typeIdList_, "e-") != -1)
     {
-        // TODO VINCENT: there is a clever way than rebuilding entire cell occ.
         removeElectrons();
         buildCellOccupancy();
     }
 
     //- Move the particles ballistically with their current velocities
-    // Note: The parcels radial weighting factor (RWF) will stay constant over
-    // the _entire_ move step. It will be updated by coordSystem().evolve (see
-    // below). Any function that operates on the parcel in between has to
-    // consider this. This is especially relevant for boundary measurements
-    // that are performed when a parcel hits a wall during the move step.
-    // Consider the following situation:
-    //  1. parcel starts in cell = x
-    //  2. parcel is moved to cell = y
-    //  3. parcel hits a wall face y1 that belongs to cell = y. This hit now has
-    //     to be counted with the RWF that the parcel had at the beginning of
-    //     its move step, i.e. RWF(cell = x), _neither_ RWF(cell = y) _nor_
-    //     RWF(face = y1)
-
-    //scalar timer = mesh_.time().elapsedCpuTime();
-    Cloud<dsmcParcel>::move(td, deltaTValue());
-    //Info<< "move" << tab << mesh_.time().elapsedCpuTime() - timer << " s" << endl;
+    t0 = DSMC_WTIME();
+    #ifdef _OPENMP
+    if (omp_get_max_threads() > 1)
+    {
+        moveParallel(deltaTValue());
+    }
+    else
+    #endif
+    {
+        Cloud<dsmcParcel>::move(td, deltaTValue());
+    }
+    t1 = DSMC_WTIME();
+    timeMove_ += (t1 - t0);
 
     //- Update cell occupancy
-    //timer = mesh_.time().elapsedCpuTime();
-    buildCellOccupancy();
-    //Info<< "buildCellOccupancy" << tab << mesh_.time().elapsedCpuTime() - timer << " s " << endl;
+    t0 = t1;
+    #ifdef _OPENMP
+    if (omp_get_max_threads() > 1)
+    {
+        // moveParallel already compacted parcelPtrs_, only rebuild cell index
+        buildCellIndex();
+    }
+    else
+    #endif
+    {
+        buildParcelPtrs();
+        buildCellIndex();
+    }
+    // buildCellOccupancy only if legacy consumers need it
+    if (collisionPartnerSelectionModel_->type() != "noTimeCounterOMP")
+    {
+        buildCellOccupancy();
+    }
+    t1 = DSMC_WTIME();
+    timeBuildCellOccupancy_ += (t1 - t0);
 
     //- Add electrons back after the move function
     if (findIndex(typeIdList_, "e-") != -1)
     {
-        // TODO VINCENT: there is a clever way than rebuilding entire cell occ.
         addElectrons();
         buildCellOccupancy();
     }
 
-    //- Radial weighting for non-Cartesian flows (e.g., axisymmetric). This is
-    // where parcels will receive their new RWF and will possibly be cloned or
-    // deleted.
+    //- Radial weighting for non-Cartesian flows
+    t0 = DSMC_WTIME();
     coordSystem().evolve();
+    t1 = DSMC_WTIME();
+    timeCoordSystem_ += (t1 - t0);
 
+    t0 = t1;
     controllers_.controlBeforeCollisions();
     boundaries_.controlBeforeCollisions();
+    t1 = DSMC_WTIME();
+    timeControllersBeforeCollisions_ += (t1 - t0);
 
-    //- Calculate new velocities via stochastic collisions
-    //timer = mesh_.time().elapsedCpuTime();
-    collisions();
-    //Info<< "collisions" << tab << mesh_.time().elapsedCpuTime() - timer << " s" << endl;
-
-    //- Reactions may have changed cell occupancy, update if any reaction
-    if (reactions_.nReactions() != 0)
+    // Validate cell index in debug mode
+    if (debug)
     {
-        buildCellOccupancy();
+        validateCellIndex();
     }
 
+    //- Calculate new velocities via stochastic collisions
+    t0 = t1;
+    collisions();
+    t1 = DSMC_WTIME();
+    timeCollisions_ += (t1 - t0);
+
+    //- Reactions may have changed particle list, rebuild index
+    if (reactions_.nReactions() != 0)
+    {
+        buildParcelPtrs();
+        buildCellIndex();
+    }
+
+    t0 = DSMC_WTIME();
     controllers_.controlAfterCollisions();
     boundaries_.controlAfterCollisions();
+    t1 = DSMC_WTIME();
+    timeControllersAfterCollisions_ += (t1 - t0);
+
+    #undef DSMC_WTIME
 }
 
 
 void Foam::dsmcCloud::evolve_fields()
 {
+    #ifdef _OPENMP
+        #define DSMC_WTIME() omp_get_wtime()
+    #else
+        #define DSMC_WTIME() mesh_.time().elapsedClockTime()
+    #endif
+
+    scalar t0 = DSMC_WTIME();
+
+    // Build sorted index once for fields (cache-friendly cell traversal)
+
     reactions_.outputData();
 
     fields_.calculateFields();
 
-    //timer = mesh_.time().elapsedCpuTime();
     fields_.writeFields();
-    //Info<< "fields W" << tab << mesh_.time().elapsedCpuTime() - timer << " s" << endl;
 
     controllers_.calculateProps();
     controllers_.outputResults();
@@ -923,6 +1474,11 @@ void Foam::dsmcCloud::evolve_fields()
     trackingInfo_.clean();
     boundaryMeas_.clean();
     cellMeas_.clean();
+
+    scalar t1 = DSMC_WTIME();
+    timeFields_ += (t1 - t0);
+
+    #undef DSMC_WTIME
 }
 
 
@@ -1007,6 +1563,8 @@ void Foam::dsmcCloud::autoMap(const mapPolyMesh& mapper)
 
     buildCellOccupancyFromScratch();
     buildCollisionSelectionRemainderFromScratch();
+    buildParcelPtrs();
+    buildCellIndex();
     resetBoundaries();
     resetMeasurementTools();
 }
@@ -1027,7 +1585,7 @@ Foam::label Foam::dsmcCloud::randomLabel
         const label start = Foam::min(valOne, valTwo);
         const label end = Foam::max(valOne, valTwo);
 
-        label val = start + label(rndGen_.sample01<scalar>()*(end - start + 1));
+        label val = start + label(rndGen().sample01<scalar>()*(end - start + 1));
 
         // Rare case when scalar01() returns exactly 1.000 and the truncated
         // value would be out of range.
@@ -1047,7 +1605,7 @@ Foam::vector Foam::dsmcCloud::equipartitionLinearVelocity
 )
 {
     return sqrt(physicoChemical::k.value()*temperature/mass)
-        *rndGen_.GaussNormal<vector>();
+        *rndGen().GaussNormal<vector>();
 }
 
 
@@ -1068,12 +1626,12 @@ Foam::vector Foam::dsmcCloud::chapmanEnskogVelocity
 
     while (repeatTry)
     {
-        CTry = rndGen_.GaussNormal<vector>()/sqrt(2.0);
+        CTry = rndGen().GaussNormal<vector>()/sqrt(2.0);
 
         const scalar gammaTry = 1.0 + (q & CTry)*(0.4*(CTry & CTry) - 1.0)
             - (CTry & (tau & CTry));
 
-        if (gammaTry >= A*rndGen_.sample01<scalar>())
+        if (gammaTry >= A*rndGen().sample01<scalar>())
         {
             repeatTry = false;
         }
@@ -1160,7 +1718,7 @@ void Foam::dsmcCloud::generalisedChapmanEnskog
             epsVib /= vibrationalTemperature;
         }
 
-        CTry = rndGen_.GaussNormal<vector>()/sqrt(2.0);
+        CTry = rndGen().GaussNormal<vector>()/sqrt(2.0);
 
         const scalar gammaTry = 1.0 + 2.0*(D & CTry)
             + (qTra & CTry)*(0.4*(CTry & CTry) - 1.0)
@@ -1168,7 +1726,7 @@ void Foam::dsmcCloud::generalisedChapmanEnskog
             + (qVib & CTry)*(epsVib - epsVibAv)
             - (CTry & (tau & CTry));
 
-        if (gammaTry >= A*rndGen_.sample01<scalar>())
+        if (gammaTry >= A*rndGen().sample01<scalar>())
         {
             repeatTry = false;
         }
@@ -1193,7 +1751,7 @@ Foam::scalar Foam::dsmcCloud::equipartitionRotationalEnergy
     else if (rotationalDof < 2.0 + SMALL && rotationalDof > 2.0 - SMALL)
     {
         // Special case for rDof = 2, i.e. diatomics;
-        ERot = -log(rndGen_.sample01<scalar>())*physicoChemical::k.value()*temperature;
+        ERot = -log(rndGen().sample01<scalar>())*physicoChemical::k.value()*temperature;
     }
     else
     {
@@ -1205,11 +1763,11 @@ Foam::scalar Foam::dsmcCloud::equipartitionRotationalEnergy
 
         do
         {
-            energyRatio = 10*rndGen_.sample01<scalar>();
+            energyRatio = 10*rndGen().sample01<scalar>();
 
             P = pow((energyRatio/a), a)*exp(a - energyRatio);
 
-        } while (P < rndGen_.sample01<scalar>());
+        } while (P < rndGen().sample01<scalar>());
 
         ERot = energyRatio*physicoChemical::k.value()*temperature;
     }
@@ -1235,7 +1793,7 @@ Foam::labelList Foam::dsmcCloud::equipartitionVibrationalEnergyLevel
     {
         forAll(vibLevel, mode)
         {
-            vibLevel[mode] = -log(rndGen_.sample01<scalar>())*temperature
+            vibLevel[mode] = -log(rndGen().sample01<scalar>())*temperature
                 /constProps(typeId).thetaV_m(mode);
         }
     }

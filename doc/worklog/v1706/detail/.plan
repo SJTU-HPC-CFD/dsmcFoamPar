@@ -1,0 +1,41 @@
+# Phase 0 Implementation Plan
+
+## Goal
+Add OpenMP compilation support, wall-time phase timing, and parallel diagnostics to `dsmcCloud` without changing any physics behavior.
+
+## Key Findings from Exploration
+
+1. **Build system**: `Make/options` uses Intel compiler (`linux64IccDPInt32Opt`), needs `-qopenmp` (Intel) not `-fopenmp` (GCC)
+2. **evolve_moveAndCollide()** (dsmcCloud.C:826-902): Already has commented-out `elapsedCpuTime()` timing — we replace with proper wall-time instrumentation
+3. **Test case has reactions**: `chemReactDict` configures `dissociationQK` — means Phase 2 collision OMP will initially fall back to serial for this case
+4. **No existing OpenMP infrastructure**: No `#include <omp.h>`, no thread-related code anywhere in the DSMC library
+
+## Changes
+
+### 1. Make/options — Add OpenMP flag
+Add `-qopenmp` to both `EXE_INC` and `LIB_LIBS` (Intel compiler flag).
+Wrap with `ifdef` so it compiles without OpenMP too.
+
+### 2. dsmcCloud.H — Add timing members and openMPDsmc switch
+- Add `#include <omp.h>` (guarded by `#ifdef _OPENMP`)
+- Add private members for phase timing storage
+- Add `dictionary openMPDsmcDict_` for runtime control
+- Add `bool ompEnabled_` switch
+
+### 3. dsmcCloud.C — Implement phase timing in evolve_moveAndCollide() and evolve_fields()
+- Read `openMPDsmc` sub-dictionary from `controlDict_` (optional, default disabled)
+- Wrap each phase with `omp_get_wtime()` calls
+- Output timing summary at configurable interval (e.g., every nTerminalOutputs steps)
+- Output parallel diagnostics: nParticles, nCells, maxCellCount/avgCellCount
+
+### 4. No physics changes — verification by running existing test case and confirming identical results
+
+## File List
+- MODIFY: `src/lagrangian/dsmc/Make/options`
+- MODIFY: `src/lagrangian/dsmc/clouds/dsmcCloud.H`
+- MODIFY: `src/lagrangian/dsmc/clouds/dsmcCloud.C`
+
+## Verification
+1. Build with OpenMP flag — compiles cleanly
+2. Run mpi8 test case — results unchanged (timing output added to log)
+3. Run omp8 test case — results unchanged, timing visible

@@ -57,6 +57,10 @@ SourceFiles
 #include "dsmcDynamicLoadBalancing.H"
 
 #include "dsmcReactions.H"
+
+#ifdef _OPENMP
+    #include <omp.h>
+#endif
 #include "collisionPartnerSelection.H"
 #include "boundaryMeasurements.H"
 #include "cellMeasurements.H"
@@ -109,6 +113,53 @@ private:
 
         //- Write out the information to terminal every nTerminalOutputs
         label nTerminalOutputs_;
+
+        // --- OpenMP phase timing infrastructure ---
+
+        //- Whether to output phase timing diagnostics
+        bool ompTimingEnabled_;
+
+        //- Accumulated wall-time for each phase (seconds)
+        scalar timeMove_;
+        scalar timeBuildCellOccupancy_;
+        scalar timeCoordSystem_;
+        scalar timeCollisions_;
+        scalar timeFields_;
+        scalar timeControllersBeforeMove_;
+        scalar timeBoundariesBeforeMove_;
+        scalar timeControllersBeforeCollisions_;
+        scalar timeControllersAfterCollisions_;
+        scalar timeOther_;
+
+        //- Step counter for timing output interval
+        label timingStepCounter_;
+
+        //- Output interval for timing (in steps)
+        label timingOutputInterval_;
+
+        // --- End OpenMP timing ---
+
+        // --- OpenMP parallel data structures ---
+
+        //- Random-access pointer array into Cloud IDLList
+        DynamicList<dsmcParcel*> parcelPtrs_;
+
+        //- SPARTA-style cell linked-list index
+        labelList cellFirst_;
+        labelList cellNext_;
+        labelList cellCount_;
+
+        //- Per-thread random number generators
+        PtrList<Random> threadRng_;
+
+        //- Marks cells that have at least one boundary face
+        //  (particles in these cells need serial move for boundary interactions)
+        boolList boundaryCell_;
+
+        //- Flag: true when inside parallel move region (skip boundary measurements)
+        bool parallelMoveActive_;
+
+        // --- End OpenMP parallel data structures ---
 
         //- A data structure holding which particles are in which cell
         //List<DynamicList<dsmcParcel*> > cellOccupancy_;
@@ -675,6 +726,44 @@ public:
 
             //- Evolve the cloud (compute)
             void evolve_fields();
+
+            // --- OpenMP parallel infrastructure ---
+
+            //- Build random-access pointer array from IDLList
+            void buildParcelPtrs();
+
+            //- Build SPARTA-style cell linked-list index
+            void buildCellIndex();
+
+            //- Validate cell index against cellOccupancy (debug)
+            void validateCellIndex() const;
+
+            //- Unified RNG access: tid<0 returns serial rndGen_,
+            //  tid>=0 returns threadRng_[tid]
+            Random& rng(const label tid = -1);
+
+            //- Access cell index
+            inline const labelList& cellFirst() const { return cellFirst_; }
+            inline const labelList& cellNext() const { return cellNext_; }
+            inline const labelList& cellCount() const { return cellCount_; }
+            inline const DynamicList<dsmcParcel*>& parcelPtrs() const
+            {
+                return parcelPtrs_;
+            }
+
+            //- Parallel move: internal particles parallel, boundary serial
+            void moveParallel(const scalar trackTime);
+
+            //- Build boundary cell marking (called once at startup)
+            void buildBoundaryCellMarking();
+
+            //- Check if parallel move is active (skip measurements)
+            inline bool parallelMoveActive() const
+            {
+                return parallelMoveActive_;
+            }
+
+            // --- End OpenMP parallel infrastructure ---
 
             // Return how often to write to terminal
             // (used for the solver to access this)

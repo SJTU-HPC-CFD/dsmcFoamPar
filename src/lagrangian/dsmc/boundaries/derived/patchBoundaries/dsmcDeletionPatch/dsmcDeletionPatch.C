@@ -151,7 +151,10 @@ void dsmcDeletionPatch::controlParticle
 
         //cloud_.updateMediumPropertiesMeasurement(p, patchId());
 
-        cloud_.porousMeas().deletionInteraction(p, patchId());
+        if (!cloud_.parallelMoveActive())
+        {
+            cloud_.porousMeas().deletionInteraction(p, patchId());
+        }
 
         td.keepParticle = false;
 

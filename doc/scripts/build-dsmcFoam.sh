@@ -4,7 +4,7 @@
 
 set -e
 
-HYSTRATH_DLB=/home/superxcx/code/OpenFoam/OF-1706/hyStrath_dlb
+HYSTRATH_DLB=/home/superxcx/code/OpenFoam/OF-1706/work/v1706-sparta
 
 # Source environment
 source ~/intel/oneapi/setvars.sh --force 2>/dev/null

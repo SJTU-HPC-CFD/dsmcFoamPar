@@ -292,7 +292,7 @@ Foam::scalar Foam::particle::trackToFace
     // current tet centre.
     scalar lambdaMin = VGREAT;
 
-    DynamicList<label>& tris = cloud.labels();
+    DynamicList<label> tris;  // OMP: local scratch replaces cloud.labels()
 
     // Tet indices that will be set by hitWallFaces if a wall face is
     // to be hit, or are set when any wall tri of a tet is hit.
@@ -805,7 +805,7 @@ Foam::scalar Foam::particle::trackToFace
         // current tet centre.
         scalar lambdaMin = VGREAT;
 
-        DynamicList<label>& tris = cloud.labels();
+        DynamicList<label> tris;  // OMP: local scratch replaces cloud.labels()
 
         // Tet indices that will be set by hitWallFaces if a wall face is
         // to be hit, or are set when any wall tri of a tet is hit.
