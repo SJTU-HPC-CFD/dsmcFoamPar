@@ -47,6 +47,6 @@ endif
 EXE_INC = $(OPENMP_FLAGS) -include $(WM_PROJECT_USER_DIR)/src/lagrangian/basic/lnInclude/hyCompatAPI.H -I$(LIB_SRC)/finiteVolume/lnInclude -I$(LIB_SRC)/parallel/decompose/decompositionMethods/lnInclude -I$(WM_PROJECT_USER_DIR)/src/lagrangian/basic/lnInclude -I$(WM_PROJECT_USER_DIR)/src/lagrangian/dsmc/lnInclude -I$(WM_PROJECT_USER_DIR)/src/lagrangian/molecularDynamics/general/lnInclude -I$(LIB_SRC)/meshTools/lnInclude
 # 16 "Make/options"
 
-EXE_LIBS = $(OPENMP_FLAGS) -L$(FOAM_USER_LIBBIN) -L$(FOAM_LIBBIN) -L/home/superxcx/code/DSMC/dsmcFoam++/parmetis-install/lib -lOpenFOAM -lmeshTools -lfiniteVolume -ldsmcFoam+ -llagrangian+ -lgeneralMolecule -lparmetis -lmetis
+EXE_LIBS = $(OPENMP_FLAGS) -L$(FOAM_USER_LIBBIN) -L$(FOAM_LIBBIN) -L$(PARMETIS_DIR)/lib -lOpenFOAM -lmeshTools -lfiniteVolume -ldsmcFoam+ -llagrangian+ -lgeneralMolecule -lparmetis -lmetis -lGKlib
 
 # options

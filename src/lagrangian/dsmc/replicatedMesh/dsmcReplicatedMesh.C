@@ -63,7 +63,9 @@ dsmcReplicatedMesh::dsmcReplicatedMesh(dsmcCloud& cloud, const fvMesh& mesh)
     postDLBSnapshotCountdown_(0),
     collDivisor_(128),
     asyncMigrationPending_(false),
-    asyncRecvSize_(0)
+    asyncRecvSize_(0),
+    useNoAlltoall_(false),
+    useFlatTransfer_(false)
 {}
 
 
@@ -252,6 +254,29 @@ void dsmcReplicatedMesh::initialize()
         mesh_.time().controlDict().lookupOrDefault<bool>
         ("replicatedMeshAutoDLB", false);
 
+    // ---- No-Alltoall async migration ----
+    useNoAlltoall_ =
+        mesh_.time().controlDict().lookupOrDefault<bool>
+        ("replicatedMeshNoAlltoall", false);
+    if (useNoAlltoall_)
+    {
+        prevRecvSizes_.setSize(nProcs_, 0);
+        perPeerRecvCapacity_.setSize(nProcs_, 0);
+        perPeerRecvBuf_.setSize(nProcs_);
+        Info<< "Replicated mesh: no-Alltoall async migration enabled" << endl;
+    }
+
+    useFlatTransfer_ =
+        mesh_.time().controlDict().lookupOrDefault<bool>
+        ("replicatedMeshFlatTransfer", false);
+    Info<< "Replicated mesh: flatTransfer=" << useFlatTransfer_
+        << " found=" << mesh_.time().controlDict().found("replicatedMeshFlatTransfer")
+        << endl;
+    if (useFlatTransfer_)
+    {
+        Info<< "Replicated mesh: flat POD transfer enabled" << endl;
+    }
+
     if (autoDLBEnabled_)
     {
         imbalanceThreshold_ = mesh_.time().controlDict()
@@ -275,7 +300,7 @@ void dsmcReplicatedMesh::initialize()
 // reassignByParMetisAdaptiveRepart — Phase C: ParMETIS incremental repartition
 // ============================================================================
 
-void dsmcReplicatedMesh::reassignByParMetisAdaptiveRepart()
+label dsmcReplicatedMesh::reassignByParMetisAdaptiveRepart()
 {
     const label nCells = mesh_.nCells();
     const label nIntFaces = mesh_.nInternalFaces();
@@ -484,6 +509,8 @@ void dsmcReplicatedMesh::reassignByParMetisAdaptiveRepart()
     Info<< "Phase C ParMETIS AdaptiveRepart: " << nChanged
         << " / " << nCells << " cells changed ("
         << scalar(nChanged) / scalar(nCells) << ")" << nl;
+
+    return nChanged;
 }
 
 
@@ -601,11 +628,14 @@ void dsmcReplicatedMesh::autoRebalance()
     const auto tDecStart = std::chrono::steady_clock::now();
 
     // Reassign by ParMETIS AdaptiveRepart
-    reassignByParMetisAdaptiveRepart();
+    const label nChanged = reassignByParMetisAdaptiveRepart();
 
-    // Migrate particles to new owners
-    migrateParticlesByCellOwner();
-    updateParticleCounts();
+    // Skip migration if partition unchanged
+    if (nChanged > 0)
+    {
+        migrateParticlesByCellOwner();
+        updateParticleCounts();
+    }
 
     const auto tDecEnd = std::chrono::steady_clock::now();
     tdecps_ += std::chrono::duration<scalar>(tDecEnd - tDecStart).count();
@@ -709,7 +739,7 @@ void dsmcReplicatedMesh::autoRebalance()
                     const label newK = label(
                         scalar(collDivisor_) * (scalar(1.0) + output) + scalar(0.5)
                     );
-                    const label clampedK = max(label(32), min(label(2048), newK));
+                    const label clampedK = max(label(1), min(label(2048), newK));
 
                     // Anti-windup: if K was clamped, back-calculate integral
                     if (clampedK != newK)
@@ -746,7 +776,7 @@ void dsmcReplicatedMesh::autoRebalance()
                     collDivisor_ = label(
                         scalar(collDivisor_) * (scalar(1.0) + step) + scalar(0.5)
                     );
-                    collDivisor_ = max(label(32), min(label(2048), collDivisor_));
+                    collDivisor_ = max(label(1), min(label(2048), collDivisor_));
                     lastDirection = direction;
                 }
                 lastImbalance = workImbalance;
@@ -807,8 +837,164 @@ void dsmcReplicatedMesh::migrateParticlesByCellOwner()
     if (!active_) return;
     const auto tStart = std::chrono::steady_clock::now();
 
-    // ---- Phase 1: partition parcels into kept vs migrating ----
-    // Use flat array (moveOrderedParcels_) if available, else fall back to linked list.
+    if (useFlatTransfer_)
+    {
+        // ---- Flat POD transfer path ----
+        List<DynamicList<dsmcParcel::TransferData>> sendTD(nProcs_);
+        DynamicList<dsmcParcel*> toDelete(cloud_.size() / 4);
+        DynamicList<dsmcParcel*> kept(cloud_.size());
+        label nMigratedOut = 0;
+
+        if (cloud_.hasMoveOrderedParcels())
+        {
+            const auto& ordered = cloud_.moveOrderedParcels();
+            for (label i = 0; i < ordered.size(); ++i)
+            {
+                dsmcParcel& p = *ordered[i];
+                const label dstRank = cellOwner_[p.cell()];
+                if (dstRank != myRank_)
+                {
+                    sendTD[dstRank].append(dsmcParcel::TransferData());
+                    p.packTransfer(sendTD[dstRank].last());
+                    toDelete.append(ordered[i]);
+                    ++nMigratedOut;
+                }
+                else
+                {
+                    kept.append(ordered[i]);
+                }
+            }
+        }
+        else
+        {
+            forAllIter(Cloud<dsmcParcel>, cloud_, iter)
+            {
+                dsmcParcel& p = iter();
+                const label dstRank = cellOwner_[p.cell()];
+                if (dstRank != myRank_)
+                {
+                    sendTD[dstRank].append(dsmcParcel::TransferData());
+                    p.packTransfer(sendTD[dstRank].last());
+                    toDelete.append(&p);
+                    ++nMigratedOut;
+                }
+                else
+                {
+                    kept.append(&p);
+                }
+            }
+        }
+        const auto t1 = std::chrono::steady_clock::now();
+
+        forAll(toDelete, i) { cloud_.deleteParcel(toDelete[i]); }
+
+        labelList sendSizes(nProcs_, 0);
+        for (label i = 0; i < nProcs_; ++i)
+            sendSizes[i] = sendTD[i].size() * sizeof(dsmcParcel::TransferData);
+        const auto t2 = std::chrono::steady_clock::now();
+
+        // MPI exchange (Alltoall sizes then Isend/Irecv data)
+        labelList recvSizes(nProcs_, 0);
+        MPI_Alltoall(sendSizes.data(), 1, MPI_INT,
+                     recvSizes.data(), 1, MPI_INT, MPI_COMM_WORLD);
+
+        label totalRecvBytes = 0;
+        for (label i = 0; i < nProcs_; ++i)
+            if (i != myRank_) totalRecvBytes += recvSizes[i];
+
+        List<char> recvBuf(totalRecvBytes);
+        labelList recvOffsets(nProcs_, 0);
+        {
+            label off = 0;
+            for (label i = 0; i < nProcs_; ++i)
+            {
+                recvOffsets[i] = off;
+                if (i != myRank_) off += recvSizes[i];
+            }
+        }
+
+        DynamicList<MPI_Request> allReqs(2 * (nProcs_ - 1));
+        for (label i = 0; i < nProcs_; ++i)
+        {
+            if (i != myRank_ && recvSizes[i] > 0)
+            {
+                MPI_Request req;
+                MPI_Irecv(recvBuf.data() + recvOffsets[i], recvSizes[i],
+                          MPI_BYTE, i, 0, MPI_COMM_WORLD, &req);
+                allReqs.append(req);
+            }
+        }
+        for (label i = 0; i < nProcs_; ++i)
+        {
+            if (i != myRank_ && sendSizes[i] > 0)
+            {
+                MPI_Request req;
+                MPI_Isend(sendTD[i].data(), sendSizes[i],
+                          MPI_BYTE, i, 0, MPI_COMM_WORLD, &req);
+                allReqs.append(req);
+            }
+        }
+        if (allReqs.size() > 0)
+            MPI_Waitall(allReqs.size(), allReqs.data(), MPI_STATUSES_IGNORE);
+
+        // Deserialize from flat buffer
+        label nRecv = 0;
+        for (label i = 0; i < nProcs_; ++i)
+        {
+            if (i != myRank_ && recvSizes[i] > 0)
+            {
+                const label nParcels =
+                    recvSizes[i] / sizeof(dsmcParcel::TransferData);
+                const auto* tdArr = reinterpret_cast<const dsmcParcel::TransferData*>
+                    (recvBuf.data() + recvOffsets[i]);
+                for (label j = 0; j < nParcels; ++j)
+                {
+                    auto* newp = dsmcParcel::unpackTransfer(mesh_, tdArr[j]);
+                    cloud_.addParticle(newp);
+                    kept.append(newp);
+                    ++nRecv;
+                }
+            }
+        }
+        const auto t3 = std::chrono::steady_clock::now();
+
+        cloud_.setMoveOrderedParcels(kept);
+
+        // Exchange candidate counts
+        {
+            const labelList& nCandPerCell = cloud_.nCandidatesPerCell();
+            label localCands = 0;
+            for (label i = 0; i < nCandPerCell.size(); ++i)
+                localCands += nCandPerCell[i];
+            allProcCandidates_.setSize(nProcs_, 0);
+            MPI_Allgather(&localCands, 1, MPI_INT,
+                          allProcCandidates_.data(), 1, MPI_INT, MPI_COMM_WORLD);
+        }
+
+        const auto tEnd = std::chrono::steady_clock::now();
+        migrationWallTime_ += std::chrono::duration<scalar>(tEnd - tStart).count();
+        ++migrationCalls_;
+        totalParcelsMigrated_ += nMigratedOut;
+
+        if (cloud_.emitStepDiagnostics())
+        {
+            label globalMigrated = 0;
+            MPI_Allreduce(&nMigratedOut, &globalMigrated, 1, MPI_INT,
+                          MPI_SUM, MPI_COMM_WORLD);
+            Info<< "Replicated mesh migration[" << migrationCalls_ << "]: "
+                << "rank " << myRank_
+                << " sent " << nMigratedOut << " parcels, received " << nRecv
+                << " (global " << globalMigrated << ")"
+                << " wall " << std::chrono::duration<scalar>(tEnd - tStart).count() << "s"
+                << " [pack " << std::chrono::duration<scalar>(t2 - t1).count() << "s"
+                << " MPI "  << std::chrono::duration<scalar>(t3 - t2).count() << "s"
+                << " deser "<< std::chrono::duration<scalar>(tEnd - t3).count() << "s]"
+                << endl;
+        }
+        return;
+    }
+
+    // ---- Stream-based transfer path (original) ----
     PtrList<OCharStream> sendStreams(nProcs_);
     for (label i = 0; i < nProcs_; ++i)
         if (i != myRank_) sendStreams.set(i, new OCharStream(IOstreamOption::BINARY));
@@ -909,6 +1095,64 @@ void dsmcReplicatedMesh::migrateParticlesByCellOwner()
             }
         }
     }
+    else if (useNoAlltoall_)
+    {
+        // No-Alltoall: post large Irecv per peer, then Isend, then Waitall+Get_count
+        const label minBufSize = 65536;
+        DynamicList<MPI_Request> allReqs(2 * (nProcs_ - 1));
+
+        for (label i = 0; i < nProcs_; ++i)
+        {
+            if (i == myRank_) continue;
+            label needed = prevRecvSizes_[i] * 2 + minBufSize;
+            if (needed > perPeerRecvCapacity_[i])
+            {
+                perPeerRecvCapacity_[i] = needed;
+                perPeerRecvBuf_[i].setSize(needed);
+            }
+            MPI_Request req;
+            MPI_Irecv(perPeerRecvBuf_[i].data(), perPeerRecvCapacity_[i],
+                      MPI_BYTE, i, 0, MPI_COMM_WORLD, &req);
+            allReqs.append(req);
+        }
+        for (label i = 0; i < nProcs_; ++i)
+        {
+            if (i != myRank_ && sendSizes[i] > 0)
+            {
+                MPI_Request req;
+                MPI_Isend(sendBufs[i].data(), sendSizes[i],
+                          MPI_BYTE, i, 0, MPI_COMM_WORLD, &req);
+                allReqs.append(req);
+            }
+        }
+
+        List<MPI_Status> statuses(allReqs.size());
+        if (allReqs.size() > 0)
+            MPI_Waitall(allReqs.size(), allReqs.data(), statuses.data());
+
+        // Deserialize: first nProcs_-1 requests are Irecv
+        label reqIdx = 0;
+        for (label i = 0; i < nProcs_; ++i)
+        {
+            if (i == myRank_) continue;
+            int actualBytes = 0;
+            MPI_Get_count(&statuses[reqIdx], MPI_BYTE, &actualBytes);
+            prevRecvSizes_[i] = actualBytes;
+            if (actualBytes > 0)
+            {
+                ISpanStream is(perPeerRecvBuf_[i].data(), actualBytes,
+                               IOstreamOption::BINARY);
+                while (!is.eof())
+                {
+                    auto* newp = new dsmcParcel(mesh_, is);
+                    cloud_.addParticle(newp);
+                    kept.append(newp);
+                    ++nRecv;
+                }
+            }
+            ++reqIdx;
+        }
+    }
     else
     {
         // Multi-rank: exchange sizes via Alltoall, then Isend/Irecv
@@ -916,7 +1160,6 @@ void dsmcReplicatedMesh::migrateParticlesByCellOwner()
         MPI_Alltoall(sendSizes.data(), 1, MPI_INT,
                      recvSizes.data(), 1, MPI_INT, MPI_COMM_WORLD);
 
-        // Post Irecv for each source
         label totalRecvSize = 0;
         for (label i = 0; i < nProcs_; ++i)
             if (i != myRank_) totalRecvSize += recvSizes[i];
@@ -956,7 +1199,6 @@ void dsmcReplicatedMesh::migrateParticlesByCellOwner()
         if (allReqs.size() > 0)
             MPI_Waitall(allReqs.size(), allReqs.data(), MPI_STATUSES_IGNORE);
 
-        // Deserialize from all sources
         for (label i = 0; i < nProcs_; ++i)
         {
             if (i != myRank_ && recvSizes[i] > 0)
@@ -983,9 +1225,9 @@ void dsmcReplicatedMesh::migrateParticlesByCellOwner()
     {
         const labelList& nCandPerCell = cloud_.nCandidatesPerCell();
         label localCands = 0;
-        for (label i = 0; i < mesh_.nCells(); ++i)
+        for (label i = 0; i < nCandPerCell.size(); ++i)
         {
-            if (i < nCandPerCell.size()) localCands += nCandPerCell[i];
+            localCands += nCandPerCell[i];
         }
         allProcCandidates_.setSize(nProcs_, 0);
         MPI_Allgather(&localCands, 1, MPI_INT,
@@ -1025,6 +1267,13 @@ void dsmcReplicatedMesh::migrateParticlesByCellOwner()
 void dsmcReplicatedMesh::migrateBegin()
 {
     if (!active_) return;
+
+    if (useFlatTransfer_)
+    {
+        migrateParticlesByCellOwner();
+        return;
+    }
+
     const auto tStart = std::chrono::steady_clock::now();
 
     // Phase 1: partition kept vs migrating
@@ -1124,6 +1373,55 @@ void dsmcReplicatedMesh::migrateBegin()
             asyncReqs_.append(req);
         }
     }
+    else if (useNoAlltoall_)
+    {
+        // No-Alltoall path: use per-peer pre-allocated buffers.
+        const label minBufSize = 65536;
+
+        for (label i = 0; i < nProcs_; ++i)
+        {
+            if (i == myRank_) continue;
+            label needed = prevRecvSizes_[i] * 2 + minBufSize;
+            if (needed > perPeerRecvCapacity_[i])
+            {
+                perPeerRecvCapacity_[i] = needed;
+                perPeerRecvBuf_[i].setSize(needed);
+            }
+            MPI_Request req;
+            MPI_Irecv(perPeerRecvBuf_[i].data(), perPeerRecvCapacity_[i],
+                      MPI_BYTE, i, 0, MPI_COMM_WORLD, &req);
+            asyncReqs_.append(req);
+        }
+
+        label totalSendSize = 0;
+        for (label i = 0; i < nProcs_; ++i) totalSendSize += sendSizes[i];
+        asyncSendBuf_.setSize(totalSendSize);
+        labelList sendOffsets(nProcs_, 0);
+        {
+            label off = 0;
+            for (label i = 0; i < nProcs_; ++i)
+            {
+                sendOffsets[i] = off;
+                if (i != myRank_ && sendSizes[i] > 0)
+                {
+                    std::memcpy(asyncSendBuf_.data() + off,
+                                sendBufs[i].data(), sendSizes[i]);
+                }
+                off += sendSizes[i];
+            }
+        }
+
+        for (label i = 0; i < nProcs_; ++i)
+        {
+            if (i != myRank_ && sendSizes[i] > 0)
+            {
+                MPI_Request req;
+                MPI_Isend(asyncSendBuf_.data() + sendOffsets[i], sendSizes[i],
+                          MPI_BYTE, i, 0, MPI_COMM_WORLD, &req);
+                asyncReqs_.append(req);
+            }
+        }
+    }
     else
     {
         // Multi-rank: exchange sizes via Alltoall, then Isend/Irecv
@@ -1209,21 +1507,56 @@ void dsmcReplicatedMesh::migrateFinish()
 {
     if (!asyncMigrationPending_) return;
 
-    if (asyncReqs_.size() > 0)
+    if (useNoAlltoall_ && asyncReqs_.size() > 0)
+    {
+        // No-Alltoall path: use MPI_Get_count per peer
+        List<MPI_Status> statuses(asyncReqs_.size());
+        MPI_Waitall(asyncReqs_.size(), asyncReqs_.data(), statuses.data());
+
+        // First nProcs_-1 requests are Irecv (one per peer != myRank_)
+        DynamicList<dsmcParcel*> received(1024);
+        label reqIdx = 0;
+        for (label i = 0; i < nProcs_; ++i)
+        {
+            if (i == myRank_) continue;
+            int actualBytes = 0;
+            MPI_Get_count(&statuses[reqIdx], MPI_BYTE, &actualBytes);
+            prevRecvSizes_[i] = actualBytes;
+            if (actualBytes > 0)
+            {
+                ISpanStream is(perPeerRecvBuf_[i].data(), actualBytes,
+                               IOstreamOption::BINARY);
+                while (!is.eof())
+                {
+                    auto* newp = new dsmcParcel(mesh_, is);
+                    cloud_.addParticle(newp);
+                    received.append(newp);
+                }
+            }
+            ++reqIdx;
+        }
+        if (received.size() > 0)
+        {
+            cloud_.appendBatchToMoveOrdered(received);
+        }
+    }
+    else if (asyncReqs_.size() > 0)
+    {
         MPI_Waitall(asyncReqs_.size(), asyncReqs_.data(), MPI_STATUSES_IGNORE);
 
-    // Deserialize received parcels and batch-append to moveOrdered
-    if (asyncRecvSize_ > 0)
-    {
-        DynamicList<dsmcParcel*> received(asyncRecvSize_ / 100);
-        ISpanStream is(asyncRecvBuf_.data(), asyncRecvSize_, IOstreamOption::BINARY);
-        while (!is.eof())
+        if (asyncRecvSize_ > 0)
         {
-            auto* newp = new dsmcParcel(mesh_, is);
-            cloud_.addParticle(newp);
-            received.append(newp);
+            DynamicList<dsmcParcel*> received(asyncRecvSize_ / 100);
+            ISpanStream is(asyncRecvBuf_.data(), asyncRecvSize_,
+                           IOstreamOption::BINARY);
+            while (!is.eof())
+            {
+                auto* newp = new dsmcParcel(mesh_, is);
+                cloud_.addParticle(newp);
+                received.append(newp);
+            }
+            cloud_.appendBatchToMoveOrdered(received);
         }
-        cloud_.appendBatchToMoveOrdered(received);
     }
 
     asyncReqs_.clear();

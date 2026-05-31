@@ -13,15 +13,14 @@ EXE_INC = \
     -I$(WM_PROJECT_USER_DIR)/src/lagrangian/dsmc/lnInclude \
     -I$(WM_PROJECT_USER_DIR)/src/lagrangian/molecularDynamics/general/lnInclude \
     -I$(FOAM_SRC)/meshTools/lnInclude \
-    -I/home/superxcx/intel/oneapi/mpi/2021.16/include
+    -I$(MPI_ROOT)/include
 
 EXE_LIBS = \
     $(OPENMP_FLAGS) \
     -L$(FOAM_USER_LIBBIN) \
     -L$(FOAM_LIBBIN) \
     -L$(FOAM_LIBBIN)/intelmpi \
-    -L/home/superxcx/miniconda3/envs/cap/lib \
-    -L/home/superxcx/code/DSMC/dsmcFoam++/parmetis-install/lib \
+    -L$(PARMETIS_DIR)/lib \
     -lOpenFOAM \
     -lmeshTools \
     -lfiniteVolume \
@@ -29,4 +28,4 @@ EXE_LIBS = \
     -ldsmcFoam+ \
     -llagrangian+ \
     -lgeneralMolecule \
-    -lparmetis -lmetis
+    -lparmetis -lmetis -lGKlib

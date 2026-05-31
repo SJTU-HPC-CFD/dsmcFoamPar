@@ -307,9 +307,15 @@ void Foam::particle::hitBoundaryFace
     {
         const polyPatch& patch = mesh_.boundaryMesh()[p.patch()];
 
-        if (isA<wedgePolyPatch>(patch))
+        // DSMC optimisation: check processor and wall first as they are
+        // by far the most frequent boundary hits in DSMC simulations.
+        if (isA<processorPolyPatch>(patch))
         {
-            p.hitWedgePatch(cloud, ttd);
+            p.hitProcessorPatch(cloud, ttd);
+        }
+        else if (isA<wallPolyPatch>(patch))
+        {
+            p.hitWallPatch(cloud, ttd);
         }
         else if (isA<symmetryPlanePolyPatch>(patch))
         {
@@ -331,13 +337,9 @@ void Foam::particle::hitBoundaryFace
         {
             p.hitCyclicAMIPatch(cloud, ttd, displacement);
         }
-        else if (isA<processorPolyPatch>(patch))
+        else if (isA<wedgePolyPatch>(patch))
         {
-            p.hitProcessorPatch(cloud, ttd);
-        }
-        else if (isA<wallPolyPatch>(patch))
-        {
-            p.hitWallPatch(cloud, ttd);
+            p.hitWedgePatch(cloud, ttd);
         }
         else
         {

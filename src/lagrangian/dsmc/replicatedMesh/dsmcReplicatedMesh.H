@@ -91,12 +91,19 @@ class dsmcReplicatedMesh
     label asyncRecvSize_;
     DynamicList<MPI_Request> asyncReqs_;
 
+    // ---- Phase 2: per-peer predicted receive buffers (no Alltoall) ----
+    labelList prevRecvSizes_;             // previous step's recv bytes per peer
+    labelList perPeerRecvCapacity_;       // allocated capacity per peer
+    List<List<char>> perPeerRecvBuf_;     // per-peer receive buffers
+    bool useNoAlltoall_;                  // controlDict flag
+    bool useFlatTransfer_;                // flat POD buffer serialization
+
     // (Phase B) construct myCells_ from cellOwner_
     void rebuildMyCells();
 
     // Phase C: ParMETIS AdaptiveRepart — parallel incremental repartitioning
     // that minimises data movement while rebalancing vertex weights.
-    void reassignByParMetisAdaptiveRepart();
+    label reassignByParMetisAdaptiveRepart();
 
 public:
     dsmcReplicatedMesh(dsmcCloud& cloud, const fvMesh& mesh);

@@ -289,6 +289,76 @@ void Foam::dsmcParcel::writeBinaryFast(Ostream& os) const
 }
 
 
+void Foam::dsmcParcel::packTransfer(TransferData& td) const
+{
+    const barycentric& c = coordinates();
+    td.coordinates[0] = c[0];
+    td.coordinates[1] = c[1];
+    td.coordinates[2] = c[2];
+    td.coordinates[3] = c[3];
+    td.celli = cell();
+    td.tetFacei = tetFace();
+    td.tetPti = tetPt();
+    td.facei = face();
+    td.stepFraction = stepFraction();
+    td.origProc = origProc();
+    td.origId = origId();
+
+    td.U[0] = U_.x();
+    td.U[1] = U_.y();
+    td.U[2] = U_.z();
+    td.RWF = RWF_;
+    td.ERot = ERot_;
+    td.ELevel = ELevel_;
+    td.typeId = typeId_;
+    td.newParcel = newParcel_;
+    td.classification = classification_;
+
+    td.nVibModes = min(vibLevel_.size(), label(maxVibModes));
+    for (label i = 0; i < td.nVibModes; ++i)
+        td.vibLevel[i] = vibLevel_[i];
+    for (label i = td.nVibModes; i < maxVibModes; ++i)
+        td.vibLevel[i] = 0;
+}
+
+
+Foam::dsmcParcel* Foam::dsmcParcel::unpackTransfer
+(
+    const polyMesh& mesh,
+    const TransferData& td
+)
+{
+    labelList vib(td.nVibModes);
+    for (label i = 0; i < td.nVibModes; ++i)
+        vib[i] = td.vibLevel[i];
+
+    auto* p = new dsmcParcel
+    (
+        mesh,
+        barycentric(td.coordinates[0], td.coordinates[1],
+                    td.coordinates[2], td.coordinates[3]),
+        td.celli,
+        td.tetFacei,
+        td.tetPti,
+        vector(td.U[0], td.U[1], td.U[2]),
+        td.RWF,
+        td.ERot,
+        td.ELevel,
+        td.typeId,
+        td.newParcel,
+        td.classification,
+        vib
+    );
+
+    p->face() = td.facei;
+    p->stepFraction() = td.stepFraction;
+    p->origProc() = td.origProc;
+    p->origId() = td.origId;
+
+    return p;
+}
+
+
 #include "dsmcParcelIO.C"
 
 // ************************************************************************* //

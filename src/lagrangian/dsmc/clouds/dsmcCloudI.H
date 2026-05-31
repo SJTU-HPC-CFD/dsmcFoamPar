@@ -95,7 +95,7 @@ inline Foam::label Foam::dsmcCloud::nTerminalOutputs() const
 
 inline bool Foam::dsmcCloud::replicatedMeshActive() const
 {
-    return replicatedMesh_.valid();
+    return replicatedMesh_.valid() && replicatedMesh_->active();
 }
 
 inline bool Foam::dsmcCloud::isOutputRank() const

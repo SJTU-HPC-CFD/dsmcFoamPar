@@ -441,6 +441,35 @@ public:
     // Fast binary write for migration — bypasses virtual operator<< chain
     void writeBinaryFast(Ostream& os) const;
 
+    // Flat POD transfer for zero-copy migration
+    static constexpr label maxVibModes = 4;
+    struct TransferData
+    {
+        // particle base
+        scalar coordinates[4];
+        label celli;
+        label tetFacei;
+        label tetPti;
+        label facei;
+        scalar stepFraction;
+        label origProc;
+        label origId;
+        // dsmcParcel fields
+        scalar U[3];
+        scalar RWF;
+        scalar ERot;
+        label ELevel;
+        label typeId;
+        label newParcel;
+        label classification;
+        // variable-length
+        label nVibModes;
+        label vibLevel[maxVibModes];
+    };
+
+    void packTransfer(TransferData& td) const;
+    static dsmcParcel* unpackTransfer(const polyMesh& mesh, const TransferData& td);
+
     static void readFields(Cloud<dsmcParcel>& c);
     static void writeFields(const Cloud<dsmcParcel>& c);
 

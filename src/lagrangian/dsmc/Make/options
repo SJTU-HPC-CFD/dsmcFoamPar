@@ -16,8 +16,8 @@ EXE_INC = \
     -I$(FOAM_SRC)/parallel/decompose/decompositionMethods/lnInclude \
     -I$(FOAM_SRC)/parallel/decompose/scotchDecomp/lnInclude \
     -I$(SCOTCH_ARCH_PATH)/include \
-    -I/home/superxcx/code/DSMC/dsmcFoam++/parmetis-install/include \
-    -I/home/superxcx/intel/oneapi/mpi/2021.16/include
+    -I$(PARMETIS_DIR)/include \
+    -I$(MPI_ROOT)/include
 
 LIB_LIBS = \
     $(OPENMP_FLAGS) \
@@ -30,5 +30,5 @@ LIB_LIBS = \
     -ltopoChangerFvMesh \
     -ldecompositionMethods \
     -lscotchDecomp \
-    -L/home/superxcx/code/DSMC/dsmcFoam++/parmetis-install/lib -lparmetis -lmetis \
+    -L$(PARMETIS_DIR)/lib -lparmetis -lmetis \
     -lgeneralMolecule

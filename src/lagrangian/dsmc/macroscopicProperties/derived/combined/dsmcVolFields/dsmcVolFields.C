@@ -453,6 +453,10 @@ struct dsmcVolSharedSampleCache
                       ? *(*occupancyOrderedParcelsPtr)[parcelBegin + pi]
                       : *(*parcelsPtr)[pi];
 
+                    if (useFlatOccupancy && pi + 1 < parcelCount)
+                        __builtin_prefetch(
+                            (*occupancyOrderedParcelsPtr)[parcelBegin + pi + 1], 0, 1);
+
                     if (!p.isFree())
                     {
                         continue;
@@ -721,10 +725,17 @@ struct dsmcVolSharedSampleCache
 
                 if (!doDetailedProfile)
                 {
+                    const label loopSize = cloud.replicatedMeshActive()
+                        ? cloud.replicatedMesh().myCells().size()
+                        : cloud.mesh().nCells();
+                    const label* myCellsData = cloud.replicatedMeshActive()
+                        ? cloud.replicatedMesh().myCells().cdata()
+                        : nullptr;
+
                     #pragma omp for schedule(static)
-                    for (label celli = 0; celli < cloud.mesh().nCells(); ++celli)
+                    for (label idx = 0; idx < loopSize; ++idx)
                     {
-                        if (cloud.replicatedMeshActive() && !cloud.replicatedMesh().isMyCell(celli)) continue;
+                        const label celli = myCellsData ? myCellsData[idx] : idx;
                         const DynamicList<dsmcParcel*>* parcelsPtr =
                             useFlatOccupancy ? nullptr : &(*cellOccupancyPtr)[celli];
                         const List<dsmcParcel*>* orderedParcelsPtr =
@@ -747,6 +758,10 @@ struct dsmcVolSharedSampleCache
                                 useFlatOccupancy
                               ? *(*orderedParcelsPtr)[parcelBegin + pi]
                               : *(*parcelsPtr)[pi];
+
+                            if (useFlatOccupancy && pi + 1 < parcelCount)
+                                __builtin_prefetch(
+                                    (*orderedParcelsPtr)[parcelBegin + pi + 1], 0, 1);
 
                             if (!p.isFree())
                             {
@@ -966,10 +981,17 @@ struct dsmcVolSharedSampleCache
                 }
                 else
                 {
+                    const label loopSize2 = cloud.replicatedMeshActive()
+                        ? cloud.replicatedMesh().myCells().size()
+                        : cloud.mesh().nCells();
+                    const label* myCellsData2 = cloud.replicatedMeshActive()
+                        ? cloud.replicatedMesh().myCells().cdata()
+                        : nullptr;
+
                     #pragma omp for schedule(static)
-                    for (label celli = 0; celli < cloud.mesh().nCells(); ++celli)
+                    for (label idx = 0; idx < loopSize2; ++idx)
                     {
-                        if (cloud.replicatedMeshActive() && !cloud.replicatedMesh().isMyCell(celli)) continue;
+                        const label celli = myCellsData2 ? myCellsData2[idx] : idx;
                         scalar localBaseAccumWallTime = 0.0;
                         scalar localVibAccumWallTime = 0.0;
                         scalar localElectronicAccumWallTime = 0.0;
@@ -1006,6 +1028,10 @@ struct dsmcVolSharedSampleCache
                                 useFlatOccupancy
                               ? *(*orderedParcelsPtr)[parcelBegin + pi]
                               : *(*parcelsPtr)[pi];
+
+                            if (useFlatOccupancy && pi + 1 < parcelCount)
+                                __builtin_prefetch(
+                                    (*orderedParcelsPtr)[parcelBegin + pi + 1], 0, 1);
 
                             if (!p.isFree())
                             {
@@ -1291,10 +1317,20 @@ struct dsmcVolSharedSampleCache
         else
         #endif
         {
-            for (label celli = 0; celli < cloud.mesh().nCells(); ++celli)
+            if (cloud.replicatedMeshActive())
             {
-                if (cloud.replicatedMeshActive() && !cloud.replicatedMesh().isMyCell(celli)) continue;
-                accumulateCell(celli);
+                const auto& myCells = cloud.replicatedMesh().myCells();
+                for (label idx = 0; idx < myCells.size(); ++idx)
+                {
+                    accumulateCell(myCells[idx]);
+                }
+            }
+            else
+            {
+                for (label celli = 0; celli < cloud.mesh().nCells(); ++celli)
+                {
+                    accumulateCell(celli);
+                }
             }
         }
 
@@ -2409,6 +2445,28 @@ void dsmcVolFields::createField()
                 << endl;
         }
     }
+
+    // Precompute owned boundary face indices for replicated mesh
+    if (cloud_.replicatedMeshActive())
+    {
+        const label nPatches = mesh_.boundaryMesh().size();
+        ownedBoundaryFaces_.setSize(nPatches);
+        forAll(mesh_.boundaryMesh(), j)
+        {
+            const polyPatch& pp = mesh_.boundaryMesh()[j];
+            const label startFace = pp.start();
+            DynamicList<label> owned(pp.size() / 8);
+            forAll(pp, k)
+            {
+                if (cloud_.replicatedMesh().isMyCell(
+                    mesh_.faceOwner()[startFace + k]))
+                {
+                    owned.append(k);
+                }
+            }
+            ownedBoundaryFaces_[j].transfer(owned);
+        }
+    }
 }
 
 
@@ -2573,12 +2631,18 @@ void dsmcVolFields::calculateField()
                 doProfile ? wallClockNow() : std::chrono::steady_clock::time_point();
             const bool singleSpeciesField = (speciesIds_.size() == 1);
             const label onlySpId = singleSpeciesField ? speciesIds_[0] : -1;
+            const label fcLoopSize = cloud_.replicatedMeshActive()
+                ? cloud_.replicatedMesh().myCells().size()
+                : cloud_.mesh().nCells();
+            const label* fcMyCells = cloud_.replicatedMeshActive()
+                ? cloud_.replicatedMesh().myCells().cdata()
+                : nullptr;
             #ifdef _OPENMP
             #pragma omp parallel for schedule(static) if (useOpenMPSampling)
             #endif
-            for (label celli = 0; celli < cloud_.mesh().nCells(); ++celli)
+            for (label idx = 0; idx < fcLoopSize; ++idx)
             {
-                if (cloud_.replicatedMeshActive() && !cloud_.replicatedMesh().isMyCell(celli)) continue;
+                const label celli = fcMyCells ? fcMyCells[idx] : idx;
                 scalar dsmcNLocal = 0.0;
                 scalar dsmcMLocal = 0.0;
                 scalar dsmcLinearKELocal = 0.0;
@@ -2824,13 +2888,11 @@ void dsmcVolFields::calculateField()
 
                     if (cloud_.replicatedMeshActive())
                     {
-                        const auto& repMesh = cloud_.replicatedMesh();
-                        forAll(evibCum, celli)
+                        const auto& myC = cloud_.replicatedMesh().myCells();
+                        for (label mi = 0; mi < myC.size(); ++mi)
                         {
-                            if (repMesh.isMyCell(celli))
-                            {
-                                evibCum[celli] += evibCache[celli];
-                            }
+                            const label celli = myC[mi];
+                            evibCum[celli] += evibCache[celli];
                         }
                     }
                     else
@@ -2854,12 +2916,19 @@ void dsmcVolFields::calculateField()
             //- Loop over all cells
             const auto cellReduceStart =
                 doProfile ? wallClockNow() : std::chrono::steady_clock::time_point();
+            const label crLoopSize = cloud_.replicatedMeshActive()
+                ? cloud_.replicatedMesh().myCells().size()
+                : dsmcNCum_.size();
+            const label* crMyCells = cloud_.replicatedMeshActive()
+                ? cloud_.replicatedMesh().myCells().cdata()
+                : nullptr;
             #ifdef _OPENMP
             if (useOpenMPSampling)
             {
                 #pragma omp parallel for schedule(static)
-                for (label celli = 0; celli < dsmcNCum_.size(); ++celli)
+                for (label idx = 0; idx < crLoopSize; ++idx)
                 {
+                    const label celli = crMyCells ? crMyCells[idx] : idx;
                     collisionSeparation_[celli] +=
                         cloud_.cellPropMeasurements().collisionSeparation()[celli];
 
@@ -2909,11 +2978,12 @@ void dsmcVolFields::calculateField()
             }
             else
             #endif
-            forAll(dsmcNCum_, celli)
+            for (label idx = 0; idx < crLoopSize; ++idx)
             {
+                const label celli = crMyCells ? crMyCells[idx] : idx;
                 collisionSeparation_[celli] +=
                     cloud_.cellPropMeasurements().collisionSeparation()[celli];
-                    
+
                 dsmcNCollsCum_[celli] +=
                     cloud_.cellPropMeasurements().nColls()[celli];
 
@@ -2967,57 +3037,110 @@ void dsmcVolFields::calculateField()
             //- Obtain boundary measurements
             const auto boundaryAccumStart =
                 doProfile ? wallClockNow() : std::chrono::steady_clock::time_point();
+            const bool useOwnedFaceList = ownedBoundaryFaces_.size() > 0;
             forAll(speciesIds_, i)
             {
                 const label spId = speciesIds_[i];
-                
+
                 forAll(mesh_.boundaryMesh(), j)
                 {
-                    forAll(mesh_.boundaryMesh()[j], k)
+                    if (useOwnedFaceList)
                     {
-                        rhoNBF_[j][k] +=
-                            cloud_.boundaryFluxMeasurements()
-                              .speciesRhoNBF(spId, j, k);
-                        rhoMBF_[j][k] +=
-                            cloud_.boundaryFluxMeasurements()
-                              .speciesRhoMBF(spId, j, k);
-                        linearKEBF_[j][k] +=
-                            cloud_.boundaryFluxMeasurements()
-                              .speciesLinearKEBF(spId, j, k);
-                        momentumBF_[j][k] +=
-                            cloud_.boundaryFluxMeasurements()
-                              .speciesMomentumBF(spId, j, k);
-                        ErotBF_[j][k] +=
-                            cloud_.boundaryFluxMeasurements()
-                              .speciesErotBF(spId, j, k);
-                        zetaRotBF_[j][k] +=
-                            cloud_.boundaryFluxMeasurements()
-                              .speciesZetaRotBF(spId, j, k);
-                        rhoNIntBF_[j][k] +=
-                            cloud_.boundaryFluxMeasurements()
-                              .speciesRhoNIntBF(spId, j, k); 
-                        rhoNElecBF_[j][k] +=
-                            cloud_.boundaryFluxMeasurements()
-                              .speciesRhoNElecBF(spId, j, k);
-                        qBF_[j][k] +=
-                            cloud_.boundaryFluxMeasurements()
-                              .speciesqBF(spId, j, k);
-                        fDBF_[j][k] +=
-                            cloud_.boundaryFluxMeasurements()
-                              .speciesfDBF(spId, j, k);
-                        
-                        speciesRhoNBF_[i][j][k] +=
-                            cloud_.boundaryFluxMeasurements()
-                              .speciesRhoNBF(spId, j, k);
-                        speciesEvibBF_[i][j][k] +=
-                            cloud_.boundaryFluxMeasurements()
-                              .speciesEvibBF(spId, j, k);
-                        speciesEelecBF_[i][j][k] +=
-                            cloud_.boundaryFluxMeasurements()
-                              .speciesEelecBF(spId, j, k);
-                        speciesMccBF_[i][j][k] +=
-                            cloud_.boundaryFluxMeasurements()
-                              .speciesMccBF(spId, j, k);
+                        const labelList& owned = ownedBoundaryFaces_[j];
+                        forAll(owned, fi)
+                        {
+                            const label k = owned[fi];
+                            rhoNBF_[j][k] +=
+                                cloud_.boundaryFluxMeasurements()
+                                  .speciesRhoNBF(spId, j, k);
+                            rhoMBF_[j][k] +=
+                                cloud_.boundaryFluxMeasurements()
+                                  .speciesRhoMBF(spId, j, k);
+                            linearKEBF_[j][k] +=
+                                cloud_.boundaryFluxMeasurements()
+                                  .speciesLinearKEBF(spId, j, k);
+                            momentumBF_[j][k] +=
+                                cloud_.boundaryFluxMeasurements()
+                                  .speciesMomentumBF(spId, j, k);
+                            ErotBF_[j][k] +=
+                                cloud_.boundaryFluxMeasurements()
+                                  .speciesErotBF(spId, j, k);
+                            zetaRotBF_[j][k] +=
+                                cloud_.boundaryFluxMeasurements()
+                                  .speciesZetaRotBF(spId, j, k);
+                            rhoNIntBF_[j][k] +=
+                                cloud_.boundaryFluxMeasurements()
+                                  .speciesRhoNIntBF(spId, j, k);
+                            rhoNElecBF_[j][k] +=
+                                cloud_.boundaryFluxMeasurements()
+                                  .speciesRhoNElecBF(spId, j, k);
+                            qBF_[j][k] +=
+                                cloud_.boundaryFluxMeasurements()
+                                  .speciesqBF(spId, j, k);
+                            fDBF_[j][k] +=
+                                cloud_.boundaryFluxMeasurements()
+                                  .speciesfDBF(spId, j, k);
+                            speciesRhoNBF_[i][j][k] +=
+                                cloud_.boundaryFluxMeasurements()
+                                  .speciesRhoNBF(spId, j, k);
+                            speciesEvibBF_[i][j][k] +=
+                                cloud_.boundaryFluxMeasurements()
+                                  .speciesEvibBF(spId, j, k);
+                            speciesEelecBF_[i][j][k] +=
+                                cloud_.boundaryFluxMeasurements()
+                                  .speciesEelecBF(spId, j, k);
+                            speciesMccBF_[i][j][k] +=
+                                cloud_.boundaryFluxMeasurements()
+                                  .speciesMccBF(spId, j, k);
+                        }
+                    }
+                    else
+                    {
+                        forAll(mesh_.boundaryMesh()[j], k)
+                        {
+                            rhoNBF_[j][k] +=
+                                cloud_.boundaryFluxMeasurements()
+                                  .speciesRhoNBF(spId, j, k);
+                            rhoMBF_[j][k] +=
+                                cloud_.boundaryFluxMeasurements()
+                                  .speciesRhoMBF(spId, j, k);
+                            linearKEBF_[j][k] +=
+                                cloud_.boundaryFluxMeasurements()
+                                  .speciesLinearKEBF(spId, j, k);
+                            momentumBF_[j][k] +=
+                                cloud_.boundaryFluxMeasurements()
+                                  .speciesMomentumBF(spId, j, k);
+                            ErotBF_[j][k] +=
+                                cloud_.boundaryFluxMeasurements()
+                                  .speciesErotBF(spId, j, k);
+                            zetaRotBF_[j][k] +=
+                                cloud_.boundaryFluxMeasurements()
+                                  .speciesZetaRotBF(spId, j, k);
+                            rhoNIntBF_[j][k] +=
+                                cloud_.boundaryFluxMeasurements()
+                                  .speciesRhoNIntBF(spId, j, k);
+                            rhoNElecBF_[j][k] +=
+                                cloud_.boundaryFluxMeasurements()
+                                  .speciesRhoNElecBF(spId, j, k);
+                            qBF_[j][k] +=
+                                cloud_.boundaryFluxMeasurements()
+                                  .speciesqBF(spId, j, k);
+                            fDBF_[j][k] +=
+                                cloud_.boundaryFluxMeasurements()
+                                  .speciesfDBF(spId, j, k);
+                            speciesRhoNBF_[i][j][k] +=
+                                cloud_.boundaryFluxMeasurements()
+                                  .speciesRhoNBF(spId, j, k);
+                            speciesEvibBF_[i][j][k] +=
+                                cloud_.boundaryFluxMeasurements()
+                                  .speciesEvibBF(spId, j, k);
+                            speciesEelecBF_[i][j][k] +=
+                                cloud_.boundaryFluxMeasurements()
+                                  .speciesEelecBF(spId, j, k);
+                            speciesMccBF_[i][j][k] +=
+                                cloud_.boundaryFluxMeasurements()
+                                  .speciesMccBF(spId, j, k);
+                        }
                     }
                 }
 
@@ -3025,11 +3148,25 @@ void dsmcVolFields::calculateField()
                 {
                     forAll(mesh_.boundaryMesh(), j)
                     {
-                        forAll(mesh_.boundaryMesh()[j], k)
+                        if (useOwnedFaceList)
                         {
-                            speciesEvibModBF_[i][mod][j][k] +=
-                                cloud_.boundaryFluxMeasurements()
-                                  .speciesEvibModBF(spId, mod, j, k);
+                            const labelList& owned = ownedBoundaryFaces_[j];
+                            forAll(owned, fi)
+                            {
+                                const label k = owned[fi];
+                                speciesEvibModBF_[i][mod][j][k] +=
+                                    cloud_.boundaryFluxMeasurements()
+                                      .speciesEvibModBF(spId, mod, j, k);
+                            }
+                        }
+                        else
+                        {
+                            forAll(mesh_.boundaryMesh()[j], k)
+                            {
+                                speciesEvibModBF_[i][mod][j][k] +=
+                                    cloud_.boundaryFluxMeasurements()
+                                      .speciesEvibModBF(spId, mod, j, k);
+                            }
                         }
                     }
                 }

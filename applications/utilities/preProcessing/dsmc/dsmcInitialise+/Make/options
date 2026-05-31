@@ -18,11 +18,11 @@ EXE_LIBS = \
     $(OPENMP_FLAGS) \
     -L$(FOAM_USER_LIBBIN) \
     -L$(FOAM_LIBBIN) \
-    -L/home/superxcx/code/DSMC/dsmcFoam++/parmetis-install/lib \
+    -L$(PARMETIS_DIR)/lib \
     -lOpenFOAM \
     -lmeshTools \
     -lfiniteVolume \
     -ldsmcFoam+ \
     -llagrangian+ \
     -lgeneralMolecule \
-    -lparmetis -lmetis
+    -lparmetis -lmetis -lGKlib
