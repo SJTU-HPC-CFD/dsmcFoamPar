@@ -59,6 +59,9 @@ class dsmcReplicatedMesh
     bool autoDLBEnabled_;
     scalar imbalanceThreshold_;         // threshold trigger: max/min > this
     label dlbSteps_;                    // evaluation interval (steps)
+    label sarSteps_;                    // minimum accumulated steps before SAR checks
+    word autoDLBTriggerMode_;           // cumulative or legacyWindow
+    labelList forcedDLBSteps_;          // optional deterministic DLB trigger steps
     label lastAutoRebalanceStep_;      // step of last auto rebalance
     label autoRebalanceCount_;         // number of auto rebalances performed
 
@@ -70,6 +73,7 @@ class dsmcReplicatedMesh
     scalar tdecps_;                    // cumulative decomposition wall time
     scalar w1_, w2_;                   // previous / current avg idle rate
     label ndecps_;                     // steps in current eval window
+    label sarEvalSteps_;               // steps in current SAR sampling window
     label nEvalPeriods_;              // number of eval periods since last trigger
     scalar sar_;                       // trend metric: sar > 0 triggers DLB
 
@@ -77,9 +81,20 @@ class dsmcReplicatedMesh
     label postDLBSnapshotCountdown_;
     scalarList lastDLBMoveT_;
     scalarList lastDLBCollT_;
+    label autoRebalanceChecks_;
+    label autoRebalanceTriggeredChecks_;
+    scalar autoRebalanceWallTime_;
+    scalar autoRebalanceCheckWallTime_;
+    scalar autoRebalanceRepartWallTime_;
+    scalar autoRebalanceMigrationWallTime_;
+    scalar autoRebalanceWriteWallTime_;
+    scalar autoRebalancePostDiagWallTime_;
 
     // Adaptive K (persistent across DLB calls)
     label collDivisor_;
+
+    // Adaptive alpha for weight formula w = N^alpha
+    scalar alpha_;
 
     // ---- Cached per-rank candidate counts (updated during migration) ----
     labelList allProcCandidates_;
@@ -142,6 +157,7 @@ public:
 
     // Phase C: automatic DLB — called once per step; checks trigger & executes
     void autoRebalance();
+    void writeCellOwner() const;
 
     // ---- inline accessors ----
     inline scalar migrationWallTime() const { return migrationWallTime_; }

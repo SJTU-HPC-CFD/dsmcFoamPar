@@ -618,6 +618,15 @@ public:
             label& tetTriI
         );
 
+        //- Fast path for stationary meshes when the entire track remains in
+        //  the current tetrahedron. Returns true if it completed the track.
+        bool trackToStationaryTetFast
+        (
+            const vector& displacement,
+            const scalar fraction,
+            const scalar margin
+        );
+
         //- As particle::trackToTri, but for moving meshes
         scalar trackToMovingTri
         (

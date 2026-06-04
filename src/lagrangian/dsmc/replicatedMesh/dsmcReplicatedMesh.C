@@ -21,6 +21,7 @@ License
 #include "dsmcCloud.H"
 #include "OCharStream.H"
 #include "ISpanStream.H"
+#include "volFields.H"
 #include "scotchDecomp.H"
 #include "parmetis.h"
 #include <mpi.h>
@@ -48,6 +49,9 @@ dsmcReplicatedMesh::dsmcReplicatedMesh(dsmcCloud& cloud, const fvMesh& mesh)
     autoDLBEnabled_(false),
     imbalanceThreshold_(1.15),
     dlbSteps_(50),
+    sarSteps_(10),
+    autoDLBTriggerMode_("cumulative"),
+    forcedDLBSteps_(),
     lastAutoRebalanceStep_(-1000),
     autoRebalanceCount_(0),
     // ParDSMC3D trigger state
@@ -58,10 +62,20 @@ dsmcReplicatedMesh::dsmcReplicatedMesh(dsmcCloud& cloud, const fvMesh& mesh)
     tdecps_(0.0),
     w1_(0.0), w2_(0.0),
     ndecps_(0),
+    sarEvalSteps_(0),
     nEvalPeriods_(0),
     sar_(0.0),
     postDLBSnapshotCountdown_(0),
+    autoRebalanceChecks_(0),
+    autoRebalanceTriggeredChecks_(0),
+    autoRebalanceWallTime_(0.0),
+    autoRebalanceCheckWallTime_(0.0),
+    autoRebalanceRepartWallTime_(0.0),
+    autoRebalanceMigrationWallTime_(0.0),
+    autoRebalanceWriteWallTime_(0.0),
+    autoRebalancePostDiagWallTime_(0.0),
     collDivisor_(128),
+    alpha_(1.0),
     asyncMigrationPending_(false),
     asyncRecvSize_(0),
     useNoAlltoall_(false),
@@ -206,13 +220,18 @@ void dsmcReplicatedMesh::initialize()
 {
     int mpiInit = 0;
     MPI_Initialized(&mpiInit);
-    if (!mpiInit) MPI_Init(nullptr, nullptr);
+    if (!mpiInit)
+    {
+        UPstream::initNull();
+    }
     MPI_Comm_size(MPI_COMM_WORLD, &nProcs_);
     MPI_Comm_rank(MPI_COMM_WORLD, &myRank_);
     allParticleCounts_.setSize(nProcs_, 0);
     const label defaultK = (nProcs_ >= 8) ? 128 : 64;
     collDivisor_ = mesh_.time().controlDict().lookupOrDefault<label>
         ("replicatedMeshDLBInitialK", defaultK);
+    alpha_ = mesh_.time().controlDict().lookupOrDefault<scalar>
+        ("replicatedMeshDLBInitialAlpha", 1.0);
 
     if (nProcs_ < 2)
     {
@@ -236,7 +255,8 @@ void dsmcReplicatedMesh::initialize()
     // where they are invisible to collision (up to 66% collision loss
     // at interval=10).  ParDSMC3D and standard OpenFOAM MPI both
     // migrate every step.
-    migrateInterval_ = 1;
+    migrateInterval_ = mesh_.time().controlDict().lookupOrDefault<label>
+        ("replicatedMeshMigrateInterval", 1);
     stepCounter_ = 0;
 
     // Phase B: manual rebalance steps
@@ -284,10 +304,33 @@ void dsmcReplicatedMesh::initialize()
         dlbSteps_ = mesh_.time().controlDict()
             .lookupOrDefault<label>("replicatedMeshDLBSteps", 50);
         if (dlbSteps_ < 10) dlbSteps_ = 10;
+        sarSteps_ = mesh_.time().controlDict()
+            .lookupOrDefault<label>("replicatedMeshSARSteps", 10);
+        if (sarSteps_ < 1) sarSteps_ = 1;
+        autoDLBTriggerMode_ = mesh_.time().controlDict()
+            .lookupOrDefault<word>("replicatedMeshDLBTriggerMode", "cumulative");
+        forcedDLBSteps_ = mesh_.time().controlDict()
+            .lookupOrDefault<labelList>("replicatedMeshDLBForceSteps", labelList());
+        const word checkCollective = mesh_.time().controlDict()
+            .lookupOrDefault<word>("replicatedMeshDLBCheckCollective", "allgather");
+        const bool skipFixedKPostDiag = mesh_.time().controlDict()
+            .lookupOrDefault<bool>("replicatedMeshDLBSkipFixedKPostDiag", false);
+        const label minGapSteps = mesh_.time().controlDict()
+            .lookupOrDefault<label>("replicatedMeshDLBMinGapSteps", 0);
 
         Info<< "Phase C auto DLB: enabled (ParMETIS AdaptiveRepart)"
             << ", imbalanceThreshold=" << imbalanceThreshold_
-            << ", dlbSteps=" << dlbSteps_ << endl;
+            << ", dlbSteps=" << dlbSteps_
+            << ", sarSteps=" << sarSteps_
+            << ", triggerMode=" << autoDLBTriggerMode_
+            << ", minGapSteps=" << minGapSteps
+            << ", checkCollective=" << checkCollective
+            << ", skipFixedKPostDiag=" << skipFixedKPostDiag << endl;
+        if (forcedDLBSteps_.size())
+        {
+            Info<< "Phase C auto DLB: forced trigger steps "
+                << forcedDLBSteps_ << endl;
+        }
     }
 
     active_ = true;
@@ -376,9 +419,12 @@ label dsmcReplicatedMesh::reassignByParMetisAdaptiveRepart()
         collScale = costPerCandidate / costPerParticle;
     }
 
-    // Unified DLB strategy: single constraint = N + N*(N-1)/K
-    // K from fixedK (controlDict), adaptive PID (collDivisor_), or auto formula.
-    idx_t ncon = 1;
+    // Dual-constraint DLB: ncon=2
+    // Constraint 0: compressed particle count (balance move)
+    // Constraint 1: measured collision candidates when available
+    const bool useDualConstraint = mesh_.time().controlDict().lookupOrDefault<bool>
+        ("replicatedMeshDLBDualConstraint", false);
+    idx_t ncon = useDualConstraint ? 2 : 1;
     idx_t wgtflag = 2;  // vertex weights only
     const label fixedK = mesh_.time().controlDict().lookupOrDefault<label>
         ("replicatedMeshDLBFixedK", 0);
@@ -400,12 +446,25 @@ label dsmcReplicatedMesh::reassignByParMetisAdaptiveRepart()
         label nPart = 0;
         if (cloud_.cellOccupancy().size() > gi)
             nPart = cloud_.cellOccupancy()[gi].size();
-        vwgt[i] = max(idx_t(1),
-            idx_t(nPart + nPart * max(nPart - 1, label(0)) / collDivisor));
+
+        if (useDualConstraint)
+        {
+            // Constraint 0: N^alpha (move balance)
+            const scalar wMove = (nPart > 1)
+                ? std::pow(scalar(nPart), alpha_) : scalar(nPart);
+            vwgt[i*2 + 0] = max(idx_t(1), idx_t(wMove + 0.5));
+            // Constraint 1: N*(N-1) (collision balance, compressed range)
+            vwgt[i*2 + 1] =
+                max(idx_t(1), idx_t(nPart) * max(idx_t(nPart - 1), idx_t(0)) + 1);
+        }
+        else
+        {
+            const scalar w = (nPart > 1)
+                ? std::pow(scalar(nPart), alpha_) : scalar(nPart);
+            vwgt[i] = max(idx_t(1), idx_t(w + 0.5));
+        }
     }
 
-    Info<< "Phase C ParMETIS: K=" << collDivisor
-        << " (moveT=" << moveTime << "s, collT=" << collTime << "s)" << endl;
     // Weight = sum of particle counts of the two cells sharing the face.
     List<idx_t> adjwgt(xadj[myN], 1);
     {
@@ -440,11 +499,29 @@ label dsmcReplicatedMesh::reassignByParMetisAdaptiveRepart()
     idx_t numflag = 0;  // C-style numbering
     idx_t nparts = nProcs_;
     List<real_t> tpwgts(ncon * nparts, real_t(1.0) / real_t(nparts));
-    List<real_t> ubvec(ncon, real_t(1.05));  // 5% tolerance
-    real_t itr = 1000.0;
+    const real_t ubvecVal = mesh_.time().controlDict().lookupOrDefault<scalar>
+        ("replicatedMeshDLBUbvec", 1.05);
+    List<real_t> ubvec(ncon, ubvecVal);
+    if (useDualConstraint && ncon == 2)
+    {
+        ubvec[1] = mesh_.time().controlDict().lookupOrDefault<scalar>
+            ("replicatedMeshDLBUbvec1", 1.5);
+    }
+
+    Info<< "Phase C ParMETIS: alpha=" << alpha_ << " ncon=" << ncon
+        << " ubvec=[";
+    for (label c = 0; c < ncon; ++c)
+        Info<< (c > 0 ? "," : "") << ubvec[c];
+    Info<< "] moveRatio=" << (moveTime / max(moveTime + collTime, SMALL))
+        << " (moveT=" << moveTime << "s, collT=" << collTime << "s)" << endl;
+
+    real_t itr = mesh_.time().controlDict().lookupOrDefault<scalar>
+        ("replicatedMeshDLBItr", 100.0);
     idx_t options[4] = {1, 0, 0, 42};  // options[0]=1: use custom, [3]=seed
     idx_t edgecut = 0;
-    // vsize: 2-rank uses particle count (conservative), 4+ rank uses 1 (free migration)
+    // vsize: 2-rank uses N (conservative), 4+ rank uses N^vsExp (vsExp=0 means free migration)
+    const scalar vsExp = mesh_.time().controlDict().lookupOrDefault<scalar>
+        ("replicatedMeshDLBVsizeExp", 0.5);
     List<idx_t> vsize(myN, 1);
     if (nProcs_ <= 2)
     {
@@ -455,6 +532,21 @@ label dsmcReplicatedMesh::reassignByParMetisAdaptiveRepart()
             if (cloud_.cellOccupancy().size() > gi)
                 nPart = cloud_.cellOccupancy()[gi].size();
             vsize[i] = max(idx_t(1), idx_t(nPart));
+        }
+    }
+    else if (vsExp > SMALL)
+    {
+        for (label i = 0; i < myN; ++i)
+        {
+            const label gi = myStart + i;
+            label nPart = 0;
+            if (cloud_.cellOccupancy().size() > gi)
+                nPart = cloud_.cellOccupancy()[gi].size();
+            if (nPart > 1)
+            {
+                vsize[i] = max(idx_t(1),
+                    idx_t(std::pow(scalar(nPart), vsExp) + 0.5));
+            }
         }
     }
 
@@ -522,9 +614,69 @@ void dsmcReplicatedMesh::autoRebalance()
 {
     if (!autoDLBEnabled_ || !active_ || nProcs_ < 2) return;
 
+    const auto tAuto0 = std::chrono::steady_clock::now();
+    ++autoRebalanceChecks_;
+
     const label currentStep = stepCounter_;
     const bool dlbProfile = mesh_.time().controlDict().lookupOrDefault<bool>
         ("replicatedMeshDLBProfile", false);
+    const label minGapSteps = max
+    (
+        label(0),
+        mesh_.time().controlDict().lookupOrDefault<label>
+        ("replicatedMeshDLBMinGapSteps", 0)
+    );
+    const label stepsSinceRebalance = currentStep - lastAutoRebalanceStep_;
+    const bool minGapSatisfied =
+        (minGapSteps == 0)
+     || (autoRebalanceCount_ == 0)
+     || (lastAutoRebalanceStep_ < 0)
+     || (stepsSinceRebalance >= minGapSteps);
+    const word checkCollective = mesh_.time().controlDict().lookupOrDefault<word>
+        ("replicatedMeshDLBCheckCollective", "allgather");
+    const bool useAllreduceCheck = (checkCollective == "allreduce");
+
+    auto gatherLoadExtrema =
+        [&](const scalar localT, scalar& maxT, scalar& minT)
+        {
+            if (useAllreduceCheck)
+            {
+                MPI_Allreduce
+                (
+                    &localT,
+                    &maxT,
+                    1,
+                    MPI_DOUBLE,
+                    MPI_MAX,
+                    MPI_COMM_WORLD
+                );
+                MPI_Allreduce
+                (
+                    &localT,
+                    &minT,
+                    1,
+                    MPI_DOUBLE,
+                    MPI_MIN,
+                    MPI_COMM_WORLD
+                );
+            }
+            else
+            {
+                scalarList allT(nProcs_, 0.0);
+                MPI_Allgather
+                (
+                    &localT,
+                    1,
+                    MPI_DOUBLE,
+                    allT.data(),
+                    1,
+                    MPI_DOUBLE,
+                    MPI_COMM_WORLD
+                );
+                maxT = max(allT);
+                minT = min(allT);
+            }
+        };
 
     // Post-DLB snapshot: per-rank load for 5 steps after DLB
     if (dlbProfile && postDLBSnapshotCountdown_ > 0)
@@ -559,25 +711,108 @@ void dsmcReplicatedMesh::autoRebalance()
     // ---- Accumulate productive time (move+collision, excluding migration) ----
     const scalar stepEvolve = evolveStepTime_ - lastEvolveTime_;
     const scalar stepMig = migrationWallTime_ - lastMigrationTime_;
-    productiveTime_ += stepEvolve - stepMig;
+    const scalar stepProductive = stepEvolve - stepMig;
+    productiveTime_ += stepProductive;
     lastEvolveTime_ = evolveStepTime_;
     lastMigrationTime_ = migrationWallTime_;
     ++ndecps_;
+    ++sarEvalSteps_;
 
     // Minimum step guard (ParMETIS needs stable particle distribution)
     if (currentStep < 30) return;
 
     bool triggered = false;
+    bool forcedTriggered = false;
 
-    // ---- Evaluate every 10 steps ----
-    if (ndecps_ % 10 == 0)
+    if (forcedDLBSteps_.size())
     {
-        scalarList allProdTimes(nProcs_, 0.0);
-        MPI_Allgather(&productiveTime_, 1, MPI_DOUBLE,
-                      allProdTimes.data(), 1, MPI_DOUBLE, MPI_COMM_WORLD);
+        forAll(forcedDLBSteps_, i)
+        {
+            if (forcedDLBSteps_[i] == currentStep)
+            {
+                forcedTriggered = true;
+                break;
+            }
+        }
+    }
 
-        const scalar maxT = max(allProdTimes);
-        const scalar minT = min(allProdTimes);
+    if (forcedDLBSteps_.size())
+    {
+        if (sarEvalSteps_ >= sarSteps_)
+        {
+            MPI_Barrier(MPI_COMM_WORLD);
+            sarEvalSteps_ = 0;
+        }
+
+        if (forcedTriggered)
+        {
+            triggered = true;
+            Info<< "\nPhase C auto DLB triggered (forced)"
+                << " at step " << currentStep << nl;
+        }
+    }
+    else if (autoDLBTriggerMode_ == "legacyWindow")
+    {
+        if (ndecps_ % sarSteps_ == 0)
+        {
+            const scalar localT = productiveTime_;
+            scalar maxT = 0.0;
+            scalar minT = GREAT;
+            gatherLoadExtrema(localT, maxT, minT);
+
+            if (maxT > SMALL)
+            {
+                const scalar loadImbalance = maxT / max(minT, SMALL);
+
+                bool sarTriggered = false;
+
+                tidl_ += maxT - minT;
+                ++nEvalPeriods_;
+                w2_ = (tidl_ + tdecps_) / scalar(nEvalPeriods_);
+
+                if (nEvalPeriods_ == 1)
+                {
+                    w1_ = w2_;
+                }
+                else
+                {
+                    sar_ = w2_ - w1_;
+                    w1_ = w2_;
+                    sarTriggered = (sar_ > 0.0);
+                }
+
+                const bool thresholdTriggered =
+                    (ndecps_ >= dlbSteps_) && (loadImbalance > imbalanceThreshold_);
+
+                triggered = minGapSatisfied && (sarTriggered || thresholdTriggered);
+                if (triggered)
+                {
+                    const char* reason =
+                        sarTriggered && thresholdTriggered
+                      ? "SAR+threshold"
+                      : (sarTriggered ? "SAR" : "threshold");
+
+                    Info<< "\nPhase C auto DLB triggered (" << reason
+                        << ") at step " << currentStep
+                        << ": sar=" << sar_
+                        << " loadImbalance=" << loadImbalance
+                        << " threshold=" << imbalanceThreshold_ << nl;
+                }
+            }
+
+            productiveTime_ = 0.0;
+            if (ndecps_ >= dlbSteps_) ndecps_ = 0;
+        }
+    }
+    else if (sarEvalSteps_ >= sarSteps_)
+    {
+        const bool thresholdEligible =
+            (autoRebalanceCount_ > 0) && (ndecps_ >= dlbSteps_);
+
+        const scalar localT = productiveTime_;
+        scalar maxT = 0.0;
+        scalar minT = GREAT;
+        gatherLoadExtrema(localT, maxT, minT);
 
         if (maxT > SMALL)
         {
@@ -588,6 +823,7 @@ void dsmcReplicatedMesh::autoRebalance()
             ++nEvalPeriods_;
             w2_ = (tidl_ + tdecps_) / scalar(nEvalPeriods_);
 
+            bool sarTriggered = false;
             if (nEvalPeriods_ == 1)
             {
                 w1_ = w2_;
@@ -596,45 +832,64 @@ void dsmcReplicatedMesh::autoRebalance()
             {
                 sar_ = w2_ - w1_;
                 w1_ = w2_;
-                if (sar_ > 0.0)
-                {
-                    triggered = true;
-                    Info<< "\nPhase C auto DLB triggered (SAR) at step "
-                        << currentStep << ": sar=" << sar_
-                        << " loadImbalance=" << loadImbalance << nl;
-                }
+                sarTriggered = (sar_ > 0.0);
             }
 
-            // Threshold check at dlbSteps_ interval
-            if (!triggered && ndecps_ >= dlbSteps_)
+            const bool thresholdTriggered =
+                thresholdEligible && (loadImbalance > imbalanceThreshold_);
+
+            triggered = minGapSatisfied && (sarTriggered || thresholdTriggered);
+            if (triggered)
             {
-                if (loadImbalance > imbalanceThreshold_)
-                {
-                    triggered = true;
-                    Info<< "\nPhase C auto DLB triggered (threshold) at step "
-                        << currentStep << ": loadImbalance=" << loadImbalance
-                        << " > threshold=" << imbalanceThreshold_ << nl;
-                }
+                const char* reason =
+                    sarTriggered && thresholdTriggered
+                  ? "SAR+threshold"
+                  : (sarTriggered ? "SAR" : "threshold");
+
+                Info<< "\nPhase C auto DLB triggered (" << reason
+                    << ") at step " << currentStep
+                    << ": sar=" << sar_
+                    << " loadImbalance=" << loadImbalance
+                    << " threshold=" << imbalanceThreshold_ << nl;
             }
         }
 
-        productiveTime_ = 0.0;
-        if (ndecps_ >= dlbSteps_) ndecps_ = 0;
+        // Current SAR sampling window has been consumed, but productiveTime_
+        // remains cumulative until an actual DLB trigger completes.
+        sarEvalSteps_ = 0;
     }
 
-    if (!triggered) return;
+    const auto tCheckEnd = std::chrono::steady_clock::now();
+    autoRebalanceCheckWallTime_ +=
+        std::chrono::duration<scalar>(tCheckEnd - tAuto0).count();
+
+    if (!triggered)
+    {
+        autoRebalanceWallTime_ +=
+            std::chrono::duration<scalar>(tCheckEnd - tAuto0).count();
+        return;
+    }
+
+    ++autoRebalanceTriggeredChecks_;
 
     // Time the decomposition for cost accounting
     const auto tDecStart = std::chrono::steady_clock::now();
 
     // Reassign by ParMETIS AdaptiveRepart
     const label nChanged = reassignByParMetisAdaptiveRepart();
+    const auto tRepartEnd = std::chrono::steady_clock::now();
+    autoRebalanceRepartWallTime_ +=
+        std::chrono::duration<scalar>(tRepartEnd - tDecStart).count();
 
     // Skip migration if partition unchanged
     if (nChanged > 0)
     {
+        const auto tMigrate0 = std::chrono::steady_clock::now();
         migrateParticlesByCellOwner();
         updateParticleCounts();
+        const auto tMigrate1 = std::chrono::steady_clock::now();
+        autoRebalanceMigrationWallTime_ +=
+            std::chrono::duration<scalar>(tMigrate1 - tMigrate0).count();
     }
 
     const auto tDecEnd = std::chrono::steady_clock::now();
@@ -648,21 +903,41 @@ void dsmcReplicatedMesh::autoRebalance()
     nEvalPeriods_ = 0;
     sar_ = 0.0;
     ndecps_ = 0;
+    sarEvalSteps_ = 0;
     productiveTime_ = 0.0;
+    if (autoDLBTriggerMode_ != "legacyWindow")
+    {
+        lastEvolveTime_ = evolveStepTime_;
+        lastMigrationTime_ = migrationWallTime_;
+    }
+
+    // Reset per-cell move iteration counter after DLB uses it
+    cloud_.moveItersPerCell() = 0;
 
     Info<< "Phase C auto DLB complete: rebalance #" << autoRebalanceCount_
         << nl << endl;
 
     // Inter-DLB load summary + arm post-DLB snapshot
+    const auto tPostDiag0 = std::chrono::steady_clock::now();
     {
-        const scalar myMoveT = cloud_.evolveMoveWallTime();
-        const scalar myCollT = cloud_.evolveCollisionWallTime();
-        scalarList allMoveT(nProcs_, 0.0), allCollT(nProcs_, 0.0);
-        MPI_Allgather(&myMoveT, 1, MPI_DOUBLE,
-                      allMoveT.data(), 1, MPI_DOUBLE, MPI_COMM_WORLD);
-        MPI_Allgather(&myCollT, 1, MPI_DOUBLE,
-                      allCollT.data(), 1, MPI_DOUBLE, MPI_COMM_WORLD);
-
+        const label fixedK = mesh_.time().controlDict().lookupOrDefault<label>
+            ("replicatedMeshDLBFixedK", 0);
+        const bool skipFixedKPostDiag = mesh_.time().controlDict()
+            .lookupOrDefault<bool>("replicatedMeshDLBSkipFixedKPostDiag", false);
+        const bool needPostDiag =
+            dlbProfile || (fixedK <= 0) || !skipFixedKPostDiag;
+        scalarList allMoveT, allCollT;
+        if (needPostDiag)
+        {
+            const scalar myMoveT = cloud_.evolveMoveWallTime();
+            const scalar myCollT = cloud_.evolveCollisionWallTime();
+            allMoveT.setSize(nProcs_, 0.0);
+            allCollT.setSize(nProcs_, 0.0);
+            MPI_Allgather(&myMoveT, 1, MPI_DOUBLE,
+                          allMoveT.data(), 1, MPI_DOUBLE, MPI_COMM_WORLD);
+            MPI_Allgather(&myCollT, 1, MPI_DOUBLE,
+                          allCollT.data(), 1, MPI_DOUBLE, MPI_COMM_WORLD);
+        }
         if (dlbProfile && lastDLBMoveT_.size() == nProcs_)
         {
             Info<< "  Inter-DLB actual load (since last rebalance):" << nl;
@@ -681,8 +956,6 @@ void dsmcReplicatedMesh::autoRebalance()
         }
 
         // ---- Adaptive K PID: use inter-DLB delta for error signal ----
-        const label fixedK = mesh_.time().controlDict().lookupOrDefault<label>
-            ("replicatedMeshDLBFixedK", 0);
         const label adaptiveKMode = mesh_.time().controlDict().lookupOrDefault<label>
             ("replicatedMeshDLBAdaptiveKMode", 1);
         if (fixedK <= 0 && lastDLBMoveT_.size() == nProcs_)
@@ -714,48 +987,60 @@ void dsmcReplicatedMesh::autoRebalance()
 
             if (adaptiveKMode == 0)
             {
-                // PID controller with integral decay, rate limit, anti-windup
-                static scalar integral = 0.0;
-                static scalar prevError = 0.0;
-                const scalar targetImbalance = 1.1;
-                const scalar error = targetImbalance - workImbalance;
+                // Adaptive alpha with hill-climbing:
+                // weight = N^alpha, alpha in [0.5, 2.0]
+                // Adjust alpha to minimize workImbalance.
+                // Direction hint from move/coll excess, but reverse if
+                // imbalance worsened after last adjustment.
 
-                const scalar decayFactor = 0.5;
-                integral = decayFactor * integral + error;
+                scalar sumMove = 0.0, sumColl = 0.0;
+                for (label i = 0; i < nProcs_; ++i)
+                {
+                    sumMove += dMove[i];
+                    sumColl += dColl[i];
+                }
+                const scalar avgMove = sumMove / nProcs_;
+                const scalar avgColl = sumColl / nProcs_;
+                const scalar bnMoveExcess = dMove[bottleneckRank] - avgMove;
+                const scalar bnCollExcess = dColl[bottleneckRank] - avgColl;
 
-                const scalar derivative = error - prevError;
-                prevError = error;
-
-                const scalar Kp = 0.3;
-                const scalar Ki = 0.05;
-                const scalar Kd = 0.1;
-                scalar output = Kp * error + Ki * integral + Kd * derivative;
-
-                // Rate limit: max ±15% change per DLB
-                output = max(scalar(-0.15), min(scalar(0.15), output));
+                static scalar lastImbalance = GREAT;
+                static scalar lastStep = 0.0;
 
                 if (totalDelta > 2.0 * nProcs_)
                 {
-                    const label newK = label(
-                        scalar(collDivisor_) * (scalar(1.0) + output) + scalar(0.5)
-                    );
-                    const label clampedK = max(label(1), min(label(2048), newK));
+                    const scalar oldAlpha = alpha_;
 
-                    // Anti-windup: if K was clamped, back-calculate integral
-                    if (clampedK != newK)
+                    // Determine direction from move/coll excess
+                    // move excess > coll excess → alpha should decrease
+                    // coll excess > move excess → alpha should increase
+                    const scalar totalExcess = mag(bnMoveExcess) + mag(bnCollExcess) + SMALL;
+                    scalar direction = (bnCollExcess - bnMoveExcess) / totalExcess;
+
+                    // If imbalance worsened since last adjustment, reverse direction
+                    if (workImbalance > lastImbalance + 0.05 && mag(lastStep) > SMALL)
                     {
-                        const scalar actualOutput =
-                            scalar(clampedK) / scalar(collDivisor_) - scalar(1.0);
-                        integral = (actualOutput - Kp * error - Kd * derivative) / Ki;
+                        direction = -Foam::sign(lastStep);
                     }
 
-                    collDivisor_ = clampedK;
-                }
+                    // Step size proportional to imbalance severity, but small
+                    const scalar severity = min(workImbalance - 1.0, scalar(3.0));
+                    const scalar step = direction * min(severity, scalar(2.0)) * 0.04;
 
-                Info<< "Phase C adaptive K (PID): bottleneck=rank" << bottleneckRank
-                    << " max/min=" << workImbalance
-                    << " error=" << error << " integral=" << integral
-                    << " K: " << oldK << " -> " << collDivisor_ << nl;
+                    alpha_ += step;
+                    alpha_ = max(scalar(0.5), min(scalar(2.0), alpha_));
+
+                    lastStep = alpha_ - oldAlpha;
+                    lastImbalance = workImbalance;
+
+                    Info<< "Phase C adaptive alpha: bottleneck=rank"
+                        << bottleneckRank
+                        << " imbal=" << workImbalance
+                        << " bnMoveExc=" << bnMoveExcess
+                        << " bnCollExc=" << bnCollExcess
+                        << " dir=" << direction
+                        << " alpha: " << oldAlpha << " -> " << alpha_ << nl;
+                }
             }
             else
             {
@@ -788,11 +1073,54 @@ void dsmcReplicatedMesh::autoRebalance()
             }
         }
 
-        lastDLBMoveT_ = allMoveT;
-        lastDLBCollT_ = allCollT;
-        postDLBSnapshotCountdown_ = mesh_.time().controlDict().lookupOrDefault<label>
-            ("replicatedMeshDLBProfileSteps", 5);
+        if (needPostDiag)
+        {
+            lastDLBMoveT_ = allMoveT;
+            lastDLBCollT_ = allCollT;
+            postDLBSnapshotCountdown_ = mesh_.time().controlDict().lookupOrDefault<label>
+                ("replicatedMeshDLBProfileSteps", 5);
+        }
+        else
+        {
+            lastDLBMoveT_.clear();
+            lastDLBCollT_.clear();
+            postDLBSnapshotCountdown_ = 0;
+        }
     }
+    const auto tAutoEnd = std::chrono::steady_clock::now();
+    autoRebalancePostDiagWallTime_ +=
+        std::chrono::duration<scalar>(tAutoEnd - tPostDiag0).count();
+    autoRebalanceWallTime_ +=
+        std::chrono::duration<scalar>(tAutoEnd - tAuto0).count();
+}
+
+
+void dsmcReplicatedMesh::writeCellOwner() const
+{
+    if (!active_ || myRank_ != 0) return;
+
+    volScalarField cellOwnerField
+    (
+        IOobject
+        (
+            "cellOwner",
+            mesh_.time().timeName(),
+            mesh_,
+            IOobject::NO_READ,
+            IOobject::AUTO_WRITE
+        ),
+        mesh_,
+        dimensionedScalar("zero", dimless, 0.0)
+    );
+
+    forAll(cellOwner_, cellI)
+    {
+        cellOwnerField[cellI] = scalar(cellOwner_[cellI]);
+    }
+
+    cellOwnerField.write();
+    Info<< "Written cellOwner field at output time "
+        << mesh_.time().timeName() << endl;
 }
 
 
@@ -1675,6 +2003,68 @@ void dsmcReplicatedMesh::report() const
     allTimes[myRank_] = evolveStepTime_;
     MPI_Allreduce(MPI_IN_PLACE, allTimes.data(), nProcs_, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
 
+    scalar autoRebalanceWallMax = autoRebalanceWallTime_;
+    scalar autoRebalanceCheckWallMax = autoRebalanceCheckWallTime_;
+    scalar autoRebalanceRepartWallMax = autoRebalanceRepartWallTime_;
+    scalar autoRebalanceMigrationWallMax = autoRebalanceMigrationWallTime_;
+    scalar autoRebalanceWriteWallMax = autoRebalanceWriteWallTime_;
+    scalar autoRebalancePostDiagWallMax = autoRebalancePostDiagWallTime_;
+
+    MPI_Allreduce
+    (
+        MPI_IN_PLACE,
+        &autoRebalanceWallMax,
+        1,
+        MPI_DOUBLE,
+        MPI_MAX,
+        MPI_COMM_WORLD
+    );
+    MPI_Allreduce
+    (
+        MPI_IN_PLACE,
+        &autoRebalanceCheckWallMax,
+        1,
+        MPI_DOUBLE,
+        MPI_MAX,
+        MPI_COMM_WORLD
+    );
+    MPI_Allreduce
+    (
+        MPI_IN_PLACE,
+        &autoRebalanceRepartWallMax,
+        1,
+        MPI_DOUBLE,
+        MPI_MAX,
+        MPI_COMM_WORLD
+    );
+    MPI_Allreduce
+    (
+        MPI_IN_PLACE,
+        &autoRebalanceMigrationWallMax,
+        1,
+        MPI_DOUBLE,
+        MPI_MAX,
+        MPI_COMM_WORLD
+    );
+    MPI_Allreduce
+    (
+        MPI_IN_PLACE,
+        &autoRebalanceWriteWallMax,
+        1,
+        MPI_DOUBLE,
+        MPI_MAX,
+        MPI_COMM_WORLD
+    );
+    MPI_Allreduce
+    (
+        MPI_IN_PLACE,
+        &autoRebalancePostDiagWallMax,
+        1,
+        MPI_DOUBLE,
+        MPI_MAX,
+        MPI_COMM_WORLD
+    );
+
     if (myRank_ != 0) return;
 
     Info<< nl << "Replicated mesh profiling summary:" << nl
@@ -1702,7 +2092,33 @@ void dsmcReplicatedMesh::report() const
     }
     if (autoDLBEnabled_)
     {
-        Info<< "    Phase C auto DLB rebalances = " << autoRebalanceCount_ << nl;
+        const scalar autoRebalanceAccounted =
+            autoRebalanceCheckWallMax
+          + autoRebalanceRepartWallMax
+          + autoRebalanceMigrationWallMax
+          + autoRebalanceWriteWallMax
+          + autoRebalancePostDiagWallMax;
+
+        Info<< "    Phase C auto DLB checks      = " << autoRebalanceChecks_ << nl
+            << "    Phase C auto DLB rebalances = " << autoRebalanceCount_ << nl
+            << "    Phase C auto DLB triggered checks = "
+            << autoRebalanceTriggeredChecks_ << nl
+            << "    Phase C auto DLB wall max [s]= "
+            << autoRebalanceWallMax << nl
+            << "    Phase C auto DLB check max [s]= "
+            << autoRebalanceCheckWallMax << nl
+            << "    Phase C ParMETIS max [s]     = "
+            << autoRebalanceRepartWallMax << nl
+            << "    Phase C migration max [s]    = "
+            << autoRebalanceMigrationWallMax << nl
+            << "    Phase C cellOwner write max [s] = "
+            << autoRebalanceWriteWallMax << nl
+            << "    Phase C post-diagnostic max [s] = "
+            << autoRebalancePostDiagWallMax << nl
+            << "    Phase C auto DLB accounted max [s] = "
+            << autoRebalanceAccounted << nl
+            << "    Phase C auto DLB residual max [s] = "
+            << autoRebalanceWallMax - autoRebalanceAccounted << nl;
     }
     Info<< endl;
 }

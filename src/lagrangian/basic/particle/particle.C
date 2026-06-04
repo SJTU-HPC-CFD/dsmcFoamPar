@@ -705,12 +705,14 @@ Foam::scalar Foam::particle::trackToStationaryTri
     label& tetTriI
 )
 {
-    const vector x0 = position();
     const vector x1 = displacement;
     const barycentric y0 = coordinates_;
+    vector x0(vector::zero);
 
     if (debug)
     {
+        x0 = position();
+
         Pout<< "Particle " << origId() << endl << "Tracking from " << x0
             << " along " << x1 << " to " << x0 + x1 << endl;
     }
@@ -827,6 +829,61 @@ Foam::scalar Foam::particle::trackToStationaryTri
 }
 
 
+bool Foam::particle::trackToStationaryTetFast
+(
+    const vector& displacement,
+    const scalar fraction,
+    const scalar margin
+)
+{
+    if
+    (
+        mesh_.moving()
+     || onFace()
+     || fraction <= 0
+     || nBehind_ != 0
+    )
+    {
+        return false;
+    }
+
+    vector centre;
+    scalar detA;
+    barycentricTensor T;
+    stationaryTetReverseTransform(centre, detA, T);
+
+    if (detA <= VSMALL)
+    {
+        return false;
+    }
+
+    const barycentric delta(displacement & T);
+    barycentric y1 = coordinates_ + (1/detA)*delta;
+    const scalar safeMargin = max(margin, scalar(0));
+
+    for (label i = 0; i < 4; ++i)
+    {
+        if (y1[i] <= safeMargin)
+        {
+            return false;
+        }
+    }
+
+    const scalar ySum = cmptSum(y1);
+    if (mag(ySum) <= VSMALL)
+    {
+        return false;
+    }
+
+    y1 /= ySum;
+    coordinates_ = y1;
+    stepFraction_ += fraction;
+    facei_ = -1;
+
+    return true;
+}
+
+
 Foam::scalar Foam::particle::trackToMovingTri
 (
     const vector& displacement,
@@ -834,12 +891,14 @@ Foam::scalar Foam::particle::trackToMovingTri
     label& tetTriI
 )
 {
-    const vector x0 = position();
     const vector x1 = displacement;
     const barycentric y0 = coordinates_;
+    vector x0(vector::zero);
 
     if (debug)
     {
+        x0 = position();
+
         Pout<< "Particle " << origId() << endl << "Tracking from " << x0
             << " along " << x1 << " to " << x0 + x1 << endl;
     }

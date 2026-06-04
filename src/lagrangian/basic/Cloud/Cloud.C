@@ -1676,6 +1676,14 @@ void Foam::Cloud<ParticleType>::move
             resetPending = false;
 
             const auto tBegin = clock_type::now();
+            const label faceHitsBefore = td.moveFaceHitCount;
+            const label cyclicHitsBefore = td.moveCyclicHitCount;
+            const label stuckHitsBefore = td.moveStuckHitCount;
+            const label patchHitsBefore = td.movePatchHitCount;
+            const label processorHitsBefore = td.moveProcessorHitCount;
+            const scalar trackWallBefore = td.moveTrackWallTime;
+            const scalar trackerWallBefore = td.moveTrackerWallTime;
+            const scalar boundaryWallBefore = td.moveBoundaryWallTime;
             label processedParticleCount = 0;
             List<ParticleType*> particles(this->size());
             label particlei = 0;
@@ -1760,6 +1768,28 @@ void Foam::Cloud<ParticleType>::move
             );
             moveKernelWallTime += moveWallTimes[0];
             cloudOpenMP::recordMoveThreadProfile(cloud, processedCounts, moveWallTimes, 0);
+
+            scalarField trackWallTimes(1, td.moveTrackWallTime - trackWallBefore);
+            scalarField trackerWallTimes(1, td.moveTrackerWallTime - trackerWallBefore);
+            scalarField boundaryWallTimes(1, td.moveBoundaryWallTime - boundaryWallBefore);
+            labelList faceHitCounts(1, td.moveFaceHitCount - faceHitsBefore);
+            labelList cyclicHitCounts(1, td.moveCyclicHitCount - cyclicHitsBefore);
+            labelList stuckHitCounts(1, td.moveStuckHitCount - stuckHitsBefore);
+            labelList patchHitCounts(1, td.movePatchHitCount - patchHitsBefore);
+            labelList processorHitCounts(1, td.moveProcessorHitCount - processorHitsBefore);
+            cloudOpenMP::recordMoveInnerProfile
+            (
+                cloud,
+                trackWallTimes,
+                trackerWallTimes,
+                boundaryWallTimes,
+                faceHitCounts,
+                cyclicHitCounts,
+                stuckHitCounts,
+                patchHitCounts,
+                processorHitCounts,
+                0
+            );
         }
 
         if (!Pstream::parRun() || neighbourProcs.empty())

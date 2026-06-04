@@ -1,0 +1,49 @@
+FoamFile { version 2.0; format ascii; class dictionary; location "system"; object controlDict; }
+
+useOpenMP true;
+openmpThreads 8;
+
+nTerminalOutputs 10;
+application dsmcFoam+;
+startFrom startTime;
+startTime 0;
+stopAt endTime;
+endTime         5.e-05;
+deltaT          1.e-07;
+sampleSteps     20000;
+CTC             0.25;
+CAC             0.5;
+writeControl runTime;
+writeInterval   1.e-3;
+purgeWrite 0;
+writeFormat ascii;
+writePrecision 10;
+writeCompression uncompressed;
+timeFormat general;
+timePrecision 10;
+runTimeModifiable no;
+adjustTimeStep no;
+
+openmpMoveSchedule static;
+openmpMoveChunk 64;
+openmpCollisionSchedule dynamic;
+openmpCollisionChunk 8;
+
+profileSummary true;
+profileDetail false;
+collisionFastRng true;
+minSampleParticles 1;
+
+replicatedMesh true;
+replicatedMeshDecompMethod metis;
+replicatedMeshAutoDLB true;
+replicatedMeshDLBSteps 100;
+replicatedMeshDLBImbalanceThreshold 1.5;
+replicatedMeshDLBFixedK 0;
+replicatedMeshDLBInitialK 1024;
+replicatedMeshDLBProfile false;
+replicatedMeshDLBProfileSteps 5;
+replicatedMeshDLBAdaptiveKMode  0;  // 0-PID, 1-Hill
+
+
+functions {}

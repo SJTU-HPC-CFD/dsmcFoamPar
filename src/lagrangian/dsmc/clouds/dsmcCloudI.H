@@ -338,6 +338,26 @@ inline const Foam::labelList& Foam::dsmcCloud::nCandidatesPerCell() const
     return nCandidatesPerCell_;
 }
 
+inline const Foam::labelList& Foam::dsmcCloud::moveItersPerCell() const
+{
+    return moveItersPerCell_;
+}
+
+inline Foam::labelList& Foam::dsmcCloud::moveItersPerCell()
+{
+    return moveItersPerCell_;
+}
+
+inline const Foam::labelList& Foam::dsmcCloud::moveItersPerCellCumulative() const
+{
+    return moveItersPerCellCumulative_;
+}
+
+inline Foam::labelList& Foam::dsmcCloud::moveItersPerCellCumulative()
+{
+    return moveItersPerCellCumulative_;
+}
+
 inline const Foam::labelList& Foam::dsmcCloud::collisionCandidateCells() const
 {
     return collisionCandidateCells_;
@@ -501,7 +521,3 @@ inline void Foam::dsmcCloud::clear()
 }
 
 // ************************************************************************* //
-
-
-
-

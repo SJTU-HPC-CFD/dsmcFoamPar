@@ -3214,6 +3214,8 @@ Foam::dsmcCloud::dsmcCloud
     occupancyThreadActiveCells_(),
     selectedPairsPerCell_(mesh_.nCells(), 0.0),
     nCandidatesPerCell_(mesh_.nCells(), 0),
+    moveItersPerCell_(mesh_.nCells(), 0),
+    moveItersPerCellCumulative_(mesh_.nCells(), 0),
     collisionCandidateCells_(),
     collisionPartitionStep_(0),
     collisionPartitionLastRebuildStep_(-1),
@@ -3307,6 +3309,11 @@ Foam::dsmcCloud::dsmcCloud
     evolveCollisionWallTime_(0.0),
     evolveReactionWallTime_(0.0),
     evolvePostWallTime_(0.0),
+    evolvePreWallTime_(0.0),
+    evolveRankTimeWallTime_(0.0),
+    evolveAutoRebalanceWallTime_(0.0),
+    evolvePostProfileResidualWallTime_(0.0),
+    evolveFullWallTime_(0.0),
     evolveProfileCalls_(0),
     moveThreadParticleCounts_(),
     moveThreadWallTimes_(),
@@ -3383,7 +3390,7 @@ Foam::dsmcCloud::dsmcCloud
         {
             int mpiInit = 0;
             MPI_Initialized(&mpiInit);
-            if (!mpiInit) MPI_Init(nullptr, nullptr);
+            if (!mpiInit) UPstream::initNull();
             int myRank = 0;
             MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
             if (myRank != 0)
@@ -3954,18 +3961,15 @@ void Foam::dsmcCloud::evolve()
     // Phase A: pre-move migration only needed on the first step (initial
     // distribution).  After that, the post-move migration from the previous
     // step already placed particles on their owning ranks.
-    if (replicatedMesh_.valid() && replicatedMesh_->migrationCalls() == 0)
+    if (replicatedMeshActive() && replicatedMesh_->migrationCalls() == 0)
     {
         logEvolveStage("before pre-move migration (initial)");
         if (Pstream::parRun())
         {
-            // With -parallel + masterUncollated: each rank has all particles,
-            // just delete non-owned (no MPI needed).
             replicatedMesh_->distributeInitialParticles();
         }
         else
         {
-            // Without -parallel: only rank 0 has particles, must send to others.
             replicatedMesh_->migrateParticlesByCellOwner();
         }
         replicatedMesh_->updateParticleCounts();
@@ -3973,7 +3977,8 @@ void Foam::dsmcCloud::evolve()
     }
 
     // Delayed-receive: finish previous step's async migration
-    const bool delayedReceive = replicatedMesh_.valid()
+    bool postDoneInMigration = false;
+    const bool delayedReceive = replicatedMeshActive()
         && mesh_.time().controlDict().lookupOrDefault<bool>
            ("replicatedMeshDelayedReceive", false);
     if (delayedReceive && replicatedMesh_->asyncMigrationPending())
@@ -3988,7 +3993,7 @@ void Foam::dsmcCloud::evolve()
     {
         endMoveAppendCapture();
     }
-    else if (replicatedMesh_.valid() && moveOrderedParcelsValid_)
+    else if (replicatedMeshActive() && moveOrderedParcelsValid_)
     {
         moveOrderedParcelsValid_ = false;
     }
@@ -3996,17 +4001,29 @@ void Foam::dsmcCloud::evolve()
     const auto t1 = clock_type::now();
 
     // Phase A: migrate particles to their owning rank before building occupancy.
-    if (replicatedMesh_.valid() && replicatedMesh_->stepCounter() > 0)
+    if (replicatedMeshActive() && replicatedMesh_->stepCounter() > 0)
     {
         if (replicatedMesh_->stepCounter() % replicatedMesh_->migrateInterval() == 0)
         {
             if (delayedReceive)
             {
+                // Post overlap: do post BEFORE migration to hide post time
+                // behind slow ranks' move time.
+                if (processBoundaries)
+                {
+                    fields_.calculateFields();
+                    postDoneInMigration = true;
+                }
+
                 logEvolveStage("before migrateBegin");
                 replicatedMesh_->migrateBegin();
                 replicatedMesh_->updateParticleCounts();
                 cellOccupancyMaterialized_ = false;
                 logEvolveStage("after migrateBegin");
+
+                logEvolveStage("before migrateFinish");
+                replicatedMesh_->migrateFinish();
+                logEvolveStage("after migrateFinish");
             }
             else
             {
@@ -4019,7 +4036,7 @@ void Foam::dsmcCloud::evolve()
         }
         replicatedMesh_->advanceStepCounter();
     }
-    else if (replicatedMesh_.valid() && replicatedMesh_->stepCounter() == 0)
+    else if (replicatedMeshActive() && replicatedMesh_->stepCounter() == 0)
     {
         logEvolveStage("before migrateParticlesByCellOwner (first step)");
         replicatedMesh_->migrateParticlesByCellOwner();
@@ -4029,7 +4046,7 @@ void Foam::dsmcCloud::evolve()
     }
 
     // Phase B: reassign cellOwner_ at configured steps and redistribute
-    if (replicatedMesh_.valid() && replicatedMesh_->rebalanceSteps().size())
+    if (replicatedMeshActive() && replicatedMesh_->rebalanceSteps().size())
     {
         const label currentStep = replicatedMesh_->stepCounter();
         const labelList& steps = replicatedMesh_->rebalanceSteps();
@@ -4093,9 +4110,13 @@ void Foam::dsmcCloud::evolve()
     logEvolveStage("after boundaries controlAfterCollisions");
 
     logEvolveStage("before fields/output");
-    if (processBoundaries)
+    if (processBoundaries && !postDoneInMigration)
     {
         fields_.calculateFields();
+        fields_.writeFields();
+    }
+    else if (processBoundaries)
+    {
         fields_.writeFields();
     }
 
@@ -4128,6 +4149,8 @@ void Foam::dsmcCloud::evolve()
     previousMoveEndCloudSize_ = endStepCloudSize;
 
     const auto t6 = clock_type::now();
+    scalar rankTimeWall = 0.0;
+    scalar autoRebalanceWall = 0.0;
 
     if (evolveProfileEnabled_)
     {
@@ -4201,25 +4224,47 @@ void Foam::dsmcCloud::evolve()
     }
 
     // Per-rank evolve wall time (for load balance diagnostics)
-    if (replicatedMesh_.valid())
+    if (replicatedMeshActive())
     {
+        const auto tRankTime0 = clock_type::now();
         replicatedMesh_->addEvolveTime
         (
             std::chrono::duration<scalar>(clock_type::now() - tEvolveStart).count()
         );
+        const auto tRankTime1 = clock_type::now();
+        rankTimeWall = std::chrono::duration<scalar>(tRankTime1 - tRankTime0).count();
 
         // Phase C: automatic DLB — checks per-rank wall time imbalance
         // and triggers Hilbert SFC rebalancing if threshold exceeded.
         // Must be called after addEvolveTime so the current step's time
         // is included in the imbalance calculation.
         const label prevRebalances = replicatedMesh_->autoRebalanceCount();
+        const auto tAutoRebalance0 = clock_type::now();
         replicatedMesh_->autoRebalance();
+        const auto tAutoRebalance1 = clock_type::now();
+        autoRebalanceWall =
+            std::chrono::duration<scalar>(tAutoRebalance1 - tAutoRebalance0).count();
         if (replicatedMesh_->autoRebalanceCount() > prevRebalances)
         {
             // DLB triggered migration — cellOccupancy has dangling pointers
             cellOccupancyMaterialized_ = false;
             clearMoveOrderedParcels();
         }
+    }
+
+    const auto tEvolveEnd = clock_type::now();
+    if (evolveProfileEnabled_)
+    {
+        const scalar postProfileWall =
+            std::chrono::duration<scalar>(tEvolveEnd - t6).count();
+
+        evolvePreWallTime_ += std::chrono::duration<scalar>(t0 - tEvolveStart).count();
+        evolveRankTimeWallTime_ += rankTimeWall;
+        evolveAutoRebalanceWallTime_ += autoRebalanceWall;
+        evolvePostProfileResidualWallTime_ +=
+            postProfileWall - rankTimeWall - autoRebalanceWall;
+        evolveFullWallTime_ +=
+            std::chrono::duration<scalar>(tEvolveEnd - tEvolveStart).count();
     }
 }
 
@@ -4570,6 +4615,355 @@ void Foam::dsmcCloud::resetLoadStats()
 }
 
 
+void Foam::dsmcCloud::reportMoveCellHotspots() const
+{
+    if (!profilingDetailEnabled_ || moveItersPerCellCumulative_.empty())
+    {
+        return;
+    }
+
+    if (Pstream::parRun() && !replicatedMeshActive())
+    {
+        return;
+    }
+
+    labelList cumulativeMoveIters(moveItersPerCellCumulative_);
+    labelList windowMoveIters(moveItersPerCell_);
+
+    if (Pstream::parRun())
+    {
+        reduce(cumulativeMoveIters, sumOp<labelList>());
+        reduce(windowMoveIters, sumOp<labelList>());
+    }
+
+    if (!isOutputRank())
+    {
+        return;
+    }
+
+    scalar totalMoveIters = 0.0;
+    scalar windowTotalMoveIters = 0.0;
+    label activeCells = 0;
+
+    forAll(cumulativeMoveIters, cellI)
+    {
+        totalMoveIters += scalar(cumulativeMoveIters[cellI]);
+        windowTotalMoveIters += scalar(windowMoveIters[cellI]);
+
+        if (cumulativeMoveIters[cellI] > 0)
+        {
+            ++activeCells;
+        }
+    }
+
+    if (totalMoveIters <= 0)
+    {
+        return;
+    }
+
+    const dictionary& controlDict = mesh_.time().controlDict();
+    const label nTop =
+        min
+        (
+            max(controlDict.lookupOrDefault<label>("moveHotspotTopCells", 20), label(0)),
+            mesh_.nCells()
+        );
+    const label maxBoundaryLayer =
+        max(controlDict.lookupOrDefault<label>("moveHotspotBoundaryLayers", 3), label(0));
+
+    labelList hotspotBoundaryPatch(mesh_.boundaryMesh().size(), 0);
+    label nHotspotBoundaryPatches = 0;
+
+    const labelList& patchBoundaryIds = boundaries_.patchBoundaryIds();
+    forAll(patchBoundaryIds, i)
+    {
+        const label patchI = patchBoundaryIds[i];
+
+        if
+        (
+            patchI >= 0
+         && patchI < hotspotBoundaryPatch.size()
+         && !hotspotBoundaryPatch[patchI]
+        )
+        {
+            hotspotBoundaryPatch[patchI] = 1;
+            ++nHotspotBoundaryPatches;
+        }
+    }
+
+    const labelList& generalBoundaryIds = boundaries_.generalBoundaryIds();
+    forAll(generalBoundaryIds, i)
+    {
+        const label patchI = generalBoundaryIds[i];
+
+        if
+        (
+            patchI >= 0
+         && patchI < hotspotBoundaryPatch.size()
+         && !hotspotBoundaryPatch[patchI]
+        )
+        {
+            hotspotBoundaryPatch[patchI] = 1;
+            ++nHotspotBoundaryPatches;
+        }
+    }
+
+    const labelList& cyclicBoundaryIds = boundaries_.cyclicBoundaryIds();
+    forAll(cyclicBoundaryIds, i)
+    {
+        const label patchI = cyclicBoundaryIds[i];
+
+        if
+        (
+            patchI >= 0
+         && patchI < hotspotBoundaryPatch.size()
+         && !hotspotBoundaryPatch[patchI]
+        )
+        {
+            hotspotBoundaryPatch[patchI] = 1;
+            ++nHotspotBoundaryPatches;
+        }
+    }
+
+    labelList boundaryLayer(mesh_.nCells(), -1);
+    DynamicList<label> frontierCells;
+    frontierCells.setCapacity(min(mesh_.nCells(), mesh_.boundaryMesh().size()*8));
+
+    forAll(mesh_.boundaryMesh(), patchI)
+    {
+        const polyPatch& pp = mesh_.boundaryMesh()[patchI];
+
+        if (!hotspotBoundaryPatch[patchI] || isA<processorPolyPatch>(pp))
+        {
+            continue;
+        }
+
+        const labelUList& faceCells = pp.faceCells();
+
+        forAll(faceCells, i)
+        {
+            const label cellI = faceCells[i];
+
+            if (cellI >= 0 && cellI < boundaryLayer.size() && boundaryLayer[cellI] == -1)
+            {
+                boundaryLayer[cellI] = 0;
+                frontierCells.append(cellI);
+            }
+        }
+    }
+
+    for (label layer = 1; layer <= maxBoundaryLayer && frontierCells.size(); ++layer)
+    {
+        DynamicList<label> nextFrontier;
+        nextFrontier.setCapacity(frontierCells.size()*2 + 1);
+
+        forAll(frontierCells, frontierI)
+        {
+            const label cellI = frontierCells[frontierI];
+            const cell& cFaces = mesh_.cells()[cellI];
+
+            forAll(cFaces, faceI)
+            {
+                const label meshFaceI = cFaces[faceI];
+
+                if (!mesh_.isInternalFace(meshFaceI))
+                {
+                    continue;
+                }
+
+                const label owner = mesh_.faceOwner()[meshFaceI];
+                const label neighbour = mesh_.faceNeighbour()[meshFaceI];
+                const label otherCellI = owner == cellI ? neighbour : owner;
+
+                if
+                (
+                    otherCellI >= 0
+                 && otherCellI < boundaryLayer.size()
+                 && boundaryLayer[otherCellI] == -1
+                )
+                {
+                    boundaryLayer[otherCellI] = layer;
+                    nextFrontier.append(otherCellI);
+                }
+            }
+        }
+
+        frontierCells.transfer(nextFrontier);
+    }
+
+    const label nLayerBuckets = maxBoundaryLayer + 2;
+    scalarField layerMoveIters(nLayerBuckets, 0.0);
+    labelList layerActiveCells(nLayerBuckets, 0);
+
+    const bool haveCellOwners =
+        replicatedMeshActive()
+     && replicatedMesh().cellOwner().size() == cumulativeMoveIters.size();
+    const labelList* cellOwnersPtr =
+        haveCellOwners ? &replicatedMesh().cellOwner() : nullptr;
+    scalarField ownerMoveIters
+    (
+        haveCellOwners ? replicatedMesh().nProcs() : 0,
+        0.0
+    );
+    labelList ownerActiveCells
+    (
+        haveCellOwners ? replicatedMesh().nProcs() : 0,
+        0
+    );
+
+    labelList topCells(nTop, -1);
+    labelList topCounts(nTop, 0);
+
+    forAll(cumulativeMoveIters, cellI)
+    {
+        const label count = cumulativeMoveIters[cellI];
+
+        if (count <= 0)
+        {
+            continue;
+        }
+
+        const label layer = boundaryLayer[cellI];
+        const label layerBucket =
+            (layer >= 0 && layer <= maxBoundaryLayer)
+          ? layer
+          : maxBoundaryLayer + 1;
+
+        layerMoveIters[layerBucket] += scalar(count);
+        ++layerActiveCells[layerBucket];
+
+        if (haveCellOwners)
+        {
+            const label owner = (*cellOwnersPtr)[cellI];
+
+            if (owner >= 0 && owner < ownerMoveIters.size())
+            {
+                ownerMoveIters[owner] += scalar(count);
+                ++ownerActiveCells[owner];
+            }
+        }
+
+        forAll(topCounts, topI)
+        {
+            if (count > topCounts[topI])
+            {
+                for (label shiftI = topCounts.size() - 1; shiftI > topI; --shiftI)
+                {
+                    topCounts[shiftI] = topCounts[shiftI - 1];
+                    topCells[shiftI] = topCells[shiftI - 1];
+                }
+
+                topCounts[topI] = count;
+                topCells[topI] = cellI;
+                break;
+            }
+        }
+    }
+
+    Info<< "Move cell hotspot summary:" << nl
+        << "    cumulative move iters         = " << totalMoveIters << nl
+        << "    current DLB-window move iters = " << windowTotalMoveIters << nl
+        << "    active move cells             = "
+        << activeCells << " / " << mesh_.nCells() << nl
+        << "    hotspot boundary seed patches = "
+        << nHotspotBoundaryPatches << nl
+        << "    boundary layer limit          = " << maxBoundaryLayer << nl;
+
+    if (nTop > 0)
+    {
+        Info<< "    top cells by cumulative move iters:" << nl;
+
+        forAll(topCells, topI)
+        {
+            const label cellI = topCells[topI];
+
+            if (cellI < 0)
+            {
+                continue;
+            }
+
+            const label count = topCounts[topI];
+            const scalar share = 100.0*scalar(count)/max(totalMoveIters, scalar(1));
+            const label layer = boundaryLayer[cellI];
+
+            Info<< "        rank=" << topI + 1
+                << " cell=" << cellI
+                << " count=" << count
+                << " share[%]=" << share
+                << " boundaryLayer=";
+
+            if (layer >= 0 && layer <= maxBoundaryLayer)
+            {
+                Info<< layer;
+            }
+            else
+            {
+                Info<< ">" << maxBoundaryLayer;
+            }
+
+            Info<< " owner=";
+
+            if (haveCellOwners)
+            {
+                Info<< (*cellOwnersPtr)[cellI];
+            }
+            else
+            {
+                Info<< -1;
+            }
+
+            Info<< " centre=" << mesh_.cellCentres()[cellI]
+                << " volume=" << mesh_.cellVolumes()[cellI]
+                << nl;
+        }
+    }
+
+    Info<< "    boundary-layer cumulative move iters:" << nl;
+
+    forAll(layerMoveIters, bucketI)
+    {
+        const scalar share =
+            100.0*layerMoveIters[bucketI]/max(totalMoveIters, scalar(1));
+
+        Info<< "        layer=";
+
+        if (bucketI <= maxBoundaryLayer)
+        {
+            Info<< bucketI;
+        }
+        else
+        {
+            Info<< ">" << maxBoundaryLayer;
+        }
+
+        Info<< " count=" << layerMoveIters[bucketI]
+            << " share[%]=" << share
+            << " activeCells=" << layerActiveCells[bucketI]
+            << nl;
+    }
+
+    if (haveCellOwners)
+    {
+        scalarField ownerShares(ownerMoveIters.size(), 0.0);
+
+        forAll(ownerMoveIters, ownerI)
+        {
+            ownerShares[ownerI] =
+                100.0*ownerMoveIters[ownerI]/max(totalMoveIters, scalar(1));
+        }
+
+        Info<< "    current cellOwner cumulative move iters = "
+            << ownerMoveIters << nl
+            << "    current cellOwner share[%]              = "
+            << ownerShares << nl
+            << "    current cellOwner active move cells     = "
+            << ownerActiveCells << nl;
+    }
+
+    Info<< endl;
+}
+
+
 void Foam::dsmcCloud::deleteParcel(dsmcParcel* p)
 {
     // Cast to IDLList to resolve multiple-inheritance ambiguity for erase()
@@ -4700,6 +5094,11 @@ void Foam::dsmcCloud::reportProfiling() const
         }
     }
 
+    if (moveProfileCalls_ > 0 && profilingDetailEnabled_)
+    {
+        reportMoveCellHotspots();
+    }
+
     if (buildOccupancyProfileCalls_ > 0 && isOutputRank())
     {
         const scalar totalProfiled =
@@ -4795,16 +5194,29 @@ void Foam::dsmcCloud::reportProfiling() const
           + evolveCollisionWallTime_
           + evolveReactionWallTime_
           + evolvePostWallTime_;
+        const scalar fullAccounted =
+            totalProfiled
+          + evolvePreWallTime_
+          + evolveRankTimeWallTime_
+          + evolveAutoRebalanceWallTime_
+          + evolvePostProfileResidualWallTime_;
 
         Info<< "Evolve profiling summary:" << nl
             << "    evolve calls                  = " << evolveProfileCalls_ << nl
+            << "    pre/update setup [s]          = " << evolvePreWallTime_ << nl
             << "    move only [s]                 = " << evolveMoveWallTime_ << nl
             << "    buildCellOccupancy [s]        = " << evolveBuildWallTime_ << nl
             << "    coordSystem [s]               = " << evolveCoordWallTime_ << nl
             << "    collision phase [s]           = " << evolveCollisionWallTime_ << nl
             << "    reaction/output [s]           = " << evolveReactionWallTime_ << nl
             << "    post fields/output [s]        = " << evolvePostWallTime_ << nl
+            << "    rank-time bookkeeping [s]     = " << evolveRankTimeWallTime_ << nl
+            << "    auto DLB/rebalance [s]        = " << evolveAutoRebalanceWallTime_ << nl
+            << "    post-profile residual [s]     = " << evolvePostProfileResidualWallTime_ << nl
             << "    total profiled [s]            = " << totalProfiled << nl
+            << "    full evolve accounted [s]     = " << fullAccounted << nl
+            << "    full evolve wall [s]          = " << evolveFullWallTime_ << nl
+            << "    evolve residual [s]           = " << evolveFullWallTime_ - fullAccounted << nl
             << endl;
     }
 
@@ -4896,7 +5308,10 @@ void Foam::dsmcCloud::reportProfiling() const
                         << "    thread move ns/particle       = " << moveNsPerParticle << nl;
                 }
 
-                if (moveThreadTrackWallTimes_.size() == moveThreadParticleCounts_.size())
+                if
+                (
+                    moveThreadTrackWallTimes_.size() == moveThreadParticleCounts_.size()
+                )
                 {
                     scalarField trackNsPerParticle(moveThreadParticleCounts_.size(), 0.0);
                     scalarField boundaryNsPerParticle(moveThreadParticleCounts_.size(), 0.0);
@@ -5010,12 +5425,10 @@ void Foam::dsmcCloud::reportProfiling() const
         }
     }
 
-    if (replicatedMesh_.valid() && evolveProfileEnabled_)
+    if (replicatedMeshActive() && evolveProfileEnabled_)
     {
         replicatedMesh_->report();
     }
 }
 
 // ************************************************************************* //
-
-

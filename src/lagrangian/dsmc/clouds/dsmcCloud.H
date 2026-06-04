@@ -164,6 +164,8 @@ class dsmcCloud
     List<DynamicList<label>> occupancyThreadActiveCells_;
     scalarField selectedPairsPerCell_;
     labelList nCandidatesPerCell_;
+    labelList moveItersPerCell_;
+    labelList moveItersPerCellCumulative_;
     labelList collisionCandidateCells_;
     labelList collisionLoadStart_;
     labelList collisionLoadEnd_;
@@ -259,6 +261,11 @@ class dsmcCloud
     scalar evolveCollisionWallTime_;
     scalar evolveReactionWallTime_;
     scalar evolvePostWallTime_;
+    scalar evolvePreWallTime_;
+    scalar evolveRankTimeWallTime_;
+    scalar evolveAutoRebalanceWallTime_;
+    scalar evolvePostProfileResidualWallTime_;
+    scalar evolveFullWallTime_;
     label evolveProfileCalls_;
     labelList moveThreadParticleCounts_;
     scalarField moveThreadWallTimes_;
@@ -336,6 +343,7 @@ class dsmcCloud
     );
     scalar initialSigmaTcRMax() const;
     bool speciesSelected(const label fieldI, const label typeId) const;
+    void reportMoveCellHotspots() const;
 
     dsmcCloud(const dsmcCloud&);
     void operator=(const dsmcCloud&);
@@ -454,6 +462,10 @@ public:
     inline dsmcParcel* occupancyParcel(const label index) const;
     inline const scalarField& selectedPairsPerCell() const;
     inline const labelList& nCandidatesPerCell() const;
+    inline const labelList& moveItersPerCell() const;
+    inline labelList& moveItersPerCell();
+    inline const labelList& moveItersPerCellCumulative() const;
+    inline labelList& moveItersPerCellCumulative();
     inline const labelList& collisionCandidateCells() const;
     inline const labelList& collisionLoadStart() const;
     inline const labelList& collisionLoadEnd() const;
@@ -672,4 +684,3 @@ public:
 #endif
 
 // ************************************************************************* //
-

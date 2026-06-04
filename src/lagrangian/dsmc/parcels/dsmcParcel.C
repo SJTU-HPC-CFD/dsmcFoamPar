@@ -27,12 +27,27 @@ License
 #include "dsmcCloud.H"
 #include "meshTools.H"
 
+#include <chrono>
+
 #ifdef _OPENMP
     #include <omp.h>
 #endif
 
 namespace
 {
+
+using MoveProfileClock = std::chrono::steady_clock;
+
+inline Foam::scalar elapsedSeconds
+(
+    const MoveProfileClock::time_point& start
+)
+{
+    return std::chrono::duration<Foam::scalar>
+    (
+        MoveProfileClock::now() - start
+    ).count();
+}
 
 inline bool useOpenMPMoveCriticals(const Foam::dsmcCloud& cloud)
 {
@@ -118,11 +133,95 @@ bool Foam::dsmcParcel::move
 {
     td.switchProcessor = false;
     td.keepParticle = true;
+    const bool profileMoveDetail = cloud.profilingDetailEnabled();
 
     if (cloud.replicatedMeshActive() && cell() >= 0
         && cell() < cloud.mesh().nCells())
     {
         localCellI_ = cloud.replicatedMesh().localMesh().toLocal(cell());
+    }
+
+    if (!profileMoveDetail)
+    {
+        if (isFree())
+        {
+            if (newParcel_ != -1)
+            {
+                stepFraction() = td.moveRng.sample01();
+                newParcel_ = -1;
+            }
+
+            vector Utracking = U_;
+
+            while (td.keepParticle && !td.switchProcessor && stepFraction() < 1)
+            {
+                Utracking = U_;
+                meshTools::constrainDirection(mesh(), mesh().solutionD(), Utracking);
+
+                const vector d = deviationFromMeshCentre();
+                const scalar f = 1 - stepFraction();
+                trackToAndHitFace(f*trackTime*Utracking - d, f, cloud, td);
+
+                if (face() != -1)
+                {
+                    if (cloud.trackerActive())
+                    {
+                        trackParcelFaceTransitionThreadSafe(cloud, *this);
+                    }
+
+                    const label patchIndex = patch();
+
+                    if
+                    (
+                        patchIndex >= 0
+                     && patchIndex
+                      < cloud.boundaries().cyclicBoundaryToModelIds().size()
+                    )
+                    {
+                        const label cyclicModelId =
+                            cloud.boundaries().cyclicBoundaryToModelIds()[patchIndex];
+
+                        if (cyclicModelId >= 0)
+                        {
+                            controlCyclicBoundaryThreadSafe
+                            (
+                                cloud,
+                                cyclicModelId,
+                                *this,
+                                td
+                            );
+                        }
+                    }
+                }
+            }
+        }
+        else
+        {
+            const label patchIndex = stuck().wallTemperature()[1];
+
+            if
+            (
+                patchIndex >= 0
+             && patchIndex < cloud.boundaries().patchToModelIds().size()
+            )
+            {
+                const label patchModelId =
+                    cloud.boundaries().patchToModelIds()[patchIndex];
+
+                if (patchModelId >= 0)
+                {
+                    controlPatchBoundaryThreadSafe
+                    (
+                        cloud,
+                        patchModelId,
+                        *this,
+                        td
+                    );
+                }
+            }
+        }
+
+        return td.keepParticle;
     }
 
     if (isFree())
@@ -142,13 +241,32 @@ bool Foam::dsmcParcel::move
 
             const vector d = deviationFromMeshCentre();
             const scalar f = 1 - stepFraction();
-            trackToAndHitFace(f*trackTime*Utracking - d, f, cloud, td);
+
+            const label cellBefore = cell();
+            const vector trackDisplacement = f*trackTime*Utracking - d;
+
+            const auto tTrack0 = MoveProfileClock::now();
+            trackToAndHitFace(trackDisplacement, f, cloud, td);
+            td.moveTrackWallTime += elapsedSeconds(tTrack0);
+            if
+            (
+                cellBefore >= 0
+             && cellBefore < cloud.moveItersPerCell().size()
+            )
+            {
+                ++cloud.moveItersPerCell()[cellBefore];
+                ++cloud.moveItersPerCellCumulative()[cellBefore];
+            }
 
             if (face() != -1)
             {
+                ++td.moveFaceHitCount;
+
                 if (cloud.trackerActive())
                 {
+                    const auto tTracker0 = MoveProfileClock::now();
                     trackParcelFaceTransitionThreadSafe(cloud, *this);
+                    td.moveTrackerWallTime += elapsedSeconds(tTracker0);
                 }
 
                 const label patchIndex = patch();
@@ -165,6 +283,8 @@ bool Foam::dsmcParcel::move
 
                     if (cyclicModelId >= 0)
                     {
+                        ++td.moveCyclicHitCount;
+                        const auto tBoundary0 = MoveProfileClock::now();
                         controlCyclicBoundaryThreadSafe
                         (
                             cloud,
@@ -172,6 +292,7 @@ bool Foam::dsmcParcel::move
                             *this,
                             td
                         );
+                        td.moveBoundaryWallTime += elapsedSeconds(tBoundary0);
                     }
                 }
             }
@@ -192,6 +313,8 @@ bool Foam::dsmcParcel::move
 
             if (patchModelId >= 0)
             {
+                ++td.moveStuckHitCount;
+                const auto tBoundary0 = MoveProfileClock::now();
                 controlPatchBoundaryThreadSafe
                 (
                     cloud,
@@ -199,6 +322,7 @@ bool Foam::dsmcParcel::move
                     *this,
                     td
                 );
+                td.moveBoundaryWallTime += elapsedSeconds(tBoundary0);
             }
         }
     }
@@ -216,7 +340,17 @@ bool Foam::dsmcParcel::hitPatch(dsmcCloud& cloud, trackingData& td)
 
         if (patchModelId >= 0)
         {
+            const bool profileMoveDetail = cloud.profilingDetailEnabled();
+            if (!profileMoveDetail)
+            {
+                controlPatchBoundaryThreadSafe(cloud, patchModelId, *this, td);
+                return false;
+            }
+
+            ++td.movePatchHitCount;
+            const auto tBoundary0 = MoveProfileClock::now();
             controlPatchBoundaryThreadSafe(cloud, patchModelId, *this, td);
+            td.moveBoundaryWallTime += elapsedSeconds(tBoundary0);
         }
     }
 
@@ -225,6 +359,10 @@ bool Foam::dsmcParcel::hitPatch(dsmcCloud& cloud, trackingData& td)
 
 void Foam::dsmcParcel::hitProcessorPatch(dsmcCloud& cloud, trackingData& td)
 {
+    if (cloud.profilingDetailEnabled())
+    {
+        ++td.moveProcessorHitCount;
+    }
     td.switchProcessor = true;
 }
 
@@ -238,12 +376,31 @@ void Foam::dsmcParcel::hitWallPatch(dsmcCloud& cloud, trackingData& td)
 
         if (patchModelId >= 0)
         {
+            const bool profileMoveDetail = cloud.profilingDetailEnabled();
+            if (!profileMoveDetail)
+            {
+                controlPatchBoundaryThreadSafe(cloud, patchModelId, *this, td);
+                return;
+            }
+
+            ++td.movePatchHitCount;
+            const auto tBoundary0 = MoveProfileClock::now();
             controlPatchBoundaryThreadSafe(cloud, patchModelId, *this, td);
+            td.moveBoundaryWallTime += elapsedSeconds(tBoundary0);
             return;
         }
     }
 
+    const bool profileMoveDetail = cloud.profilingDetailEnabled();
+    if (!profileMoveDetail)
+    {
+        cloud.handleWallInteraction(*this, td);
+        return;
+    }
+
+    const auto tBoundary0 = MoveProfileClock::now();
     cloud.handleWallInteraction(*this, td);
+    td.moveBoundaryWallTime += elapsedSeconds(tBoundary0);
 }
 
 void Foam::dsmcParcel::transformProperties(const tensor& T)
@@ -364,6 +521,3 @@ Foam::dsmcParcel* Foam::dsmcParcel::unpackTransfer
 // ************************************************************************* //
 
 Foam::label Foam::dsmcParcel::TrackedParcel::nDELETED = 0;
-
-
-

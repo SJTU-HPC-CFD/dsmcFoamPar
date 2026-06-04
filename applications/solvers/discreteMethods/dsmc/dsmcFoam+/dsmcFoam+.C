@@ -51,10 +51,32 @@ int main(int argc, char *argv[])
     label infoCounter = 0;
     const bool solverStageProbe =
         runTime.controlDict().lookupOrDefault<bool>("solverStageProbe", false);
-    const auto loopStart = std::chrono::steady_clock::now();
+    using clock_type = std::chrono::steady_clock;
+    const auto loopStart = clock_type::now();
 
-    while (runTime.loop())
+    scalar solverRunTimeLoopWallTime = 0.0;
+    scalar solverHeaderWallTime = 0.0;
+    scalar solverEvolveWallTime = 0.0;
+    scalar solverLoadUpdateWallTime = 0.0;
+    scalar solverLoadPerformWallTime = 0.0;
+    scalar solverInfoWallTime = 0.0;
+    scalar solverWriteWallTime = 0.0;
+    scalar solverStepResidualWallTime = 0.0;
+    label solverProfileSteps = 0;
+
+    while (true)
     {
+        const auto tRunTimeLoop0 = clock_type::now();
+        if (!runTime.loop())
+        {
+            solverRunTimeLoopWallTime +=
+                std::chrono::duration<scalar>(clock_type::now() - tRunTimeLoop0).count();
+            break;
+        }
+        const auto tStepStart = clock_type::now();
+        solverRunTimeLoopWallTime +=
+            std::chrono::duration<scalar>(tStepStart - tRunTimeLoop0).count();
+
         ++infoCounter;
         const bool emitStepDiagnostics = (infoCounter >= dsmc.nTerminalOutputs());
         dsmc.setStepDiagnosticOutput(emitStepDiagnostics);
@@ -63,6 +85,9 @@ int main(int argc, char *argv[])
         {
             Info<< "Time = " << runTime.timeName() << nl << endl;
         }
+        const auto tAfterHeader = clock_type::now();
+        solverHeaderWallTime +=
+            std::chrono::duration<scalar>(tAfterHeader - tStepStart).count();
 
         if (solverStageProbe)
         {
@@ -71,7 +96,11 @@ int main(int argc, char *argv[])
                 << " time " << runTime.timeName()
                 << ": before evolve" << nl << endl;
         }
+        const auto tEvolve0 = clock_type::now();
         dsmc.evolve();
+        const auto tEvolve1 = clock_type::now();
+        solverEvolveWallTime +=
+            std::chrono::duration<scalar>(tEvolve1 - tEvolve0).count();
 
         if (solverStageProbe)
         {
@@ -87,7 +116,11 @@ int main(int argc, char *argv[])
                 << " time " << runTime.timeName()
                 << ": before loadBalancer.update" << nl << endl;
         }
+        const auto tLoadUpdate0 = clock_type::now();
         loadBalancer.update();
+        const auto tLoadUpdate1 = clock_type::now();
+        solverLoadUpdateWallTime +=
+            std::chrono::duration<scalar>(tLoadUpdate1 - tLoadUpdate0).count();
         if (solverStageProbe)
         {
             Pout<< "Solver stage rank " << Pstream::myProcNo()
@@ -102,7 +135,11 @@ int main(int argc, char *argv[])
                 << " time " << runTime.timeName()
                 << ": before loadBalancer.perform" << nl << endl;
         }
+        const auto tLoadPerform0 = clock_type::now();
         loadBalancer.perform();
+        const auto tLoadPerform1 = clock_type::now();
+        solverLoadPerformWallTime +=
+            std::chrono::duration<scalar>(tLoadPerform1 - tLoadPerform0).count();
         if (solverStageProbe)
         {
             Pout<< "Solver stage rank " << Pstream::myProcNo()
@@ -111,9 +148,15 @@ int main(int argc, char *argv[])
                 << ": after loadBalancer.perform" << nl << endl;
         }
 
+        scalar stepInfoWallTime = 0.0;
         if (emitStepDiagnostics)
         {
+            const auto tInfo0 = clock_type::now();
             dsmc.info();
+            const auto tInfo1 = clock_type::now();
+            stepInfoWallTime =
+                std::chrono::duration<scalar>(tInfo1 - tInfo0).count();
+            solverInfoWallTime += stepInfoWallTime;
             infoCounter = 0;
         }
 
@@ -124,6 +167,7 @@ int main(int argc, char *argv[])
                 << " time " << runTime.timeName()
                 << ": before runTime.write" << nl << endl;
         }
+        const auto tWrite0 = clock_type::now();
         if (dsmc.replicatedMeshActive())
         {
             const bool isOutput = runTime.outputTime();
@@ -134,6 +178,10 @@ int main(int argc, char *argv[])
             if (dsmc.isOutputRank())
             {
                 runTime.write();
+                if (isOutput)
+                {
+                    dsmc.replicatedMeshRef().writeCellOwner();
+                }
             }
             if (isOutput)
             {
@@ -155,20 +203,67 @@ int main(int argc, char *argv[])
         {
             runTime.printExecutionTime(Info);
         }
+        const auto tStepEnd = clock_type::now();
+        solverWriteWallTime +=
+            std::chrono::duration<scalar>(tStepEnd - tWrite0).count();
+
+        const scalar accountedStep =
+            std::chrono::duration<scalar>(tAfterHeader - tStepStart).count()
+          + std::chrono::duration<scalar>(tEvolve1 - tEvolve0).count()
+          + std::chrono::duration<scalar>(tLoadUpdate1 - tLoadUpdate0).count()
+          + std::chrono::duration<scalar>(tLoadPerform1 - tLoadPerform0).count()
+          + stepInfoWallTime
+          + std::chrono::duration<scalar>(tStepEnd - tWrite0).count();
+        solverStepResidualWallTime +=
+            std::chrono::duration<scalar>(tStepEnd - tStepStart).count()
+          - accountedStep;
+        ++solverProfileSteps;
     }
 
     const scalar mainLoopWallTime =
         std::chrono::duration_cast<std::chrono::duration<scalar>>
         (
-            std::chrono::steady_clock::now() - loopStart
+            clock_type::now() - loopStart
         ).count();
 
     if (dsmc.isOutputRank())
     {
+        const scalar solverAccountedWallTime =
+            solverRunTimeLoopWallTime
+          + solverHeaderWallTime
+          + solverEvolveWallTime
+          + solverLoadUpdateWallTime
+          + solverLoadPerformWallTime
+          + solverInfoWallTime
+          + solverWriteWallTime
+          + solverStepResidualWallTime;
+
         Info<< nl
             << "Main loop profiling summary:" << nl
             << "    main loop wall time [s]      = "
             << mainLoopWallTime << nl
+            << "    solver profile steps          = "
+            << solverProfileSteps << nl
+            << "    runTime.loop [s]              = "
+            << solverRunTimeLoopWallTime << nl
+            << "    loop header/output [s]        = "
+            << solverHeaderWallTime << nl
+            << "    dsmc.evolve call [s]          = "
+            << solverEvolveWallTime << nl
+            << "    loadBalancer.update [s]       = "
+            << solverLoadUpdateWallTime << nl
+            << "    loadBalancer.perform [s]      = "
+            << solverLoadPerformWallTime << nl
+            << "    dsmc.info [s]                 = "
+            << solverInfoWallTime << nl
+            << "    runTime.write/print [s]       = "
+            << solverWriteWallTime << nl
+            << "    step residual [s]             = "
+            << solverStepResidualWallTime << nl
+            << "    solver accounted [s]          = "
+            << solverAccountedWallTime << nl
+            << "    main-accounted residual [s]   = "
+            << mainLoopWallTime - solverAccountedWallTime << nl
             << endl;
     }
 
@@ -179,14 +274,7 @@ int main(int argc, char *argv[])
         Info<< "End\n" << endl;
     }
 
-    if (dsmc.replicatedMeshActive() && !Pstream::parRun())
-    {
-        MPI_Finalize();
-    }
-
     UPstream::exit(0);
 }
 
 // ************************************************************************* //
-
-
