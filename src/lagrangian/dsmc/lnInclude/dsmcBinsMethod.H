@@ -1,1 +1,0 @@
-../macroscopicProperties/derived/combined/WIP_dsmcBinsMethod/dsmcBinsMethod.H

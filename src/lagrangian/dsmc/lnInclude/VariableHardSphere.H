@@ -1,1 +1,0 @@
-../collisions/derived/VariableHardSphere/VariableHardSphere.H

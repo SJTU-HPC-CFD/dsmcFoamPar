@@ -1,1 +1,0 @@
-../initialiseDsmcParcels/basic/dsmcConfiguration/dsmcConfiguration.H

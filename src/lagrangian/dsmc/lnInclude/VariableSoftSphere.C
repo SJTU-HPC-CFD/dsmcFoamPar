@@ -1,1 +1,0 @@
-../collisions/derived/VariableSoftSphere/VariableSoftSphere.C

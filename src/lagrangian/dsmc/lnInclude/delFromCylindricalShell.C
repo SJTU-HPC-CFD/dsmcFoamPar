@@ -1,1 +1,0 @@
-../molsToDel/derived/delFromCylindricalShell/delFromCylindricalShell.C

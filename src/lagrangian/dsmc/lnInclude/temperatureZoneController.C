@@ -1,1 +1,0 @@
-../controllers/derived/temperature/temperatureZoneController/temperatureZoneController.C

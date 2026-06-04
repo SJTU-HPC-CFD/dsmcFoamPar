@@ -1,1 +1,0 @@
-../macroscopicProperties/derived/WIP_massFlux/WIP_atomisticMassFluxMultiSurfaces/atomisticMassFluxMultiSurfaces.H

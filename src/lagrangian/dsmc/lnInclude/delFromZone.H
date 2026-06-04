@@ -1,1 +1,0 @@
-../molsToDel/derived/delFromZone/delFromZone.H

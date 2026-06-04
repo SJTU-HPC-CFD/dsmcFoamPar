@@ -1,1 +1,0 @@
-../boundaries/derived/patchBoundaries/mixed/dsmcStickingDiffuseWallPatch/dsmcStickingDiffuseWallPatch.C

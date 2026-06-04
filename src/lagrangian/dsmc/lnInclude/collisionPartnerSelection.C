@@ -1,1 +1,0 @@
-../collisionPartnerSelection/basic/collisionPartnerSelection.C

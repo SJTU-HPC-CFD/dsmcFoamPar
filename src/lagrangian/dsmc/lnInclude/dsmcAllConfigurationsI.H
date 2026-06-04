@@ -1,1 +1,0 @@
-../initialiseDsmcParcels/basic/dsmcAllConfigurations/dsmcAllConfigurationsI.H

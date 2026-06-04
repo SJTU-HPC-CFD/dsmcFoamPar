@@ -1,1 +1,0 @@
-../gravityForce/derived/oscillatingLowResolutionForce/oscillatingLowResolutionForce.H

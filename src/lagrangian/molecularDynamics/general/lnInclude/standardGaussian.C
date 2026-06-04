@@ -1,1 +1,0 @@
-../gravityForce/derived/standardGaussian/standardGaussian.C

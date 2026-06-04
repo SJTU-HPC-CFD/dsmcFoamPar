@@ -1,1 +1,0 @@
-../threeDimBinModels/basic/threeDimBinModel.H
