@@ -1,0 +1,205 @@
+/*---------------------------------------------------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  v1706                                 |
+|   \\  /    A nd           | Web:      www.OpenFOAM.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+Build  : v1706
+Arch   : "LSB;label=32;scalar=64"
+Exec   : dsmcFoam+
+Date   : Jun 05 2026
+Time   : 07:12:31
+Host   : "SuperXCX-ROG"
+PID    : 478656
+/*---------------------------------------------------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  v1706                                 |
+|   \\  /    A nd           | Web:      www.OpenFOAM.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+Build  : v1706
+Arch   : "LSB;label=32;scalar=64"
+Exec   : dsmcFoam+
+Date   : Jun 05 2026
+Time   : 07:12:31
+Host   : "SuperXCX-ROG"
+PID    : 478657
+Case   : /home/superxcx/code/OpenFoam/OF-1706/hyStrath_dlb/run/hyStrath/dsmcFoam+/xcx_test/pal-phd-3.3.1-cylinder-react/timecompare/ourmeshbkp/mpi8replicatedmesh
+nProcs : 1
+sigFpe : Enabling floating point exception trapping (FOAM_SIGFPE).
+fileModificationChecking : Monitoring run-time modified files using timeStampMaster (fileModificationSkew 10)
+allowSystemOperations : Allowing user-supplied system call operations
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+Create time
+
+Case   : /home/superxcx/code/OpenFoam/OF-1706/hyStrath_dlb/run/hyStrath/dsmcFoam+/xcx_test/pal-phd-3.3.1-cylinder-react/timecompare/ourmeshbkp/mpi8replicatedmesh
+nProcs : 1
+sigFpe : Enabling floating point exception trapping (FOAM_SIGFPE).
+fileModificationChecking : Monitoring run-time modified files using timeStampMaster (fileModificationSkew 10)
+allowSystemOperations : Allowing user-supplied system call operations
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+Create time
+
+Create mesh for time = 0
+
+Create mesh for time = 0
+
+Selecting dynamicFvMesh staticFvMesh
+Selecting dynamicFvMesh staticFvMesh
+
+Constructing dsmcCloud 
+
+Constructing dsmcCloud 
+Selecting the coordinate system model:	dsmcCartesian
+
+Selecting the time-step model:	dsmcConstantTimeStepModel
+
+Constant time-step model:
+- time-step [sec]	1e-07
+
+Selecting the porous measurement model:	dsmcNoPorousMediumMeasurements
+
+Selecting the coordinate system model:	dsmcCartesian
+
+Selecting the time-step model:	dsmcConstantTimeStepModel
+
+Constant time-step model:
+- time-step [sec]	1e-07
+
+Selecting the porous measurement model:	dsmcNoPorousMediumMeasurements
+
+
+Creating dsmcControllers
+
+Creating fields: 
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+ measurement option: write
+ nSamples: 1, time interval: 1e-07
+ nAverages: 10000, time interval: 0.001
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+
+Creating dsmcControllers
+
+Creating fields: 
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+ measurement option: write
+ nSamples: 1, time interval: 1e-07
+ nAverages: 10000, time interval: 0.001
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Creating the boundary models: 
+
+Selecting dsmcPatchBoundaryModel dsmcDeletionPatch
+Selecting dsmcPatchBoundaryModel dsmcDeletionPatch
+Selecting dsmcPatchBoundaryModel dsmcDiffuseWallPatch
+Selecting dsmcGeneralBoundaryModel dsmcFreeStreamInflowPatch
+Creating the boundary models: 
+
+Selecting dsmcPatchBoundaryModel dsmcDeletionPatch
+Selecting dsmcPatchBoundaryModel dsmcDeletionPatch
+Selecting dsmcPatchBoundaryModel dsmcDiffuseWallPatch
+Selecting dsmcGeneralBoundaryModel dsmcFreeStreamInflowPatch
+Selecting BinaryCollisionModel LarsenBorgnakkeVariableHardSphere
+
+Creating dsmcReactions
+
+There are no chemical reactions defined.
+Selecting BinaryCollisionModel LarsenBorgnakkeVariableHardSphere
+
+Creating dsmcReactions
+
+There are no chemical reactions defined.
+
+Constructing constant properties for
+	N2
+	O2
+	NO
+	N
+	O
+
+Constructing constant properties for
+	N2
+	O2
+	NO
+	N
+	O
+Selecting collisionPartnerSelectionModel noTimeCounter
+
+Initialising the measurement fields
+
+Initialising dsmcVolFields field
+Selecting collisionPartnerSelectionModel noTimeCounter
+
+Initialising the measurement fields
+
+Initialising dsmcVolFields field
+Replicated mesh: block decomposition complete, 104151 cells -> 2 ranks
+Replicated mesh: rank 0 owns 52076 / 104151 cells
+Local mesh: 52076 owned + 699 halo = 52775 / 104151 cells
+Replicated mesh: flatTransfer=1 found=0
+Replicated mesh: flat POD transfer enabled
+Replicated mesh: initialized with 2 MPI ranks, migrate interval 1
+
+Starting time loop
+
+Time = 1e-07
+
+Replicated mesh: initial particle distribution
+
+Replicated mesh: rank 0 kept 1481118 parcels, deleted 578215 non-owned parcels
+    Collisions                      = 2620
+
+    Number of DSMC particles        = 2058568
+    Number of stuck particles       = 0
+    Number of free particles        = 2058568
+    Average linear kinetic energy   = 1.115161184e-18
+    Average rotational energy       = 2.587843972e-21
+    Average vibrational energy      = 9.887032202e-25
+    Average electronic energy       = 0
+    Total energy                    = 1.150482208
+
+Stage 1.0  ExecutionTime = 5.47 s  ClockTime = 6 s  Iteration 1 (5.47 s)
+
+End stage 1
+
+
+DSMC solver profile summary
+    solver profile steps          = 1
+    move+collide wall [s]         = 0.43
+    move only [s]                 = 0.24
+    buildCellOccupancy [s]        = 0.01
+    collision phase [s]           = 0.06
+    post fields/output [s]        = 0.09
+    total profiled [s]            = 0.4
+    full evolve wall [s]          = 0.52
+    OpenMP enabled                = 0
+    OpenMP max threads            = 8
+    OpenMP move                   = 0 (static, chunk 1)
+    OpenMP collision              = dynamic, chunk 1
+
+
+Replicated mesh profiling summary:
+    migration calls             = 2
+    migration wall time [s]     = 0.016688184
+    local particles (final)     = 1479501
+    particles per rank          = min 579067 max 1479501 max/min 2.554973777
+    rank wall time (evolve, 1 steps): min 0.43 max 0.43 max/min 1
+
+Total Iterations = 1
+End main
+

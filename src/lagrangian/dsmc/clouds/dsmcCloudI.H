@@ -101,6 +101,12 @@ inline Foam::scalar Foam::dsmcCloud::deltaTValue(const label celli) const
 }
 
 
+inline bool Foam::dsmcCloud::uniformDeltaT() const
+{
+    return uniformDeltaT_;
+}
+
+
 inline Foam::label Foam::dsmcCloud::nTerminalOutputs() const
 {
     return nTerminalOutputs_;
@@ -110,6 +116,11 @@ inline Foam::label Foam::dsmcCloud::nTerminalOutputs() const
 inline const Foam::DynamicList<Foam::DynamicList<Foam::dsmcParcel*>>&
 Foam::dsmcCloud::cellOccupancy() const
 {
+    if (!cellOccupancyMaterialized_)
+    {
+        const_cast<dsmcCloud&>(*this).materializeCellOccupancy();
+    }
+
     return cellOccupancy_;
 }
 
@@ -213,6 +224,40 @@ inline const Foam::dsmcDynamicLoadBalancing& Foam::dsmcCloud::dynamicLoadBalanci
 inline Foam::dsmcDynamicLoadBalancing& Foam::dsmcCloud::dynamicLoadBalancing()
 {
     return dynamicLoadBalancing_;
+}
+
+
+inline bool Foam::dsmcCloud::replicatedMeshActive() const
+{
+    return replicatedMesh_.valid() && replicatedMesh_->active();
+}
+
+
+inline bool Foam::dsmcCloud::isOutputRank() const
+{
+    if (Pstream::parRun())
+    {
+        return Pstream::master();
+    }
+
+    if (replicatedMesh_.valid())
+    {
+        return replicatedMesh_->myRank() == 0;
+    }
+
+    return true;
+}
+
+
+inline const Foam::dsmcReplicatedMesh& Foam::dsmcCloud::replicatedMesh() const
+{
+    return replicatedMesh_();
+}
+
+
+inline Foam::dsmcReplicatedMesh& Foam::dsmcCloud::replicatedMeshRef()
+{
+    return replicatedMesh_();
 }
 
 

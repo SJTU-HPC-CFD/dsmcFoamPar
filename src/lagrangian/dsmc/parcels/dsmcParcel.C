@@ -27,6 +27,111 @@ License
 #include "dsmcCloud.H"
 #include "meshTools.H"
 
+#ifdef _OPENMP
+    #include <omp.h>
+#endif
+
+namespace
+{
+inline bool useOpenMPMoveCriticals(const Foam::dsmcCloud& cloud)
+{
+    #ifdef _OPENMP
+    return cloud.openmpMoveEnabled() && omp_in_parallel();
+    #else
+    return false;
+    #endif
+}
+
+inline Foam::scalar moveSample01
+(
+    Foam::dsmcCloud& cloud,
+    Foam::dsmcParcel::trackingData& td
+)
+{
+    if (useOpenMPMoveCriticals(cloud))
+    {
+        return td.moveRng.sample01();
+    }
+
+    return cloud.rndGen().sample01<Foam::scalar>();
+}
+
+inline void trackParcelFaceTransitionThreadSafe
+(
+    Foam::dsmcCloud& cloud,
+    const Foam::dsmcParcel& p
+)
+{
+    if (useOpenMPMoveCriticals(cloud))
+    {
+        #pragma omp critical(dsmcMoveTracker)
+        {
+            cloud.tracker().trackParcelFaceTransition(p);
+        }
+    }
+    else
+    {
+        cloud.tracker().trackParcelFaceTransition(p);
+    }
+}
+
+inline void controlCyclicBoundaryThreadSafe
+(
+    Foam::dsmcCloud& cloud,
+    const Foam::label modelI,
+    Foam::dsmcParcel& p,
+    Foam::dsmcParcel::trackingData& td
+)
+{
+    if (useOpenMPMoveCriticals(cloud))
+    {
+        #pragma omp critical(dsmcMoveBoundary)
+        {
+            cloud.boundaries().cyclicBoundaryModels()[modelI]->controlMol(p, td);
+        }
+    }
+    else
+    {
+        cloud.boundaries().cyclicBoundaryModels()[modelI]->controlMol(p, td);
+    }
+}
+
+inline void controlPatchBoundaryThreadSafe
+(
+    Foam::dsmcCloud& cloud,
+    const Foam::label modelI,
+    Foam::dsmcParcel& p,
+    Foam::dsmcParcel::trackingData& td
+)
+{
+    Foam::dsmcPatchBoundary& model =
+        cloud.boundaries().patchBoundaryModels()[modelI]();
+    const Foam::word& modelType = model.type();
+    const bool threadSafePatchModel =
+        modelType == "dsmcDiffuseWallPatch"
+     || modelType == "dsmcSpecularWallPatch";
+
+    if (useOpenMPMoveCriticals(cloud))
+    {
+        if (threadSafePatchModel)
+        {
+            model.controlParticle(p, td);
+        }
+        else
+        {
+            #pragma omp critical(dsmcMoveBoundary)
+            {
+                model.controlParticle(p, td);
+            }
+        }
+    }
+    else
+    {
+        model.controlParticle(p, td);
+    }
+}
+}
+
 
 // * * * * * * * * * * * * * * * Static Data * * * * * * * * * * * * * * * * //
 
@@ -44,23 +149,37 @@ bool Foam::dsmcParcel::move
     td.switchProcessor = false;
     td.keepParticle = true;
 
+    dsmcCloud& cloud = td.cloud();
+    const dsmcBoundaries& boundaries = cloud.boundaries();
+    const List<label>& cyclicBoundaryToModelIds =
+        boundaries.cyclicBoundaryToModelIds();
+    const List<label>& patchToModelIds = boundaries.patchToModelIds();
+
     if (isFree())
     {
-        const polyMesh& mesh = td.cloud().pMesh();
+        const polyMesh& mesh = cloud.pMesh();
         const polyBoundaryMesh& pbMesh = mesh.boundaryMesh();
+        const bool cartesianTracking =
+            cloud.coordSystem().type() == "dsmcCartesian";
+        const bool constrainCartesianTracking =
+            cartesianTracking
+         && (mesh.nGeometricD() < 3 || mesh.nSolutionD() < 3);
+        const bool trackerActive = cloud.trackerActive();
+        const bool uniformDeltaT = cloud.uniformDeltaT();
 
         if (newParcel() != -1)
         {
             // note: this justifies that freshly inserted parcels should be
             // tracked as if they had passed the boundary face on which they
             // have been inserted in the time step in which they are inserted.
-            stepFraction() = td.cloud().rndGen().sample01<scalar>();
+            stepFraction() = moveSample01(cloud, td);
             newParcel() = -1;
         }
 
         //scalar tEnd = (1.0 - stepFraction())*trackTime; // OLD FORMULATION
         label orgCell = cell(); // NEW VINCENT
-        scalar tEnd = (1.0 - stepFraction())*td.cloud().deltaTValue(orgCell); // NEW VINCENT
+        scalar dtCell = uniformDeltaT ? trackTime : cloud.deltaTValue(orgCell);
+        scalar tEnd = (1.0 - stepFraction())*dtCell; // NEW VINCENT
         //const scalar dtMax = tEnd; // OLD FORMULATION
 
         // For reduced-D cases, the velocity used to track needs to be
@@ -73,7 +192,7 @@ bool Foam::dsmcParcel::move
         {
             Utracking = U_;
 
-            if (td.cloud().coordSystem().type() == "dsmcCartesian")
+            if (constrainCartesianTracking)
             {
                 // Apply correction to position for reduced-D cases,
                 // but not for axisymmetric cases
@@ -94,36 +213,53 @@ bool Foam::dsmcParcel::move
 
             tEnd -= dt;
 
-            stepFraction() = 1.0 - tEnd/td.cloud().deltaTValue(orgCell); // NEW VINCENT
+            if (!uniformDeltaT)
+            {
+                dtCell = cloud.deltaTValue(orgCell);
+            }
+
+            stepFraction() = 1.0 - tEnd/dtCell; // NEW VINCENT
             //stepFraction() = 1.0 - tEnd/trackTime; // OLD FORMULATION
 
             /*if (destCell != orgCell)
             {
-                tEnd *= td.cloud().deltaTValue(destCell)
-                    /td.cloud().deltaTValue(orgCell);
+                tEnd *= cloud.deltaTValue(destCell)
+                    /cloud.deltaTValue(orgCell);
             } // NEW VINCENT*/
 
             //- face tracking info
-            if (face() != -1)
+            if (face() != -1 && trackerActive)
             {
                 //- measure flux properties
-                td.cloud().tracker().trackParcelFaceTransition(*this);
+                trackParcelFaceTransitionThreadSafe(cloud, *this);
             }
 
             if (onBoundary() && td.keepParticle)
             {
-                if (isA<processorPolyPatch>(pbMesh[patch(face())]))
+                const label patchIndex = patch(face());
+
+                if (isA<processorPolyPatch>(pbMesh[patchIndex]))
                 {
                     td.switchProcessor = true;
                 }
 
-                forAll(td.cloud().boundaries().cyclicBoundaryModels(), c)
+                if
+                (
+                    patchIndex >= 0
+                 && patchIndex < cyclicBoundaryToModelIds.size()
+                )
                 {
-                    const labelList& faces = td.cloud().boundaries().cyclicBoundaryModels()[c]->allFaces();
+                    const label cyclicModelId = cyclicBoundaryToModelIds[patchIndex];
 
-                    if (findIndex(faces, this->face()) != -1)
+                    if (cyclicModelId >= 0)
                     {
-                        td.cloud().boundaries().cyclicBoundaryModels()[c]->controlMol(*this, td);
+                        controlCyclicBoundaryThreadSafe
+                        (
+                            cloud,
+                            cyclicModelId,
+                            *this,
+                            td
+                        );
                     }
                 }
             }
@@ -132,14 +268,26 @@ bool Foam::dsmcParcel::move
     else
     {
         //- The stuck particle is considered for desorption
-        //  NOTE: there should be a better way to locate the patch than looping through them all
-        forAll(td.cloud().boundaries().patchBoundaryModels(), c)
+        const label patchIndex = stuck().wallTemperature()[1];
+
+        if
+        (
+            patchIndex >= 0
+         && patchIndex < patchToModelIds.size()
+        )
         {
-            if (td.cloud().boundaries().patchBoundaryModels()[c]->patchId() == stuck().wallTemperature()[1])
+            const label patchModelId = patchToModelIds[patchIndex];
+
+            if (patchModelId >= 0)
             {
                 // then this patch is the "dsmc*Sticking*WallPatch" the particle is stuck on
-                td.cloud().boundaries().patchBoundaryModels()[c]->controlParticle(*this, td);
-                break;
+                controlPatchBoundaryThreadSafe
+                (
+                    cloud,
+                    patchModelId,
+                    *this,
+                    td
+                );
             }
         }
     }
@@ -184,7 +332,7 @@ void Foam::dsmcParcel::hitWallPatch
     const label& patchModelId = td.cloud().boundaries().patchToModelIds()[patchIndex];
 
     //- apply a boundary model when a molecule collides with this poly patch
-    td.cloud().boundaries().patchBoundaryModels()[patchModelId]->controlParticle(*this, td);
+    controlPatchBoundaryThreadSafe(td.cloud(), patchModelId, *this, td);
 }
 
 
@@ -200,7 +348,7 @@ void Foam::dsmcParcel::hitPatch
     const label& patchModelId = td.cloud().boundaries().patchToModelIds()[patchIndex];
 
     //- apply a boundary model when a molecule collides with this poly patch
-    td.cloud().boundaries().patchBoundaryModels()[patchModelId]->controlParticle(*this, td);
+    controlPatchBoundaryThreadSafe(td.cloud(), patchModelId, *this, td);
 }
 
 
@@ -220,6 +368,75 @@ void Foam::dsmcParcel::transformProperties
 )
 {
     particle::transformProperties(separation);
+}
+
+
+void Foam::dsmcParcel::writeBinaryFast(Ostream& os) const
+{
+    os << *this;
+    os.check("dsmcParcel::writeBinaryFast");
+}
+
+
+void Foam::dsmcParcel::packTransfer(TransferData& td) const
+{
+    td.position[0] = position().x();
+    td.position[1] = position().y();
+    td.position[2] = position().z();
+    td.celli = cell();
+    td.tetFacei = tetFace();
+    td.tetPti = tetPt();
+
+    td.U[0] = U_.x();
+    td.U[1] = U_.y();
+    td.U[2] = U_.z();
+    td.RWF = RWF_;
+    td.ERot = ERot_;
+    td.ELevel = ELevel_;
+    td.typeId = typeId_;
+    td.newParcel = newParcel_;
+    td.classification = classification_;
+
+    td.nVibModes = min(vibLevel_.size(), label(maxVibModes));
+    for (label i = 0; i < td.nVibModes; ++i)
+    {
+        td.vibLevel[i] = vibLevel_[i];
+    }
+    for (label i = td.nVibModes; i < maxVibModes; ++i)
+    {
+        td.vibLevel[i] = 0;
+    }
+}
+
+
+Foam::dsmcParcel* Foam::dsmcParcel::unpackTransfer
+(
+    const polyMesh& mesh,
+    const TransferData& td
+)
+{
+    labelList vib(td.nVibModes);
+    for (label i = 0; i < td.nVibModes; ++i)
+    {
+        vib[i] = td.vibLevel[i];
+    }
+
+    return new dsmcParcel
+    (
+        mesh,
+        vector(td.position[0], td.position[1], td.position[2]),
+        vector(td.U[0], td.U[1], td.U[2]),
+        td.RWF,
+        td.ERot,
+        td.ELevel,
+        td.celli,
+        td.tetFacei,
+        td.tetPti,
+        td.typeId,
+        td.newParcel,
+        td.classification,
+        vib
+    );
 }
 
 bool Foam::dsmcParcel::relocateStuckParcel

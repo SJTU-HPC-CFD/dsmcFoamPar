@@ -89,6 +89,9 @@ public:
         //- Return const access to the time-step for a given cell
         virtual inline scalar deltaTValue(const label celli = 0) const;
 
+        //- Return true when all cells use the same DSMC time-step
+        virtual inline bool uniformDeltaT() const;
+
 
       // Check
 

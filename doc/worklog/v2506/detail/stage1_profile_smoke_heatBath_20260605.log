@@ -1,0 +1,37 @@
+ 
+:: initializing oneAPI environment ...
+   bash: BASH_VERSION = 5.1.16(1)-release
+   args: Using "$@" for setvars.sh arguments: --force
+:: advisor -- latest
+:: ccl -- latest
+:: compiler -- latest
+:: dal -- latest
+:: debugger -- latest
+:: dev-utilities -- latest
+:: dnnl -- latest
+:: dpcpp-ct -- latest
+:: dpl -- latest
+:: ipp -- latest
+:: ippcp -- latest
+:: ishmem -- latest
+:: mkl -- latest
+:: mpi -- latest
+:: pti -- latest
+:: tbb -- latest
+:: umf -- latest
+:: vtune -- latest
+:: oneAPI environment initialized ::
+ 
+=== Environment ===
+  APPBIN: /home/superxcx/code/OpenFoam/OF-1706/hyStrath_dlb/platforms/linux64IccDPInt32Opt/bin
+  LIBBIN: /home/superxcx/code/OpenFoam/OF-1706/hyStrath_dlb/platforms/linux64IccDPInt32Opt/lib
+  CASE:   /home/superxcx/code/OpenFoam/OF-1706/hyStrath_dlb/run/hyStrath/dsmcFoam+/heatBath-5species
+  nProcs: 1
+
+=== Cleaning case ===
+=== Running blockMesh ===
+  Done.
+=== Running dsmcInitialise+ ===
+  Done.
+=== Running dsmcFoam+ (serial) ===
+doc/scripts/run-heatBath-5species.sh: line 69: 367769 Floating point exception(core dumped) dsmcFoam+ > log.dsmcFoam+ 2>&1

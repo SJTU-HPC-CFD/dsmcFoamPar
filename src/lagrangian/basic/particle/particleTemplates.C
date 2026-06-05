@@ -292,7 +292,7 @@ Foam::scalar Foam::particle::trackToFace
     // current tet centre.
     scalar lambdaMin = VGREAT;
 
-    DynamicList<label>& tris = cloud.labels();
+    DynamicList<label> tris(4);
 
     // Tet indices that will be set by hitWallFaces if a wall face is
     // to be hit, or are set when any wall tri of a tet is hit.
@@ -741,8 +741,48 @@ Foam::scalar Foam::particle::trackToFace
     const faceList& pFaces = mesh_.faces();
     const pointField& pPts = mesh_.points();
     const vectorField& pC = mesh_.cellCentres();
+    const labelList& faceOwner = mesh_.faceOwner();
+    const labelList& faceNeighbour = mesh_.faceNeighbour();
+    const labelList& tetBasePtIs = mesh_.tetBasePtIs();
+    const scalarField& cellVolumes = mesh_.cellVolumes();
+    const polyBoundaryMesh& boundaryMesh = mesh_.boundaryMesh();
+    const label nInternalFaces = mesh_.nInternalFaces();
+    const bool movingMesh = mesh_.moving();
+    const bool hasWallImpactDistance = cloud.hasWallImpactDistance();
 
     faceI_ = -1;
+
+    if
+    (
+        !movingMesh
+     && !(hasWallImpactDistance && cloud.cellHasWallFaces()[cellI_])
+    )
+    {
+        const Foam::face& f = pFaces[tetFaceI_];
+        const bool own = (faceOwner[tetFaceI_] == cellI_);
+        const label tetBasePtI = tetBasePtIs[tetFaceI_];
+        const label basePtI = f[tetBasePtI];
+        const label facePtI = (tetPtI_ + tetBasePtI) % f.size();
+        const label otherFacePtI = f.fcIndex(facePtI);
+
+        const label fPtAI = own ? facePtI : otherFacePtI;
+        const label fPtBI = own ? otherFacePtI : facePtI;
+
+        tetPointRef tet
+        (
+            pC[cellI_],
+            pPts[basePtI],
+            pPts[f[fPtAI]],
+            pPts[f[fPtBI]]
+        );
+
+        if (tet.inside(endPosition))
+        {
+            position_ = endPosition;
+            return 1.0;
+        }
+
+    }
 
     // Pout<< "Particle " << origId_ << " " << origProc_
     //     << " Tracking from " << position_
@@ -805,7 +845,7 @@ Foam::scalar Foam::particle::trackToFace
         // current tet centre.
         scalar lambdaMin = VGREAT;
 
-        DynamicList<label>& tris = cloud.labels();
+        DynamicList<label> tris(4);
 
         // Tet indices that will be set by hitWallFaces if a wall face is
         // to be hit, or are set when any wall tri of a tet is hit.
@@ -816,8 +856,8 @@ Foam::scalar Foam::particle::trackToFace
 
         // What tolerance is appropriate the minimum lambda numerator and
         // denominator for tracking in this cell.
-        const scalar& lambdaDistanceTolerance =
-            lambdaDistanceToleranceCoeff*mesh_.cellVolumes()[cellI_];
+        const scalar lambdaDistanceTolerance =
+            lambdaDistanceToleranceCoeff*cellVolumes[cellI_];
 
         do
         {
@@ -829,14 +869,14 @@ Foam::scalar Foam::particle::trackToFace
 
             const Foam::face& f = pFaces[tetFaceI_];
 
-            const bool& own = (mesh_.faceOwner()[tetFaceI_] == cellI_);
+            const bool own = (faceOwner[tetFaceI_] == cellI_);
 
-            const label& tetBasePtI = mesh_.tetBasePtIs()[tetFaceI_];
+            const label tetBasePtI = tetBasePtIs[tetFaceI_];
 
-            const label& basePtI = f[tetBasePtI];
+            const label basePtI = f[tetBasePtI];
 
-            const label& facePtI = (tetPtI_ + tetBasePtI) % f.size();
-            const label& otherFacePtI = f.fcIndex(facePtI);
+            const label facePtI = (tetPtI_ + tetBasePtI) % f.size();
+            const label otherFacePtI = f.fcIndex(facePtI);
 
             label fPtAI = -1;
             label fPtBI = -1;
@@ -882,7 +922,7 @@ Foam::scalar Foam::particle::trackToFace
                 return trackFraction;
             }
 
-            if (triI != -1 && mesh_.moving())
+            if (triI != -1 && movingMesh)
             {
                 // Mesh motion requires stepFraction to be correct for
                 // each tracking portion, so trackToFace must return after
@@ -929,14 +969,17 @@ Foam::scalar Foam::particle::trackToFace
 
             // Sets a value for lambdaMin and faceI_ if a wall face is hit
             // by the track.
-            hitWallFaces
-            (
-                cloud,
-                position_,
-                endPosition,
-                lambdaMin,
-                faceHitTetIs
-            );
+            if (hasWallImpactDistance && cloud.cellHasWallFaces()[cellI_])
+            {
+                hitWallFaces
+                (
+                    cloud,
+                    position_,
+                    endPosition,
+                    lambdaMin,
+                    faceHitTetIs
+                );
+            }
 
             // Did not hit any tet tri faces, and no wall face has been
             // found to hit.
@@ -1060,18 +1103,18 @@ Foam::scalar Foam::particle::trackToFace
         particleType& p = static_cast<particleType&>(*this);
         p.hitFace(td);
 
-        if (internalFace(faceI_))
+        if (faceI_ < nInternalFaces)
         {
             // Change cell ownership because an internal (non-boundary) face
             // has been crossed.
 
-            if (cellI_ == mesh_.faceOwner()[faceI_])
+            if (cellI_ == faceOwner[faceI_])
             {
-                cellI_ = mesh_.faceNeighbour()[faceI_];
+                cellI_ = faceNeighbour[faceI_];
             }
-            else if (cellI_ == mesh_.faceNeighbour()[faceI_])
+            else if (cellI_ == faceNeighbour[faceI_])
             {
-                cellI_ = mesh_.faceOwner()[faceI_];
+                cellI_ = faceOwner[faceI_];
             }
             else
             {
@@ -1082,7 +1125,7 @@ Foam::scalar Foam::particle::trackToFace
         else
         {
             label origFaceI = faceI_;
-            label patchI = patch(faceI_);
+            label patchI = boundaryMesh.whichPatch(faceI_);
 
             // No action taken for tetPtI_ for tetFaceI_ here, handled by
             // patch interaction call or later during processor transfer.
@@ -1091,7 +1134,7 @@ Foam::scalar Foam::particle::trackToFace
             (
                 !p.hitPatch
                 (
-                    mesh_.boundaryMesh()[patchI],
+                    boundaryMesh[patchI],
                     td,
                     patchI,
                     trackFraction,
@@ -1102,10 +1145,10 @@ Foam::scalar Foam::particle::trackToFace
                 // Did patch interaction model switch patches?
                 if (faceI_ != origFaceI)
                 {
-                    patchI = patch(faceI_);
+                    patchI = boundaryMesh.whichPatch(faceI_);
                 }
 
-                const polyPatch& patch = mesh_.boundaryMesh()[patchI];
+                const polyPatch& patch = boundaryMesh[patchI];
 
                 if (isA<processorPolyPatch>(patch))
                 {
@@ -1182,16 +1225,16 @@ Foam::scalar Foam::particle::trackToFace
 
             if
             (
-                cloud.hasWallImpactDistance()
-            && !internalFace(faceHitTetIs.face())
+                hasWallImpactDistance
+            && faceHitTetIs.face() >= nInternalFaces
             && cloud.cellHasWallFaces()[faceHitTetIs.cell()]
             )
             {
-                const polyBoundaryMesh& patches = mesh_.boundaryMesh();
+                const polyBoundaryMesh& patches = boundaryMesh;
 
-                const label& fI = faceHitTetIs.face();
+                const label fI = faceHitTetIs.face();
 
-                const label& patchI = patches.patchID()[fI - mesh_.nInternalFaces()];
+                const label patchI = patches.patchID()[fI - nInternalFaces];
 
                 if (isA<wallPolyPatch>(patches[patchI]))
                 {

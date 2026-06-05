@@ -69,6 +69,12 @@ inline scalar dsmcTimeStepModel::deltaTValue(const label celli) const
 }
 
 
+inline bool dsmcTimeStepModel::uniformDeltaT() const
+{
+    return false;
+}
+
+
 inline const volScalarField& dsmcTimeStepModel::nParticles() const
 {
     return nParticles_;

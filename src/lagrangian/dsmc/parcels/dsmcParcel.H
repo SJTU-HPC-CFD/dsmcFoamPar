@@ -41,6 +41,7 @@ SourceFiles
 #include "IOstream.H"
 #include "autoPtr.H"
 #include "contiguous.H"
+#include <cstdint>
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -1000,6 +1001,39 @@ public:
 
 
     //- Class used to pass kinematic tracking data to the trackToFace function
+    struct MoveFastRng
+    {
+        uint64_t s0, s1;
+
+        MoveFastRng(uint64_t seed = 1)
+        {
+            uint64_t z = seed + 0x9e3779b97f4a7c15ULL;
+            z = (z ^ (z >> 30)) * 0xbf58476d1ce4e5b9ULL;
+            z = (z ^ (z >> 27)) * 0x94d049bb133111ebULL;
+            s0 = z ^ (z >> 31);
+
+            z = seed + 0x9e3779b97f4a7c15ULL + 1;
+            z = (z ^ (z >> 30)) * 0xbf58476d1ce4e5b9ULL;
+            z = (z ^ (z >> 27)) * 0x94d049bb133111ebULL;
+            s1 = z ^ (z >> 31);
+        }
+
+        inline uint64_t next()
+        {
+            const uint64_t oldS0 = s0;
+            uint64_t oldS1 = s1;
+            oldS1 ^= oldS1 << 23;
+            s1 = oldS1 ^ oldS0 ^ (oldS1 >> 18) ^ (oldS0 >> 5);
+            s0 = oldS1;
+            return s1 + oldS0;
+        }
+
+        inline scalar sample01()
+        {
+            return scalar((next() >> 11)*0x1.0p-53);
+        }
+    };
+
     class trackingData
     :
         public particle::TrackingData<dsmcCloud>
@@ -1010,12 +1044,15 @@ public:
 
     public:
 
+        MoveFastRng moveRng;
+
         // Constructors
 
             //- Construct from components
             trackingData(dsmcCloud& cloud)
             :
-                particle::TrackingData<dsmcCloud>(cloud)
+                particle::TrackingData<dsmcCloud>(cloud),
+                moveRng(1)
             {}
 
     };
@@ -1391,6 +1428,36 @@ public:
 
 
         // I-O
+
+            //- Fast binary write for migration
+            void writeBinaryFast(Ostream& os) const;
+
+            enum { maxVibModes = 4 };
+
+            struct TransferData
+            {
+                scalar position[3];
+                label celli;
+                label tetFacei;
+                label tetPti;
+                scalar U[3];
+                scalar RWF;
+                scalar ERot;
+                label ELevel;
+                label typeId;
+                label newParcel;
+                label classification;
+                label nVibModes;
+                label vibLevel[maxVibModes];
+            };
+
+            void packTransfer(TransferData& td) const;
+
+            static dsmcParcel* unpackTransfer
+            (
+                const polyMesh& mesh,
+                const TransferData& td
+            );
 
             static void readFields(Cloud<dsmcParcel>& c);
 

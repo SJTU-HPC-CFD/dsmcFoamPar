@@ -33,6 +33,255 @@ License
 #include "wallPolyPatch.H"
 #include "cyclicAMIPolyPatch.H"
 
+#ifdef _OPENMP
+    #include <omp.h>
+#endif
+#include <cstdint>
+#include <type_traits>
+
+namespace Foam
+{
+namespace cloudOpenMP
+{
+template<class TrackCloudType>
+inline auto moveEnabled(const TrackCloudType& cloud, int)
+-> decltype(cloud.openmpMoveEnabled(), bool())
+{
+    return cloud.openmpMoveEnabled();
+}
+
+template<class TrackCloudType>
+inline bool moveEnabled(const TrackCloudType&, long)
+{
+    return false;
+}
+
+template<class TrackCloudType>
+inline auto moveThreads(const TrackCloudType& cloud, int)
+-> decltype(cloud.ompNumThreads(), label())
+{
+    return cloud.ompNumThreads();
+}
+
+template<class TrackCloudType>
+inline label moveThreads(const TrackCloudType&, long)
+{
+    return 1;
+}
+
+template<class TrackCloudType>
+inline auto moveSchedule(const TrackCloudType& cloud, int)
+-> decltype(cloud.openmpMoveSchedule(), word())
+{
+    return cloud.openmpMoveSchedule();
+}
+
+template<class TrackCloudType>
+inline word moveSchedule(const TrackCloudType&, long)
+{
+    return "static";
+}
+
+template<class TrackCloudType>
+inline auto moveChunk(const TrackCloudType& cloud, int)
+-> decltype(cloud.openmpMoveChunk(), label())
+{
+    return cloud.openmpMoveChunk();
+}
+
+template<class TrackCloudType>
+inline label moveChunk(const TrackCloudType&, long)
+{
+    return 64;
+}
+
+template<class TrackCloudType>
+inline auto moveOrderedReuseEnabled(const TrackCloudType& cloud, int)
+-> decltype
+(
+    cloud.controlDict().template lookupOrDefault<bool>
+    (
+        "openmpMoveOrderedReuse",
+        true
+    ),
+    bool()
+)
+{
+    return cloud.controlDict().template lookupOrDefault<bool>
+    (
+        "openmpMoveOrderedReuse",
+        true
+    );
+}
+
+template<class TrackCloudType>
+inline bool moveOrderedReuseEnabled(const TrackCloudType&, long)
+{
+    return false;
+}
+
+template<class TrackData>
+inline auto setMoveSeed(TrackData& td, const label threadI, int)
+-> decltype(td.moveRng = td.moveRng, void())
+{
+    typedef typename std::remove_reference
+    <
+        decltype(td.moveRng)
+    >::type RngType;
+
+    td.moveRng = RngType
+    (
+        uint64_t(threadI)*10000ULL + 42ULL
+    );
+}
+
+template<class TrackData>
+inline void setMoveSeed(TrackData&, const label, ...)
+{}
+
+template<class TrackCloudType, class ParticleType>
+inline auto storeMoveOrderedParcels
+(
+    TrackCloudType& cloud,
+    const List<ParticleType*>& parcels,
+    const labelList& threadOffsets,
+    int
+)
+-> decltype(cloud.storeMoveOrderedParcels(parcels, threadOffsets), void())
+{
+    cloud.storeMoveOrderedParcels(parcels, threadOffsets);
+}
+
+template<class TrackCloudType, class ParticleType>
+inline void storeMoveOrderedParcels
+(
+    TrackCloudType&,
+    const List<ParticleType*>&,
+    const labelList&,
+    long
+)
+{}
+
+template<class TrackCloudType, class ParticleType>
+inline auto transferMoveOrderedParcels
+(
+    TrackCloudType& cloud,
+    List<ParticleType*>& parcels,
+    const labelList& threadOffsets,
+    int
+)
+-> decltype(cloud.transferMoveOrderedParcels(parcels, threadOffsets), void())
+{
+    cloud.transferMoveOrderedParcels(parcels, threadOffsets);
+}
+
+template<class TrackCloudType, class ParticleType>
+inline void transferMoveOrderedParcels
+(
+    TrackCloudType&,
+    List<ParticleType*>&,
+    const labelList&,
+    long
+)
+{}
+
+template<class TrackCloudType>
+inline auto beginMoveAppendCapture(TrackCloudType& cloud, int)
+-> decltype(cloud.beginMoveAppendCapture(), void())
+{
+    cloud.beginMoveAppendCapture();
+}
+
+template<class TrackCloudType>
+inline void beginMoveAppendCapture(TrackCloudType&, long)
+{}
+
+template<class TrackCloudType>
+inline auto endMoveAppendCapture(TrackCloudType& cloud, int)
+-> decltype(cloud.endMoveAppendCapture(), void())
+{
+    cloud.endMoveAppendCapture();
+}
+
+template<class TrackCloudType>
+inline void endMoveAppendCapture(TrackCloudType&, long)
+{}
+
+template<class TrackCloudType>
+inline auto hasMoveOrderedParcels(const TrackCloudType& cloud, int)
+-> decltype(cloud.hasMoveOrderedParcels(), bool())
+{
+    return cloud.hasMoveOrderedParcels();
+}
+
+template<class TrackCloudType>
+inline bool hasMoveOrderedParcels(const TrackCloudType&, long)
+{
+    return false;
+}
+
+template<class TrackCloudType, class ParticleType>
+inline auto moveOrderedParcels(const TrackCloudType& cloud, int)
+-> decltype(cloud.moveOrderedParcels())
+{
+    return cloud.moveOrderedParcels();
+}
+
+template<class TrackCloudType, class ParticleType>
+inline List<ParticleType*> moveOrderedParcels(const TrackCloudType&, long)
+{
+    return List<ParticleType*>();
+}
+
+template<class TrackCloudType>
+inline auto moveOrderedThreadOffsets(const TrackCloudType& cloud, int)
+-> decltype(cloud.moveOrderedThreadOffsets())
+{
+    return cloud.moveOrderedThreadOffsets();
+}
+
+template<class TrackCloudType>
+inline labelList moveOrderedThreadOffsets(const TrackCloudType&, long)
+{
+    return labelList();
+}
+
+template<class TrackCloudType, class ParticleType>
+inline auto moveAppendedParcels(const TrackCloudType& cloud, int)
+-> decltype(cloud.moveAppendedParcels())
+{
+    return cloud.moveAppendedParcels();
+}
+
+template<class TrackCloudType, class ParticleType>
+inline DynamicList<ParticleType*> moveAppendedParcels(const TrackCloudType&, long)
+{
+    return DynamicList<ParticleType*>();
+}
+
+template<class TrackCloudType, class ParticleListType>
+inline auto appendMoveOrderedParcels
+(
+    TrackCloudType& cloud,
+    const ParticleListType& parcels,
+    int
+)
+-> decltype(cloud.appendBatchToMoveOrdered(parcels), void())
+{
+    cloud.appendBatchToMoveOrdered(parcels);
+}
+
+template<class TrackCloudType, class ParticleListType>
+inline void appendMoveOrderedParcels
+(
+    TrackCloudType&,
+    const ParticleListType&,
+    long
+)
+{}
+}
+}
+
 // * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * * //
 
 template<class ParticleType>
@@ -227,14 +476,641 @@ void Foam::Cloud<ParticleType>::move(TrackData& td, const scalar trackTime)
         neighbourProcIndices[neighbourProcs[i]] = i;
     }
 
-    // Initialise the stepFraction moved for the particles
-    forAllIter(typename Cloud<ParticleType>, *this, pIter)
+    #ifdef _OPENMP
+    const bool useOpenMPMove =
+        cloudOpenMP::moveEnabled(td.cloud(), 0)
+     && cloudOpenMP::moveThreads(td.cloud(), 0) > 1
+     && this->size() > 1;
+    #else
+    const bool useOpenMPMove = false;
+    #endif
+
+    if (!useOpenMPMove)
     {
-        pIter().stepFraction() = 0;
+        // Initialise the stepFraction moved for the particles
+        forAllIter(typename Cloud<ParticleType>, *this, pIter)
+        {
+            pIter().stepFraction() = 0;
+        }
     }
 
     // Reset nTrackingRescues
     nTrackingRescues_ = 0;
+
+    if (useOpenMPMove)
+    {
+        #ifdef _OPENMP
+        const label moveThreads =
+            max(label(1), cloudOpenMP::moveThreads(td.cloud(), 0));
+        const word moveSchedule = cloudOpenMP::moveSchedule(td.cloud(), 0);
+        const label moveChunk =
+            max(label(1), cloudOpenMP::moveChunk(td.cloud(), 0));
+        const bool moveOrderedReuse =
+            cloudOpenMP::moveOrderedReuseEnabled(td.cloud(), 0);
+
+        if (Pstream::parRun())
+        {
+            if (moveOrderedReuse)
+            {
+                cloudOpenMP::beginMoveAppendCapture(td.cloud(), 0);
+            }
+
+            List<IDLList<ParticleType> > particleTransferLists
+            (
+                neighbourProcs.size()
+            );
+            List<DynamicList<label> > patchIndexTransferLists
+            (
+                neighbourProcs.size()
+            );
+            PstreamBuffers pBufs(Pstream::commsTypes::nonBlocking);
+            bool resetPending = true;
+
+            while (true)
+            {
+                particleTransferLists = IDLList<ParticleType>();
+
+                forAll(patchIndexTransferLists, i)
+                {
+                    patchIndexTransferLists[i].clear();
+                }
+
+                List<ParticleType*> particles(this->size());
+                label particlei = 0;
+
+                forAllIter(typename Cloud<ParticleType>, *this, pIter)
+                {
+                    particles[particlei++] = &pIter();
+                }
+
+                particles.setSize(particlei);
+
+                labelList threadOffsets(moveThreads + 1, 0);
+                for (label threadI = 0; threadI < moveThreads; ++threadI)
+                {
+                    threadOffsets[threadI] =
+                        threadI*particles.size()/moveThreads;
+                }
+
+                threadOffsets[moveThreads] = particles.size();
+
+                List<unsigned char> keepParticleFlags
+                (
+                    particles.size(),
+                    static_cast<unsigned char>(1)
+                );
+                List<unsigned char> switchProcessorFlags
+                (
+                    particles.size(),
+                    static_cast<unsigned char>(0)
+                );
+                const bool inlineReset = resetPending;
+                resetPending = false;
+
+                omp_sched_t sched = omp_sched_static;
+                if (moveSchedule == "dynamic")
+                {
+                    sched = omp_sched_dynamic;
+                }
+                else if (moveSchedule == "guided")
+                {
+                    sched = omp_sched_guided;
+                }
+                omp_set_schedule(sched, int(moveChunk));
+
+                #pragma omp parallel num_threads(moveThreads)
+                {
+                    TrackData localTd(td.cloud());
+                    cloudOpenMP::setMoveSeed
+                    (
+                        localTd,
+                        omp_get_thread_num(),
+                        0
+                    );
+
+                    #pragma omp for schedule(runtime)
+                    for (label i = 0; i < particles.size(); ++i)
+                    {
+                        if (inlineReset)
+                        {
+                            particles[i]->stepFraction() = 0;
+                        }
+
+                        localTd.switchProcessor = false;
+                        localTd.keepParticle = true;
+                        keepParticleFlags[i] =
+                            particles[i]->move(localTd, trackTime) ? 1 : 0;
+                        switchProcessorFlags[i] =
+                            localTd.switchProcessor ? 1 : 0;
+                    }
+                }
+
+                labelList survivorCounts(moveThreads, 0);
+                labelList transferCounts(moveThreads, 0);
+                labelList deleteCounts(moveThreads, 0);
+
+                #pragma omp parallel for num_threads(moveThreads) schedule(static)
+                for (label threadI = 0; threadI < moveThreads; ++threadI)
+                {
+                    label localSurvivors = 0;
+                    label localTransfers = 0;
+                    label localDeletes = 0;
+
+                    for
+                    (
+                        label i = threadOffsets[threadI];
+                        i < threadOffsets[threadI + 1];
+                        ++i
+                    )
+                    {
+                        if (keepParticleFlags[i])
+                        {
+                            if (switchProcessorFlags[i])
+                            {
+                                ++localTransfers;
+                            }
+                            else
+                            {
+                                ++localSurvivors;
+                            }
+                        }
+                        else
+                        {
+                            ++localDeletes;
+                        }
+                    }
+
+                    survivorCounts[threadI] = localSurvivors;
+                    transferCounts[threadI] = localTransfers;
+                    deleteCounts[threadI] = localDeletes;
+                }
+
+                labelList survivorOffsets(moveThreads + 1, 0);
+                labelList transferOffsets(moveThreads + 1, 0);
+                labelList deleteOffsets(moveThreads + 1, 0);
+
+                for (label threadI = 0; threadI < moveThreads; ++threadI)
+                {
+                    survivorOffsets[threadI + 1] =
+                        survivorOffsets[threadI] + survivorCounts[threadI];
+                    transferOffsets[threadI + 1] =
+                        transferOffsets[threadI] + transferCounts[threadI];
+                    deleteOffsets[threadI + 1] =
+                        deleteOffsets[threadI] + deleteCounts[threadI];
+                }
+
+                List<ParticleType*> survivingParticles(survivorOffsets.last());
+                List<ParticleType*> transferParticles(transferOffsets.last());
+                List<ParticleType*> deletedParticles(deleteOffsets.last());
+
+                #pragma omp parallel for num_threads(moveThreads) schedule(static)
+                for (label threadI = 0; threadI < moveThreads; ++threadI)
+                {
+                    label survivorI = survivorOffsets[threadI];
+                    label transferI = transferOffsets[threadI];
+                    label deleteI = deleteOffsets[threadI];
+
+                    for
+                    (
+                        label i = threadOffsets[threadI];
+                        i < threadOffsets[threadI + 1];
+                        ++i
+                    )
+                    {
+                        if (keepParticleFlags[i])
+                        {
+                            if (switchProcessorFlags[i])
+                            {
+                                transferParticles[transferI++] = particles[i];
+                            }
+                            else
+                            {
+                                survivingParticles[survivorI++] = particles[i];
+                            }
+                        }
+                        else
+                        {
+                            deletedParticles[deleteI++] = particles[i];
+                        }
+                    }
+                }
+
+                forAll(transferParticles, i)
+                {
+                    ParticleType& p = *transferParticles[i];
+
+                    if (p.face() >= pMesh().nInternalFaces())
+                    {
+                        const label patchI = pbm.whichPatch(p.face());
+
+                        if (procPatchIndices[patchI] != -1)
+                        {
+                            const label n = neighbourProcIndices
+                            [
+                                refCast<const processorPolyPatch>
+                                (
+                                    pbm[patchI]
+                                ).neighbProcNo()
+                            ];
+
+                            p.prepareForParallelTransfer(patchI, td);
+
+                            particleTransferLists[n].append(this->remove(&p));
+
+                            patchIndexTransferLists[n].append
+                            (
+                                procPatchNeighbours[patchI]
+                            );
+                        }
+                    }
+                }
+
+                forAll(deletedParticles, i)
+                {
+                    deleteParticle(*deletedParticles[i]);
+                }
+
+                cloudOpenMP::storeMoveOrderedParcels
+                (
+                    td.cloud(),
+                    survivingParticles,
+                    survivorOffsets,
+                    0
+                );
+
+                pBufs.clear();
+
+                forAll(particleTransferLists, i)
+                {
+                    if (particleTransferLists[i].size())
+                    {
+                        UOPstream particleStream(neighbourProcs[i], pBufs);
+
+                        particleStream
+                            << patchIndexTransferLists[i]
+                            << particleTransferLists[i];
+                    }
+                }
+
+                labelList allNTrans(Pstream::nProcs());
+                pBufs.finishedSends(allNTrans);
+
+                bool transfered = false;
+
+                forAll(allNTrans, i)
+                {
+                    if (allNTrans[i])
+                    {
+                        transfered = true;
+                        break;
+                    }
+                }
+                reduce(transfered, orOp<bool>());
+
+                if (!transfered)
+                {
+                    break;
+                }
+
+                forAll(neighbourProcs, i)
+                {
+                    const label neighbProci = neighbourProcs[i];
+                    const label nRec = allNTrans[neighbProci];
+
+                    if (nRec)
+                    {
+                        UIPstream particleStream(neighbProci, pBufs);
+
+                        labelList receivePatchIndex(particleStream);
+
+                        IDLList<ParticleType> newParticles
+                        (
+                            particleStream,
+                            typename ParticleType::iNew(polyMesh_)
+                        );
+
+                        label pI = 0;
+
+                        forAllIter
+                        (
+                            typename Cloud<ParticleType>,
+                            newParticles,
+                            newpIter
+                        )
+                        {
+                            ParticleType& newp = newpIter();
+
+                            const label patchI =
+                                procPatches[receivePatchIndex[pI++]];
+
+                            newp.correctAfterParallelTransfer(patchI, td);
+
+                            addParticle(newParticles.remove(&newp));
+                        }
+                    }
+                }
+            }
+
+            if (cloud::debug)
+            {
+                reduce(nTrackingRescues_, sumOp<label>());
+
+                if (nTrackingRescues_ > 0)
+                {
+                    Info<< nTrackingRescues_
+                        << " tracking rescue corrections" << endl;
+                }
+            }
+
+            return;
+        }
+
+        if (moveOrderedReuse)
+        {
+            cloudOpenMP::beginMoveAppendCapture(td.cloud(), 0);
+        }
+
+        List<ParticleType*> particlesStorage;
+        const List<ParticleType*>* particlesPtr = nullptr;
+        bool usingCloudOrdered = false;
+        labelList threadOffsets(moveThreads + 1, 0);
+        const auto& appendedParcels =
+            cloudOpenMP::moveAppendedParcels
+            <
+                typename std::remove_reference<decltype(td.cloud())>::type,
+                ParticleType
+            >(td.cloud(), 0);
+
+        const bool hasOrdered =
+            cloudOpenMP::hasMoveOrderedParcels(td.cloud(), 0);
+        const labelList orderedThreadOffsets =
+            cloudOpenMP::moveOrderedThreadOffsets(td.cloud(), 0);
+        const bool offsetsOk = orderedThreadOffsets.size() == moveThreads + 1;
+        const label priorSize =
+            hasOrdered
+          ? cloudOpenMP::moveOrderedParcels
+            <
+                typename std::remove_reference<decltype(td.cloud())>::type,
+                ParticleType
+            >(td.cloud(), 0).size()
+          : 0;
+
+        const bool canReuseMoveOrdered =
+            moveOrderedReuse
+         && hasOrdered
+         && offsetsOk
+         && priorSize + appendedParcels.size() == this->size();
+
+        if (canReuseMoveOrdered)
+        {
+            if (appendedParcels.size())
+            {
+                cloudOpenMP::appendMoveOrderedParcels
+                (
+                    td.cloud(),
+                    appendedParcels,
+                    0
+                );
+            }
+
+            const auto& moveOrdered =
+                cloudOpenMP::moveOrderedParcels
+                <
+                    typename std::remove_reference<decltype(td.cloud())>::type,
+                    ParticleType
+                >(td.cloud(), 0);
+
+            particlesPtr = &moveOrdered;
+            usingCloudOrdered = true;
+
+            const labelList updatedThreadOffsets =
+                cloudOpenMP::moveOrderedThreadOffsets(td.cloud(), 0);
+
+            if (updatedThreadOffsets.size() == moveThreads + 1)
+            {
+                threadOffsets = updatedThreadOffsets;
+            }
+        }
+        else
+        {
+            particlesStorage.setSize(this->size());
+            label particlei = 0;
+
+            forAllIter(typename Cloud<ParticleType>, *this, pIter)
+            {
+                particlesStorage[particlei++] = &pIter();
+            }
+
+            particlesStorage.setSize(particlei);
+            particlesPtr = &particlesStorage;
+        }
+
+        const List<ParticleType*>& particles = *particlesPtr;
+
+        if (threadOffsets.last() != particles.size())
+        {
+            for (label threadI = 0; threadI < moveThreads; ++threadI)
+            {
+                threadOffsets[threadI] = threadI*particles.size()/moveThreads;
+            }
+
+            threadOffsets[moveThreads] = particles.size();
+        }
+
+        List<unsigned char> keepParticleFlags
+        (
+            particles.size(),
+            static_cast<unsigned char>(1)
+        );
+        const bool inlineReset = true;
+        label deletedParticleCount = 0;
+
+        omp_sched_t sched = omp_sched_static;
+        if (moveSchedule == "dynamic")
+        {
+            sched = omp_sched_dynamic;
+        }
+        else if (moveSchedule == "guided")
+        {
+            sched = omp_sched_guided;
+        }
+        omp_set_schedule(sched, int(moveChunk));
+
+        #pragma omp parallel num_threads(moveThreads) reduction(+:deletedParticleCount)
+        {
+            TrackData localTd(td.cloud());
+            cloudOpenMP::setMoveSeed(localTd, omp_get_thread_num(), 0);
+
+            #pragma omp for schedule(runtime)
+            for (label i = 0; i < particles.size(); ++i)
+            {
+                if (inlineReset)
+                {
+                    particles[i]->stepFraction() = 0;
+                }
+
+                localTd.switchProcessor = false;
+                localTd.keepParticle = true;
+                const bool keepParticle =
+                    particles[i]->move(localTd, trackTime);
+                keepParticleFlags[i] = keepParticle ? 1 : 0;
+
+                if (!keepParticle)
+                {
+                    ++deletedParticleCount;
+                }
+            }
+        }
+
+        if (deletedParticleCount == 0)
+        {
+            if (!usingCloudOrdered)
+            {
+                cloudOpenMP::storeMoveOrderedParcels
+                (
+                    td.cloud(),
+                    particles,
+                    threadOffsets,
+                    0
+                );
+            }
+
+            if (cloud::debug)
+            {
+                reduce(nTrackingRescues_, sumOp<label>());
+
+                if (nTrackingRescues_ > 0)
+                {
+                    Info<< nTrackingRescues_
+                        << " tracking rescue corrections" << endl;
+                }
+            }
+
+            return;
+        }
+
+        labelList survivorCounts(moveThreads, 0);
+        labelList deleteCounts(moveThreads, 0);
+
+        #pragma omp parallel for num_threads(moveThreads) schedule(static)
+        for (label threadI = 0; threadI < moveThreads; ++threadI)
+        {
+            label localSurvivors = 0;
+            label localDeletes = 0;
+
+            for
+            (
+                label i = threadOffsets[threadI];
+                        i < threadOffsets[threadI + 1];
+                        ++i
+                    )
+                    {
+                        if (keepParticleFlags[i])
+                        {
+                            ++localSurvivors;
+                        }
+                else
+                {
+                    ++localDeletes;
+                }
+            }
+
+            survivorCounts[threadI] = localSurvivors;
+            deleteCounts[threadI] = localDeletes;
+        }
+
+        labelList survivorOffsets(moveThreads + 1, 0);
+        labelList deleteOffsets(moveThreads + 1, 0);
+
+        for (label threadI = 0; threadI < moveThreads; ++threadI)
+        {
+            survivorOffsets[threadI + 1] =
+                survivorOffsets[threadI] + survivorCounts[threadI];
+            deleteOffsets[threadI + 1] =
+                deleteOffsets[threadI] + deleteCounts[threadI];
+        }
+
+        if (deleteOffsets.last() == 0)
+        {
+            if (!usingCloudOrdered)
+            {
+                cloudOpenMP::storeMoveOrderedParcels
+                (
+                    td.cloud(),
+                    particles,
+                    threadOffsets,
+                    0
+                );
+            }
+
+            if (cloud::debug)
+            {
+                reduce(nTrackingRescues_, sumOp<label>());
+
+                if (nTrackingRescues_ > 0)
+                {
+                    Info<< nTrackingRescues_
+                        << " tracking rescue corrections" << endl;
+                }
+            }
+
+            return;
+        }
+
+        List<ParticleType*> survivingParticles(survivorOffsets.last());
+        List<ParticleType*> deletedParticles(deleteOffsets.last());
+
+        #pragma omp parallel for num_threads(moveThreads) schedule(static)
+        for (label threadI = 0; threadI < moveThreads; ++threadI)
+        {
+            label survivorI = survivorOffsets[threadI];
+            label deleteI = deleteOffsets[threadI];
+
+            for
+            (
+                label i = threadOffsets[threadI];
+                        i < threadOffsets[threadI + 1];
+                        ++i
+                    )
+                    {
+                        if (keepParticleFlags[i])
+                        {
+                            survivingParticles[survivorI++] = particles[i];
+                        }
+                else
+                {
+                    deletedParticles[deleteI++] = particles[i];
+                }
+            }
+        }
+
+        forAll(deletedParticles, i)
+        {
+            deleteParticle(*deletedParticles[i]);
+        }
+
+        cloudOpenMP::transferMoveOrderedParcels
+        (
+            td.cloud(),
+            survivingParticles,
+            survivorOffsets,
+            0
+        );
+        #endif
+
+        if (cloud::debug)
+        {
+            reduce(nTrackingRescues_, sumOp<label>());
+
+            if (nTrackingRescues_ > 0)
+            {
+                Info<< nTrackingRescues_
+                    << " tracking rescue corrections" << endl;
+            }
+        }
+
+        return;
+    }
 
 
     // List of lists of particles to be transfered for all of the

@@ -55,6 +55,7 @@ SourceFiles
 #include "dsmcCoordinateSystem.H"
 #include "porousMeasurements.H"
 #include "dsmcDynamicLoadBalancing.H"
+#include "dsmcReplicatedMesh.H"
 
 #include "dsmcReactions.H"
 #include "collisionPartnerSelection.H"
@@ -62,6 +63,10 @@ SourceFiles
 #include "cellMeasurements.H"
 
 #include "molsToDelete.H"
+
+#ifdef _OPENMP
+#include <omp.h>
+#endif
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -104,11 +109,74 @@ private:
         //- Coordinate system model: Cartesian, axisymmetric, spherical
         autoPtr<dsmcCoordinateSystem> dsmcCoordinateSystem_;
 
+        //- True when all cells share the same DSMC time-step
+        bool uniformDeltaT_;
+
         //- Porous measurements model: no, instantaneous, global
         autoPtr<porousMeasurements> porousMeasurements_;
 
         //- Write out the information to terminal every nTerminalOutputs
         label nTerminalOutputs_;
+
+        //- Enable low-overhead solver timing summary
+        bool profileSummary_;
+
+        //- Enable extra profiling diagnostics
+        bool profileDetail_;
+
+        //- True while timing an evolve step
+        bool profileTimingActive_;
+
+        //- Number of profiled evolve calls
+        label profileSteps_;
+
+        //- OpenMP controls
+        bool openmpEnabled_;
+        bool openmpMoveEnabled_;
+        bool trackerActive_;
+        label ompNumThreads_;
+        word openmpCollisionSchedule_;
+        label openmpCollisionChunk_;
+        word openmpMoveSchedule_;
+        label openmpMoveChunk_;
+
+        //- Per-cell collision candidate counts for diagnostics/DLB
+        labelList nCandidatesPerCell_;
+
+        //- Per-cell move work counters for diagnostics/DLB
+        labelList moveItersPerCell_;
+        labelList moveItersPerCellCumulative_;
+
+        //- Optional ordered parcel view used by migration paths
+        List<dsmcParcel*> moveOrderedParcels_;
+        labelList moveOrderedThreadOffsets_;
+        bool moveOrderedParcelsValid_;
+        bool moveAppendCaptureActive_;
+        DynamicList<dsmcParcel*> moveAppendedParcels_;
+
+        //- Accumulated wall/cpu timings
+        scalar profileFullEvolveWall_;
+        scalar profileMoveAndCollideWall_;
+        scalar profileMoveWall_;
+        scalar profileBuildCellOccupancyWall_;
+        scalar profileCollisionWall_;
+        scalar profilePostFieldsWall_;
+        scalar profileFullEvolveCpu_;
+        scalar profileMoveAndCollideCpu_;
+        scalar profileMoveCpu_;
+        scalar profileBuildCellOccupancyCpu_;
+        scalar profileCollisionCpu_;
+        scalar profilePostFieldsCpu_;
+
+        //- Flat cell occupancy view used by OpenMP paths
+        DynamicList<dsmcParcel*> occupancyOrderedParcels_;
+        labelList occupancyCellOffsets_;
+        labelList occupancyActiveCells_;
+        labelList occupancyCollisionCells_;
+        bool occupancyOrderedParcelsValid_;
+        mutable bool cellOccupancyMaterialized_;
+        List<labelList> occupancyThreadCellCounts_;
+        List<DynamicList<label>> occupancyThreadActiveCells_;
 
         //- A data structure holding which particles are in which cell
         //List<DynamicList<dsmcParcel*> > cellOccupancy_;
@@ -157,6 +225,9 @@ private:
 
         //- Load balancing
         dsmcDynamicLoadBalancing dynamicLoadBalancing_;
+
+        //- Replicated mesh ownership/migration path
+        autoPtr<dsmcReplicatedMesh> replicatedMesh_;
 
         //- Boundary measurements
         boundaryMeasurements boundaryMeas_;
@@ -217,6 +288,9 @@ private:
         //- Record which particles are in which cell
         void buildCellOccupancy();
 
+        //- Materialize DynamicList cell occupancy from the flat view
+        void materializeCellOccupancy();
+
         //- When mesh changed, relocate the patch/face of stuck parcels
         void relocateStuckParcels();
 
@@ -231,6 +305,9 @@ private:
 
         //- When mesh has changed, update the measurement tools
         void resetMeasurementTools();
+
+        //- Refresh whether face-flux tracking is required by active fields
+        void refreshTrackerUsage();
 
         //- Remove electrons after adding their velocities to a DynamicList
         void removeElectrons();
@@ -345,6 +422,9 @@ public:
 
         //- Return the DSMC time-step for a given cell
         inline scalar deltaTValue(const label celli = 0) const;
+
+        //- Return true when all cells share the same DSMC time-step
+        inline bool uniformDeltaT() const;
 
         //- Return the number of timesteps to write out to terminal at
         inline label nTerminalOutputs() const;
@@ -550,9 +630,14 @@ public:
         inline porousMeasurements& porousMeas();
 
         inline const dsmcDynamicLoadBalancing& dynamicLoadBalancing() const;
-        inline dsmcDynamicLoadBalancing& dynamicLoadBalancing();
+            inline dsmcDynamicLoadBalancing& dynamicLoadBalancing();
 
-        inline const dsmcFaceTracker& tracker() const;
+            inline bool replicatedMeshActive() const;
+            inline bool isOutputRank() const;
+            inline const dsmcReplicatedMesh& replicatedMesh() const;
+            inline dsmcReplicatedMesh& replicatedMeshRef();
+
+            inline const dsmcFaceTracker& tracker() const;
         inline dsmcFaceTracker& tracker();
 
         inline const dsmcReactions& reactions() const;
@@ -675,6 +760,195 @@ public:
 
             //- Evolve the cloud (compute)
             void evolve_fields();
+
+            //- Print accumulated profiling summary
+            void printProfileSummary() const;
+
+            inline bool openmpEnabled() const
+            {
+                return openmpEnabled_;
+            }
+
+            inline bool openmpMoveEnabled() const
+            {
+                return openmpMoveEnabled_;
+            }
+
+            inline bool trackerActive() const
+            {
+                return trackerActive_;
+            }
+
+            inline label ompNumThreads() const
+            {
+                return ompNumThreads_;
+            }
+
+            inline const word& openmpCollisionSchedule() const
+            {
+                return openmpCollisionSchedule_;
+            }
+
+            inline label openmpCollisionChunk() const
+            {
+                return openmpCollisionChunk_;
+            }
+
+            inline const word& openmpMoveSchedule() const
+            {
+                return openmpMoveSchedule_;
+            }
+
+            inline label openmpMoveChunk() const
+            {
+                return openmpMoveChunk_;
+            }
+
+            inline scalar evolveMoveWallTime() const
+            {
+                return profileMoveWall_;
+            }
+
+            inline scalar evolveCollisionWallTime() const
+            {
+                return profileCollisionWall_;
+            }
+
+            inline const labelList& nCandidatesPerCell() const
+            {
+                return nCandidatesPerCell_;
+            }
+
+            inline labelList& nCandidatesPerCell()
+            {
+                return nCandidatesPerCell_;
+            }
+
+            inline const labelList& moveItersPerCell() const
+            {
+                return moveItersPerCell_;
+            }
+
+            inline labelList& moveItersPerCell()
+            {
+                return moveItersPerCell_;
+            }
+
+            inline const labelList& moveItersPerCellCumulative() const
+            {
+                return moveItersPerCellCumulative_;
+            }
+
+            inline labelList& moveItersPerCellCumulative()
+            {
+                return moveItersPerCellCumulative_;
+            }
+
+            inline bool hasMoveOrderedParcels() const
+            {
+                return moveOrderedParcelsValid_;
+            }
+
+            inline const List<dsmcParcel*>& moveOrderedParcels() const
+            {
+                return moveOrderedParcels_;
+            }
+
+            inline const labelList& moveOrderedThreadOffsets() const
+            {
+                return moveOrderedThreadOffsets_;
+            }
+
+            inline const DynamicList<dsmcParcel*>& moveAppendedParcels() const
+            {
+                return moveAppendedParcels_;
+            }
+
+            void storeMoveOrderedParcels
+            (
+                const List<dsmcParcel*>& parcels,
+                const labelList& threadOffsets
+            );
+
+            void transferMoveOrderedParcels
+            (
+                List<dsmcParcel*>& parcels,
+                const labelList& threadOffsets
+            );
+
+            void beginMoveAppendCapture();
+
+            void endMoveAppendCapture();
+
+            void recordMoveAppendedParcel(dsmcParcel* pPtr);
+
+            void clearMoveAppendedParcels();
+
+            void rebuildMoveOrderedParcels();
+
+            void setMoveOrderedParcels(const DynamicList<dsmcParcel*>& parcels);
+
+            void appendBatchToMoveOrdered(const DynamicList<dsmcParcel*>& parcels);
+
+            inline void clearMoveOrderedParcels()
+            {
+                moveOrderedParcels_.clear();
+                moveOrderedThreadOffsets_.clear();
+                moveOrderedParcelsValid_ = false;
+                moveAppendedParcels_.clear();
+            }
+
+            void deleteParcel(dsmcParcel* p);
+
+            inline bool hasOccupancyOrderedParcels() const
+            {
+                return occupancyOrderedParcelsValid_;
+            }
+
+            inline const List<dsmcParcel*>& occupancyOrderedParcels() const
+            {
+                return occupancyOrderedParcels_;
+            }
+
+            inline const labelList& occupancyCellOffsets() const
+            {
+                return occupancyCellOffsets_;
+            }
+
+            inline const labelList& occupancyActiveCells() const
+            {
+                return occupancyActiveCells_;
+            }
+
+            inline const labelList& occupancyCollisionCells() const
+            {
+                return occupancyCollisionCells_;
+            }
+
+            inline label occupancyStart(const label celli) const
+            {
+                return occupancyCellOffsets_[celli];
+            }
+
+            inline label occupancyEnd(const label celli) const
+            {
+                return occupancyCellOffsets_[celli + 1];
+            }
+
+            inline label occupancyCount(const label celli) const
+            {
+                return occupancyCellOffsets_[celli + 1] - occupancyCellOffsets_[celli];
+            }
+
+            inline dsmcParcel* occupancyParcel(const label index) const
+            {
+                return occupancyOrderedParcels_[index];
+            }
+
+            inline bool emitStepDiagnostics() const
+            {
+                return profileDetail_;
+            }
 
             // Return how often to write to terminal
             // (used for the solver to access this)

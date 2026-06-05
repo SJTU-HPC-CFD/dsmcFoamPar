@@ -85,6 +85,11 @@ int main(int argc, char *argv[])
     Info<< "Total Iterations = " << totNoIteration << "\n"
         << "End main\n" << endl;
 
+    if (Pstream::parRun())
+    {
+        Pstream::exit(0);
+    }
+
     return 0;
 }
 
@@ -145,7 +150,53 @@ bool run
             dsmc.info();
         }
 
-        runTime.write();
+        if (dsmc.replicatedMeshActive())
+        {
+            const bool isOutput = runTime.outputTime();
+            scalar gatherWall = 0.0;
+            scalar writeWall = 0.0;
+            scalar migrateBackWall = 0.0;
+
+            if (isOutput)
+            {
+                const scalar tGather0 = runTime.elapsedCpuTime();
+                dsmc.replicatedMeshRef().gatherParcelsToRank0();
+                gatherWall = runTime.elapsedCpuTime() - tGather0;
+            }
+
+            if (dsmc.isOutputRank())
+            {
+                const scalar tWrite0 = runTime.elapsedCpuTime();
+                runTime.write();
+                writeWall = runTime.elapsedCpuTime() - tWrite0;
+
+                if (isOutput)
+                {
+                    dsmc.replicatedMeshRef().writeCellOwner();
+                }
+            }
+
+            if (isOutput)
+            {
+                const scalar tMigrateBack0 = runTime.elapsedCpuTime();
+                dsmc.replicatedMeshRef().migrateParticlesByCellOwner();
+                dsmc.replicatedMeshRef().updateParticleCounts();
+                migrateBackWall = runTime.elapsedCpuTime() - tMigrateBack0;
+            }
+
+            if (isOutput && dsmc.isOutputRank())
+            {
+                Info<< "Replicated mesh output timing:" << nl
+                    << "    gather parcels [s]       = " << gatherWall << nl
+                    << "    rank0 write [s]           = " << writeWall << nl
+                    << "    migrate-back [s]          = " << migrateBackWall
+                    << nl << endl;
+            }
+        }
+        else
+        {
+            runTime.write();
+        }
 
         previousIterationTime =
             max(runTime.elapsedCpuTime() - currentIterationTime, 1e-3);
@@ -169,6 +220,8 @@ bool run
     }
 
     Info<< "End stage " << noRestart << "\n" << endl;
+
+    dsmc.printProfileSummary();
 
     if (dsmc.dynamicLoadBalancing().performBalance())
     {

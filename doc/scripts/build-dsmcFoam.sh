@@ -4,7 +4,7 @@
 
 set -e
 
-HYSTRATH_DLB=/home/superxcx/code/OpenFoam/OF-1706/hyStrath_dlb
+HYSTRATH_DLB="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
 # Source environment
 source ~/intel/oneapi/setvars.sh --force 2>/dev/null
@@ -14,8 +14,9 @@ source ~/code/OpenFoam/OF-1706/OpenFOAM-v1706/etc/bashrc
 export WM_PROJECT_USER_DIR=$HYSTRATH_DLB
 export FOAM_USER_LIBBIN=$HYSTRATH_DLB/platforms/$WM_OPTIONS/lib
 export FOAM_USER_APPBIN=$HYSTRATH_DLB/platforms/$WM_OPTIONS/bin
+export PARMETIS_DIR=${PARMETIS_DIR:-/home/superxcx/code/DSMC/dsmcFoam++/parmetis-install}
 export PATH=$FOAM_USER_APPBIN:$PATH
-export LD_LIBRARY_PATH=$FOAM_USER_LIBBIN:$LD_LIBRARY_PATH
+export LD_LIBRARY_PATH=$FOAM_USER_LIBBIN:$PARMETIS_DIR/lib:$LD_LIBRARY_PATH
 
 echo "=== Build targets ==="
 echo "  LIBBIN: $FOAM_USER_LIBBIN"
@@ -58,3 +59,5 @@ echo "dsmcInitialise+ binary: $FOAM_USER_APPBIN/dsmcInitialise+"
 
 ls -la $FOAM_USER_APPBIN/dsmcFoam+ 2>/dev/null
 ls -la $FOAM_USER_APPBIN/dsmcInitialise+ 2>/dev/null
+
+cd $HYSTRATH_DLB

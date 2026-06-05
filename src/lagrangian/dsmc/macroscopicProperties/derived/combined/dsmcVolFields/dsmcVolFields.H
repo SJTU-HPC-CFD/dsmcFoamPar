@@ -40,6 +40,7 @@ SourceFiles
 #include "polyMesh.H"
 #include "volFields.H"
 #include "dsmcCloud.H"
+#include <chrono>
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -67,9 +68,11 @@ protected:
         
         scalar mfpTref_;
         label nMinParcelsTvib_;
+        scalar iMeanMinTvib_;
         word fieldName_;
         
         labelList speciesIds_;
+        labelList typeIdToSpeciesIndex_;
         
         volScalarField dsmcN_;
         volScalarField dsmcNMean_;
@@ -139,6 +142,7 @@ protected:
         vectorField momentumCum_;
         
         List<labelList> boundaryCells_;
+        labelList sampledBoundaryPatches_;
         List<List<scalarField>> dsmcSpeciesEvibModCum_;
         List<scalarField> dsmcSpeciesEelecCum_;
         List<scalarField> dsmcNSpeciesCum_;
@@ -179,6 +183,7 @@ protected:
         List<vectorField> t1_;
         List<vectorField> t2_;
 
+        bool openmpFieldSampling_;
         bool averagingAcrossManyRuns_;
         bool measureClassifications_;
         bool measureMeanFreePath_;
@@ -188,6 +193,28 @@ protected:
         bool writeRotationalTemperature_;
         bool writeVibrationalTemperature_;
         bool writeElectronicTemperature_;
+        bool profileSummaryEnabled_;
+        bool profileDetailEnabled_;
+        scalar profileSampleAccumWallTime_;
+        scalar profileSharedCacheBuildWallTime_;
+        scalar profileSharedCacheAllocateWallTime_;
+        scalar profileSharedCacheResetWallTime_;
+        scalar profileSharedCacheParcelAccumWallTime_;
+        scalar profileSharedCacheBaseAccumWallTime_;
+        scalar profileSharedCacheVibAccumWallTime_;
+        scalar profileSharedCacheElectronicAccumWallTime_;
+        scalar profileSharedCacheClassAccumWallTime_;
+        label profileSharedCacheDetailSampleCells_;
+        label profileSharedCacheDetailSampleParcels_;
+        scalar profileFieldCombineWallTime_;
+        scalar profileCellReduceWallTime_;
+        scalar profileBoundaryAccumWallTime_;
+        scalar profileOutputComputeWallTime_;
+        scalar profileFieldWriteWallTime_;
+        scalar profileOutputResetWallTime_;
+        scalar profileOutputTimeWallTime_;
+        label profileCalls_;
+        bool finalProfilePrinted_;
 
     // Protected Member Functions
 
@@ -258,4 +285,3 @@ public:
 #endif
 
 // ************************************************************************* //
-

@@ -62,6 +62,16 @@ private:
 
 //         dictionary propsDict_;
     label infoCounter_;
+    List<DynamicList<label>> threadWhichSubCell_;
+    List<List<DynamicList<label>>> threadSubCells_;
+    List<DynamicList<dsmcParcel*>> threadParcelPtrs_;
+    List<DynamicList<vector>> threadVelocities_;
+    List<DynamicList<label>> threadTypeIds_;
+    List<DynamicList<label>> threadCharges_;
+
+    bool collisionFastRng_;
+
+    void readControlDictParams();
 
 
 

@@ -26,6 +26,7 @@ License
 #include "dsmcCloud.H"
 #include "constants.H"
 #include "zeroGradientFvPatchFields.H"
+#include <chrono>
 
 using namespace Foam::constant;
 
@@ -33,6 +34,23 @@ namespace Foam
 {
     defineTemplateTypeNameAndDebug(Cloud<dsmcParcel>, 0);
 };
+
+
+namespace
+{
+    typedef std::chrono::steady_clock steadyWallClock;
+
+    Foam::scalar elapsedWallSeconds
+    (
+        const steadyWallClock::time_point& start
+    )
+    {
+        return std::chrono::duration_cast
+        <
+            std::chrono::duration<Foam::scalar>
+        >(steadyWallClock::now() - start).count();
+    }
+}
 
 
 // * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
@@ -62,6 +80,345 @@ void Foam::dsmcCloud::buildConstProps()
 
 void Foam::dsmcCloud::buildCellOccupancy()
 {
+    const steadyWallClock::time_point wallStart = steadyWallClock::now();
+    const scalar cpu0 = profileSummary_ ? mesh_.time().elapsedCpuTime() : 0.0;
+    const label nCells = mesh_.nCells();
+
+    if (cellOccupancy_.size() != nCells)
+    {
+        cellOccupancy_.setSize(nCells);
+    }
+
+    occupancyOrderedParcelsValid_ = false;
+    cellOccupancyMaterialized_ = false;
+
+    const bool moveOrderedReady =
+        openmpEnabled_
+     && openmpMoveEnabled_
+     && moveOrderedParcelsValid_
+     && moveOrderedThreadOffsets_.size() == ompNumThreads_ + 1;
+
+    const label appendedParcels = moveAppendedParcels_.size();
+    const bool useMoveOrderedOnly =
+        moveOrderedReady
+     && moveOrderedParcels_.size() == this->size();
+    const bool useMoveOrderedWithAppended =
+        moveOrderedReady
+     && !useMoveOrderedOnly
+     && moveOrderedParcels_.size() + appendedParcels == this->size();
+    const bool useMoveOrderedParcels =
+        useMoveOrderedOnly || useMoveOrderedWithAppended;
+
+    const label nParcels =
+        useMoveOrderedParcels
+      ? moveOrderedParcels_.size()
+      + (useMoveOrderedWithAppended ? appendedParcels : 0)
+      : this->size();
+
+    #ifdef _OPENMP
+    if (openmpEnabled_ && ompNumThreads_ > 1 && nParcels > 0)
+    {
+        const List<dsmcParcel*>* parcelsPtr = nullptr;
+        const labelList* parcelThreadOffsetsPtr = nullptr;
+        const DynamicList<dsmcParcel*>* appendedParcelsPtr = nullptr;
+        labelList appendedThreadOffsets;
+        List<dsmcParcel*> gatheredParcels;
+        labelList generatedThreadOffsets;
+
+        if (useMoveOrderedParcels)
+        {
+            parcelsPtr = &moveOrderedParcels_;
+            parcelThreadOffsetsPtr = &moveOrderedThreadOffsets_;
+
+            if (useMoveOrderedWithAppended)
+            {
+                appendedParcelsPtr = &moveAppendedParcels_;
+                appendedThreadOffsets.setSize(ompNumThreads_ + 1, 0);
+
+                for (label threadI = 0; threadI < ompNumThreads_; ++threadI)
+                {
+                    appendedThreadOffsets[threadI] =
+                        threadI*appendedParcels/ompNumThreads_;
+                }
+
+                appendedThreadOffsets[ompNumThreads_] = appendedParcels;
+            }
+        }
+        else
+        {
+            gatheredParcels.setSize(nParcels);
+            label parcelI = 0;
+
+            forAllIter(dsmcCloud, *this, iter)
+            {
+                gatheredParcels[parcelI++] = &iter();
+            }
+
+            gatheredParcels.setSize(parcelI);
+            generatedThreadOffsets.setSize(ompNumThreads_ + 1, 0);
+
+            for (label threadI = 0; threadI < ompNumThreads_; ++threadI)
+            {
+                generatedThreadOffsets[threadI] =
+                    threadI*gatheredParcels.size()/ompNumThreads_;
+            }
+
+            generatedThreadOffsets[ompNumThreads_] = gatheredParcels.size();
+            parcelsPtr = &gatheredParcels;
+            parcelThreadOffsetsPtr = &generatedThreadOffsets;
+        }
+
+        const List<dsmcParcel*>& parcels = *parcelsPtr;
+        const labelList& parcelThreadOffsets = *parcelThreadOffsetsPtr;
+        const bool useAppendedParcels = appendedParcelsPtr != nullptr;
+
+        if (occupancyThreadCellCounts_.size() != ompNumThreads_)
+        {
+            occupancyThreadCellCounts_.setSize(ompNumThreads_);
+        }
+
+        if (occupancyThreadActiveCells_.size() != ompNumThreads_)
+        {
+            occupancyThreadActiveCells_.setSize(ompNumThreads_);
+        }
+
+        forAll(occupancyThreadCellCounts_, threadI)
+        {
+            labelList& localCounts = occupancyThreadCellCounts_[threadI];
+            DynamicList<label>& localActiveCells =
+                occupancyThreadActiveCells_[threadI];
+
+            if (localCounts.size() != nCells)
+            {
+                localCounts.setSize(nCells, 0);
+            }
+            else if (!useMoveOrderedParcels)
+            {
+                forAll(localCounts, cellI)
+                {
+                    localCounts[cellI] = 0;
+                }
+            }
+            else
+            {
+                forAll(localActiveCells, activeI)
+                {
+                    localCounts[localActiveCells[activeI]] = 0;
+                }
+            }
+
+            localActiveCells.clear();
+            localActiveCells.setCapacity
+            (
+                min
+                (
+                    nCells,
+                    (parcelThreadOffsets[threadI + 1]
+                   - parcelThreadOffsets[threadI])
+                  + (useAppendedParcels
+                    ? appendedThreadOffsets[threadI + 1]
+                    - appendedThreadOffsets[threadI]
+                    : 0)
+                )
+            );
+        }
+
+        #pragma omp parallel num_threads(ompNumThreads_)
+        {
+            const label threadI = omp_get_thread_num();
+            labelList& localCounts = occupancyThreadCellCounts_[threadI];
+            DynamicList<label>& localActiveCells =
+                occupancyThreadActiveCells_[threadI];
+
+            for
+            (
+                label i = parcelThreadOffsets[threadI];
+                i < parcelThreadOffsets[threadI + 1];
+                ++i
+            )
+            {
+                const label cellI = parcels[i]->cell();
+
+                if (cellI >= 0 && cellI < nCells)
+                {
+                    label& count = localCounts[cellI];
+
+                    if (count == 0)
+                    {
+                        localActiveCells.append(cellI);
+                    }
+
+                    ++count;
+                }
+            }
+
+            if (useAppendedParcels)
+            {
+                const DynamicList<dsmcParcel*>& appended = *appendedParcelsPtr;
+
+                for
+                (
+                    label i = appendedThreadOffsets[threadI];
+                    i < appendedThreadOffsets[threadI + 1];
+                    ++i
+                )
+                {
+                    const label cellI = appended[i]->cell();
+
+                    if (cellI >= 0 && cellI < nCells)
+                    {
+                        label& count = localCounts[cellI];
+
+                        if (count == 0)
+                        {
+                            localActiveCells.append(cellI);
+                        }
+
+                        ++count;
+                    }
+                }
+            }
+        }
+
+        labelList totalCounts(nCells, 0);
+
+        for (label threadI = 0; threadI < ompNumThreads_; ++threadI)
+        {
+            const labelList& localCounts = occupancyThreadCellCounts_[threadI];
+            const DynamicList<label>& activeCells =
+                occupancyThreadActiveCells_[threadI];
+
+            forAll(activeCells, activeI)
+            {
+                const label cellI = activeCells[activeI];
+                totalCounts[cellI] += localCounts[cellI];
+            }
+        }
+
+        label activeCellCount = 0;
+        label collisionCellCount = 0;
+
+        for (label cellI = 0; cellI < nCells; ++cellI)
+        {
+            const label count = totalCounts[cellI];
+
+            if (count > 0)
+            {
+                ++activeCellCount;
+
+                if (count > 1)
+                {
+                    ++collisionCellCount;
+                }
+            }
+        }
+
+        occupancyActiveCells_.setSize(activeCellCount);
+        occupancyCollisionCells_.setSize(collisionCellCount);
+
+        activeCellCount = 0;
+        collisionCellCount = 0;
+
+        for (label cellI = 0; cellI < nCells; ++cellI)
+        {
+            const label count = totalCounts[cellI];
+
+            if (count > 0)
+            {
+                occupancyActiveCells_[activeCellCount++] = cellI;
+
+                if (count > 1)
+                {
+                    occupancyCollisionCells_[collisionCellCount++] = cellI;
+                }
+            }
+        }
+
+        occupancyCellOffsets_.setSize(nCells + 1, 0);
+
+        for (label cellI = 0; cellI < nCells; ++cellI)
+        {
+            occupancyCellOffsets_[cellI + 1] =
+                occupancyCellOffsets_[cellI] + totalCounts[cellI];
+        }
+
+        occupancyOrderedParcels_.resize(occupancyCellOffsets_.last());
+        labelList nextCellOffsets(occupancyCellOffsets_);
+
+        for (label threadI = 0; threadI < ompNumThreads_; ++threadI)
+        {
+            labelList& localCounts = occupancyThreadCellCounts_[threadI];
+            const DynamicList<label>& activeCells =
+                occupancyThreadActiveCells_[threadI];
+
+            forAll(activeCells, activeI)
+            {
+                const label cellI = activeCells[activeI];
+                const label count = localCounts[cellI];
+                localCounts[cellI] = nextCellOffsets[cellI];
+                nextCellOffsets[cellI] += count;
+            }
+        }
+
+        #pragma omp parallel num_threads(ompNumThreads_)
+        {
+            const label threadI = omp_get_thread_num();
+            labelList& localOffsets = occupancyThreadCellCounts_[threadI];
+
+            for
+            (
+                label i = parcelThreadOffsets[threadI];
+                i < parcelThreadOffsets[threadI + 1];
+                ++i
+            )
+            {
+                dsmcParcel* pPtr = parcels[i];
+                const label cellI = pPtr->cell();
+
+                if (cellI >= 0 && cellI < nCells)
+                {
+                    const label slot = localOffsets[cellI]++;
+                    occupancyOrderedParcels_[slot] = pPtr;
+                }
+            }
+
+            if (useAppendedParcels)
+            {
+                const DynamicList<dsmcParcel*>& appended = *appendedParcelsPtr;
+
+                for
+                (
+                    label i = appendedThreadOffsets[threadI];
+                    i < appendedThreadOffsets[threadI + 1];
+                    ++i
+                )
+                {
+                    dsmcParcel* pPtr = appended[i];
+                    const label cellI = pPtr->cell();
+
+                    if (cellI >= 0 && cellI < nCells)
+                    {
+                        const label slot = localOffsets[cellI]++;
+                        occupancyOrderedParcels_[slot] = pPtr;
+                    }
+                }
+            }
+        }
+
+        occupancyOrderedParcelsValid_ = true;
+        cellOccupancyMaterialized_ = false;
+
+        if (profileSummary_ && profileTimingActive_)
+        {
+            profileBuildCellOccupancyWall_ += elapsedWallSeconds(wallStart);
+            profileBuildCellOccupancyCpu_ +=
+                mesh_.time().elapsedCpuTime() - cpu0;
+        }
+
+        return;
+    }
+    #endif
+
     forAll(cellOccupancy_, celli)
     {
         cellOccupancy_[celli].clear();
@@ -69,8 +426,125 @@ void Foam::dsmcCloud::buildCellOccupancy()
 
     forAllIter(dsmcCloud, *this, iter)
     {
-        cellOccupancy_[iter().cell()].append(&iter());
+        const label cellI = iter().cell();
+
+        if (cellI >= 0 && cellI < nCells)
+        {
+            cellOccupancy_[cellI].append(&iter());
+        }
     }
+
+    labelList totalCounts(nCells, 0);
+    occupancyCellOffsets_.setSize(nCells + 1, 0);
+
+    for (label cellI = 0; cellI < nCells; ++cellI)
+    {
+        totalCounts[cellI] = cellOccupancy_[cellI].size();
+        occupancyCellOffsets_[cellI + 1] =
+            occupancyCellOffsets_[cellI] + totalCounts[cellI];
+    }
+
+    label activeCellCount = 0;
+    label collisionCellCount = 0;
+
+    for (label cellI = 0; cellI < nCells; ++cellI)
+    {
+        const label count = totalCounts[cellI];
+
+        if (count > 0)
+        {
+            ++activeCellCount;
+
+            if (count > 1)
+            {
+                ++collisionCellCount;
+            }
+        }
+    }
+
+    occupancyActiveCells_.setSize(activeCellCount);
+    occupancyCollisionCells_.setSize(collisionCellCount);
+    activeCellCount = 0;
+    collisionCellCount = 0;
+
+    for (label cellI = 0; cellI < nCells; ++cellI)
+    {
+        const label count = totalCounts[cellI];
+
+        if (count > 0)
+        {
+            occupancyActiveCells_[activeCellCount++] = cellI;
+
+            if (count > 1)
+            {
+                occupancyCollisionCells_[collisionCellCount++] = cellI;
+            }
+        }
+    }
+
+    occupancyOrderedParcels_.resize(occupancyCellOffsets_.last());
+
+    for (label cellI = 0; cellI < nCells; ++cellI)
+    {
+        label offset = occupancyCellOffsets_[cellI];
+        const DynamicList<dsmcParcel*>& cellParcels = cellOccupancy_[cellI];
+
+        forAll(cellParcels, i)
+        {
+            occupancyOrderedParcels_[offset++] = cellParcels[i];
+        }
+    }
+
+    occupancyOrderedParcelsValid_ = true;
+    cellOccupancyMaterialized_ = true;
+
+    if (profileSummary_ && profileTimingActive_)
+    {
+        profileBuildCellOccupancyWall_ += elapsedWallSeconds(wallStart);
+        profileBuildCellOccupancyCpu_ += mesh_.time().elapsedCpuTime() - cpu0;
+    }
+}
+
+
+void Foam::dsmcCloud::materializeCellOccupancy()
+{
+    if (cellOccupancyMaterialized_)
+    {
+        return;
+    }
+
+    const label nCells = mesh_.nCells();
+
+    if (cellOccupancy_.size() != nCells)
+    {
+        cellOccupancy_.setSize(nCells);
+    }
+
+    forAll(cellOccupancy_, cellI)
+    {
+        cellOccupancy_[cellI].clear();
+    }
+
+    if (occupancyOrderedParcelsValid_)
+    {
+        forAll(occupancyActiveCells_, activeI)
+        {
+            const label cellI = occupancyActiveCells_[activeI];
+            DynamicList<dsmcParcel*>& cellParcels = cellOccupancy_[cellI];
+
+            for
+            (
+                label occI = occupancyCellOffsets_[cellI];
+                occI < occupancyCellOffsets_[cellI + 1];
+                ++occI
+            )
+            {
+                cellParcels.append(occupancyOrderedParcels_[occI]);
+            }
+        }
+    }
+
+    cellOccupancyMaterialized_ = true;
 }
 
 
@@ -96,6 +570,10 @@ void Foam::dsmcCloud::buildCellOccupancyFromScratch()
 {
     cellOccupancy_.clear();
     cellOccupancy_.setSize(mesh_.nCells());
+
+    nCandidatesPerCell_.setSize(mesh_.nCells(), 0);
+    moveItersPerCell_.setSize(mesh_.nCells(), 0);
+    moveItersPerCellCumulative_.setSize(mesh_.nCells(), 0);
 
     buildCellOccupancy();
     relocateStuckParcels();
@@ -125,10 +603,33 @@ void Foam::dsmcCloud::resetBoundaries()
 
 void Foam::dsmcCloud::resetMeasurementTools()
 {
+    refreshTrackerUsage();
     trackingInfo_.reset();
     fields_.resetFields();
 
     cellMeas_.reset();
+}
+
+
+void Foam::dsmcCloud::refreshTrackerUsage()
+{
+    trackerActive_ = false;
+
+    const List< autoPtr<dsmcField> >& configuredFields = fields_.fields();
+
+    forAll(configuredFields, fieldI)
+    {
+        if (configuredFields[fieldI].valid())
+        {
+            const word fieldType(configuredFields[fieldI]->type());
+
+            if (fieldType == "dsmcFluxSurface")
+            {
+                trackerActive_ = true;
+                break;
+            }
+        }
+    }
 }
 
 
@@ -409,6 +910,17 @@ void Foam::dsmcCloud::addNewParcel
     const labelList& vibLevel
 )
 {
+    if
+    (
+        replicatedMeshActive()
+     && cellI >= 0
+     && cellI < replicatedMesh().cellOwner().size()
+     && replicatedMesh().cellOwner()[cellI] != replicatedMesh().myRank()
+    )
+    {
+        return;
+    }
+
     dsmcParcel* pPtr = new dsmcParcel
     (
         mesh_,
@@ -431,7 +943,7 @@ void Foam::dsmcCloud::addNewParcel
     // in which they have been inserted. This is justified as the trackFraction
     // is initialized to a random value in the interval [0, 1] (cf.
     // dsmcParcel::move newParcel handling).
-    if (newParcel != -1)
+    if (newParcel != -1 && trackerActive())
     {
         tracker().trackFaceTransition(typeId, U, RWF, tetFaceI);
     }
@@ -439,6 +951,7 @@ void Foam::dsmcCloud::addNewParcel
     porousMeas().additionInteraction(*pPtr, newParcel);
 
     addParticle(pPtr);
+    recordMoveAppendedParcel(pPtr);
 }
 
 
@@ -460,6 +973,17 @@ void Foam::dsmcCloud::addNewStuckParcel
     const vectorField& wallVectors
 )
 {
+    if
+    (
+        replicatedMeshActive()
+     && cellI >= 0
+     && cellI < replicatedMesh().cellOwner().size()
+     && replicatedMesh().cellOwner()[cellI] != replicatedMesh().myRank()
+    )
+    {
+        return;
+    }
+
     dsmcParcel* pPtr = new dsmcParcel
     (
         mesh_,
@@ -486,6 +1010,7 @@ void Foam::dsmcCloud::addNewStuckParcel
     porousMeas().additionInteraction(p, newParcel);
 
     addParticle(pPtr);
+    recordMoveAppendedParcel(pPtr);
 }
 
 
@@ -608,11 +1133,76 @@ Foam::dsmcCloud::dsmcCloud
     controlDict_(t.controlDict()),
     typeIdList_(particleProperties_.lookup("typeIdList")),
     dsmcCoordinateSystem_(dsmcCoordinateSystem::New(t, mesh, *this)),
+    uniformDeltaT_(dsmcCoordinateSystem_->dtModel().uniformDeltaT()),
     porousMeasurements_(porousMeasurements::New(t, mesh, *this)),
     nTerminalOutputs_
     (
         controlDict_.lookupOrDefault<label>("nTerminalOutputs", 1)
     ),
+    profileSummary_
+    (
+        controlDict_.lookupOrDefault<bool>("profileSummary", true)
+    ),
+    profileDetail_
+    (
+        controlDict_.lookupOrDefault<bool>("profileDetail", false)
+    ),
+    profileTimingActive_(false),
+    profileSteps_(0),
+    openmpEnabled_
+    (
+        controlDict_.lookupOrDefault<bool>("useOpenMP", false)
+    ),
+    openmpMoveEnabled_
+    (
+        controlDict_.lookupOrDefault<bool>("openmpMove", openmpEnabled_)
+    ),
+    trackerActive_(true),
+    ompNumThreads_(1),
+    openmpCollisionSchedule_
+    (
+        controlDict_.lookupOrDefault<word>("openmpCollisionSchedule", "dynamic")
+    ),
+    openmpCollisionChunk_
+    (
+        max(label(1), controlDict_.lookupOrDefault<label>("openmpCollisionChunk", 1))
+    ),
+    openmpMoveSchedule_
+    (
+        controlDict_.lookupOrDefault<word>("openmpMoveSchedule", "static")
+    ),
+    openmpMoveChunk_
+    (
+        max(label(1), controlDict_.lookupOrDefault<label>("openmpMoveChunk", 1))
+    ),
+    nCandidatesPerCell_(mesh_.nCells(), 0),
+    moveItersPerCell_(mesh_.nCells(), 0),
+    moveItersPerCellCumulative_(mesh_.nCells(), 0),
+    moveOrderedParcels_(),
+    moveOrderedThreadOffsets_(),
+    moveOrderedParcelsValid_(false),
+    moveAppendCaptureActive_(false),
+    moveAppendedParcels_(),
+    profileFullEvolveWall_(0.0),
+    profileMoveAndCollideWall_(0.0),
+    profileMoveWall_(0.0),
+    profileBuildCellOccupancyWall_(0.0),
+    profileCollisionWall_(0.0),
+    profilePostFieldsWall_(0.0),
+    profileFullEvolveCpu_(0.0),
+    profileMoveAndCollideCpu_(0.0),
+    profileMoveCpu_(0.0),
+    profileBuildCellOccupancyCpu_(0.0),
+    profileCollisionCpu_(0.0),
+    profilePostFieldsCpu_(0.0),
+    occupancyOrderedParcels_(),
+    occupancyCellOffsets_(),
+    occupancyActiveCells_(),
+    occupancyCollisionCells_(),
+    occupancyOrderedParcelsValid_(false),
+    cellOccupancyMaterialized_(true),
+    occupancyThreadCellCounts_(),
+    occupancyThreadActiveCells_(),
     cellOccupancy_(),
     rhoNMeanElectron_(mesh_.nCells(), 0.0),
     rhoMMeanElectron_(mesh_.nCells(), 0.0),
@@ -646,6 +1236,7 @@ Foam::dsmcCloud::dsmcCloud
     ), 
     controllers_(t, mesh, *this),
     dynamicLoadBalancing_(t, mesh, *this),
+    replicatedMesh_(),
     boundaryMeas_(mesh, *this, true),
     fields_(t, mesh, *this),
     boundaries_(t, mesh, *this),
@@ -662,6 +1253,53 @@ Foam::dsmcCloud::dsmcCloud
     reactions_(t, mesh, *this),
     cellMeas_(mesh, *this, true)
 {
+    if
+    (
+        openmpCollisionSchedule_ != "static"
+     && openmpCollisionSchedule_ != "dynamic"
+     && openmpCollisionSchedule_ != "guided"
+     && openmpCollisionSchedule_ != "partition"
+    )
+    {
+        WarningInFunction
+            << "Unknown openmpCollisionSchedule '"
+            << openmpCollisionSchedule_
+            << "', falling back to dynamic" << endl;
+        openmpCollisionSchedule_ = "dynamic";
+    }
+
+    if
+    (
+        openmpMoveSchedule_ != "static"
+     && openmpMoveSchedule_ != "dynamic"
+     && openmpMoveSchedule_ != "guided"
+    )
+    {
+        WarningInFunction
+            << "Unknown openmpMoveSchedule '"
+            << openmpMoveSchedule_
+            << "', falling back to static" << endl;
+        openmpMoveSchedule_ = "static";
+    }
+
+    #ifdef _OPENMP
+    ompNumThreads_ =
+        max
+        (
+            label(1),
+            controlDict_.lookupOrDefault<label>
+            (
+                "openmpThreads",
+                label(omp_get_max_threads())
+            )
+        );
+    omp_set_num_threads(int(ompNumThreads_));
+    #else
+    openmpEnabled_ = false;
+    openmpMoveEnabled_ = false;
+    ompNumThreads_ = 1;
+    #endif
+
     if (readFields)
     {
         dsmcParcel::readFields(*this);
@@ -685,9 +1323,16 @@ Foam::dsmcCloud::dsmcCloud
     collisionPartnerSelectionModel_->initialConfiguration();
 
     fields_.createFields();
+    refreshTrackerUsage();
     boundaryMeas_.setInitialConfig();
     boundaries_.setInitialConfig();
     controllers_.initialConfig();
+
+    if (controlDict_.lookupOrDefault<bool>("replicatedMesh", false))
+    {
+        replicatedMesh_.reset(new dsmcReplicatedMesh(*this, mesh_));
+        replicatedMesh_->initialize();
+    }
 }
 
 
@@ -718,11 +1363,58 @@ Foam::dsmcCloud::dsmcCloud
     controlDict_(t.controlDict()),
     typeIdList_(particleProperties_.lookup("typeIdList")),
     dsmcCoordinateSystem_(dsmcCoordinateSystem::New(t, mesh, *this)),
+    uniformDeltaT_(dsmcCoordinateSystem_->dtModel().uniformDeltaT()),
     porousMeasurements_(porousMeasurements::New(t, mesh, *this)),
     nTerminalOutputs_
     (
         controlDict_.lookupOrDefault<label>("nTerminalOutputs", 1)
     ),
+    profileSummary_
+    (
+        controlDict_.lookupOrDefault<bool>("profileSummary", true)
+    ),
+    profileDetail_
+    (
+        controlDict_.lookupOrDefault<bool>("profileDetail", false)
+    ),
+    profileTimingActive_(false),
+    profileSteps_(0),
+    openmpEnabled_(false),
+    openmpMoveEnabled_(false),
+    trackerActive_(true),
+    ompNumThreads_(1),
+    openmpCollisionSchedule_("dynamic"),
+    openmpCollisionChunk_(1),
+    openmpMoveSchedule_("static"),
+    openmpMoveChunk_(1),
+    nCandidatesPerCell_(),
+    moveItersPerCell_(),
+    moveItersPerCellCumulative_(),
+    moveOrderedParcels_(),
+    moveOrderedThreadOffsets_(),
+    moveOrderedParcelsValid_(false),
+    moveAppendCaptureActive_(false),
+    moveAppendedParcels_(),
+    profileFullEvolveWall_(0.0),
+    profileMoveAndCollideWall_(0.0),
+    profileMoveWall_(0.0),
+    profileBuildCellOccupancyWall_(0.0),
+    profileCollisionWall_(0.0),
+    profilePostFieldsWall_(0.0),
+    profileFullEvolveCpu_(0.0),
+    profileMoveAndCollideCpu_(0.0),
+    profileMoveCpu_(0.0),
+    profileBuildCellOccupancyCpu_(0.0),
+    profileCollisionCpu_(0.0),
+    profilePostFieldsCpu_(0.0),
+    occupancyOrderedParcels_(),
+    occupancyCellOffsets_(),
+    occupancyActiveCells_(),
+    occupancyCollisionCells_(),
+    occupancyOrderedParcelsValid_(false),
+    cellOccupancyMaterialized_(true),
+    occupancyThreadCellCounts_(),
+    occupancyThreadActiveCells_(),
     cellOccupancy_(),
     rhoNMeanElectron_(),
     rhoMMeanElectron_(),
@@ -758,6 +1450,7 @@ Foam::dsmcCloud::dsmcCloud
     ),
     controllers_(t, mesh),
     dynamicLoadBalancing_(t, mesh, *this),
+    replicatedMesh_(),
     boundaryMeas_(mesh, *this),
     fields_(t, mesh),
     boundaries_(t, mesh),
@@ -818,13 +1511,32 @@ Foam::dsmcCloud::~dsmcCloud()
 
 void Foam::dsmcCloud::evolve()
 {
+    const steadyWallClock::time_point wallStart = steadyWallClock::now();
+    const scalar cpu0 = profileSummary_ ? mesh_.time().elapsedCpuTime() : 0.0;
+
+    profileTimingActive_ = profileSummary_;
+
     evolve_moveAndCollide();
     evolve_fields();
+
+    profileTimingActive_ = false;
+
+    if (profileSummary_)
+    {
+        profileFullEvolveWall_ += elapsedWallSeconds(wallStart);
+        profileFullEvolveCpu_ += mesh_.time().elapsedCpuTime() - cpu0;
+        ++profileSteps_;
+    }
 }
 
 
 void Foam::dsmcCloud::evolve_moveAndCollide()
 {
+    const steadyWallClock::time_point moveAndCollideWallStart =
+        steadyWallClock::now();
+    const scalar moveAndCollideCpuStart =
+        profileSummary_ ? mesh_.time().elapsedCpuTime() : 0.0;
+
     boundaries_.updateTimeInfo();
     fields_.updateTimeInfo();
     controllers_.updateTimeInfo();
@@ -836,8 +1548,28 @@ void Foam::dsmcCloud::evolve_moveAndCollide()
         this->dumpParticlePositions();
     }
 
+    if (openmpEnabled_ && openmpMoveEnabled_)
+    {
+        beginMoveAppendCapture();
+    }
+
     controllers_.controlBeforeMove();
     boundaries_.controlBeforeMove();
+
+    if (replicatedMeshActive() && replicatedMesh_->migrationCalls() == 0)
+    {
+        Info<< "Replicated mesh: initial particle distribution" << nl << endl;
+        if (Pstream::parRun())
+        {
+            replicatedMesh_->distributeInitialParticles();
+        }
+        else
+        {
+            replicatedMesh_->migrateParticlesByCellOwner();
+        }
+        replicatedMesh_->updateParticleCounts();
+        clearMoveOrderedParcels();
+    }
 
     //- Remove electrons
     if (findIndex(typeIdList_, "e-") != -1)
@@ -862,8 +1594,60 @@ void Foam::dsmcCloud::evolve_moveAndCollide()
     //     RWF(face = y1)
 
     //scalar timer = mesh_.time().elapsedCpuTime();
+    const steadyWallClock::time_point moveWallStart = steadyWallClock::now();
+    const scalar moveCpuStart =
+        profileSummary_ ? mesh_.time().elapsedCpuTime() : 0.0;
     Cloud<dsmcParcel>::move(td, deltaTValue());
+    if (openmpEnabled_ && openmpMoveEnabled_)
+    {
+        endMoveAppendCapture();
+    }
+    if (profileSummary_)
+    {
+        profileMoveWall_ += elapsedWallSeconds(moveWallStart);
+        profileMoveCpu_ += mesh_.time().elapsedCpuTime() - moveCpuStart;
+    }
     //Info<< "move" << tab << mesh_.time().elapsedCpuTime() - timer << " s" << endl;
+
+    if (replicatedMeshActive())
+    {
+        if
+        (
+            replicatedMesh_->stepCounter() == 0
+         || (
+                replicatedMesh_->migrateInterval() > 0
+             && replicatedMesh_->stepCounter() % replicatedMesh_->migrateInterval() == 0
+            )
+        )
+        {
+            replicatedMesh_->migrateParticlesByCellOwner();
+            replicatedMesh_->updateParticleCounts();
+            clearMoveOrderedParcels();
+        }
+
+        replicatedMesh_->advanceStepCounter();
+    }
+
+    if (replicatedMeshActive() && replicatedMesh_->rebalanceSteps().size())
+    {
+        const label currentStep = replicatedMesh_->stepCounter();
+        const labelList& steps = replicatedMesh_->rebalanceSteps();
+
+        forAll(steps, i)
+        {
+            if (steps[i] == currentStep)
+            {
+                Info<< nl
+                    << "Replicated mesh: manual cell owner reassignment at step "
+                    << currentStep << nl << endl;
+                replicatedMesh_->reassignCellOwner();
+                replicatedMesh_->migrateParticlesByCellOwner();
+                replicatedMesh_->updateParticleCounts();
+                clearMoveOrderedParcels();
+                break;
+            }
+        }
+    }
 
     //- Update cell occupancy
     //timer = mesh_.time().elapsedCpuTime();
@@ -888,7 +1672,17 @@ void Foam::dsmcCloud::evolve_moveAndCollide()
 
     //- Calculate new velocities via stochastic collisions
     //timer = mesh_.time().elapsedCpuTime();
+    const steadyWallClock::time_point collisionWallStart =
+        steadyWallClock::now();
+    const scalar collisionCpuStart =
+        profileSummary_ ? mesh_.time().elapsedCpuTime() : 0.0;
     collisions();
+    if (profileSummary_)
+    {
+        profileCollisionWall_ += elapsedWallSeconds(collisionWallStart);
+        profileCollisionCpu_ +=
+            mesh_.time().elapsedCpuTime() - collisionCpuStart;
+    }
     //Info<< "collisions" << tab << mesh_.time().elapsedCpuTime() - timer << " s" << endl;
 
     //- Reactions may have changed cell occupancy, update if any reaction
@@ -899,11 +1693,38 @@ void Foam::dsmcCloud::evolve_moveAndCollide()
 
     controllers_.controlAfterCollisions();
     boundaries_.controlAfterCollisions();
+
+    if (replicatedMeshActive())
+    {
+        const label prevRebalances = replicatedMesh_->autoRebalanceCount();
+        replicatedMesh_->addEvolveTime
+        (
+            mesh_.time().elapsedCpuTime() - moveAndCollideCpuStart
+        );
+        replicatedMesh_->autoRebalance();
+
+        if (replicatedMesh_->autoRebalanceCount() > prevRebalances)
+        {
+            clearMoveOrderedParcels();
+            buildCellOccupancy();
+        }
+    }
+
+    if (profileSummary_)
+    {
+        profileMoveAndCollideWall_ +=
+            elapsedWallSeconds(moveAndCollideWallStart);
+        profileMoveAndCollideCpu_ +=
+            mesh_.time().elapsedCpuTime() - moveAndCollideCpuStart;
+    }
 }
 
 
 void Foam::dsmcCloud::evolve_fields()
 {
+    const steadyWallClock::time_point wallStart = steadyWallClock::now();
+    const scalar cpu0 = profileSummary_ ? mesh_.time().elapsedCpuTime() : 0.0;
+
     reactions_.outputData();
 
     fields_.calculateFields();
@@ -923,6 +1744,264 @@ void Foam::dsmcCloud::evolve_fields()
     trackingInfo_.clean();
     boundaryMeas_.clean();
     cellMeas_.clean();
+
+    if (profileSummary_)
+    {
+        profilePostFieldsWall_ += elapsedWallSeconds(wallStart);
+        profilePostFieldsCpu_ += mesh_.time().elapsedCpuTime() - cpu0;
+    }
+}
+
+
+void Foam::dsmcCloud::rebuildMoveOrderedParcels()
+{
+    moveOrderedParcels_.setSize(this->size());
+
+    label i = 0;
+    forAllIter(dsmcCloud, *this, iter)
+    {
+        moveOrderedParcels_[i++] = &iter();
+    }
+
+    moveOrderedParcels_.setSize(i);
+    const label nThreads = max(ompNumThreads_, label(1));
+    moveOrderedThreadOffsets_.setSize(nThreads + 1);
+
+    for (label threadI = 0; threadI <= nThreads; ++threadI)
+    {
+        moveOrderedThreadOffsets_[threadI] = threadI*i/nThreads;
+    }
+    moveOrderedParcelsValid_ = true;
+    moveAppendedParcels_.clear();
+}
+
+
+void Foam::dsmcCloud::storeMoveOrderedParcels
+(
+    const List<dsmcParcel*>& parcels,
+    const labelList& threadOffsets
+)
+{
+    moveOrderedParcels_ = parcels;
+    moveOrderedThreadOffsets_ = threadOffsets;
+    moveOrderedParcelsValid_ = true;
+}
+
+
+void Foam::dsmcCloud::transferMoveOrderedParcels
+(
+    List<dsmcParcel*>& parcels,
+    const labelList& threadOffsets
+)
+{
+    moveOrderedParcels_.transfer(parcels);
+    moveOrderedThreadOffsets_ = threadOffsets;
+    moveOrderedParcelsValid_ = true;
+}
+
+
+void Foam::dsmcCloud::beginMoveAppendCapture()
+{
+    if (!moveAppendCaptureActive_)
+    {
+        moveAppendedParcels_.clear();
+    }
+
+    moveAppendCaptureActive_ = true;
+}
+
+
+void Foam::dsmcCloud::endMoveAppendCapture()
+{
+    moveAppendCaptureActive_ = false;
+    moveAppendedParcels_.clear();
+}
+
+
+void Foam::dsmcCloud::recordMoveAppendedParcel(dsmcParcel* pPtr)
+{
+    if (!pPtr || !moveAppendCaptureActive_)
+    {
+        return;
+    }
+
+    #ifdef _OPENMP
+    if (openmpEnabled_ && openmpMoveEnabled_ && omp_in_parallel())
+    {
+        #pragma omp critical(moveAppendedParcelsAppend)
+        {
+            moveAppendedParcels_.append(pPtr);
+        }
+        return;
+    }
+    #endif
+
+    moveAppendedParcels_.append(pPtr);
+}
+
+
+void Foam::dsmcCloud::clearMoveAppendedParcels()
+{
+    moveAppendedParcels_.clear();
+}
+
+
+void Foam::dsmcCloud::setMoveOrderedParcels
+(
+    const DynamicList<dsmcParcel*>& parcels
+)
+{
+    moveOrderedParcels_.setSize(parcels.size());
+
+    forAll(parcels, i)
+    {
+        moveOrderedParcels_[i] = parcels[i];
+    }
+
+    const label nThreads = max(ompNumThreads_, label(1));
+    moveOrderedThreadOffsets_.setSize(nThreads + 1);
+
+    for (label threadI = 0; threadI <= nThreads; ++threadI)
+    {
+        moveOrderedThreadOffsets_[threadI] =
+            threadI*moveOrderedParcels_.size()/nThreads;
+    }
+    moveOrderedParcelsValid_ = true;
+    moveAppendedParcels_.clear();
+}
+
+
+void Foam::dsmcCloud::appendBatchToMoveOrdered
+(
+    const DynamicList<dsmcParcel*>& parcels
+)
+{
+    const label oldSize = moveOrderedParcels_.size();
+    moveOrderedParcels_.setSize(oldSize + parcels.size());
+
+    forAll(parcels, i)
+    {
+        moveOrderedParcels_[oldSize + i] = parcels[i];
+    }
+
+    const label nThreads = max(ompNumThreads_, label(1));
+    moveOrderedThreadOffsets_.setSize(nThreads + 1);
+
+    for (label threadI = 0; threadI <= nThreads; ++threadI)
+    {
+        moveOrderedThreadOffsets_[threadI] =
+            threadI*moveOrderedParcels_.size()/nThreads;
+    }
+
+    moveOrderedParcelsValid_ = true;
+}
+
+
+void Foam::dsmcCloud::deleteParcel(dsmcParcel* p)
+{
+    if (p)
+    {
+        deleteParticle(*p);
+        moveOrderedParcelsValid_ = false;
+        moveOrderedThreadOffsets_.clear();
+        occupancyOrderedParcelsValid_ = false;
+        cellOccupancyMaterialized_ = false;
+    }
+}
+
+
+void Foam::dsmcCloud::printProfileSummary() const
+{
+    if (!profileSummary_)
+    {
+        return;
+    }
+
+    label steps = profileSteps_;
+    scalar fullEvolveWall = profileFullEvolveWall_;
+    scalar moveAndCollideWall = profileMoveAndCollideWall_;
+    scalar moveWall = profileMoveWall_;
+    scalar buildCellOccupancyWall = profileBuildCellOccupancyWall_;
+    scalar collisionWall = profileCollisionWall_;
+    scalar postFieldsWall = profilePostFieldsWall_;
+    scalar fullEvolveCpu = profileFullEvolveCpu_;
+    scalar moveAndCollideCpu = profileMoveAndCollideCpu_;
+    scalar moveCpu = profileMoveCpu_;
+    scalar buildCellOccupancyCpu = profileBuildCellOccupancyCpu_;
+    scalar collisionCpu = profileCollisionCpu_;
+    scalar postFieldsCpu = profilePostFieldsCpu_;
+
+    if (Pstream::parRun())
+    {
+        reduce(steps, maxOp<label>());
+        reduce(fullEvolveWall, maxOp<scalar>());
+        reduce(moveAndCollideWall, maxOp<scalar>());
+        reduce(moveWall, maxOp<scalar>());
+        reduce(buildCellOccupancyWall, maxOp<scalar>());
+        reduce(collisionWall, maxOp<scalar>());
+        reduce(postFieldsWall, maxOp<scalar>());
+        reduce(fullEvolveCpu, maxOp<scalar>());
+        reduce(moveAndCollideCpu, maxOp<scalar>());
+        reduce(moveCpu, maxOp<scalar>());
+        reduce(buildCellOccupancyCpu, maxOp<scalar>());
+        reduce(collisionCpu, maxOp<scalar>());
+        reduce(postFieldsCpu, maxOp<scalar>());
+    }
+
+    if (Pstream::master())
+    {
+        const scalar accountedWall =
+            moveWall
+          + buildCellOccupancyWall
+          + collisionWall
+          + postFieldsWall;
+        const scalar accountedCpu =
+            moveCpu
+          + buildCellOccupancyCpu
+          + collisionCpu
+          + postFieldsCpu;
+
+        Info<< nl
+            << "DSMC solver profile summary" << nl
+            << "    solver profile steps          = " << steps << nl
+            << "    move+collide wall [s]         = " << moveAndCollideWall << nl
+            << "    move only [s]                 = " << moveWall << nl
+            << "    buildCellOccupancy [s]        = " << buildCellOccupancyWall << nl
+            << "    collision phase [s]           = " << collisionWall << nl
+            << "    post fields/output [s]        = " << postFieldsWall << nl
+            << "    total profiled [s]            = " << accountedWall << nl
+            << "    full evolve wall [s]          = " << fullEvolveWall << nl
+            << "    move+collide cpu [s]          = " << moveAndCollideCpu << nl
+            << "    move only cpu [s]             = " << moveCpu << nl
+            << "    buildCellOccupancy cpu [s]    = " << buildCellOccupancyCpu << nl
+            << "    collision phase cpu [s]       = " << collisionCpu << nl
+            << "    post fields/output cpu [s]    = " << postFieldsCpu << nl
+            << "    total profiled cpu [s]        = " << accountedCpu << nl
+            << "    full evolve cpu [s]           = " << fullEvolveCpu;
+
+        if (profileDetail_)
+        {
+            Info<< nl
+                << "    profile detail                = basic-stage timers only";
+        }
+
+        Info<< nl
+            << "    OpenMP enabled                = " << openmpEnabled_ << nl
+            << "    OpenMP max threads            = " << ompNumThreads_ << nl
+            << "    OpenMP move                   = " << openmpMoveEnabled_
+            << " (" << openmpMoveSchedule_ << ", chunk "
+            << openmpMoveChunk_ << ")" << nl
+            << "    OpenMP collision              = "
+            << openmpCollisionSchedule_ << ", chunk "
+            << openmpCollisionChunk_;
+
+        Info<< nl << endl;
+    }
+
+    if (replicatedMeshActive())
+    {
+        replicatedMesh_->report();
+    }
 }
 
 

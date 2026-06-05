@@ -142,6 +142,9 @@ public:
         //- Return const access to the time-step for a given cell
         virtual inline scalar deltaTValue(label celli = 0) const;
 
+        //- Return true when all cells use the same DSMC time-step
+        virtual inline bool uniformDeltaT() const;
+
         //- Return const access to the number of real particles represented by
         //  a DSMC parcel
         virtual inline const volScalarField& nParticles() const;

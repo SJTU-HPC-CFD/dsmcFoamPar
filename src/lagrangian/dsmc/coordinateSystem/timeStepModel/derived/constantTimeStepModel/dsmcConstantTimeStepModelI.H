@@ -40,6 +40,12 @@ inline scalar dsmcConstantTimeStepModel::deltaTValue(const label celli) const
 }
 
 
+inline bool dsmcConstantTimeStepModel::uniformDeltaT() const
+{
+    return true;
+}
+
+
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 } // End namespace Foam
