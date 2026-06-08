@@ -41,6 +41,7 @@ SourceFiles
 #include "dsmcParcel.H"
 #include "volFields.H"
 #include "surfaceFields.H"
+#include "DynamicList.H"
 
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
@@ -101,8 +102,22 @@ private:
         //- Boundary velocity field when dsmcFieldPatchBoundary is used
         volVectorField::Boundary boundaryU_;
 
+        //- Sparse list of boundary flux entries touched in the current step
+        List<List<labelField>> touchedStamp_;
+        DynamicList<label> touchedSpecies_;
+        DynamicList<label> touchedPatches_;
+        DynamicList<label> touchedFaces_;
+        label cleanStamp_;
+
 
     // Private Member Functions
+
+        inline void markTouched
+        (
+            const label speciei,
+            const label patchi,
+            const label facei
+        );
 
         //- write the number of stuck parcels for sticking patches
         void writenStuckParticles();

@@ -130,6 +130,20 @@ private:
         //- Number of profiled evolve calls
         label profileSteps_;
 
+        //- Optional move hot-path diagnostics
+        label moveDetailParcels_;
+        label moveDetailTrackCalls_;
+        label moveDetailSameTetNoFaceHits_;
+        label moveDetailInternalTetNoFaceHits_;
+        label moveDetailFaceHits_;
+        label moveDetailProcessorHits_;
+        label moveDetailCyclicHits_;
+        label moveDetailPatchHits_;
+        label moveDetailStuckHits_;
+        scalar moveDetailTrackWallTime_;
+        scalar moveDetailTrackerWallTime_;
+        scalar moveDetailBoundaryWallTime_;
+
         //- OpenMP controls
         bool openmpEnabled_;
         bool openmpMoveEnabled_;

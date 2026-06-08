@@ -410,52 +410,19 @@ label dsmcReplicatedMesh::reassignByParMetisAdaptiveRepart()
     }
 
     // ---- Vertex weights: dual constraint (move + collision) ------------------
-    // ncon=2: constraint 1 = particle count × 4 (ParDSMC3D style)
-    //         constraint 2 = collision candidates × collScale
+    // ncon=2: constraint 0 = N^alpha for move balance
+    //         constraint 1 = N*(N-1) for collision balance
 
     const scalar moveTime = cloud_.evolveMoveWallTime();
     const scalar collTime = cloud_.evolveCollisionWallTime();
 
-    label totalParticles = 0;
-    label totalCandidates = 0;
-    const labelList& nCandPerCell = cloud_.nCandidatesPerCell();
-    for (label i = 0; i < myN; ++i)
-    {
-        const label gi = myStart + i;
-        if (cloud_.cellOccupancy().size() > gi)
-            totalParticles += cloud_.cellOccupancy()[gi].size();
-        if (nCandPerCell.size() > gi)
-            totalCandidates += nCandPerCell[gi];
-    }
-
-    scalar collScale = 1.0;
-    if (moveTime > SMALL && collTime > SMALL
-        && totalParticles > 0 && totalCandidates > 0)
-    {
-        const scalar costPerParticle = moveTime / scalar(totalParticles);
-        const scalar costPerCandidate = collTime / scalar(totalCandidates);
-        collScale = costPerCandidate / costPerParticle;
-    }
-
     // Dual-constraint DLB: ncon=2
     // Constraint 0: compressed particle count (balance move)
-    // Constraint 1: measured collision candidates when available
+    // Constraint 1: N*(N-1) collision proxy
     const bool useDualConstraint = mesh_.time().controlDict().lookupOrDefault<bool>
         ("replicatedMeshDLBDualConstraint", false);
     idx_t ncon = useDualConstraint ? 2 : 1;
     idx_t wgtflag = 2;  // vertex weights only
-    const label fixedK = mesh_.time().controlDict().lookupOrDefault<label>
-        ("replicatedMeshDLBFixedK", 0);
-    label collDivisor;
-    if (fixedK > 0)
-    {
-        collDivisor = fixedK;
-    }
-    else
-    {
-        // Use adaptive K (PID-adjusted collDivisor_)
-        collDivisor = collDivisor_;
-    }
 
     List<idx_t> vwgt(myN * ncon, 1);
     for (label i = 0; i < myN; ++i)
@@ -571,8 +538,7 @@ label dsmcReplicatedMesh::reassignByParMetisAdaptiveRepart()
     MPI_Comm comm = MPI_COMM_WORLD;
 
     Info<< "Phase C ParMETIS: AdaptiveRepart (" << nCells << " cells, "
-        << ncon << " constraints, collScale=" << collScale
-        << ", ubvec=" << ubvec[0] << ")" << endl;
+        << ncon << " constraints, ubvec=" << ubvec[0] << ")" << endl;
 
     ParMETIS_V3_AdaptiveRepart
     (

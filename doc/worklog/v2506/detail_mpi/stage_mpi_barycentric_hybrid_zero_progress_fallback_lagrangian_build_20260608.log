@@ -1,0 +1,1460 @@
+Compiling enabled on 16 cores
+wmake libso (basic)
+Making dependency list for source file indexedParticleCloud.C
+Making dependency list for source file passiveParticleCloud.C
+Making dependency list for source file particleIO.C
+Making dependency list for source file particle.C
+icpx -std=c++11 -fp-model precise -DOPENFOAM_PLUS=1706 -Dlinux64 -DWM_ARCH_OPTION=64 -DWM_DP -DWM_LABEL_SIZE=32 -Wall -Wextra -Wnon-virtual-dtor -Wno-unused-parameter -O3  -DNoRepository -qopenmp -I/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude -I/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude -IlnInclude -I. -I/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude -I/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OSspecific/POSIX/lnInclude   -fPIC -c particle/particle.C -o Make/linux64IccDPInt32Opt/particle/particle.o
+icpx -std=c++11 -fp-model precise -DOPENFOAM_PLUS=1706 -Dlinux64 -DWM_ARCH_OPTION=64 -DWM_DP -DWM_LABEL_SIZE=32 -Wall -Wextra -Wnon-virtual-dtor -Wno-unused-parameter -O3  -DNoRepository -qopenmp -I/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude -I/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude -IlnInclude -I. -I/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude -I/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OSspecific/POSIX/lnInclude   -fPIC -c particle/particleIO.C -o Make/linux64IccDPInt32Opt/particle/particleIO.o
+icpx -std=c++11 -fp-model precise -DOPENFOAM_PLUS=1706 -Dlinux64 -DWM_ARCH_OPTION=64 -DWM_DP -DWM_LABEL_SIZE=32 -Wall -Wextra -Wnon-virtual-dtor -Wno-unused-parameter -O3  -DNoRepository -qopenmp -I/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude -I/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude -IlnInclude -I. -I/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude -I/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OSspecific/POSIX/lnInclude   -fPIC -c passiveParticle/passiveParticleCloud.C -o Make/linux64IccDPInt32Opt/passiveParticle/passiveParticleCloud.o
+icpx -std=c++11 -fp-model precise -DOPENFOAM_PLUS=1706 -Dlinux64 -DWM_ARCH_OPTION=64 -DWM_DP -DWM_LABEL_SIZE=32 -Wall -Wextra -Wnon-virtual-dtor -Wno-unused-parameter -O3  -DNoRepository -qopenmp -I/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude -I/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude -IlnInclude -I. -I/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude -I/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OSspecific/POSIX/lnInclude   -fPIC -c indexedParticle/indexedParticleCloud.C -o Make/linux64IccDPInt32Opt/indexedParticle/indexedParticleCloud.o
+In file included from indexedParticle/indexedParticleCloud.C:26:
+In file included from indexedParticle/indexedParticleCloud.H:38:
+In file included from lnInclude/Cloud.H:39:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/cloud.H:38:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/objectRegistry.H:39:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/HashTable.H:851:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/HashTableI.H:378:8: warning: missing 'typename' prior to dependent type name 'Foam::HashTable<T, Key, Hash>::key_iterator_base'; implicit 'typename' is a C++20 extension [-Wc++20-extensions]
+  378 | inline Foam::HashTable<T, Key, Hash>::key_iterator_base<WrappedIterator>&
+      |        ^
+      |        typename 
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/HashTableI.H:389:8: warning: missing 'typename' prior to dependent type name 'Foam::HashTable<T, Key, Hash>::key_iterator_base'; implicit 'typename' is a C++20 extension [-Wc++20-extensions]
+  389 | inline Foam::HashTable<T, Key, Hash>::key_iterator_base<WrappedIterator>
+      |        ^
+      |        typename 
+In file included from passiveParticle/passiveParticleCloud.C:26:
+In file included from passiveParticle/passiveParticleCloud.H:38:
+In file included from lnInclude/Cloud.H:39:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/cloud.H:38:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/objectRegistry.H:39:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/HashTable.H:851:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/HashTableI.H:378:8: warning: missing 'typename' prior to dependent type name 'Foam::HashTable<T, Key, Hash>::key_iterator_base'; implicit 'typename' is a C++20 extension [-Wc++20-extensions]
+  378 | inline Foam::HashTable<T, Key, Hash>::key_iterator_base<WrappedIterator>&
+      |        ^
+      |        typename 
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/HashTableI.H:389:8: warning: missing 'typename' prior to dependent type name 'Foam::HashTable<T, Key, Hash>::key_iterator_base'; implicit 'typename' is a C++20 extension [-Wc++20-extensions]
+  389 | inline Foam::HashTable<T, Key, Hash>::key_iterator_base<WrappedIterator>
+      |        ^
+      |        typename 
+In file included from particle/particleIO.C:26:
+In file included from particle/particle.H:35:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/vector.H:39:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/Vector.H:44:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/VectorSpace.H:233:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/VectorSpace.C:27:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/IOstreams.H:38:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/ISstream.H:39:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/Istream.H:47:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/token.H:49:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/runTimeSelectionTables.H:41:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/HashTable.H:851:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/HashTableI.H:378:8: warning: missing 'typename' prior to dependent type name 'Foam::HashTable<T, Key, Hash>::key_iterator_base'; implicit 'typename' is a C++20 extension [-Wc++20-extensions]
+  378 | inline Foam::HashTable<T, Key, Hash>::key_iterator_base<WrappedIterator>&
+      |        ^
+      |        typename 
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/HashTableI.H:389:8: warning: missing 'typename' prior to dependent type name 'Foam::HashTable<T, Key, Hash>::key_iterator_base'; implicit 'typename' is a C++20 extension [-Wc++20-extensions]
+  389 | inline Foam::HashTable<T, Key, Hash>::key_iterator_base<WrappedIterator>
+      |        ^
+      |        typename 
+In file included from particle/particle.C:26:
+In file included from particle/particle.H:35:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/vector.H:39:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/Vector.H:44:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/VectorSpace.H:233:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/VectorSpace.C:27:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/IOstreams.H:38:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/ISstream.H:39:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/Istream.H:47:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/token.H:49:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/runTimeSelectionTables.H:41:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/HashTable.H:851:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/HashTableI.H:378:8: warning: missing 'typename' prior to dependent type name 'Foam::HashTable<T, Key, Hash>::key_iterator_base'; implicit 'typename' is a C++20 extension [-Wc++20-extensions]
+  378 | inline Foam::HashTable<T, Key, Hash>::key_iterator_base<WrappedIterator>&
+      |        ^
+      |        typename 
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/HashTableI.H:389:8: warning: missing 'typename' prior to dependent type name 'Foam::HashTable<T, Key, Hash>::key_iterator_base'; implicit 'typename' is a C++20 extension [-Wc++20-extensions]
+  389 | inline Foam::HashTable<T, Key, Hash>::key_iterator_base<WrappedIterator>
+      |        ^
+      |        typename 
+In file included from passiveParticle/passiveParticleCloud.C:26:
+In file included from passiveParticle/passiveParticleCloud.H:38:
+In file included from lnInclude/Cloud.H:39:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/cloud.H:38:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/objectRegistry.H:39:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/HashTable.H:857:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/HashTable.C:30:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/List.H:43:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/UList.H:467:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/UList.C:310:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/UListIO.C:29:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/SLList.H:36:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/SLListBase.H:191:25: warning: definition of implicit copy constructor for 'iterator' is deprecated because it has a user-provided copy assignment operator [-Wdeprecated-copy-with-user-provided-copy]
+  191 |             inline void operator=(const iterator& iter);
+      |                         ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/SLListBaseI.H:227:20: note: in implicit copy constructor for 'Foam::SLListBase::iterator' first required here
+  227 |     iterator tmp = *this;
+      |                    ^
+In file included from indexedParticle/indexedParticleCloud.C:26:
+In file included from indexedParticle/indexedParticleCloud.H:38:
+In file included from lnInclude/Cloud.H:39:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/cloud.H:38:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/objectRegistry.H:39:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/HashTable.H:857:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/HashTable.C:30:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/List.H:43:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/UList.H:467:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/UList.C:310:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/UListIO.C:29:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/SLList.H:36:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/SLListBase.H:191:25: warning: definition of implicit copy constructor for 'iterator' is deprecated because it has a user-provided copy assignment operator [-Wdeprecated-copy-with-user-provided-copy]
+  191 |             inline void operator=(const iterator& iter);
+      |                         ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/SLListBaseI.H:227:20: note: in implicit copy constructor for 'Foam::SLListBase::iterator' first required here
+  227 |     iterator tmp = *this;
+      |                    ^
+In file included from indexedParticle/indexedParticleCloud.C:26:
+In file included from indexedParticle/indexedParticleCloud.H:38:
+In file included from lnInclude/Cloud.H:39:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/cloud.H:38:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/objectRegistry.H:39:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/HashTable.H:857:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/HashTable.C:30:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/List.H:43:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/UList.H:467:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/UList.C:310:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/UListIO.C:29:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/SLList.H:36:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/SLListBase.H:228:25: warning: definition of implicit copy constructor for 'const_iterator' is deprecated because it has a user-provided copy assignment operator [-Wdeprecated-copy-with-user-provided-copy]
+  228 |             inline void operator=(const const_iterator& iter);
+      |                         ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/SLListBaseI.H:336:26: note: in implicit copy constructor for 'Foam::SLListBase::const_iterator' first required here
+  336 |     const_iterator tmp = *this;
+      |                          ^
+In file included from passiveParticle/passiveParticleCloud.C:26:
+In file included from passiveParticle/passiveParticleCloud.H:38:
+In file included from lnInclude/Cloud.H:39:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/cloud.H:38:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/objectRegistry.H:39:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/HashTable.H:857:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/HashTable.C:30:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/List.H:43:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/UList.H:467:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/UList.C:310:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/UListIO.C:29:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/SLList.H:36:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/SLListBase.H:228:25: warning: definition of implicit copy constructor for 'const_iterator' is deprecated because it has a user-provided copy assignment operator [-Wdeprecated-copy-with-user-provided-copy]
+  228 |             inline void operator=(const const_iterator& iter);
+      |                         ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/SLListBaseI.H:336:26: note: in implicit copy constructor for 'Foam::SLListBase::const_iterator' first required here
+  336 |     const_iterator tmp = *this;
+      |                          ^
+In file included from particle/particleIO.C:26:
+In file included from particle/particle.H:35:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/vector.H:39:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/Vector.H:44:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/VectorSpace.H:233:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/VectorSpace.C:27:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/IOstreams.H:38:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/ISstream.H:39:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/Istream.H:184:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/HashTable.C:30:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/List.H:43:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/UList.H:467:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/UList.C:310:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/UListIO.C:29:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/SLList.H:36:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/SLListBase.H:191:25: warning: definition of implicit copy constructor for 'iterator' is deprecated because it has a user-provided copy assignment operator [-Wdeprecated-copy-with-user-provided-copy]
+  191 |             inline void operator=(const iterator& iter);
+      |                         ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/SLListBaseI.H:227:20: note: in implicit copy constructor for 'Foam::SLListBase::iterator' first required here
+  227 |     iterator tmp = *this;
+      |                    ^
+In file included from particle/particleIO.C:26:
+In file included from particle/particle.H:35:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/vector.H:39:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/Vector.H:44:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/VectorSpace.H:233:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/VectorSpace.C:27:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/IOstreams.H:38:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/ISstream.H:39:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/Istream.H:184:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/HashTable.C:30:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/List.H:43:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/UList.H:467:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/UList.C:310:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/UListIO.C:29:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/SLList.H:36:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/SLListBase.H:228:25: warning: definition of implicit copy constructor for 'const_iterator' is deprecated because it has a user-provided copy assignment operator [-Wdeprecated-copy-with-user-provided-copy]
+  228 |             inline void operator=(const const_iterator& iter);
+      |                         ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/SLListBaseI.H:336:26: note: in implicit copy constructor for 'Foam::SLListBase::const_iterator' first required here
+  336 |     const_iterator tmp = *this;
+      |                          ^
+In file included from particle/particle.C:26:
+In file included from particle/particle.H:35:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/vector.H:39:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/Vector.H:44:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/VectorSpace.H:233:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/VectorSpace.C:27:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/IOstreams.H:38:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/ISstream.H:39:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/Istream.H:184:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/HashTable.C:30:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/List.H:43:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/UList.H:467:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/UList.C:310:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/UListIO.C:29:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/SLList.H:36:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/SLListBase.H:191:25: warning: definition of implicit copy constructor for 'iterator' is deprecated because it has a user-provided copy assignment operator [-Wdeprecated-copy-with-user-provided-copy]
+  191 |             inline void operator=(const iterator& iter);
+      |                         ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/SLListBaseI.H:227:20: note: in implicit copy constructor for 'Foam::SLListBase::iterator' first required here
+  227 |     iterator tmp = *this;
+      |                    ^
+In file included from particle/particle.C:26:
+In file included from particle/particle.H:35:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/vector.H:39:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/Vector.H:44:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/VectorSpace.H:233:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/VectorSpace.C:27:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/IOstreams.H:38:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/ISstream.H:39:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/Istream.H:184:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/HashTable.C:30:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/List.H:43:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/UList.H:467:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/UList.C:310:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/UListIO.C:29:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/SLList.H:36:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/SLListBase.H:228:25: warning: definition of implicit copy constructor for 'const_iterator' is deprecated because it has a user-provided copy assignment operator [-Wdeprecated-copy-with-user-provided-copy]
+  228 |             inline void operator=(const const_iterator& iter);
+      |                         ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/SLListBaseI.H:336:26: note: in implicit copy constructor for 'Foam::SLListBase::const_iterator' first required here
+  336 |     const_iterator tmp = *this;
+      |                          ^
+In file included from indexedParticle/indexedParticleCloud.C:26:
+In file included from indexedParticle/indexedParticleCloud.H:38:
+In file included from lnInclude/Cloud.H:39:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/cloud.H:38:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/objectRegistry.H:41:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/regIOobject.H:41:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/IOobject.H:79:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/NamedEnum.H:193:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/NamedEnum.C:27:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/dictionary.H:84:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/entry.H:45:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/IDLList.H:36:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/DLListBase.H:209:25: warning: definition of implicit copy constructor for 'iterator' is deprecated because it has a user-provided copy assignment operator [-Wdeprecated-copy-with-user-provided-copy]
+  209 |             inline void operator=(const iterator& iter);
+      |                         ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/DLListBaseI.H:252:20: note: in implicit copy constructor for 'Foam::DLListBase::iterator' first required here
+  252 |     iterator tmp = *this;
+      |                    ^
+In file included from indexedParticle/indexedParticleCloud.C:26:
+In file included from indexedParticle/indexedParticleCloud.H:38:
+In file included from lnInclude/Cloud.H:39:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/cloud.H:38:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/objectRegistry.H:41:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/regIOobject.H:41:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/IOobject.H:79:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/NamedEnum.H:193:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/NamedEnum.C:27:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/dictionary.H:84:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/entry.H:45:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/IDLList.H:36:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/DLListBase.H:246:25: warning: definition of implicit copy constructor for 'const_iterator' is deprecated because it has a user-provided copy assignment operator [-Wdeprecated-copy-with-user-provided-copy]
+  246 |             inline void operator=(const const_iterator& iter);
+      |                         ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/DLListBaseI.H:360:26: note: in implicit copy constructor for 'Foam::DLListBase::const_iterator' first required here
+  360 |     const_iterator tmp = *this;
+      |                          ^
+In file included from indexedParticle/indexedParticleCloud.C:26:
+In file included from indexedParticle/indexedParticleCloud.H:38:
+In file included from lnInclude/Cloud.H:39:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/cloud.H:38:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/objectRegistry.H:41:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/regIOobject.H:41:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/IOobject.H:79:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/NamedEnum.H:193:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/NamedEnum.C:27:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/dictionary.H:84:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/entry.H:45:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/IDLList.H:36:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/DLListBase.H:283:25: warning: definition of implicit copy constructor for 'const_reverse_iterator' is deprecated because it has a user-provided copy assignment operator [-Wdeprecated-copy-with-user-provided-copy]
+  283 |             inline void operator=(const const_reverse_iterator& iter);
+      |                         ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/DLListBaseI.H:473:34: note: in implicit copy constructor for 'Foam::DLListBase::const_reverse_iterator' first required here
+  473 |     const_reverse_iterator tmp = *this;
+      |                                  ^
+In file included from passiveParticle/passiveParticleCloud.C:26:
+In file included from passiveParticle/passiveParticleCloud.H:38:
+In file included from lnInclude/Cloud.H:39:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/cloud.H:38:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/objectRegistry.H:41:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/regIOobject.H:41:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/IOobject.H:79:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/NamedEnum.H:193:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/NamedEnum.C:27:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/dictionary.H:84:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/entry.H:45:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/IDLList.H:36:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/DLListBase.H:209:25: warning: definition of implicit copy constructor for 'iterator' is deprecated because it has a user-provided copy assignment operator [-Wdeprecated-copy-with-user-provided-copy]
+  209 |             inline void operator=(const iterator& iter);
+      |                         ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/DLListBaseI.H:252:20: note: in implicit copy constructor for 'Foam::DLListBase::iterator' first required here
+  252 |     iterator tmp = *this;
+      |                    ^
+In file included from passiveParticle/passiveParticleCloud.C:26:
+In file included from passiveParticle/passiveParticleCloud.H:38:
+In file included from lnInclude/Cloud.H:39:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/cloud.H:38:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/objectRegistry.H:41:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/regIOobject.H:41:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/IOobject.H:79:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/NamedEnum.H:193:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/NamedEnum.C:27:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/dictionary.H:84:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/entry.H:45:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/IDLList.H:36:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/DLListBase.H:246:25: warning: definition of implicit copy constructor for 'const_iterator' is deprecated because it has a user-provided copy assignment operator [-Wdeprecated-copy-with-user-provided-copy]
+  246 |             inline void operator=(const const_iterator& iter);
+      |                         ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/DLListBaseI.H:360:26: note: in implicit copy constructor for 'Foam::DLListBase::const_iterator' first required here
+  360 |     const_iterator tmp = *this;
+      |                          ^
+In file included from passiveParticle/passiveParticleCloud.C:26:
+In file included from passiveParticle/passiveParticleCloud.H:38:
+In file included from lnInclude/Cloud.H:39:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/cloud.H:38:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/objectRegistry.H:41:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/regIOobject.H:41:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/IOobject.H:79:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/NamedEnum.H:193:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/NamedEnum.C:27:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/dictionary.H:84:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/entry.H:45:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/IDLList.H:36:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/DLListBase.H:283:25: warning: definition of implicit copy constructor for 'const_reverse_iterator' is deprecated because it has a user-provided copy assignment operator [-Wdeprecated-copy-with-user-provided-copy]
+  283 |             inline void operator=(const const_reverse_iterator& iter);
+      |                         ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/DLListBaseI.H:473:34: note: in implicit copy constructor for 'Foam::DLListBase::const_reverse_iterator' first required here
+  473 |     const_reverse_iterator tmp = *this;
+      |                                  ^
+In file included from particle/particleIO.C:26:
+In file included from particle/particle.H:38:
+In file included from lnInclude/Cloud.H:39:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/cloud.H:38:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/objectRegistry.H:41:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/regIOobject.H:41:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/IOobject.H:79:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/NamedEnum.H:193:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/NamedEnum.C:27:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/dictionary.H:84:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/entry.H:45:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/IDLList.H:36:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/DLListBase.H:209:25: warning: definition of implicit copy constructor for 'iterator' is deprecated because it has a user-provided copy assignment operator [-Wdeprecated-copy-with-user-provided-copy]
+  209 |             inline void operator=(const iterator& iter);
+      |                         ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/DLListBaseI.H:252:20: note: in implicit copy constructor for 'Foam::DLListBase::iterator' first required here
+  252 |     iterator tmp = *this;
+      |                    ^
+In file included from particle/particleIO.C:26:
+In file included from particle/particle.H:38:
+In file included from lnInclude/Cloud.H:39:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/cloud.H:38:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/objectRegistry.H:41:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/regIOobject.H:41:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/IOobject.H:79:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/NamedEnum.H:193:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/NamedEnum.C:27:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/dictionary.H:84:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/entry.H:45:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/IDLList.H:36:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/DLListBase.H:246:25: warning: definition of implicit copy constructor for 'const_iterator' is deprecated because it has a user-provided copy assignment operator [-Wdeprecated-copy-with-user-provided-copy]
+  246 |             inline void operator=(const const_iterator& iter);
+      |                         ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/DLListBaseI.H:360:26: note: in implicit copy constructor for 'Foam::DLListBase::const_iterator' first required here
+  360 |     const_iterator tmp = *this;
+      |                          ^
+In file included from particle/particleIO.C:26:
+In file included from particle/particle.H:38:
+In file included from lnInclude/Cloud.H:39:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/cloud.H:38:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/objectRegistry.H:41:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/regIOobject.H:41:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/IOobject.H:79:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/NamedEnum.H:193:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/NamedEnum.C:27:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/dictionary.H:84:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/entry.H:45:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/IDLList.H:36:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/DLListBase.H:283:25: warning: definition of implicit copy constructor for 'const_reverse_iterator' is deprecated because it has a user-provided copy assignment operator [-Wdeprecated-copy-with-user-provided-copy]
+  283 |             inline void operator=(const const_reverse_iterator& iter);
+      |                         ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/DLListBaseI.H:473:34: note: in implicit copy constructor for 'Foam::DLListBase::const_reverse_iterator' first required here
+  473 |     const_reverse_iterator tmp = *this;
+      |                                  ^
+In file included from particle/particle.C:26:
+In file included from particle/particle.H:38:
+In file included from lnInclude/Cloud.H:39:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/cloud.H:38:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/objectRegistry.H:41:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/regIOobject.H:41:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/IOobject.H:79:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/NamedEnum.H:193:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/NamedEnum.C:27:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/dictionary.H:84:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/entry.H:45:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/IDLList.H:36:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/DLListBase.H:209:25: warning: definition of implicit copy constructor for 'iterator' is deprecated because it has a user-provided copy assignment operator [-Wdeprecated-copy-with-user-provided-copy]
+  209 |             inline void operator=(const iterator& iter);
+      |                         ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/DLListBaseI.H:252:20: note: in implicit copy constructor for 'Foam::DLListBase::iterator' first required here
+  252 |     iterator tmp = *this;
+      |                    ^
+In file included from particle/particle.C:26:
+In file included from particle/particle.H:38:
+In file included from lnInclude/Cloud.H:39:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/cloud.H:38:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/objectRegistry.H:41:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/regIOobject.H:41:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/IOobject.H:79:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/NamedEnum.H:193:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/NamedEnum.C:27:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/dictionary.H:84:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/entry.H:45:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/IDLList.H:36:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/DLListBase.H:246:25: warning: definition of implicit copy constructor for 'const_iterator' is deprecated because it has a user-provided copy assignment operator [-Wdeprecated-copy-with-user-provided-copy]
+  246 |             inline void operator=(const const_iterator& iter);
+      |                         ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/DLListBaseI.H:360:26: note: in implicit copy constructor for 'Foam::DLListBase::const_iterator' first required here
+  360 |     const_iterator tmp = *this;
+      |                          ^
+In file included from particle/particle.C:26:
+In file included from particle/particle.H:38:
+In file included from lnInclude/Cloud.H:39:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/cloud.H:38:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/objectRegistry.H:41:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/regIOobject.H:41:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/IOobject.H:79:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/NamedEnum.H:193:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/NamedEnum.C:27:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/dictionary.H:84:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/entry.H:45:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/IDLList.H:36:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/DLListBase.H:283:25: warning: definition of implicit copy constructor for 'const_reverse_iterator' is deprecated because it has a user-provided copy assignment operator [-Wdeprecated-copy-with-user-provided-copy]
+  283 |             inline void operator=(const const_reverse_iterator& iter);
+      |                         ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/DLListBaseI.H:473:34: note: in implicit copy constructor for 'Foam::DLListBase::const_reverse_iterator' first required here
+  473 |     const_reverse_iterator tmp = *this;
+      |                                  ^
+In file included from indexedParticle/indexedParticleCloud.C:26:
+In file included from indexedParticle/indexedParticleCloud.H:38:
+In file included from lnInclude/Cloud.H:39:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/cloud.H:38:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/objectRegistry.H:39:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/HashTable.H:857:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/HashTable.C:30:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/List.H:315:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/List.C:28:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/FixedList.H:148:16: warning: definition of implicit copy assignment operator for 'FixedList<int, 2>' is deprecated because it has a user-provided copy constructor [-Wdeprecated-copy-with-user-provided-copy]
+  148 |         inline FixedList(const FixedList<T, Size>& lst);
+      |                ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/edge.H:61:7: note: in implicit copy assignment operator for 'Foam::FixedList<int, 2>' first required here
+   61 | class edge
+      |       ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/cellModelI.H:73:19: note: in implicit move assignment operator for 'Foam::edge' first required here
+   73 |          e[edgeI] =
+      |                   ^
+In file included from particle/particleIO.C:26:
+In file included from particle/particle.H:35:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/vector.H:39:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/Vector.H:44:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/VectorSpace.H:233:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/VectorSpace.C:27:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/IOstreams.H:38:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/ISstream.H:39:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/Istream.H:184:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/HashTable.C:30:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/List.H:315:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/List.C:28:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/FixedList.H:148:16: warning: definition of implicit copy assignment operator for 'FixedList<int, 2>' is deprecated because it has a user-provided copy constructor [-Wdeprecated-copy-with-user-provided-copy]
+  148 |         inline FixedList(const FixedList<T, Size>& lst);
+      |                ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/edge.H:61:7: note: in implicit copy assignment operator for 'Foam::FixedList<int, 2>' first required here
+   61 | class edge
+      |       ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/cellModelI.H:73:19: note: in implicit move assignment operator for 'Foam::edge' first required here
+   73 |          e[edgeI] =
+      |                   ^
+In file included from In file included from particle/particle.C:26:
+In file included from particle/particle.H:35:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/vector.H:39:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/Vector.H:44:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/VectorSpace.H:233:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/VectorSpace.C:27:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/IOstreams.H:38:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/ISstream.H:39:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/Istream.H:184:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/HashTable.C:30:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/List.H:315:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/List.C:28:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/FixedList.H:148:16: warning: definition of implicit copy assignment operator for 'FixedList<int, 2>' is deprecated because it has a user-provided copy constructor [-Wdeprecated-copy-with-user-provided-copy]
+  148 |         inline FixedList(const FixedList<T, Size>& lpassiveParticle/passiveParticleCloud.Cs:t26);:
+
+In file included from passiveParticle/passiveParticleCloud.H      :|                ^
+38:
+In file included from lnInclude/Cloud.H:39:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/cloud.H:38:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/objectRegistry.H:39:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/HashTable.H:857:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/HashTable.C:30:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/List.H:315:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/List.C:28:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/FixedList.H:148:16: warning: definition of implicit copy assignment operator for 'FixedList<int, 2>' is deprecated because it has a user-provided copy constructor [-Wdeprecated-copy-with-user-provided-copy]
+  148 |         inline Fix/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/edge.H:e61d:L7i:s tnote: (in implicit copy assignment operator for 'Foam::FixedList<int, 2>' first required herec
+onst    61F | icxleadsLsi setd<gTe,
+       S| i      ^z
+e>& lst);
+      |                ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/cellModelI.H:73:19: note: in implicit move assignment operator for 'Foam::edge' first required here
+   73 |          e[edgeI] =
+      |                   ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/edge.H:61:7: note: in implicit copy assignment operator for 'Foam::FixedList<int, 2>' first required here
+   61 | class edge
+      |       ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/cellModelI.H:73:19: note: in implicit move assignment operator for 'Foam::edge' first required here
+   73 |          e[edgeI] =
+      |                   ^
+In file included from indexedParticle/indexedParticleCloud.C:26:
+In file included from indexedParticle/indexedParticleCloud.H:38:
+In file included from lnInclude/Cloud.H:43:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/polyMesh.H:55:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/pointZoneMesh.H:32:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/ZoneMesh.H:42:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/PackedBoolList.H:118:46: warning: type 'UList' is a private member of 'Foam::UList<unsigned int>' (allowed for cfront compatibility) [-Wintel-compat]
+  118 |         explicit inline PackedBoolList(const UList<bool>& lst);
+      |                                              ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/PackedList.H:150:5: note: constrained by private inheritance here
+  150 |     private List<unsigned int>
+      |     ^~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/UList.H:75:7: note: member is declared here
+   75 | class UList
+      |       ^
+In file included from particle/particle.C:26:
+In file included from particle/particle.H:38:
+In file included from lnInclude/Cloud.H:43:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/polyMesh.H:55:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/pointZoneMesh.H:32:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/ZoneMesh.H:42:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/PackedBoolList.H:118:46: warning: type 'UList' is a private member of 'Foam::UList<unsigned int>' (allowed for cfront compatibility) [-Wintel-compat]
+  118 |         explicit inline PackedBoolList(const UList<bool>& lst);
+      |                                              ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/PackedList.H:150:5: note: constrained by private inheritance here
+  150 |     private List<unsigned int>
+      |     ^~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/UList.H:75:7: note: member is declared here
+   75 | class UList
+      |       ^
+In file included from In file included from particle/particleIO.C:26:
+In file included from particle/particle.H:38:
+In file included from lnInclude/Cloud.H:43:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/polyMesh.H:55:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/pointZoneMesh.H:32:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/ZoneMesh.H:42:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/PackedBoolList.H:118:46: warning: type 'UList' is a private member of 'Foam::UList<unsigned int>' (allowed for cfront compatibility) [-Wintel-compat]
+  118 |         explicit inline PackedBoolList(const UList<bool>& lst);
+      |                                              ^
+particle/particle.C:26:
+In file included from particle/particle.H:38:
+In file included from lnInclude/Cloud.H:43:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/polyMesh.H:55:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/pointZoneMesh.H:32:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/ZoneMesh.H:42:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/PackedBoolList.H:203:30: warning: type 'UList' is a private member of 'Foam::UList<unsigned int>' (allowed for cfront compatibility) [-Wintel-compat]
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/PackedList.H:150:5: note: constrained by private inheritance here
+  203 |           v150 | o i d   porpivearatte oLri=s(t<cuonnssitg nUeLdi sint>t
+<      b|     ^~~~~~~~~~~~~~~~~~~~~~~~~~o
+ol>& lst);
+      |                              ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/UList.H:75:7: note: member is declared here
+   75 | class UList
+      |       ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/PackedList.H:150:5: note: constrained by private inheritance here
+  150 |     private List<unsigned int>
+      |     ^~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/UList.H:75:7: note: member is declared here
+   75 | class UList
+      |       ^
+In file included from indexedParticle/indexedParticleCloud.C:26:
+In file included from indexedParticle/indexedParticleCloud.H:38:
+In file included from lnInclude/Cloud.H:43:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/polyMesh.H:55:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/pointZoneMesh.H:32:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/ZoneMesh.H:42:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/PackedBoolList.H:203:30: warning: type 'UList' is a private member of 'Foam::UList<unsigned int>' (allowed for cfront compatibility) [-Wintel-compat]
+  203 |         void operator=(const UList<bool>& lst);
+      |                              ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/PackedList.H:150:5: note: constrained by private inheritance here
+  150 |     private List<unsigned int>
+      |     ^~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/UList.H:75:7: note: member is declared here
+   75 | class UList
+      |       ^
+In file included from particle/particleIO.C:26:
+In file included from particle/particle.H:38:
+In file included from lnInclude/Cloud.H:43:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/polyMesh.H:55:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/pointZoneMesh.H:32:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/ZoneMesh.H:42:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/PackedBoolList.H:203:30: warning: type 'UList' is a private member of 'Foam::UList<unsigned int>' (allowed for cfront compatibility) [-Wintel-compat]
+  203 |         void operator=(const UList<bool>& lst);
+      |                              ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/PackedList.H:150:5: note: constrained by private inheritance here
+  150 |     private List<unsigned int>
+      |     ^~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/UList.H:75:7: note: member is declared here
+   75 | class UList
+      |       ^
+In file included from particle/particle.C:26:
+In file included from particle/particle.H:38:
+In file included from lnInclude/Cloud.H:43:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/polyMesh.H:55:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/pointZoneMesh.H:32:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/ZoneMesh.H:42:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/PackedBoolList.H:296:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/PackedBoolListI.H:76:51: warning: type 'UList' is a private member of 'Foam::UList<unsigned int>' (allowed for cfront compatibility) [-Wintel-compat]
+   76 | inline Foam::PackedBoolList::PackedBoolList(const UList<bool>& lst)
+      |                                                   ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/PackedList.H:150:5: note: constrained by private inheritance here
+  150 |     private List<unsigned int>
+      |     ^~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/UList.H:75:7: note: member is declared here
+   75 | class UList
+      |       ^
+In file included from particle/particleIO.C:26:
+In file included from particle/particle.H:38:
+In file included from lnInclude/Cloud.H:43:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/polyMesh.H:55:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/pointZoneMesh.H:32:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/ZoneMesh.H:42:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/PackedBoolList.H:296:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/PackedBoolListI.H:76:51: warning: type 'UList' is a private member of 'Foam::UList<unsigned int>' (allowed for cfront compatibility) [-Wintel-compat]
+   76 | inline Foam::PackedBoolList::PackedBoolList(const UList<bool>& lst)
+      |                                                   ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/PackedList.H:150:5: note: constrained by private inheritance here
+  150 |     private List<unsigned int>
+      |     ^~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/UList.H:75:7: note: member is declared here
+   75 | class UList
+      |       ^
+In file included from indexedParticle/indexedParticleCloud.C:26:
+In file included from indexedParticle/indexedParticleCloud.H:38:
+In file included from lnInclude/Cloud.H:43:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/polyMesh.H:55:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/pointZoneMesh.H:32:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/ZoneMesh.H:42:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/PackedBoolList.H:296:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/PackedBoolListI.H:76:51: warning: type 'UList' is a private member of 'Foam::UList<unsigned int>' (allowed for cfront compatibility) [-Wintel-compat]
+   76 | inline Foam::PackedBoolList::PackedBoolList(const UList<bool>& lst)
+      |                                                   ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/PackedList.H:150:5: note: constrained by private inheritance here
+  150 |     private List<unsigned int>
+      |     ^~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/UList.H:75:7: note: member is declared here
+   75 | class UList
+      |       ^
+In file included from passiveParticle/passiveParticleCloud.C:26:
+In file included from passiveParticle/passiveParticleCloud.H:38:
+In file included from lnInclude/Cloud.H:43:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/polyMesh.H:55:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/pointZoneMesh.H:32:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/ZoneMesh.H:42:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/PackedBoolList.H:118:46: warning: type 'UList' is a private member of 'Foam::UList<unsigned int>' (allowed for cfront compatibility) [-Wintel-compat]
+  118 |         explicit inline PackedBoolList(const UList<bool>& lst);
+      |                                              ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/PackedList.H:150:5: note: constrained by private inheritance here
+  150 |     private List<unsigned int>
+      |     ^~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/UList.H:75:7: note: member is declared here
+   75 | class UList
+      |       ^
+In file included from passiveParticle/passiveParticleCloud.C:26:
+In file included from passiveParticle/passiveParticleCloud.H:38:
+In file included from lnInclude/Cloud.H:43:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/polyMesh.H:55:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/pointZoneMesh.H:32:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/ZoneMesh.H:42:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/PackedBoolList.H:203:30: warning: type 'UList' is a private member of 'Foam::UList<unsigned int>' (allowed for cfront compatibility) [-Wintel-compat]
+  203 |         void operator=(const UList<bool>& lst);
+      |                              ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/PackedList.H:150:5: note: constrained by private inheritance here
+  150 |     private List<unsigned int>
+      |     ^~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/UList.H:75:7: note: member is declared here
+   75 | class UList
+      |       ^
+In file included from passiveParticle/passiveParticleCloud.C:26:
+In file included from passiveParticle/passiveParticleCloud.H:38:
+In file included from lnInclude/Cloud.H:43:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/polyMesh.H:55:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/pointZoneMesh.H:32:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/ZoneMesh.H:42:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/PackedBoolList.H:296:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/PackedBoolListI.H:76:51: warning: type 'UList' is a private member of 'Foam::UList<unsigned int>' (allowed for cfront compatibility) [-Wintel-compat]
+   76 | inline Foam::PackedBoolList::PackedBoolList(const UList<bool>& lst)
+      |                                                   ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/PackedList.H:150:5: note: constrained by private inheritance here
+  150 |     private List<unsigned int>
+      |     ^~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/UList.H:75:7: note: member is declared here
+   75 | class UList
+      |       ^
+In file included from particle/particle.C:26:
+In file included from particle/particle.H:38:
+In file included from lnInclude/Cloud.H:345:
+In file included from lnInclude/Cloud.C:28:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/globalMeshData.H:627:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/globalMeshDataTemplates.C:28:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/mapDistribute.H:138:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/vectorTensorTransform.H:154:21: warning: definition of implicit copy constructor for 'vectorTensorTransform' is deprecated because it has a user-provided copy assignment operator [-Wdeprecated-copy-with-user-provided-copy]
+  154 |         inline void operator=(const vectorTensorTransform&);
+      |                     ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/vectorTensorTransformI.H:237:12: note: in implicit copy constructor for 'Foam::vectorTensorTransform' first required here
+  237 |     return vectorTensorTransform(-tr.t(), tr.R().T(), tr.hasR());
+      |            ^
+In file included from particle/particleIO.C:26:
+In file included from particle/particle.H:38:
+In file included from lnInclude/Cloud.H:345:
+In file included from lnInclude/Cloud.C:28:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/globalMeshData.H:627:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/globalMeshDataTemplates.C:28:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/mapDistribute.H:138:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/vectorTensorTransform.H:154:21: warning: definition of implicit copy constructor for 'vectorTensorTransform' is deprecated because it has a user-provided copy assignment operator [-Wdeprecated-copy-with-user-provided-copy]
+  154 |         inline void operator=(const vectorTensorTransform&);
+      |                     ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/vectorTensorTransformI.H:237:12: note: in implicit copy constructor for 'Foam::vectorTensorTransform' first required here
+  237 |     return vectorTensorTransform(-tr.t(), tr.R().T(), tr.hasR());
+      |            ^
+In file included from indexedParticle/indexedParticleCloud.C:26:
+In file included from indexedParticle/indexedParticleCloud.H:38:
+In file included from lnInclude/Cloud.H:345:
+In file included from lnInclude/Cloud.C:28:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/globalMeshData.H:627:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/globalMeshDataTemplates.C:28:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/mapDistribute.H:138:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/vectorTensorTransform.H:154:21: warning: definition of implicit copy constructor for 'vectorTensorTransform' is deprecated because it has a user-provided copy assignment operator [-Wdeprecated-copy-with-user-provided-copy]
+  154 |         inline void operator=(const vectorTensorTransform&);
+      |                     ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/vectorTensorTransformI.H:237:12: note: in implicit copy constructor for 'Foam::vectorTensorTransform' first required here
+  237 |     return vectorTensorTransform(-tr.t(), tr.R().T(), tr.hasR());
+      |            ^
+In file included from passiveParticle/passiveParticleCloud.C:26:
+In file included from passiveParticle/passiveParticleCloud.H:38:
+In file included from lnInclude/Cloud.H:345:
+In file included from lnInclude/Cloud.C:28:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/globalMeshData.H:627:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/globalMeshDataTemplates.C:28:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/mapDistribute.H:138:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/vectorTensorTransform.H:154:21: warning: definition of implicit copy constructor for 'vectorTensorTransform' is deprecated because it has a user-provided copy assignment operator [-Wdeprecated-copy-with-user-provided-copy]
+  154 |         inline void operator=(const vectorTensorTransform&);
+      |                     ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/vectorTensorTransformI.H:237:12: note: in implicit copy constructor for 'Foam::vectorTensorTransform' first required here
+  237 |     return vectorTensorTransform(-tr.t(), tr.R().T(), tr.hasR());
+      |            ^
+In file included from particle/particleIO.C:26:
+In file included from particle/particle.H:38:
+In file included from lnInclude/Cloud.H:345:
+In file included from lnInclude/Cloud.C:28:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/globalMeshData.H:627:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/globalMeshDataTemplates.C:28:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/mapDistribute.H:652:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/mapDistributeTemplates.C:30:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/transformField.H:39:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/quaternion.H:216:21: warning: definition of implicit copy constructor for 'quaternion' is deprecated because it has a user-provided copy assignment operator [-Wdeprecated-copy-with-user-provided-copy]
+  216 |         inline void operator=(const quaternion&);
+      |                     ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/quaternionI.H:83:12: note: in implicit copy constructor for 'Foam::quaternion' first required here
+   83 |     return quaternion(sqrt(1 - magSqr(v)), v);
+      |            ^
+In file included from particle/particle.C:26:
+In file included from particle/particle.H:38:
+In file included from lnInclude/Cloud.H:345:
+In file included from lnInclude/Cloud.C:28:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/globalMeshData.H:627:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/globalMeshDataTemplates.C:28:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/mapDistribute.H:652:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/mapDistributeTemplates.C:30:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/transformField.H:39:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/quaternion.H:216:21: warning: definition of implicit copy constructor for 'quaternion' is deprecated because it has a user-provided copy assignment operator [-Wdeprecated-copy-with-user-provided-copy]
+  216 |         inline void operator=(const quaternion&);
+      |                     ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/quaternionI.H:83:12: note: in implicit copy constructor for 'Foam::quaternion' first required here
+   83 |     return quaternion(sqrt(1 - magSqr(v)), v);
+      |            ^
+In file included from indexedParticle/indexedParticleCloud.C:26:
+In file included from indexedParticle/indexedParticleCloud.H:38:
+In file included from lnInclude/Cloud.H:345:
+In file included from lnInclude/Cloud.C:28:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/globalMeshData.H:627:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/globalMeshDataTemplates.C:28:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/mapDistribute.H:652:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/mapDistributeTemplates.C:30:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/transformField.H:39:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/quaternion.H:216:21: warning: definition of implicit copy constructor for 'quaternion' is deprecated because it has a user-provided copy assignment operator [-Wdeprecated-copy-with-user-provided-copy]
+  216 |         inline void operator=(const quaternion&);
+      |                     ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/quaternionI.H:83:12: note: in implicit copy constructor for 'Foam::quaternion' first required here
+   83 |     return quaternion(sqrt(1 - magSqr(v)), v);
+      |            ^
+In file included from passiveParticle/passiveParticleCloud.C:26:
+In file included from passiveParticle/passiveParticleCloud.H:38:
+In file included from lnInclude/Cloud.H:345:
+In file included from lnInclude/Cloud.C:28:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/globalMeshData.H:627:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/globalMeshDataTemplates.C:28:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/mapDistribute.H:652:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/mapDistributeTemplates.C:30:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/transformField.H:39:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/quaternion.H:216:21: warning: definition of implicit copy constructor for 'quaternion' is deprecated because it has a user-provided copy assignment operator [-Wdeprecated-copy-with-user-provided-copy]
+  216 |         inline void operator=(const quaternion&);
+      |                     ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/quaternionI.H:83:12: note: in implicit copy constructor for 'Foam::quaternion' first required here
+   83 |     return quaternion(sqrt(1 - magSqr(v)), v);
+      |            ^
+In file included from particle/particleIO.C:26:
+In file included from particle/particle.H:38:
+In file included from lnInclude/Cloud.H:345:
+In file included from lnInclude/Cloud.C:28:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/globalMeshData.H:627:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/globalMeshDataTemplates.C:28:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/mapDistribute.H:652:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/mapDistributeTemplates.C:30:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/transformField.H:40:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/septernion.H:133:21: warning: definition of implicit copy constructor for 'septernion' is deprecated because it has a user-provided copy assignment operator [-Wdeprecated-copy-with-user-provided-copy]
+  133 |         inline void operator=(const septernion&);
+      |                     ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/septernionI.H:162:12: note: in implicit copy constructor for 'Foam::septernion' first required here
+  162 |     return septernion(-tr.r().transform(tr.t()), conjugate(tr.r()));
+      |            ^
+In file included from particle/particle.C:26:
+In file included from particle/particle.H:38:
+In file included from lnInclude/Cloud.H:345:
+In file included from lnInclude/Cloud.C:28:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/globalMeshData.H:627:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/globalMeshDataTemplates.C:28:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/mapDistribute.H:652:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/mapDistributeTemplates.C:30:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/transformField.H:40:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/septernion.H:133:21: warning: definition of implicit copy constructor for 'septernion' is deprecated because it has a user-provided copy assignment operator [-Wdeprecated-copy-with-user-provided-copy]
+  133 |         inline void operator=(const septernion&);
+      |                     ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/septernionI.H:162:12: note: in implicit copy constructor for 'Foam::septernion' first required here
+  162 |     return septernion(-tr.r().transform(tr.t()), conjugate(tr.r()));
+      |            ^
+In file included from In file included from passiveParticle/passiveParticleCloud.C:26:
+In file included from passiveParticle/passiveParticleCloud.H:38:
+In file included from lnInclude/Cloud.H:345:
+In file included from lnInclude/Cloud.C:28:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/globalMeshData.H:627:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/globalMeshDataTemplates.C:28:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/mapDistribute.H:652:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/mapDistributeTemplates.C:30:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/transformField.H:40:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/septernion.H:133:21: warning: definition of implicit copy constructor for 'septernion' is deprecated because it has a user-provided copy assignment operator [-Wdeprecated-copy-with-user-provided-copy]
+  133 |         inline void operator=(constindexedParticle/indexedParticleCloud.C :s26e:
+pIn file included from tindexedParticle/indexedParticleCloud.He:38r:
+nIn file included from ilnInclude/Cloud.Ho:n345&:
+)In file included from ;
+lnInclude/Cloud.C      :| 28                    ^:
+
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/globalMeshData.H:627:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/globalMeshDataTemplates.C:28:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/mapDistribute.H:652:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/mapDistributeTemplates.C:30:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/transformField.H:40:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/septernion.H:133:21: warning: definition of implicit copy constructor for 'septernion' is deprecated because it has a user-provided copy assignment operator [-Wdeprecated-copy-with-user-provided-copy]
+  133 |         inline/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/septernionI.H :v162o:i12d:  onote: pin implicit copy constructor for 'Foam::septernion' first required heree
+rator=(const s  e162p | t e r n iroent&ur)n;
+       s| e                    ^p
+ternion(-tr.r().transform(tr.t()), co/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/septernionI.Hn:j162u:g12a:t enote: (in implicit copy constructor for 'Foam::septernion' first required heret
+r.r()));
+      |            ^
+  162 |     return septernion(-tr.r().transform(tr.t()), conjugate(tr.r()));
+      |            ^
+In file included from particle/particle.C:26:
+In file included from particle/particle.H:38:
+In file included from lnInclude/Cloud.H:345:
+In file included from lnInclude/Cloud.C:34:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude/cyclicAMIPolyPatch.H:39:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude/AMIPatchToPatchInterpolation.H:29:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude/AMIInterpolation.H:602:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude/AMIInterpolation.C:27:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude/AMIMethod.H:288:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude/AMIMethod.C:29:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/unitConversion.H:70:37: warning: identifier '_deg' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+   70 | inline constexpr scalar operator "" _deg(unsigned long long int deg) noexcept
+      |                         ~~~~~~~~~~~~^~~~
+      |                         operator""_deg
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/unitConversion.H:76:37: warning: identifier '_deg' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+   76 | inline constexpr scalar operator "" _deg(long double deg) noexcept
+      |                         ~~~~~~~~~~~~^~~~
+      |                         operator""_deg
+In file included from particle/particleIO.C:26:
+In file included from particle/particle.H:38:
+In file included from lnInclude/Cloud.H:345:
+In file included from lnInclude/Cloud.C:34:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude/cyclicAMIPolyPatch.H:39:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude/AMIPatchToPatchInterpolation.H:29:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude/AMIInterpolation.H:602:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude/AMIInterpolation.C:27:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude/AMIMethod.H:288:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude/AMIMethod.C:29:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/unitConversion.H:70:37: warning: identifier '_deg' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+   70 | inline constexpr scalar operator "" _deg(unsigned long long int deg) noexcept
+      |                         ~~~~~~~~~~~~^~~~
+      |                         operator""_deg
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/unitConversion.H:76:37: warning: identifier '_deg' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+   76 | inline constexpr scalar operator "" _deg(long double deg) noexcept
+      |                         ~~~~~~~~~~~~^~~~
+      |                         operator""_deg
+In file included from indexedParticle/indexedParticleCloud.C:26:
+In file included from indexedParticle/indexedParticleCloud.H:38:
+In file included from lnInclude/Cloud.H:345:
+In file included from lnInclude/Cloud.C:34:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude/cyclicAMIPolyPatch.H:39:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude/AMIPatchToPatchInterpolation.H:29:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude/AMIInterpolation.H:602:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude/AMIInterpolation.C:27:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude/AMIMethod.H:288:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude/AMIMethod.C:29:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/unitConversion.H:70:37: warning: identifier '_deg' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+   70 | inline constexpr scalar operator "" _deg(unsigned long long int deg) noexcept
+      |                         ~~~~~~~~~~~~^~~~
+      |                         operator""_deg
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/unitConversion.H:76:37: warning: identifier '_deg' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+   76 | inline constexpr scalar operator "" _deg(long double deg) noexcept
+      |                         ~~~~~~~~~~~~^~~~
+      |                         operator""_deg
+In file included from passiveParticle/passiveParticleCloud.C:26:
+In file included from passiveParticle/passiveParticleCloud.H:38:
+In file included from lnInclude/Cloud.H:345:
+In file included from lnInclude/Cloud.C:34:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude/cyclicAMIPolyPatch.H:39:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude/AMIPatchToPatchInterpolation.H:29:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude/AMIInterpolation.H:602:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude/AMIInterpolation.C:27:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude/AMIMethod.H:288:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude/AMIMethod.C:29:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/unitConversion.H:70:37: warning: identifier '_deg' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+   70 | inline constexpr scalar operator "" _deg(unsigned long long int deg) noexcept
+      |                         ~~~~~~~~~~~~^~~~
+      |                         operator""_deg
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/unitConversion.H:76:37: warning: identifier '_deg' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+   76 | inline constexpr scalar operator "" _deg(long double deg) noexcept
+      |                         ~~~~~~~~~~~~^~~~
+      |                         operator""_deg
+In file included from particle/particleIO.C:26:
+In file included from particle/particle.H:38:
+In file included from lnInclude/Cloud.H:345:
+In file included from lnInclude/Cloud.C:28:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/globalMeshData.H:627:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/globalMeshDataTemplates.C:28:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/mapDistribute.H:138:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/vectorTensorTransform.H:248:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/vectorTensorTransformI.H:31:25: warning: instantiation of variable 'Foam::SphericalTensor<double>::I' required here, but no definition is available [-Wundefined-var-template]
+   31 |     R_(sphericalTensor::I),
+      |                         ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/SphericalTensor.H:71:38: note: forward declaration of template entity is here
+   71 |         static const SphericalTensor I;
+      |                                      ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/vectorTensorTransformI.H:31:25: note: add an explicit instantiation declaration to suppress this warning if 'Foam::SphericalTensor<double>::I' is explicitly instantiated in another translation unit
+   31 |     R_(sphericalTensor::I),
+      |                         ^
+In file included from indexedParticle/indexedParticleCloud.C:26:
+In file included from indexedParticle/indexedParticleCloud.H:38:
+In file included from lnInclude/Cloud.H:345:
+In file included from lnInclude/Cloud.C:28:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/globalMeshData.H:627:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/globalMeshDataTemplates.C:28:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/mapDistribute.H:138:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/vectorTensorTransform.H:248:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/vectorTensorTransformI.H:31:25: warning: instantiation of variable 'Foam::SphericalTensor<double>::I' required here, but no definition is available [-Wundefined-var-template]
+   31 |     R_(sphericalTensor::I),
+      |                         ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/SphericalTensor.H:71:38: note: forward declaration of template entity is here
+   71 |         static const SphericalTensor I;
+      |                                      ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/vectorTensorTransformI.H:31:25: note: add an explicit instantiation declaration to suppress this warning if 'Foam::SphericalTensor<double>::I' is explicitly instantiated in another translation unit
+   31 |     R_(sphericalTensor::I),
+      |                         ^
+In file included from passiveParticle/passiveParticleCloud.C:26:
+In file included from passiveParticle/passiveParticleCloud.H:38:
+In file included from lnInclude/Cloud.H:345:
+In file included from lnInclude/Cloud.C:28:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/globalMeshData.H:627:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/globalMeshDataTemplates.C:28:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/mapDistribute.H:138:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/vectorTensorTransform.H:248:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/vectorTensorTransformI.H:31:25: warning: instantiation of variable 'Foam::SphericalTensor<double>::I' required here, but no definition is available [-Wundefined-var-template]
+   31 |     R_(sphericalTensor::I),
+      |                         ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/SphericalTensor.H:71:38: note: forward declaration of template entity is here
+   71 |         static const SphericalTensor I;
+      |                                      ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/vectorTensorTransformI.H:31:25: note: add an explicit instantiation declaration to suppress this warning if 'Foam::SphericalTensor<double>::I' is explicitly instantiated in another translation unit
+   31 |     R_(sphericalTensor::I),
+      |                         ^
+In file included from particle/particle.C:26:
+In file included from particle/particle.H:38:
+In file included from lnInclude/Cloud.H:345:
+In file included from lnInclude/Cloud.C:28:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/globalMeshData.H:627:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/globalMeshDataTemplates.C:28:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/mapDistribute.H:138:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/vectorTensorTransform.H:248:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/vectorTensorTransformI.H:31:25: warning: instantiation of variable 'Foam::SphericalTensor<double>::I' required here, but no definition is available [-Wundefined-var-template]
+   31 |     R_(sphericalTensor::I),
+      |                         ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/SphericalTensor.H:71:38: note: forward declaration of template entity is here
+   71 |         static const SphericalTensor I;
+      |                                      ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/vectorTensorTransformI.H:31:25: note: add an explicit instantiation declaration to suppress this warning if 'Foam::SphericalTensor<double>::I' is explicitly instantiated in another translation unit
+   31 |     R_(sphericalTensor::I),
+      |                         ^
+In file included from particle/particleIO.C:26:
+In file included from particle/particle.H:38:
+In file included from lnInclude/Cloud.H:345:
+In file included from lnInclude/Cloud.C:28:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/globalMeshData.H:627:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/globalMeshDataTemplates.C:28:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/mapDistribute.H:652:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/mapDistributeTemplates.C:30:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/transformField.H:40:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/septernion.H:46:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/spatialTransform.H:203:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/spatialTransformI.H:40:16: warning: instantiation of variable 'Foam::Tensor<double>::I' required here, but no definition is available [-Wundefined-var-template]
+   40 |     E_(tensor::I),
+      |                ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/Tensor.H:81:29: note: forward declaration of template entity is here
+   81 |         static const Tensor I;
+      |                             ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/spatialTransformI.H:40:16: note: add an explicit instantiation declaration to suppress this warning if 'Foam::Tensor<double>::I' is explicitly instantiated in another translation unit
+   40 |     E_(tensor::I),
+      |                ^
+In file included from indexedParticle/indexedParticleCloud.C:26:
+In file included from indexedParticle/indexedParticleCloud.H:38:
+In file included from lnInclude/Cloud.H:345:
+In file included from lnInclude/Cloud.C:28:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/globalMeshData.H:627:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/globalMeshDataTemplates.C:28:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/mapDistribute.H:652:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/mapDistributeTemplates.C:30:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/transformField.H:40:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/septernion.H:46:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/spatialTransform.H:203:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/spatialTransformI.H:40:16: warning: instantiation of variable 'Foam::Tensor<double>::I' required here, but no definition is available [-Wundefined-var-template]
+   40 |     E_(tensor::I),
+      |                ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/Tensor.H:81:29: note: forward declaration of template entity is here
+   81 |         static const Tensor I;
+      |                             ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/spatialTransformI.H:40:16: note: add an explicit instantiation declaration to suppress this warning if 'Foam::Tensor<double>::I' is explicitly instantiated in another translation unit
+   40 |     E_(tensor::I),
+      |                ^
+In file included from passiveParticle/passiveParticleCloud.C:26:
+In file included from passiveParticle/passiveParticleCloud.H:38:
+In file included from lnInclude/Cloud.H:345:
+In file included from lnInclude/Cloud.C:28:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/globalMeshData.H:627:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/globalMeshDataTemplates.C:28:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/mapDistribute.H:652:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/mapDistributeTemplates.C:30:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/transformField.H:40:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/septernion.H:46:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/spatialTransform.H:203:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/spatialTransformI.H:40:16: warning: instantiation of variable 'Foam::Tensor<double>::I' required here, but no definition is available [-Wundefined-var-template]
+   40 |     E_(tensor::I),
+      |                ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/Tensor.H:81:29: note: forward declaration of template entity is here
+   81 |         static const Tensor I;
+      |                             ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/spatialTransformI.H:40:16: note: add an explicit instantiation declaration to suppress this warning if 'Foam::Tensor<double>::I' is explicitly instantiated in another translation unit
+   40 |     E_(tensor::I),
+      |                ^
+In file included from particle/particle.C:26:
+In file included from particle/particle.H:38:
+In file included from lnInclude/Cloud.H:345:
+In file included from lnInclude/Cloud.C:28:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/globalMeshData.H:627:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/globalMeshDataTemplates.C:28:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/mapDistribute.H:652:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/mapDistributeTemplates.C:30:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/transformField.H:40:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/septernion.H:46:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/spatialTransform.H:203:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/spatialTransformI.H:40:16: warning: instantiation of variable 'Foam::Tensor<double>::I' required here, but no definition is available [-Wundefined-var-template]
+   40 |     E_(tensor::I),
+      |                ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/Tensor.H:81:29: note: forward declaration of template entity is here
+   81 |         static const Tensor I;
+      |                             ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/spatialTransformI.H:40:16: note: add an explicit instantiation declaration to suppress this warning if 'Foam::Tensor<double>::I' is explicitly instantiated in another translation unit
+   40 |     E_(tensor::I),
+      |                ^
+In file included from particle/particleIO.C:26:
+In file included from particle/particle.H:38:
+In file included from lnInclude/Cloud.H:345:
+In file included from lnInclude/Cloud.C:34:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude/cyclicAMIPolyPatch.H:39:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude/AMIPatchToPatchInterpolation.H:29:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude/AMIInterpolation.H:602:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude/AMIInterpolation.C:27:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude/AMIMethod.H:42:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude/treeDataPrimitivePatch.H:270:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude/treeDataPrimitivePatch.C:29:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude/triSurfaceTools.H:60:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/triPointRef.H:35:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/triangle.H:354:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/triangleI.H:227:32: warning: instantiation of variable 'Foam::VectorSpace<Foam::Tensor<double>, double, '\t'>::one' required here, but no definition is available [-Wundefined-var-template]
+  227 |     tensor S = 1/24.0*(tensor::one + I);
+      |                                ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/triFaceI.H:268:30: note: in instantiation of member function 'Foam::triangle<Foam::Vector<double>, const Foam::Vector<double> &>::inertia' requested here
+  268 |    In file included from  return indexedParticle/indexedParticleCloud.Cth:26is:
+-In file included from >indexedParticle/indexedParticleCloud.Ht:r38i:
+(In file included from plnInclude/Cloud.Ho:i345n:
+tIn file included from slnInclude/Cloud.C):.34i:
+nIn file included from ert/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude/cyclicAMIPolyPatch.Hi:a39(:
+rIn file included from ef/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude/AMIPatchToPatchInterpolation.H:P29t:
+,In file included from  /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude/AMIInterpolation.Hd:e602n:
+sIn file included from it/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude/AMIInterpolation.Cy:)27;:
+
+In file included from       |                              ^/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude/AMIMethod.H
+:42:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude/treeDataPrimitivePatch.H:270:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude/treeDataPrimitivePatch.C:29:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude/triSurfaceTools.H:60:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/triPointRef.H:35:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/triangle.H:354:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/VectorSpace.H/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/triangleI.H::112227::2732::  note: forward declaration of template entity is here
+warning: instantiation of variable 'Foam::VectorSpace<Foam::Tensor<double>, double, '\t'>::one' required here, but no definition is available [-Wundefined-var-template]
+  112 |         static cons  227t |   Fo r m  toennes;o
+r       | S                          ^ 
+= 1/24.0*(tensor::/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/triangleI.Ho:n227e: 32+:  Inote: )add an explicit instantiation declaration to suppress this warning if 'Foam::VectorSpace<Foam::Tensor<double>, double, '\t'>::one' is explicitly instantiated in another translation unit;
+
+      |                                ^
+  227 |     tensor S = 1/24.0*(tensor::one + I);
+      |                                ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/triFaceI.H:268:30: note: in instantiation of member function 'Foam::triangle<Foam::Vector<double>, const Foam::Vector<double> &>::inertia' requested here
+  268 |     return this->tri(points).inertia(refPt, density);
+      |                              ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/VectorSpace.H:112:27: note: forward declaration of template entity is here
+  112 |         static const Form one;
+      |                           ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/triangleI.H:227:32: note: add an explicit instantiation declaration to suppress this warning if 'Foam::VectorSpace<Foam::Tensor<double>, double, '\t'>::one' is explicitly instantiated in another translation unit
+  227 |     tensor S = 1/24.0*(tensor::one + I);
+      |                                ^
+In file included from particle/particleIO.C:26:
+In file included from particle/particle.H:38:
+In file included from lnInclude/Cloud.H:345:
+In file included from lnInclude/Cloud.C:34:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude/cyclicAMIPolyPatch.H:39:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude/AMIPatchToPatchInterpolation.H:29:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude/AMIInterpolation.H:603:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude/AMIInterpolationParallelOps.C:27:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/mergePoints.H:70:73: warning: instantiation of variable 'Foam::VectorSpace<Foam::Vector<double>, double, '\x03'>::zero' required here, but no definition is available [-Wundefined-var-template]
+   70 |     typename PointList::const_reference origin = PointList::value_type::zero
+      |                                                                         ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/VectorSpace.H:111:27: note: forward declaration of template entity is here
+  111 |         static const Form zero;
+      |                           ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/mergePoints.H:70:73: note: add an explicit instantiation declaration to suppress this warning if 'Foam::VectorSpace<Foam::Vector<double>, double, '\x03'>::zero' is explicitly instantiated in another translation unit
+   70 |     typename PointList::const_reference origin = PointList::value_type::zero
+      |                                                                         ^
+In file included from indexedParticle/indexedParticleCloud.C:26:
+In file included from indexedParticle/indexedParticleCloud.H:38:
+In file included from lnInclude/Cloud.H:345:
+In file included from lnInclude/Cloud.C:34:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude/cyclicAMIPolyPatch.H:39:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude/AMIPatchToPatchInterpolation.H:29:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude/AMIInterpolation.H:603:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude/AMIInterpolationParallelOps.C:27:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/mergePoints.H:70:73: warning: instantiation of variable 'Foam::VectorSpace<Foam::Vector<double>, double, '\x03'>::zero' required here, but no definition is available [-Wundefined-var-template]
+   70 |     typename PointList::const_reference origin = PointList::value_type::zero
+      |                                                                         ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/VectorSpace.H:111:27: note: forward declaration of template entity is here
+  111 |         static const Form zero;
+      |                           ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/mergePoints.H:70:73: note: add an explicit instantiation declaration to suppress this warning if 'Foam::VectorSpace<Foam::Vector<double>, double, '\x03'>::zero' is explicitly instantiated in another translation unit
+   70 |     typename PointList::const_reference origin = PointList::value_type::zero
+      |                                                                         ^
+In file included from passiveParticle/passiveParticleCloud.C:26:
+In file included from passiveParticle/passiveParticleCloud.H:38:
+In file included from lnInclude/Cloud.H:345:
+In file included from lnInclude/Cloud.C:34:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude/cyclicAMIPolyPatch.H:39:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude/AMIPatchToPatchInterpolation.H:29:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude/AMIInterpolation.H:602:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude/AMIInterpolation.C:27:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude/AMIMethod.H:42:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude/treeDataPrimitivePatch.H:270:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude/treeDataPrimitivePatch.C:29:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude/triSurfaceTools.H:60:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/triPointRef.H:35:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/triangle.H:354:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/triangleI.H:227:32: warning: instantiation of variable 'Foam::VectorSpace<Foam::Tensor<double>, double, '\t'>::one' required here, but no definition is available [-Wundefined-var-template]
+  227 |     tensor S = 1/24.0*(tensor::one + I);
+      |                                ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/triFaceI.H:268:30: note: in instantiation of member function 'Foam::triangle<Foam::Vector<double>, const Foam::Vector<double> &>::inertia' requested here
+  268 |     return this->tri(points).inertia(refPt, density);
+      |                              ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/VectorSpace.H:112:27: note: forward declaration of template entity is here
+  112 |         static const Form one;
+      |                           ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/triangleI.H:227:32: note: add an explicit instantiation declaration to suppress this warning if 'Foam::VectorSpace<Foam::Tensor<double>, double, '\t'>::one' is explicitly instantiated in another translation unit
+  227 |     tensor S = 1/24.0*(tensor::one + I);
+      |                                ^
+In file included from particle/particle.C:26:
+In file included from particle/particle.H:38:
+In file included from lnInclude/Cloud.H:345:
+In file included from lnInclude/Cloud.C:34:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude/cyclicAMIPolyPatch.H:39:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude/AMIPatchToPatchInterpolation.H:29:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude/AMIInterpolation.H:602:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude/AMIInterpolation.C:27:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude/AMIMethod.H:42:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude/treeDataPrimitivePatch.H:270:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude/treeDataPrimitivePatch.C:29:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude/triSurfaceTools.H:60:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/triPointRef.H:35:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/triangle.H:354:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/triangleI.H:227:32: warning: instantiation of variable 'Foam::VectorSpace<Foam::Tensor<double>, double, '\t'>::one' required here, but no definition is available [-Wundefined-var-template]
+  227 |     tensor S = 1/24.0*(tensor::one + I);
+      |                                ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/triFaceI.H:268:30: note: in instantiation of member function 'Foam::triangle<Foam::Vector<double>, const Foam::Vector<double> &>::inertia' requested here
+  268 |     return this->tri(points).inertia(refPt, density);
+      |                              ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/VectorSpace.H:112:27: note: forward declaration of template entity is here
+  112 |         static const Form one;
+      |                           ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/triangleI.H:227:32: note: add an explicit instantiation declaration to suppress this warning if 'Foam::VectorSpace<Foam::Tensor<double>, double, '\t'>::one' is explicitly instantiated in another translation unit
+  227 |     tensor S = 1/24.0*(tensor::one + I);
+      |                                ^
+In file included from passiveParticle/passiveParticleCloud.C:26:
+In file included from passiveParticle/passiveParticleCloud.H:38:
+In file included from lnInclude/Cloud.H:345:
+In file included from lnInclude/Cloud.C:34:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude/cyclicAMIPolyPatch.H:39:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude/AMIPatchToPatchInterpolation.H:29:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude/AMIInterpolation.H:603:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude/AMIInterpolationParallelOps.C:27:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/mergePoints.H:70:73: warning: instantiation of variable 'Foam::VectorSpace<Foam::Vector<double>, double, '\x03'>::zero' required here, but no definition is available [-Wundefined-var-template]
+   70 |     typename PointList::const_reference origin = PointList::value_type::zero
+      |                                                                         ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/VectorSpace.H:111:27: note: forward declaration of template entity is here
+  111 |         static const Form zero;
+      |                           ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/mergePoints.H:70:73: note: add an explicit instantiation declaration to suppress this warning if 'Foam::VectorSpace<Foam::Vector<double>, double, '\x03'>::zero' is explicitly instantiated in another translation unit
+   70 |     typename PointList::const_reference origin = PointList::value_type::zero
+      |                                                                         ^
+In file included from indexedParticle/indexedParticleCloud.C:26:
+In file included from indexedParticle/indexedParticleCloud.H:38:
+In file included from lnInclude/Cloud.H:345:
+In file included from lnInclude/Cloud.C:1465:
+In file included from lnInclude/CloudIO.C:28:
+lnInclude/IOPosition.H:81:22: warning: 'Foam::IOPosition<Foam::Cloud<Foam::indexedParticle>>::readData' hides overloaded virtual function [-Woverloaded-virtual]
+   81 |         virtual void readData(CloudType& c, bool checkClass);
+      |                      ^
+lnInclude/CloudIO.C:115:38: note: in instantiation of template class 'Foam::IOPosition<Foam::Cloud<Foam::indexedParticle>>' requested here
+  115 |     IOPosition<Cloud<ParticleType> > ioP(*this);
+      |                                      ^
+lnInclude/CloudIO.C:205:5: note: in instantiation of member function 'Foam::Cloud<Foam::indexedParticle>::initCloud' requested here
+  205 |     initCloud(checkClass);
+      |     ^
+indexedParticle/indexedParticleCloud.C:45:5: note: in instantiation of member function 'Foam::Cloud<Foam::indexedParticle>::Cloud' requested here
+   45 |     Cloud<indexedParticle>(mesh, cloudName, false)
+      |     ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/regIOobject.H:263:26: note: hidden overloaded virtual function 'Foam::regIOobject::readData' declared here: different number of parameters (1 vs 2)
+  263 |             virtual bool readData(Istream&);
+      |                          ^
+In file included from particle/particle.C:26:
+In file included from particle/particle.H:38:
+In file included from lnInclude/Cloud.H:345:
+In file included from lnInclude/Cloud.C:34:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude/cyclicAMIPolyPatch.H:39:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude/AMIPatchToPatchInterpolation.H:29:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude/AMIInterpolation.H:603:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude/AMIInterpolationParallelOps.C:27:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/mergePoints.H:70:73: warning: instantiation of variable 'Foam::VectorSpace<Foam::Vector<double>, double, '\x03'>::zero' required here, but no definition is available [-Wundefined-var-template]
+   70 |     typename PointList::const_reference origin = PointList::value_type::zero
+      |                                                                         ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/VectorSpace.H:111:27: note: forward declaration of template entity is here
+  111 |         static const Form zero;
+      |                           ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/mergePoints.H:70:73: note: add an explicit instantiation declaration to suppress this warning if 'Foam::VectorSpace<Foam::Vector<double>, double, '\x03'>::zero' is explicitly instantiated in another translation unit
+   70 |     typename PointList::const_reference origin = PointList::value_type::zero
+      |                                                                         ^
+In file included from indexedParticle/indexedParticleCloud.C:26:
+In file included from indexedParticle/indexedParticleCloud.H:38:
+In file included from lnInclude/Cloud.H:39:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/cloud.H:38:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/objectRegistry.H:41:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/regIOobject.H:41:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/IOobject.H:529:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/IOobjectTemplates.C:74:60: warning: instantiation of variable 'Foam::IOList<int>::typeName' required here, but no definition is available [-Wundefined-var-template]
+   74 |                 if (checkType && headerClassName_ != Type::typeName)
+      |                                                            ^
+lnInclude/CloudIO.C:53:17: note: in instantiation of function template specialization 'Foam::IOobject::typeHeaderOk<Foam::IOList<int>>' requested here
+   53 |     if (dictObj.typeHeaderOk<IOList<label>>(false)) // NEW VINCENT
+      |                 ^
+lnInclude/CloudIO.C:113:5: note: in instantiation of member function 'Foam::Cloud<Foam::indexedParticle>::readCloudUniformProperties' requested here
+  113 |     readCloudUniformProperties();
+      |     ^
+lnInclude/CloudIO.C:205:5: note: in instantiation of member function 'Foam::Cloud<Foam::indexedParticle>::initCloud' requested here
+  205 |     initCloud(checkClass);
+      |     ^
+indexedParticle/indexedParticleCloud.C:45:5: note: in instantiation of member function 'Foam::Cloud<Foam::indexedParticle>::Cloud' requested here
+   45 |     Cloud<indexedParticle>(mesh, cloudName, false)
+      |     ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/IOList.H:60:5: note: forward declaration of template entity is here
+   60 |     TypeName("List");
+      |     ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/typeInfo.H:71:5: note: expanded from macro 'TypeName'
+   71 |     ClassName(TypeNameString);                                                 \
+      |     ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/className.H:66:5: note: expanded from macro 'ClassName'
+   66 |     ClassNameNoDebug(TypeNameString);                                          \
+      |     ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/className.H:41:31: note: expanded from macro 'ClassNameNoDebug'
+   41 |     static const ::Foam::word typeName
+      |                               ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/IOobjectTemplates.C:74:60: note: add an explicit instantiation declaration to suppress this warning if 'Foam::IOList<int>::typeName' is explicitly instantiated in another translation unit
+   74 |                 if (checkType && headerClassName_ != Type::typeName)
+      |                                                            ^
+In file included from indexedParticle/indexedParticleCloud.C:26:
+In file included from indexedParticle/indexedParticleCloud.H:38:
+In file included from lnInclude/Cloud.H:39:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/cloud.H:39:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/IOField.H:101:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/IOField.C:47:20: warning: instantiation of variable 'Foam::IOField<int>::typeName' required here, but no definition is available [-Wundefined-var-template]
+   47 |         readStream(typeName) >> *this;
+      |                    ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/IOField.C:36:5: note: in instantiation of function template specialization 'Foam::IOobject::warnNoRereading<Foam::IOField<int>>' requested here
+   36 |     warnNoRereading<IOField<Type>>();
+      |     ^
+lnInclude/particleTemplates.C:208:24: note: in instantiation of member function 'Foam::IOField<int>::IOField' requested here
+  208 |         IOField<label> origProcId(procIO);
+      |                        ^
+indexedParticle/indexedParticleCloud.C:49:26: note: in instantiation of function template specialization 'Foam::particle::readFields<Foam::indexedParticleCloud>' requested here
+   49 |         indexedParticle::readFields(*this);
+      |                          ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/IOField.H:59:5: note: forward declaration of template entity is here
+   59 |     TypeName("Field");
+      |     ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/typeInfo.H:71:5: note: expanded from macro 'TypeName'
+   71 |     ClassName(TypeNameString);                                                 \
+      |     ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/className.H:66:5: note: expanded from macro 'ClassName'
+   66 |     ClassNameNoDebug(TypeNameString);                                          \
+      |     ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/className.H:41:31: note: expanded from macro 'ClassNameNoDebug'
+   41 |     static const ::Foam::word typeName
+      |                               ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/IOField.C:47:20: note: add an explicit instantiation declaration to suppress this warning if 'Foam::IOField<int>::typeName' is explicitly instantiated in another translation unit
+   47 |         readStream(typeName) >> *this;
+      |                    ^
+In file included from passiveParticle/passiveParticleCloud.C:26:
+In file included from passiveParticle/passiveParticleCloud.H:38:
+In file included from lnInclude/Cloud.H:345:
+In file included from lnInclude/Cloud.C:1465:
+In file included from lnInclude/CloudIO.C:28:
+lnInclude/IOPosition.H:81:22: warning: 'Foam::IOPosition<Foam::Cloud<Foam::passiveParticle>>::readData' hides overloaded virtual function [-Woverloaded-virtual]
+   81 |         virtual void readData(CloudType& c, bool checkClass);
+      |                      ^
+lnInclude/CloudIO.C:115:38: note: in instantiation of template class 'Foam::IOPosition<Foam::Cloud<Foam::passiveParticle>>' requested here
+  115 |     IOPosition<Cloud<ParticleType> > ioP(*this);
+      |                                      ^
+lnInclude/CloudIO.C:205:5: note: in instantiation of member function 'Foam::Cloud<Foam::passiveParticle>::initCloud' requested here
+  205 |     initCloud(checkClass);
+      |     ^
+passiveParticle/passiveParticleCloud.C:44:5: note: in instantiation of member function 'Foam::Cloud<Foam::passiveParticle>::Cloud' requested here
+   44 |     Cloud<passiveParticle>(mesh, cloudName, false)
+      |     ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/regIOobject.H:263:26: note: hidden overloaded virtual function 'Foam::regIOobject::readData' declared here: different number of parameters (1 vs 2)
+  263 |             virtual bool readData(Istream&);
+      |                          ^
+In file included from passiveParticle/passiveParticleCloud.C:26:
+In file included from passiveParticle/passiveParticleCloud.H:38:
+In file included from lnInclude/Cloud.H:39:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/cloud.H:38:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/objectRegistry.H:41:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/regIOobject.H:41:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/IOobject.H:529:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/IOobjectTemplates.C:74:60: warning: instantiation of variable 'Foam::IOList<int>::typeName' required here, but no definition is available [-Wundefined-var-template]
+   74 |                 if (checkType && headerClassName_ != Type::typeName)
+      |                                                            ^
+lnInclude/CloudIO.C:53:17: note: in instantiation of function template specialization 'Foam::IOobject::typeHeaderOk<Foam::IOList<int>>' requested here
+   53 |     if (dictObj.typeHeaderOk<IOList<label>>(false)) // NEW VINCENT
+      |                 ^
+lnInclude/CloudIO.C:113:5: note: in instantiation of member function 'Foam::Cloud<Foam::passiveParticle>::readCloudUniformProperties' requested here
+  113 |     readCloudUniformProperties();
+      |     ^
+lnInclude/CloudIO.C:205:5: note: in instantiation of member function 'Foam::Cloud<Foam::passiveParticle>::initCloud' requested here
+  205 |     initCloud(checkClass);
+      |     ^
+passiveParticle/passiveParticleCloud.C:44:5: note: in instantiation of member function 'Foam::Cloud<Foam::passiveParticle>::Cloud' requested here
+   44 |     Cloud<passiveParticle>(mesh, cloudName, false)
+      |     ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/IOList.H:60:5: note: forward declaration of template entity is here
+   60 |     TypeName("List");
+      |     ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/typeInfo.H:71:5: note: expanded from macro 'TypeName'
+   71 |     ClassName(TypeNameString);                                                 \
+      |     ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/className.H:66:5: note: expanded from macro 'ClassName'
+   66 |     ClassNameNoDebug(TypeNameString);                                          \
+      |     ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/className.H:41:31: note: expanded from macro 'ClassNameNoDebug'
+   41 |     static const ::Foam::word typeName
+      |                               ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/IOobjectTemplates.C:74:60: note: add an explicit instantiation declaration to suppress this warning if 'Foam::IOList<int>::typeName' is explicitly instantiated in another translation unit
+   74 |                 if (checkType && headerClassName_ != Type::typeName)
+      |                                                            ^
+In file included from passiveParticle/passiveParticleCloud.C:26:
+In file included from passiveParticle/passiveParticleCloud.H:38:
+In file included from lnInclude/Cloud.H:39:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/cloud.H:39:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/IOField.H:101:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/IOField.C:47:20: warning: instantiation of variable 'Foam::IOField<int>::typeName' required here, but no definition is available [-Wundefined-var-template]
+   47 |         readStream(typeName) >> *this;
+      |                    ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/IOField.C:36:5: note: in instantiation of function template specialization 'Foam::IOobject::warnNoRereading<Foam::IOField<int>>' requested here
+   36 |     warnNoRereading<IOField<Type>>();
+      |     ^
+lnInclude/particleTemplates.C:208:24: note: in instantiation of member function 'Foam::IOField<int>::IOField' requested here
+  208 |         IOField<label> origProcId(procIO);
+      |                        ^
+passiveParticle/passiveParticleCloud.C:48:26: note: in instantiation of function template specialization 'Foam::particle::readFields<Foam::passiveParticleCloud>' requested here
+   48 |         passiveParticle::readFields(*this);
+      |                          ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/IOField.H:59:5: note: forward declaration of template entity is here
+   59 |     TypeName("Field");
+      |     ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/typeInfo.H:71:5: note: expanded from macro 'TypeName'
+   71 |     ClassName(TypeNameString);                                                 \
+      |     ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/className.H:66:5: note: expanded from macro 'ClassName'
+   66 |     ClassNameNoDebug(TypeNameString);                                          \
+      |     ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/className.H:41:31: note: expanded from macro 'ClassNameNoDebug'
+   41 |     static const ::Foam::word typeName
+      |                               ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/IOField.C:47:20: note: add an explicit instantiation declaration to suppress this warning if 'Foam::IOField<int>::typeName' is explicitly instantiated in another translation unit
+   47 |         readStream(typeName) >> *this;
+      |                    ^
+20 warnings generated.
+20 warnings generated.
+23 warnings generated.
+23 warnings generated.
+icpx -std=c++11 -fp-model precise -DOPENFOAM_PLUS=1706 -Dlinux64 -DWM_ARCH_OPTION=64 -DWM_DP -DWM_LABEL_SIZE=32 -Wall -Wextra -Wnon-virtual-dtor -Wno-unused-parameter -O3  -DNoRepository -qopenmp -I/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude -I/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude -IlnInclude -I. -I/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude -I/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OSspecific/POSIX/lnInclude   -fPIC -shared -Xlinker --add-needed -Xlinker --no-as-needed Make/linux64IccDPInt32Opt/particle/barycentric.o Make/linux64IccDPInt32Opt/particle/particle.o Make/linux64IccDPInt32Opt/particle/particleIO.o Make/linux64IccDPInt32Opt/passiveParticle/passiveParticleCloud.o Make/linux64IccDPInt32Opt/indexedParticle/indexedParticleCloud.o Make/linux64IccDPInt32Opt/InteractionLists/referredWallFace/referredWallFace.o -L/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/platforms/linux64IccDPInt32Opt/lib \
+    -qopenmp -lmeshTools  -o /home/superxcx/code/OpenFoam/OF-1706/hyStrath_dlb/platforms/linux64IccDPInt32Opt/lib/liblagrangian+.so

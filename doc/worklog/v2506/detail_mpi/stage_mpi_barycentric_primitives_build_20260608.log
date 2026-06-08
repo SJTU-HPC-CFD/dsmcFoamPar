@@ -1,0 +1,131 @@
+wmake libso src/lagrangian/basic
+wmakeLnInclude: linking include files to ./lnInclude
+Making dependency list for source file barycentric.C
+icpx -std=c++11 -fp-model precise -DOPENFOAM_PLUS=1706 -Dlinux64 -DWM_ARCH_OPTION=64 -DWM_DP -DWM_LABEL_SIZE=32 -Wall -Wextra -Wnon-virtual-dtor -Wno-unused-parameter -O3  -DNoRepository -qopenmp -I/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude -I/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude -IlnInclude -I. -I/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude -I/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OSspecific/POSIX/lnInclude   -fPIC -c particle/barycentric.C -o Make/linux64IccDPInt32Opt/particle/barycentric.o
+In file included from particle/barycentric.C:9:
+In file included from particle/barycentric.H:14:
+In file included from particle/Barycentric.H:16:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/VectorSpace.H:233:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/VectorSpace.C:27:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/IOstreams.H:38:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/ISstream.H:39:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/Istream.H:47:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/token.H:49:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/runTimeSelectionTables.H:41:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/HashTable.H:851:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/HashTableI.H:378:8: warning: missing 'typename' prior to dependent type name 'Foam::HashTable<T, Key, Hash>::key_iterator_base'; implicit 'typename' is a C++20 extension [-Wc++20-extensions]
+  378 | inline Foam::HashTable<T, Key, Hash>::key_iterator_base<WrappedIterator>&
+      |        ^
+      |        typename 
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/HashTableI.H:389:8: warning: missing 'typename' prior to dependent type name 'Foam::HashTable<T, Key, Hash>::key_iterator_base'; implicit 'typename' is a C++20 extension [-Wc++20-extensions]
+  389 | inline Foam::HashTable<T, Key, Hash>::key_iterator_base<WrappedIterator>
+      |        ^
+      |        typename 
+In file included from particle/barycentric.C:9:
+In file included from particle/barycentric.H:14:
+In file included from particle/Barycentric.H:16:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/VectorSpace.H:233:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/VectorSpace.C:27:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/IOstreams.H:38:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/ISstream.H:39:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/Istream.H:184:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/HashTable.C:30:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/List.H:43:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/UList.H:467:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/UList.C:310:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/UListIO.C:29:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/SLList.H:36:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/SLListBase.H:191:25: warning: definition of implicit copy constructor for 'iterator' is deprecated because it has a user-provided copy assignment operator [-Wdeprecated-copy-with-user-provided-copy]
+  191 |             inline void operator=(const iterator& iter);
+      |                         ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/SLListBaseI.H:227:20: note: in implicit copy constructor for 'Foam::SLListBase::iterator' first required here
+  227 |     iterator tmp = *this;
+      |                    ^
+In file included from particle/barycentric.C:9:
+In file included from particle/barycentric.H:14:
+In file included from particle/Barycentric.H:16:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/VectorSpace.H:233:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/VectorSpace.C:27:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/IOstreams.H:38:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/ISstream.H:39:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/Istream.H:184:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/HashTable.C:30:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/List.H:43:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/UList.H:467:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/UList.C:310:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/UListIO.C:29:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/SLList.H:36:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/SLListBase.H:228:25: warning: definition of implicit copy constructor for 'const_iterator' is deprecated because it has a user-provided copy assignment operator [-Wdeprecated-copy-with-user-provided-copy]
+  228 |             inline void operator=(const const_iterator& iter);
+      |                         ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/SLListBaseI.H:336:26: note: in implicit copy constructor for 'Foam::SLListBase::const_iterator' first required here
+  336 |     const_iterator tmp = *this;
+      |                          ^
+In file included from particle/barycentric.C:11:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/Random.H:213:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/RandomTemplates.C:27:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/Pstream.H:42:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/UPstream.H:46:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/NamedEnum.H:193:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/NamedEnum.C:27:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/dictionary.H:84:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/entry.H:45:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/IDLList.H:36:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/DLListBase.H:209:25: warning: definition of implicit copy constructor for 'iterator' is deprecated because it has a user-provided copy assignment operator [-Wdeprecated-copy-with-user-provided-copy]
+  209 |             inline void operator=(const iterator& iter);
+      |                         ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/DLListBaseI.H:252:20: note: in implicit copy constructor for 'Foam::DLListBase::iterator' first required here
+  252 |     iterator tmp = *this;
+      |                    ^
+In file included from particle/barycentric.C:11:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/Random.H:213:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/RandomTemplates.C:27:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/Pstream.H:42:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/UPstream.H:46:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/NamedEnum.H:193:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/NamedEnum.C:27:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/dictionary.H:84:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/entry.H:45:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/IDLList.H:36:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/DLListBase.H:246:25: warning: definition of implicit copy constructor for 'const_iterator' is deprecated because it has a user-provided copy assignment operator [-Wdeprecated-copy-with-user-provided-copy]
+  246 |             inline void operator=(const const_iterator& iter);
+      |                         ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/DLListBaseI.H:360:26: note: in implicit copy constructor for 'Foam::DLListBase::const_iterator' first required here
+  360 |     const_iterator tmp = *this;
+      |                          ^
+In file included from particle/barycentric.C:11:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/Random.H:213:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/RandomTemplates.C:27:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/Pstream.H:42:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/UPstream.H:46:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/NamedEnum.H:193:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/NamedEnum.C:27:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/dictionary.H:84:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/entry.H:45:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/IDLList.H:36:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/DLListBase.H:283:25: warning: definition of implicit copy constructor for 'const_reverse_iterator' is deprecated because it has a user-provided copy assignment operator [-Wdeprecated-copy-with-user-provided-copy]
+  283 |             inline void operator=(const const_reverse_iterator& iter);
+      |                         ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/DLListBaseI.H:473:34: note: in implicit copy constructor for 'Foam::DLListBase::const_reverse_iterator' first required here
+  473 |     const_reverse_iterator tmp = *this;
+      |                                  ^
+particle/barycentric.C:109:23: error: 'scalar01' is a private member of 'Foam::Random'
+  109 |     scalar s = rndGen.scalar01();
+      |                       ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/Random.H:75:16: note: implicitly declared private here
+   75 |         scalar scalar01();
+      |                ^
+particle/barycentric.C:110:23: error: 'scalar01' is a private member of 'Foam::Random'
+  110 |     scalar t = rndGen.scalar01();
+      |                       ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/Random.H:75:16: note: implicitly declared private here
+   75 |         scalar scalar01();
+      |                ^
+particle/barycentric.C:111:23: error: 'scalar01' is a private member of 'Foam::Random'
+  111 |     scalar u = rndGen.scalar01();
+      |                       ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/Random.H:75:16: note: implicitly declared private here
+   75 |         scalar scalar01();
+      |                ^
+7 warnings and 3 errors generated.
+make: *** [/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/wmake/rules/General/transform:29: Make/linux64IccDPInt32Opt/particle/barycentric.o] Error 1

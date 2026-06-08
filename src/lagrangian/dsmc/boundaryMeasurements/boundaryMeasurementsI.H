@@ -240,6 +240,23 @@ inline const fvPatchVectorField& boundaryMeasurements::boundaryU
 
 //- Edit
 
+inline void boundaryMeasurements::markTouched
+(
+    const label speciei,
+    const label patchi,
+    const label facei
+)
+{
+    if (touchedStamp_[speciei][patchi][facei] != cleanStamp_)
+    {
+        touchedStamp_[speciei][patchi][facei] = cleanStamp_;
+        touchedSpecies_.append(speciei);
+        touchedPatches_.append(patchi);
+        touchedFaces_.append(facei);
+    }
+}
+
+
 inline scalar& boundaryMeasurements::speciesRhoNIntBF
 (
     const label speciei,
@@ -247,6 +264,7 @@ inline scalar& boundaryMeasurements::speciesRhoNIntBF
     const label facei
 )
 {
+    markTouched(speciei, patchi, facei);
     return speciesRhoNIntBF_[speciei][patchi][facei];
 }
 
@@ -258,6 +276,7 @@ inline scalar& boundaryMeasurements::speciesRhoNElecBF
     const label facei
 )
 {
+    markTouched(speciei, patchi, facei);
     return speciesRhoNElecBF_[speciei][patchi][facei];
 }
 
@@ -269,6 +288,7 @@ inline scalar& boundaryMeasurements::speciesRhoNBF
     const label facei
 )
 {
+    markTouched(speciei, patchi, facei);
     return speciesRhoNBF_[speciei][patchi][facei];
 }
 
@@ -280,6 +300,7 @@ inline scalar& boundaryMeasurements::speciesRhoMBF
     const label facei
 )
 {
+    markTouched(speciei, patchi, facei);
     return speciesRhoMBF_[speciei][patchi][facei];
 }
 
@@ -291,6 +312,7 @@ inline scalar& boundaryMeasurements::speciesLinearKEBF
     const label facei
 )
 {
+    markTouched(speciei, patchi, facei);
     return speciesLinearKEBF_[speciei][patchi][facei];
 }
 
@@ -302,6 +324,7 @@ inline scalar& boundaryMeasurements::speciesMccBF
     const label facei
 )
 {
+    markTouched(speciei, patchi, facei);
     return speciesMccBF_[speciei][patchi][facei];
 }
 
@@ -313,6 +336,7 @@ inline vector& boundaryMeasurements::speciesMomentumBF
     const label facei
 )
 {
+    markTouched(speciei, patchi, facei);
     return speciesMomentumBF_[speciei][patchi][facei];
 }
 
@@ -324,6 +348,7 @@ inline vector& boundaryMeasurements::speciesUMeanBF
     const label facei
 )
 {
+    markTouched(speciei, patchi, facei);
     return speciesUMeanBF_[speciei][patchi][facei];
 }
 
@@ -335,6 +360,7 @@ inline scalar& boundaryMeasurements::speciesErotBF
     const label facei
 )
 {
+    markTouched(speciei, patchi, facei);
     return speciesErotBF_[speciei][patchi][facei];
 }
 
@@ -346,6 +372,7 @@ inline scalar& boundaryMeasurements::speciesZetaRotBF
     const label facei
 )
 {
+    markTouched(speciei, patchi, facei);
     return speciesZetaRotBF_[speciei][patchi][facei];
 }
 
@@ -357,6 +384,7 @@ inline scalar& boundaryMeasurements::speciesEvibBF
     const label facei
 )
 {
+    markTouched(speciei, patchi, facei);
     return speciesEvibBF_[speciei][patchi][facei];
 }
 
@@ -369,6 +397,7 @@ inline scalar& boundaryMeasurements::speciesEvibModBF
     const label facei
 )
 {
+    markTouched(speciei, patchi, facei);
     return speciesEvibModBF_[speciei][modi][patchi][facei];
 }
 
@@ -380,6 +409,7 @@ inline scalar& boundaryMeasurements::speciesEelecBF
     const label facei
 )
 {
+    markTouched(speciei, patchi, facei);
     return speciesEelecBF_[speciei][patchi][facei];
 }
 
@@ -391,6 +421,7 @@ inline scalar& boundaryMeasurements::speciesqBF
     const label facei
 )
 {
+    markTouched(speciei, patchi, facei);
     return speciesqBF_[speciei][patchi][facei];
 }
 
@@ -402,6 +433,7 @@ inline vector& boundaryMeasurements::speciesfDBF
     const label facei
 )
 {
+    markTouched(speciei, patchi, facei);
     return speciesfDBF_[speciei][patchi][facei];
 }
 

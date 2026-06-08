@@ -525,8 +525,14 @@ namespace
              && occupancyCellOffsetsPtr
              && occupancyCellOffsetsPtr->size() == cloud.mesh().nCells() + 1
              && occupancyOrderedParcelsPtr->size() == occupancyCellOffsetsPtr->last();
-            const labelList* activeCellsPtr =
-                useFlatOccupancy ? &cloud.occupancyActiveCells() : nullptr;
+            const UList<label>* activeCellsPtr =
+                cloud.replicatedMeshActive()
+              ? static_cast<const UList<label>*>(&cloud.replicatedMesh().myCells())
+              : (
+                    useFlatOccupancy
+                  ? static_cast<const UList<label>*>(&cloud.occupancyActiveCells())
+                  : nullptr
+                );
 
             auto wallClockNow = []()
             {
@@ -602,7 +608,11 @@ namespace
 
             if (activeCellsPtr)
             {
-                touchedCells = *activeCellsPtr;
+                touchedCells.setSize(activeCellsPtr->size());
+                forAll(touchedCells, i)
+                {
+                    touchedCells[i] = (*activeCellsPtr)[i];
+                }
             }
             else
             {
@@ -2373,6 +2383,34 @@ void dsmcVolFields::createField()
                 << endl;
         }
     }
+
+    if (cloud_.replicatedMeshActive())
+    {
+        ownedBoundaryFaces_.setSize(mesh_.boundaryMesh().size());
+
+        forAll(mesh_.boundaryMesh(), patchi)
+        {
+            const polyPatch& pp = mesh_.boundaryMesh()[patchi];
+            const label startFace = pp.start();
+            DynamicList<label> owned(pp.size()/8 + 1);
+
+            forAll(pp, facei)
+            {
+                if
+                (
+                    cloud_.replicatedMesh().isMyCell
+                    (
+                        mesh_.faceOwner()[startFace + facei]
+                    )
+                )
+                {
+                    owned.append(facei);
+                }
+            }
+
+            ownedBoundaryFaces_[patchi].transfer(owned);
+        }
+    }
 }
 
 
@@ -2415,13 +2453,22 @@ void dsmcVolFields::calculateField()
 
         if (densityOnly_)
         {
+            const UList<label>* sampleCellsPtr =
+                cloud_.replicatedMeshActive()
+              ? static_cast<const UList<label>*>(&cloud_.replicatedMesh().myCells())
+              : nullptr;
+            const label sampleLoopSize =
+                sampleCellsPtr ? sampleCellsPtr->size() : mesh_.nCells();
+
             if (useOpenMPSampling)
             {
                 #ifdef _OPENMP
                 #pragma omp parallel for schedule(static)
                 #endif
-                for (label cell = 0; cell < mesh_.nCells(); ++cell)
+                for (label sampleI = 0; sampleI < sampleLoopSize; ++sampleI)
                 {
+                    const label cell =
+                        sampleCellsPtr ? (*sampleCellsPtr)[sampleI] : sampleI;
                     const label occStart = cloud_.occupancyStart(cell);
                     const label occEnd = cloud_.occupancyEnd(cell);
 
@@ -2481,6 +2528,14 @@ void dsmcVolFields::calculateField()
                     if (spId != -1 && p.isFree())
                     {
                         const label cell = p.cell();
+                        if
+                        (
+                            cloud_.replicatedMeshActive()
+                         && !cloud_.replicatedMesh().isMyCell(cell)
+                        )
+                        {
+                            continue;
+                        }
                         const scalar nParticles = cloud_.nParticles(cell);
                         const scalar mass = cloud_.constProps(typeId).mass();
 
@@ -2562,10 +2617,14 @@ void dsmcVolFields::calculateField()
                 doProfile ? wallClockNow() : std::chrono::steady_clock::time_point();
             const bool singleSpeciesField = (speciesIds_.size() == 1);
             const label onlyTypeId = singleSpeciesField ? speciesIds_[0] : -1;
-            const labelList* combineCellsPtr =
-                cloud_.hasOccupancyOrderedParcels()
-              ? &cloud_.occupancyActiveCells()
-              : nullptr;
+            const UList<label>* combineCellsPtr =
+                cloud_.replicatedMeshActive()
+              ? static_cast<const UList<label>*>(&cloud_.replicatedMesh().myCells())
+              : (
+                    cloud_.hasOccupancyOrderedParcels()
+                  ? static_cast<const UList<label>*>(&cloud_.occupancyActiveCells())
+                  : nullptr
+                );
             const label combineLoopSize =
                 combineCellsPtr ? combineCellsPtr->size() : dsmcNCum_.size();
 
@@ -2785,11 +2844,19 @@ void dsmcVolFields::calculateField()
             //- Loop over all cells
             const auto cellReduceStart =
                 doProfile ? wallClockNow() : std::chrono::steady_clock::time_point();
+            const UList<label>* reduceCellsPtr =
+                cloud_.replicatedMeshActive()
+              ? static_cast<const UList<label>*>(&cloud_.replicatedMesh().myCells())
+              : nullptr;
+            const label reduceLoopSize =
+                reduceCellsPtr ? reduceCellsPtr->size() : dsmcNCum_.size();
             #ifdef _OPENMP
             #pragma omp parallel for schedule(static) if (useOpenMPSampling)
             #endif
-            forAll(dsmcNCum_, celli)
+            for (label reduceI = 0; reduceI < reduceLoopSize; ++reduceI)
             {
+                const label celli =
+                    reduceCellsPtr ? (*reduceCellsPtr)[reduceI] : reduceI;
                 collisionSeparation_[celli] +=
                     cloud_.cellPropMeasurements().collisionSeparation()[celli];
                     
@@ -2849,6 +2916,7 @@ void dsmcVolFields::calculateField()
                 doProfile ? wallClockNow() : std::chrono::steady_clock::time_point();
             const boundaryMeasurements& boundaryFlux =
                 cloud_.boundaryFluxMeasurements();
+            const bool useOwnedBoundaryFaces = ownedBoundaryFaces_.size() > 0;
             forAll(speciesIds_, i)
             {
                 const label spId = speciesIds_[i];
@@ -2856,8 +2924,16 @@ void dsmcVolFields::calculateField()
                 forAll(sampledBoundaryPatches_, patchi)
                 {
                     const label j = sampledBoundaryPatches_[patchi];
-                    forAll(mesh_.boundaryMesh()[j], k)
+                    const label nFaces =
+                        useOwnedBoundaryFaces
+                      ? ownedBoundaryFaces_[j].size()
+                      : mesh_.boundaryMesh()[j].size();
+                    for (label facei = 0; facei < nFaces; ++facei)
                     {
+                        const label k =
+                            useOwnedBoundaryFaces
+                          ? ownedBoundaryFaces_[j][facei]
+                          : facei;
                         rhoNBF_[j][k] +=
                             boundaryFlux.speciesRhoNBF(spId, j, k);
                         rhoMBF_[j][k] +=
@@ -2895,8 +2971,16 @@ void dsmcVolFields::calculateField()
                     forAll(sampledBoundaryPatches_, patchi)
                     {
                         const label j = sampledBoundaryPatches_[patchi];
-                        forAll(mesh_.boundaryMesh()[j], k)
+                        const label nFaces =
+                            useOwnedBoundaryFaces
+                          ? ownedBoundaryFaces_[j].size()
+                          : mesh_.boundaryMesh()[j].size();
+                        for (label facei = 0; facei < nFaces; ++facei)
                         {
+                            const label k =
+                                useOwnedBoundaryFaces
+                              ? ownedBoundaryFaces_[j][facei]
+                              : facei;
                             speciesEvibModBF_[i][mod][j][k] +=
                                 boundaryFlux.speciesEvibModBF(spId, mod, j, k);
                         }
@@ -2916,6 +3000,9 @@ void dsmcVolFields::calculateField()
 
     if (time_.time().outputTime())
     {
+        const bool computeOutputFields =
+            !cloud_.replicatedMeshActive() || cloud_.isOutputRank();
+
         if (cloud_.replicatedMeshActive())
         {
             sumReduceField(dsmcN_.primitiveFieldRef());
@@ -2978,39 +3065,41 @@ void dsmcVolFields::calculateField()
             sumReduceFieldListListList(speciesEvibModBF_);
         }
 
-        const scalar nAvTimeSteps = nTimeSteps_;
-
-        if (densityOnly_)
+        if (computeOutputFields)
         {
-            forAll(dsmcNCum_, celli)
+            const scalar nAvTimeSteps = nTimeSteps_;
+
+            if (densityOnly_)
             {
-                if (dsmcNCum_[celli] > SMALL)
+                forAll(dsmcNCum_, celli)
                 {
-                    const scalar cellVolume = mesh_.cellVolumes()[celli];
+                    if (dsmcNCum_[celli] > SMALL)
+                    {
+                        const scalar cellVolume = mesh_.cellVolumes()[celli];
 
-                    dsmcNMean_[celli] = dsmcNCum_[celli]/nAvTimeSteps;
+                        dsmcNMean_[celli] = dsmcNCum_[celli]/nAvTimeSteps;
 
-                    rhoN_[celli] = nCum_[celli]/(nAvTimeSteps*cellVolume);
-                    rhoM_[celli] = mCum_[celli]/(nAvTimeSteps*cellVolume);
-                }
-                else
-                {
-                    // not zero so that weighted decomposition still works
-                    dsmcNMean_[celli] = 0.001;
-                    rhoN_[celli] = 0.0;
-                    rhoM_[celli] = 0.0;
-                }
+                        rhoN_[celli] = nCum_[celli]/(nAvTimeSteps*cellVolume);
+                        rhoM_[celli] = mCum_[celli]/(nAvTimeSteps*cellVolume);
+                    }
+                    else
+                    {
+                        // not zero so that weighted decomposition still works
+                        dsmcNMean_[celli] = 0.001;
+                        rhoN_[celli] = 0.0;
+                        rhoM_[celli] = 0.0;
+                    }
 
-                if (dsmcN_[celli] < SMALL)
-                {
-                    // not zero so that weighted decomposition still works
-                    dsmcN_[celli] = 0.001;
+                    if (dsmcN_[celli] < SMALL)
+                    {
+                        // not zero so that weighted decomposition still works
+                        dsmcN_[celli] = 0.001;
+                    }
                 }
             }
-        }
-        else
-        {
-            const label nSpecies = speciesIds_.size();
+            else
+            {
+                const label nSpecies = speciesIds_.size();
 
             forAll(dsmcNCum_, celli)
             {
@@ -3878,6 +3967,7 @@ void dsmcVolFields::calculateField()
                 pressureTensor_.write();
                 shearStressTensor_.write();
             }
+        }
         }
         
         //- Reset fields after printing the instantaneous solution ... or

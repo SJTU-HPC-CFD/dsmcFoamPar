@@ -27,12 +27,27 @@ License
 #include "dsmcCloud.H"
 #include "meshTools.H"
 
+#include <chrono>
+
 #ifdef _OPENMP
     #include <omp.h>
 #endif
 
 namespace
 {
+using MoveDetailClock = std::chrono::steady_clock;
+
+inline Foam::scalar elapsedMoveDetailSeconds
+(
+    const MoveDetailClock::time_point& start
+)
+{
+    return std::chrono::duration<Foam::scalar>
+    (
+        MoveDetailClock::now() - start
+    ).count();
+}
+
 inline bool useOpenMPMoveCriticals(const Foam::dsmcCloud& cloud)
 {
     #ifdef _OPENMP
@@ -154,6 +169,12 @@ bool Foam::dsmcParcel::move
     const List<label>& cyclicBoundaryToModelIds =
         boundaries.cyclicBoundaryToModelIds();
     const List<label>& patchToModelIds = boundaries.patchToModelIds();
+    const bool moveDetailProfile = td.moveDetailProfile;
+
+    if (moveDetailProfile)
+    {
+        ++td.moveParcels;
+    }
 
     if (isFree())
     {
@@ -208,7 +229,40 @@ bool Foam::dsmcParcel::move
             scalar dt = tEnd; // NEW VINCENT
 
             orgCell = cell(); // NEW VINCENT
-            dt *= trackToFace(position() + dt*Utracking, td, true);
+            label tetFaceBefore = -1;
+            label tetPtBefore = -1;
+
+            if (moveDetailProfile)
+            {
+                ++td.moveTrackCalls;
+                tetFaceBefore = tetFace();
+                tetPtBefore = tetPt();
+                const auto tTrack0 = MoveDetailClock::now();
+                dt *= trackToFace(position() + dt*Utracking, td, true);
+                td.moveTrackWallTime += elapsedMoveDetailSeconds(tTrack0);
+
+                if (face() != -1)
+                {
+                    ++td.moveFaceHits;
+                }
+                else if
+                (
+                    cell() == orgCell
+                 && tetFace() == tetFaceBefore
+                 && tetPt() == tetPtBefore
+                )
+                {
+                    ++td.moveSameTetNoFaceHits;
+                }
+                else
+                {
+                    ++td.moveInternalTetNoFaceHits;
+                }
+            }
+            else
+            {
+                dt *= trackToFace(position() + dt*Utracking, td, true);
+            }
             const label destCell = cell(); // NEW VINCENT
 
             tEnd -= dt;
@@ -231,7 +285,16 @@ bool Foam::dsmcParcel::move
             if (face() != -1 && trackerActive)
             {
                 //- measure flux properties
-                trackParcelFaceTransitionThreadSafe(cloud, *this);
+                if (moveDetailProfile)
+                {
+                    const auto tTracker0 = MoveDetailClock::now();
+                    trackParcelFaceTransitionThreadSafe(cloud, *this);
+                    td.moveTrackerWallTime += elapsedMoveDetailSeconds(tTracker0);
+                }
+                else
+                {
+                    trackParcelFaceTransitionThreadSafe(cloud, *this);
+                }
             }
 
             if (onBoundary() && td.keepParticle)
@@ -240,6 +303,10 @@ bool Foam::dsmcParcel::move
 
                 if (isA<processorPolyPatch>(pbMesh[patchIndex]))
                 {
+                    if (moveDetailProfile)
+                    {
+                        ++td.moveProcessorHits;
+                    }
                     td.switchProcessor = true;
                 }
 
@@ -253,13 +320,30 @@ bool Foam::dsmcParcel::move
 
                     if (cyclicModelId >= 0)
                     {
-                        controlCyclicBoundaryThreadSafe
-                        (
-                            cloud,
-                            cyclicModelId,
-                            *this,
-                            td
-                        );
+                        if (moveDetailProfile)
+                        {
+                            ++td.moveCyclicHits;
+                            const auto tBoundary0 = MoveDetailClock::now();
+                            controlCyclicBoundaryThreadSafe
+                            (
+                                cloud,
+                                cyclicModelId,
+                                *this,
+                                td
+                            );
+                            td.moveBoundaryWallTime +=
+                                elapsedMoveDetailSeconds(tBoundary0);
+                        }
+                        else
+                        {
+                            controlCyclicBoundaryThreadSafe
+                            (
+                                cloud,
+                                cyclicModelId,
+                                *this,
+                                td
+                            );
+                        }
                     }
                 }
             }
@@ -281,13 +365,30 @@ bool Foam::dsmcParcel::move
             if (patchModelId >= 0)
             {
                 // then this patch is the "dsmc*Sticking*WallPatch" the particle is stuck on
-                controlPatchBoundaryThreadSafe
-                (
-                    cloud,
-                    patchModelId,
-                    *this,
-                    td
-                );
+                if (moveDetailProfile)
+                {
+                    ++td.moveStuckHits;
+                    const auto tBoundary0 = MoveDetailClock::now();
+                    controlPatchBoundaryThreadSafe
+                    (
+                        cloud,
+                        patchModelId,
+                        *this,
+                        td
+                    );
+                    td.moveBoundaryWallTime +=
+                        elapsedMoveDetailSeconds(tBoundary0);
+                }
+                else
+                {
+                    controlPatchBoundaryThreadSafe
+                    (
+                        cloud,
+                        patchModelId,
+                        *this,
+                        td
+                    );
+                }
             }
         }
     }
@@ -332,7 +433,17 @@ void Foam::dsmcParcel::hitWallPatch
     const label& patchModelId = td.cloud().boundaries().patchToModelIds()[patchIndex];
 
     //- apply a boundary model when a molecule collides with this poly patch
-    controlPatchBoundaryThreadSafe(td.cloud(), patchModelId, *this, td);
+    if (td.moveDetailProfile)
+    {
+        ++td.movePatchHits;
+        const auto tBoundary0 = MoveDetailClock::now();
+        controlPatchBoundaryThreadSafe(td.cloud(), patchModelId, *this, td);
+        td.moveBoundaryWallTime += elapsedMoveDetailSeconds(tBoundary0);
+    }
+    else
+    {
+        controlPatchBoundaryThreadSafe(td.cloud(), patchModelId, *this, td);
+    }
 }
 
 
@@ -348,7 +459,17 @@ void Foam::dsmcParcel::hitPatch
     const label& patchModelId = td.cloud().boundaries().patchToModelIds()[patchIndex];
 
     //- apply a boundary model when a molecule collides with this poly patch
-    controlPatchBoundaryThreadSafe(td.cloud(), patchModelId, *this, td);
+    if (td.moveDetailProfile)
+    {
+        ++td.movePatchHits;
+        const auto tBoundary0 = MoveDetailClock::now();
+        controlPatchBoundaryThreadSafe(td.cloud(), patchModelId, *this, td);
+        td.moveBoundaryWallTime += elapsedMoveDetailSeconds(tBoundary0);
+    }
+    else
+    {
+        controlPatchBoundaryThreadSafe(td.cloud(), patchModelId, *this, td);
+    }
 }
 
 

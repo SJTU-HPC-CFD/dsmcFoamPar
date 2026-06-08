@@ -453,7 +453,29 @@ void noTimeCounter::collide()
 
         if(infoCounter_ >= cloud_.nTerminalOutputs())
         {
-            if (collisionCandidates)
+            const bool replicatedRawMpi =
+                cloud_.replicatedMeshActive() && !Pstream::parRun();
+
+            if (replicatedRawMpi)
+            {
+                const label myRank = cloud_.replicatedMesh().myRank();
+
+                if (collisionCandidates)
+                {
+                    Info<< "    Collisions [rank " << myRank << "]"
+                        << "              = " << collisions << nl
+                        << "    Collision candidates [rank " << myRank << "]"
+                        << "  = " << collisionCandidates << nl
+                        << "    Collision acceptance rate      = "
+                        << scalar(collisions)/scalar(collisionCandidates) << nl
+                        << endl;
+                }
+                else
+                {
+                    Info<< "    No collisions [rank " << myRank << "]" << endl;
+                }
+            }
+            else if (cloud_.isOutputRank() && collisionCandidates)
             {
                 Info<< "    Collisions                      = "
                     << collisions << nl
@@ -463,7 +485,7 @@ void noTimeCounter::collide()
                     << scalar(collisions)/scalar(collisionCandidates) << nl
                     << endl;
             }
-            else
+            else if (cloud_.isOutputRank())
             {
                 Info<< "    No collisions" << endl;
             }
@@ -761,20 +783,50 @@ void noTimeCounter::collide()
 
     if(infoCounter_ >= cloud_.nTerminalOutputs())
     {
-        if (collisionCandidates)
+        const bool replicatedRawMpi =
+            cloud_.replicatedMeshActive() && !Pstream::parRun();
+
+        if (replicatedRawMpi)
+        {
+            const label myRank = cloud_.replicatedMesh().myRank();
+
+            if (collisionCandidates)
+            {
+                Info<< "    Collisions [rank " << myRank << "]"
+                    << "              = " << collisions << nl
+                    << "    Collision candidates [rank " << myRank << "]"
+                    << "  = " << collisionCandidates << nl
+                    << "    Collision acceptance rate      = "
+                    << scalar(collisions)/scalar(collisionCandidates) << nl
+                    << endl;
+            }
+            else
+            {
+                Info<< "    No collisions [rank " << myRank << "]" << endl;
+            }
+
+            infoCounter_ = 0;
+        }
+        else if (cloud_.isOutputRank() && collisionCandidates)
         {
             Info<< "    Collisions                      = "
                 << collisions << nl
-    //             << "    Acceptance rate                 = "
-    //             << scalar(collisions)/scalar(collisionCandidates) << nl
+                << "    Collision candidates           = "
+                << collisionCandidates << nl
+                << "    Collision acceptance rate      = "
+                << scalar(collisions)/scalar(collisionCandidates) << nl
                 << endl;
+
+            infoCounter_ = 0;
+        }
+        else if (cloud_.isOutputRank())
+        {
+            Info<< "    No collisions" << endl;
 
             infoCounter_ = 0;
         }
         else
         {
-            Info<< "    No collisions" << endl;
-
             infoCounter_ = 0;
         }
     }

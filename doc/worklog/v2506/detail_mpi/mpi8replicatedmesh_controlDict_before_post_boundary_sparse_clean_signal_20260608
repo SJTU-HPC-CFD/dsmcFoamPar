@@ -1,0 +1,63 @@
+FoamFile { version 2.0; format ascii; class dictionary; location "system"; object controlDict; }
+
+useOpenMP false;
+openmpThreads 1;
+
+nTerminalOutputs 10;
+application dsmcFoam+;
+startFrom startTime;
+startTime 0;
+stopAt endTime;
+endTime         1.e-06;
+deltaT          1.e-07;
+sampleSteps     20000;
+CTC             0.25;
+CAC             0.5;
+writeControl runTime;
+writeInterval   1.e-3;
+purgeWrite 0;
+writeFormat ascii;
+writePrecision 10;
+writeCompression uncompressed;
+timeFormat general;
+timePrecision 10;
+runTimeModifiable no;
+adjustTimeStep no;
+
+openmpMoveSchedule static;
+openmpMoveChunk 64;
+openmpCollisionSchedule dynamic;
+openmpCollisionChunk 8;
+
+profileSummary true;
+profileDetail true;
+collisionFastRng true;
+
+replicatedMesh true;
+replicatedMeshDelayedReceive true;
+replicatedMeshNoAlltoall true;
+replicatedMeshFlatTransfer true;
+replicatedMeshDecompMethod metis;
+replicatedMeshMigrateInterval 10;
+replicatedMeshDLBDualConstraint true;
+replicatedMeshAutoDLB true;
+replicatedMeshDLBSteps 50;
+replicatedMeshDLBForceSteps (120 170 220 270 320 370 420 470);
+replicatedMeshDLBTriggerMode legacyWindow;
+replicatedMeshDLBMinGapSteps 50;
+replicatedMeshDLBCheckCollective allgather;
+replicatedMeshDLBSkipFixedKPostDiag false;
+replicatedMeshDLBImbalanceThreshold 1.5;
+replicatedMeshDLBFixedK 1;
+replicatedMeshDLBInitialK 1024;
+replicatedMeshDLBItr 1000;
+replicatedMeshDLBUbvec 1.05;
+replicatedMeshDLBUbvec1 1.5;
+replicatedMeshDLBProfile false;
+replicatedMeshDLBProfileSteps 5;
+replicatedMeshDLBInitialAlpha 0.8;
+replicatedMeshDLBAdaptiveKMode  0;  // 0-PID, 1-Hill
+replicatedMeshDLBVsizeExp 0;
+
+
+functions {}

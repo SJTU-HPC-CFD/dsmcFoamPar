@@ -1045,6 +1045,19 @@ public:
     public:
 
         MoveFastRng moveRng;
+        bool moveDetailProfile;
+        label moveParcels;
+        label moveTrackCalls;
+        label moveSameTetNoFaceHits;
+        label moveInternalTetNoFaceHits;
+        label moveFaceHits;
+        label moveProcessorHits;
+        label moveCyclicHits;
+        label movePatchHits;
+        label moveStuckHits;
+        scalar moveTrackWallTime;
+        scalar moveTrackerWallTime;
+        scalar moveBoundaryWallTime;
 
         // Constructors
 
@@ -1052,7 +1065,20 @@ public:
             trackingData(dsmcCloud& cloud)
             :
                 particle::TrackingData<dsmcCloud>(cloud),
-                moveRng(1)
+                moveRng(1),
+                moveDetailProfile(false),
+                moveParcels(0),
+                moveTrackCalls(0),
+                moveSameTetNoFaceHits(0),
+                moveInternalTetNoFaceHits(0),
+                moveFaceHits(0),
+                moveProcessorHits(0),
+                moveCyclicHits(0),
+                movePatchHits(0),
+                moveStuckHits(0),
+                moveTrackWallTime(0.0),
+                moveTrackerWallTime(0.0),
+                moveBoundaryWallTime(0.0)
             {}
 
     };

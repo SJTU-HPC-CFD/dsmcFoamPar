@@ -34,6 +34,73 @@ License
 #include "wedgePolyPatch.H"
 #include "meshTools.H"
 
+namespace Foam
+{
+
+inline bool dsmcTrackOutsideTetPlaneNoNormalise
+(
+    const point& pt,
+    const point& basePt,
+    const vector& n
+)
+{
+    const scalar d = (pt - basePt) & n;
+
+    return d > 0 && d > SMALL*(mag(n) + VSMALL);
+}
+
+
+inline bool dsmcTrackInsideTetNoNormalise
+(
+    const point& pt,
+    const point& baseB,
+    const point& baseC,
+    const FixedList<vector, 4>& tetAreas
+)
+{
+    if (dsmcTrackOutsideTetPlaneNoNormalise(pt, baseB, tetAreas[0]))
+    {
+        return false;
+    }
+
+    if (dsmcTrackOutsideTetPlaneNoNormalise(pt, baseC, tetAreas[1]))
+    {
+        return false;
+    }
+
+    if (dsmcTrackOutsideTetPlaneNoNormalise(pt, baseB, tetAreas[2]))
+    {
+        return false;
+    }
+
+    if (dsmcTrackOutsideTetPlaneNoNormalise(pt, baseB, tetAreas[3]))
+    {
+        return false;
+    }
+
+    return true;
+}
+
+
+inline bool dsmcTrackInsideTetNoNormalise
+(
+    const tetPointRef& tet,
+    const point& pt
+)
+{
+    FixedList<vector, 4> tetAreas;
+
+    tetAreas[0] = tet.Sa();
+    tetAreas[1] = tet.Sb();
+    tetAreas[2] = tet.Sc();
+    tetAreas[3] = tet.Sd();
+
+    return dsmcTrackInsideTetNoNormalise(pt, tet.b(), tet.c(), tetAreas);
+}
+
+
+}
+
 // * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
 
 template<class TrackData>
@@ -752,6 +819,9 @@ Foam::scalar Foam::particle::trackToFace
 
     faceI_ = -1;
 
+    FixedList<vector, 4> initialTetAreas;
+    bool reuseInitialTetAreas = false;
+
     if
     (
         !movingMesh
@@ -776,12 +846,27 @@ Foam::scalar Foam::particle::trackToFace
             pPts[f[fPtBI]]
         );
 
-        if (tet.inside(endPosition))
+        initialTetAreas[0] = tet.Sa();
+        initialTetAreas[1] = tet.Sb();
+        initialTetAreas[2] = tet.Sc();
+        initialTetAreas[3] = tet.Sd();
+
+        if
+        (
+            dsmcTrackInsideTetNoNormalise
+            (
+                endPosition,
+                pPts[basePtI],
+                pPts[f[fPtAI]],
+                initialTetAreas
+            )
+        )
         {
             position_ = endPosition;
             return 1.0;
         }
 
+        reuseInitialTetAreas = true;
     }
 
     // Pout<< "Particle " << origId_ << " " << origProc_
@@ -932,10 +1017,19 @@ Foam::scalar Foam::particle::trackToFace
 
             FixedList<vector, 4> tetAreas;
 
-            tetAreas[0] = tet.Sa();
-            tetAreas[1] = tet.Sb();
-            tetAreas[2] = tet.Sc();
-            tetAreas[3] = tet.Sd();
+            if (reuseInitialTetAreas && triI == -1)
+            {
+                tetAreas = initialTetAreas;
+            }
+            else
+            {
+                tetAreas[0] = tet.Sa();
+                tetAreas[1] = tet.Sb();
+                tetAreas[2] = tet.Sc();
+                tetAreas[3] = tet.Sd();
+            }
+
+            reuseInitialTetAreas = false;
 
             //******
             for (label i = 0; i < 4; i++)

@@ -152,6 +152,13 @@ bool run
 
         if (dsmc.replicatedMeshActive())
         {
+            if (dsmc.replicatedMeshRef().asyncMigrationPending())
+            {
+                dsmc.replicatedMeshRef().migrateFinish();
+                dsmc.replicatedMeshRef().updateParticleCounts();
+                dsmc.clearMoveOrderedParcels();
+            }
+
             const bool isOutput = runTime.outputTime();
             scalar gatherWall = 0.0;
             scalar writeWall = 0.0;

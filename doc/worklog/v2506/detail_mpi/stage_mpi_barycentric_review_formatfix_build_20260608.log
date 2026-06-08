@@ -1,0 +1,58 @@
+ 
+:: initializing oneAPI environment ...
+   bash: BASH_VERSION = 5.1.16(1)-release
+   args: Using "$@" for setvars.sh arguments: --force
+:: advisor -- latest
+:: ccl -- latest
+:: compiler -- latest
+:: dal -- latest
+:: debugger -- latest
+:: dev-utilities -- latest
+:: dnnl -- latest
+:: dpcpp-ct -- latest
+:: dpl -- latest
+:: ipp -- latest
+:: ippcp -- latest
+:: ishmem -- latest
+:: mkl -- latest
+:: mpi -- latest
+:: pti -- latest
+:: tbb -- latest
+:: umf -- latest
+:: vtune -- latest
+:: oneAPI environment initialized ::
+ 
+=== Build targets ===
+  LIBBIN: /home/superxcx/code/OpenFoam/OF-1706/hyStrath_dlb/platforms/linux64IccDPInt32Opt/lib
+  APPBIN: /home/superxcx/code/OpenFoam/OF-1706/hyStrath_dlb/platforms/linux64IccDPInt32Opt/bin
+  USER_DIR: /home/superxcx/code/OpenFoam/OF-1706/hyStrath_dlb
+
+=== Building liblagrangian+ ===
+Compiling enabled on 16 cores
+wmake lnInclude
+Making dependency list for source file particleIO.C
+icpx -std=c++11 -fp-model precise -DOPENFOAM_PLUS=1706 -Dlinux64 -DWM_ARCH_OPTION=64 -DWM_DP -DWM_LABEL_SIZE=32 -Wall -Wextra -Wnon-virtual-dtor -Wno-unused-parameter -O3  -DNoRepository -qopenmp -I/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude -I/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude -IlnInclude -I. -I/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude -I/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OSspecific/POSIX/lnInclude   -fPIC -c particle/particleIO.C -o Make/linux64IccDPInt32Opt/particle/particleIO.o
+icpx -std=c++11 -fp-model precise -DOPENFOAM_PLUS=1706 -Dlinux64 -DWM_ARCH_OPTION=64 -DWM_DP -DWM_LABEL_SIZE=32 -Wall -Wextra -Wnon-virtual-dtor -Wno-unused-parameter -O3  -DNoRepository -qopenmp -I/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude -I/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude -IlnInclude -I. -I/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude -I/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OSspecific/POSIX/lnInclude   -fPIC -shared -Xlinker --add-needed -Xlinker --no-as-needed Make/linux64IccDPInt32Opt/particle/barycentric.o Make/linux64IccDPInt32Opt/particle/particle.o Make/linux64IccDPInt32Opt/particle/particleIO.o Make/linux64IccDPInt32Opt/passiveParticle/passiveParticleCloud.o Make/linux64IccDPInt32Opt/indexedParticle/indexedParticleCloud.o Make/linux64IccDPInt32Opt/InteractionLists/referredWallFace/referredWallFace.o -L/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/platforms/linux64IccDPInt32Opt/lib \
+    -qopenmp -lmeshTools  -o /home/superxcx/code/OpenFoam/OF-1706/hyStrath_dlb/platforms/linux64IccDPInt32Opt/lib/liblagrangian+.so
+Compiling enabled on 16 cores
+wmake libso (basic)
+=== Building libgeneralMolecule ===
+Compiling enabled on 16 cores
+wmake lnInclude
+Compiling enabled on 16 cores
+wmake libso (general)
+=== Building libdsmcFoam+ ===
+Compiling enabled on 16 cores
+wmake lnInclude
+Compiling enabled on 16 cores
+wmake libso (dsmc)
+=== Building dsmcFoam+ ===
+Compiling enabled on 16 cores
+=== Building dsmcInitialise+ ===
+Compiling enabled on 16 cores
+
+=== Done ===
+dsmcFoam+ binary: /home/superxcx/code/OpenFoam/OF-1706/hyStrath_dlb/platforms/linux64IccDPInt32Opt/bin/dsmcFoam+
+dsmcInitialise+ binary: /home/superxcx/code/OpenFoam/OF-1706/hyStrath_dlb/platforms/linux64IccDPInt32Opt/bin/dsmcInitialise+
+-rwxr-xr-x 1 superxcx superxcx 982056 Jun  8 05:12 /home/superxcx/code/OpenFoam/OF-1706/hyStrath_dlb/platforms/linux64IccDPInt32Opt/bin/dsmcFoam+
+-rwxr-xr-x 1 superxcx superxcx 859784 Jun  8 05:12 /home/superxcx/code/OpenFoam/OF-1706/hyStrath_dlb/platforms/linux64IccDPInt32Opt/bin/dsmcInitialise+

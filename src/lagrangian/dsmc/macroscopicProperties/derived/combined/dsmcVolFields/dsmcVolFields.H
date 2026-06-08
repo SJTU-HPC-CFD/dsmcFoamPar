@@ -216,6 +216,9 @@ protected:
         label profileCalls_;
         bool finalProfilePrinted_;
 
+        //- Precomputed owned boundary face indices for replicated mesh sampling
+        List<labelList> ownedBoundaryFaces_;
+
     // Protected Member Functions
 
         void readIn();

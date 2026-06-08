@@ -179,7 +179,12 @@ boundaryMeasurements::boundaryMeasurements
         mesh_.boundary(),
         mesh_.C(),
         calculatedFvPatchVectorField::typeName
-    )
+    ),
+    touchedStamp_(),
+    touchedSpecies_(),
+    touchedPatches_(),
+    touchedFaces_(),
+    cleanStamp_(0)
 {
     nParticlesOnStickingBoundaries_ = 0.0;
     nAbsorbedParticles_ = 0.0;
@@ -235,7 +240,12 @@ boundaryMeasurements::boundaryMeasurements
         mesh_.boundary(),
         mesh_.C(),
         calculatedFvPatchVectorField::typeName
-    )
+    ),
+    touchedStamp_(),
+    touchedSpecies_(),
+    touchedPatches_(),
+    touchedFaces_(),
+    cleanStamp_(0)
 {
     nParticlesOnStickingBoundaries_ = 0.0;
     nAbsorbedParticles_ = 0.0;
@@ -363,35 +373,37 @@ void boundaryMeasurements::setInitialConfig()
 
 void boundaryMeasurements::clean()
 {
-    //- clean geometric fields
-    forAll(typeIds_, i)
+    forAll(touchedSpecies_, touchI)
     {
-        forAll(speciesRhoNBF_[i], j)
-        {
-            speciesRhoNIntBF_[i][j] = 0.0;
-            speciesRhoNElecBF_[i][j] = 0.0;
-            speciesRhoNBF_[i][j] = 0.0;
-            speciesRhoMBF_[i][j] = 0.0;
-            speciesLinearKEBF_[i][j] = 0.0;
-            speciesMccBF_[i][j] = 0.0;
-            speciesMomentumBF_[i][j] = vector::zero;
-            speciesUMeanBF_[i][j] = vector::zero;
-            speciesErotBF_[i][j] = 0.0;
-            speciesZetaRotBF_[i][j] = 0.0;
-            speciesEvibBF_[i][j] = 0.0;
-            speciesEelecBF_[i][j] = 0.0;
-            speciesqBF_[i][j] = 0.0;
-            speciesfDBF_[i][j] = vector::zero;
-        }
+        const label i = touchedSpecies_[touchI];
+        const label j = touchedPatches_[touchI];
+        const label facei = touchedFaces_[touchI];
+
+        speciesRhoNIntBF_[i][j][facei] = 0.0;
+        speciesRhoNElecBF_[i][j][facei] = 0.0;
+        speciesRhoNBF_[i][j][facei] = 0.0;
+        speciesRhoMBF_[i][j][facei] = 0.0;
+        speciesLinearKEBF_[i][j][facei] = 0.0;
+        speciesMccBF_[i][j][facei] = 0.0;
+        speciesMomentumBF_[i][j][facei] = vector::zero;
+        speciesUMeanBF_[i][j][facei] = vector::zero;
+        speciesErotBF_[i][j][facei] = 0.0;
+        speciesZetaRotBF_[i][j][facei] = 0.0;
+        speciesEvibBF_[i][j][facei] = 0.0;
+        speciesEelecBF_[i][j][facei] = 0.0;
+        speciesqBF_[i][j][facei] = 0.0;
+        speciesfDBF_[i][j][facei] = vector::zero;
 
         forAll(speciesEvibModBF_[i], mod)
         {
-            forAll(speciesEvibModBF_[i][mod], j)
-            {
-                speciesEvibModBF_[i][mod][j] = 0.0;
-            }
+            speciesEvibModBF_[i][mod][j][facei] = 0.0;
         }
     }
+
+    touchedSpecies_.clear();
+    touchedPatches_.clear();
+    touchedFaces_.clear();
+    ++cleanStamp_;
 
     forAll(nParticlesOnStickingBoundaries_, j)
     {
@@ -421,6 +433,7 @@ void boundaryMeasurements::reset()
     speciesqBF_.setSize(nSpecies);
     speciesfDBF_.setSize(nSpecies);
     speciesEvibModBF_.setSize(nSpecies);
+    touchedStamp_.setSize(nSpecies);
     
     forAll(typeIds_, i)
     {
@@ -443,6 +456,7 @@ void boundaryMeasurements::reset()
         speciesfDBF_[i].setSize(nPatches);
 
         speciesEvibModBF_[i].setSize(nVibMod);
+        touchedStamp_[i].setSize(nPatches);
         forAll(speciesEvibModBF_[i], mod)
         {
             speciesEvibModBF_[i][mod].setSize(nPatches);
@@ -466,6 +480,7 @@ void boundaryMeasurements::reset()
             speciesEelecBF_[i][j].setSize(nFaces, 0.0);
             speciesqBF_[i][j].setSize(nFaces, 0.0);
             speciesfDBF_[i][j].setSize(nFaces, vector::zero);
+            touchedStamp_[i][j].setSize(nFaces, -1);
         }
 
         forAll(speciesEvibModBF_[i], mod)
@@ -477,6 +492,11 @@ void boundaryMeasurements::reset()
             }
         }
     }
+
+    touchedSpecies_.clear();
+    touchedPatches_.clear();
+    touchedFaces_.clear();
+    cleanStamp_ = 0;
     
     nParticlesOnStickingBoundaries_.setSize(nPatches);
     nAbsorbedParticles_.setSize(nPatches);

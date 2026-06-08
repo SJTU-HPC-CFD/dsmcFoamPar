@@ -27,6 +27,7 @@ License
 #include "constants.H"
 #include "zeroGradientFvPatchFields.H"
 #include <chrono>
+#include <mpi.h>
 
 using namespace Foam::constant;
 
@@ -1149,6 +1150,18 @@ Foam::dsmcCloud::dsmcCloud
     ),
     profileTimingActive_(false),
     profileSteps_(0),
+    moveDetailParcels_(0),
+    moveDetailTrackCalls_(0),
+    moveDetailSameTetNoFaceHits_(0),
+    moveDetailInternalTetNoFaceHits_(0),
+    moveDetailFaceHits_(0),
+    moveDetailProcessorHits_(0),
+    moveDetailCyclicHits_(0),
+    moveDetailPatchHits_(0),
+    moveDetailStuckHits_(0),
+    moveDetailTrackWallTime_(0.0),
+    moveDetailTrackerWallTime_(0.0),
+    moveDetailBoundaryWallTime_(0.0),
     openmpEnabled_
     (
         controlDict_.lookupOrDefault<bool>("useOpenMP", false)
@@ -1379,6 +1392,18 @@ Foam::dsmcCloud::dsmcCloud
     ),
     profileTimingActive_(false),
     profileSteps_(0),
+    moveDetailParcels_(0),
+    moveDetailTrackCalls_(0),
+    moveDetailSameTetNoFaceHits_(0),
+    moveDetailInternalTetNoFaceHits_(0),
+    moveDetailFaceHits_(0),
+    moveDetailProcessorHits_(0),
+    moveDetailCyclicHits_(0),
+    moveDetailPatchHits_(0),
+    moveDetailStuckHits_(0),
+    moveDetailTrackWallTime_(0.0),
+    moveDetailTrackerWallTime_(0.0),
+    moveDetailBoundaryWallTime_(0.0),
     openmpEnabled_(false),
     openmpMoveEnabled_(false),
     trackerActive_(true),
@@ -1542,6 +1567,9 @@ void Foam::dsmcCloud::evolve_moveAndCollide()
     controllers_.updateTimeInfo();
 
     dsmcParcel::trackingData td(*this);
+    td.moveDetailProfile =
+        profileDetail_
+     && controlDict_.lookupOrDefault<bool>("moveDetailProfile", false);
 
     if (debug)
     {
@@ -1567,6 +1595,25 @@ void Foam::dsmcCloud::evolve_moveAndCollide()
         {
             replicatedMesh_->migrateParticlesByCellOwner();
         }
+        replicatedMesh_->updateParticleCounts();
+        clearMoveOrderedParcels();
+    }
+
+    const bool replicatedMeshDelayedReceive =
+        replicatedMeshActive()
+     && controlDict_.lookupOrDefault<bool>
+        (
+            "replicatedMeshDelayedReceive",
+            false
+        );
+
+    if
+    (
+        replicatedMeshDelayedReceive
+     && replicatedMesh_->asyncMigrationPending()
+    )
+    {
+        replicatedMesh_->migrateFinish();
         replicatedMesh_->updateParticleCounts();
         clearMoveOrderedParcels();
     }
@@ -1602,6 +1649,21 @@ void Foam::dsmcCloud::evolve_moveAndCollide()
     {
         endMoveAppendCapture();
     }
+    if (td.moveDetailProfile)
+    {
+        moveDetailParcels_ += td.moveParcels;
+        moveDetailTrackCalls_ += td.moveTrackCalls;
+        moveDetailSameTetNoFaceHits_ += td.moveSameTetNoFaceHits;
+        moveDetailInternalTetNoFaceHits_ += td.moveInternalTetNoFaceHits;
+        moveDetailFaceHits_ += td.moveFaceHits;
+        moveDetailProcessorHits_ += td.moveProcessorHits;
+        moveDetailCyclicHits_ += td.moveCyclicHits;
+        moveDetailPatchHits_ += td.movePatchHits;
+        moveDetailStuckHits_ += td.moveStuckHits;
+        moveDetailTrackWallTime_ += td.moveTrackWallTime;
+        moveDetailTrackerWallTime_ += td.moveTrackerWallTime;
+        moveDetailBoundaryWallTime_ += td.moveBoundaryWallTime;
+    }
     if (profileSummary_)
     {
         profileMoveWall_ += elapsedWallSeconds(moveWallStart);
@@ -1620,7 +1682,15 @@ void Foam::dsmcCloud::evolve_moveAndCollide()
             )
         )
         {
-            replicatedMesh_->migrateParticlesByCellOwner();
+            if (replicatedMeshDelayedReceive)
+            {
+                replicatedMesh_->migrateBegin();
+                replicatedMesh_->migrateFinish();
+            }
+            else
+            {
+                replicatedMesh_->migrateParticlesByCellOwner();
+            }
             replicatedMesh_->updateParticleCounts();
             clearMoveOrderedParcels();
         }
@@ -1637,6 +1707,13 @@ void Foam::dsmcCloud::evolve_moveAndCollide()
         {
             if (steps[i] == currentStep)
             {
+                if (replicatedMesh_->asyncMigrationPending())
+                {
+                    replicatedMesh_->migrateFinish();
+                    replicatedMesh_->updateParticleCounts();
+                    clearMoveOrderedParcels();
+                }
+
                 Info<< nl
                     << "Replicated mesh: manual cell owner reassignment at step "
                     << currentStep << nl << endl;
@@ -1696,6 +1773,14 @@ void Foam::dsmcCloud::evolve_moveAndCollide()
 
     if (replicatedMeshActive())
     {
+        if (replicatedMesh_->asyncMigrationPending())
+        {
+            replicatedMesh_->migrateFinish();
+            replicatedMesh_->updateParticleCounts();
+            clearMoveOrderedParcels();
+            buildCellOccupancy();
+        }
+
         const label prevRebalances = replicatedMesh_->autoRebalanceCount();
         replicatedMesh_->addEvolveTime
         (
@@ -1930,8 +2015,133 @@ void Foam::dsmcCloud::printProfileSummary() const
     scalar buildCellOccupancyCpu = profileBuildCellOccupancyCpu_;
     scalar collisionCpu = profileCollisionCpu_;
     scalar postFieldsCpu = profilePostFieldsCpu_;
+    label moveDetailParcels = moveDetailParcels_;
+    label moveDetailTrackCalls = moveDetailTrackCalls_;
+    label moveDetailSameTetNoFaceHits = moveDetailSameTetNoFaceHits_;
+    label moveDetailInternalTetNoFaceHits = moveDetailInternalTetNoFaceHits_;
+    label moveDetailFaceHits = moveDetailFaceHits_;
+    label moveDetailProcessorHits = moveDetailProcessorHits_;
+    label moveDetailCyclicHits = moveDetailCyclicHits_;
+    label moveDetailPatchHits = moveDetailPatchHits_;
+    label moveDetailStuckHits = moveDetailStuckHits_;
+    scalar moveDetailTrackWallTime = moveDetailTrackWallTime_;
+    scalar moveDetailTrackerWallTime = moveDetailTrackerWallTime_;
+    scalar moveDetailBoundaryWallTime = moveDetailBoundaryWallTime_;
 
-    if (Pstream::parRun())
+    const bool replicatedRawMpi = replicatedMeshActive() && !Pstream::parRun();
+
+    if (replicatedRawMpi)
+    {
+        int mpiInit = 0;
+        MPI_Initialized(&mpiInit);
+
+        if (mpiInit)
+        {
+            MPI_Allreduce
+            (
+                MPI_IN_PLACE,
+                &steps,
+                1,
+                MPI_INT,
+                MPI_MAX,
+                MPI_COMM_WORLD
+            );
+
+            scalar profileValues[] =
+            {
+                fullEvolveWall,
+                moveAndCollideWall,
+                moveWall,
+                buildCellOccupancyWall,
+                collisionWall,
+                postFieldsWall,
+                fullEvolveCpu,
+                moveAndCollideCpu,
+                moveCpu,
+                buildCellOccupancyCpu,
+                collisionCpu,
+                postFieldsCpu
+            };
+
+            MPI_Allreduce
+            (
+                MPI_IN_PLACE,
+                profileValues,
+                12,
+                MPI_DOUBLE,
+                MPI_MAX,
+                MPI_COMM_WORLD
+            );
+
+            fullEvolveWall = profileValues[0];
+            moveAndCollideWall = profileValues[1];
+            moveWall = profileValues[2];
+            buildCellOccupancyWall = profileValues[3];
+            collisionWall = profileValues[4];
+            postFieldsWall = profileValues[5];
+            fullEvolveCpu = profileValues[6];
+            moveAndCollideCpu = profileValues[7];
+            moveCpu = profileValues[8];
+            buildCellOccupancyCpu = profileValues[9];
+            collisionCpu = profileValues[10];
+            postFieldsCpu = profileValues[11];
+
+            label moveDetailCounts[] =
+            {
+                moveDetailParcels,
+                moveDetailTrackCalls,
+                moveDetailSameTetNoFaceHits,
+                moveDetailInternalTetNoFaceHits,
+                moveDetailFaceHits,
+                moveDetailProcessorHits,
+                moveDetailCyclicHits,
+                moveDetailPatchHits,
+                moveDetailStuckHits
+            };
+
+            MPI_Allreduce
+            (
+                MPI_IN_PLACE,
+                moveDetailCounts,
+                9,
+                MPI_INT,
+                MPI_SUM,
+                MPI_COMM_WORLD
+            );
+
+            moveDetailParcels = moveDetailCounts[0];
+            moveDetailTrackCalls = moveDetailCounts[1];
+            moveDetailSameTetNoFaceHits = moveDetailCounts[2];
+            moveDetailInternalTetNoFaceHits = moveDetailCounts[3];
+            moveDetailFaceHits = moveDetailCounts[4];
+            moveDetailProcessorHits = moveDetailCounts[5];
+            moveDetailCyclicHits = moveDetailCounts[6];
+            moveDetailPatchHits = moveDetailCounts[7];
+            moveDetailStuckHits = moveDetailCounts[8];
+
+            scalar moveDetailTimes[] =
+            {
+                moveDetailTrackWallTime,
+                moveDetailTrackerWallTime,
+                moveDetailBoundaryWallTime
+            };
+
+            MPI_Allreduce
+            (
+                MPI_IN_PLACE,
+                moveDetailTimes,
+                3,
+                MPI_DOUBLE,
+                MPI_MAX,
+                MPI_COMM_WORLD
+            );
+
+            moveDetailTrackWallTime = moveDetailTimes[0];
+            moveDetailTrackerWallTime = moveDetailTimes[1];
+            moveDetailBoundaryWallTime = moveDetailTimes[2];
+        }
+    }
+    else if (Pstream::parRun())
     {
         reduce(steps, maxOp<label>());
         reduce(fullEvolveWall, maxOp<scalar>());
@@ -1946,9 +2156,21 @@ void Foam::dsmcCloud::printProfileSummary() const
         reduce(buildCellOccupancyCpu, maxOp<scalar>());
         reduce(collisionCpu, maxOp<scalar>());
         reduce(postFieldsCpu, maxOp<scalar>());
+        reduce(moveDetailParcels, sumOp<label>());
+        reduce(moveDetailTrackCalls, sumOp<label>());
+        reduce(moveDetailSameTetNoFaceHits, sumOp<label>());
+        reduce(moveDetailInternalTetNoFaceHits, sumOp<label>());
+        reduce(moveDetailFaceHits, sumOp<label>());
+        reduce(moveDetailProcessorHits, sumOp<label>());
+        reduce(moveDetailCyclicHits, sumOp<label>());
+        reduce(moveDetailPatchHits, sumOp<label>());
+        reduce(moveDetailStuckHits, sumOp<label>());
+        reduce(moveDetailTrackWallTime, maxOp<scalar>());
+        reduce(moveDetailTrackerWallTime, maxOp<scalar>());
+        reduce(moveDetailBoundaryWallTime, maxOp<scalar>());
     }
 
-    if (Pstream::master())
+    if ((replicatedRawMpi && isOutputRank()) || (!replicatedRawMpi && Pstream::master()))
     {
         const scalar accountedWall =
             moveWall
@@ -1983,6 +2205,28 @@ void Foam::dsmcCloud::printProfileSummary() const
         {
             Info<< nl
                 << "    profile detail                = basic-stage timers only";
+        }
+
+        if (moveDetailParcels > 0 || moveDetailTrackCalls > 0)
+        {
+            Info<< nl
+                << "    move detail parcels          = " << moveDetailParcels << nl
+                << "    move detail track calls      = " << moveDetailTrackCalls << nl
+                << "    move detail same-tet no-face = "
+                << moveDetailSameTetNoFaceHits << nl
+                << "    move detail internal tet only= "
+                << moveDetailInternalTetNoFaceHits << nl
+                << "    move detail face hits        = " << moveDetailFaceHits << nl
+                << "    move detail processor hits   = " << moveDetailProcessorHits << nl
+                << "    move detail cyclic hits      = " << moveDetailCyclicHits << nl
+                << "    move detail patch hits       = " << moveDetailPatchHits << nl
+                << "    move detail stuck hits       = " << moveDetailStuckHits << nl
+                << "    move detail track max [s]    = "
+                << moveDetailTrackWallTime << nl
+                << "    move detail tracker max [s]  = "
+                << moveDetailTrackerWallTime << nl
+                << "    move detail boundary max [s] = "
+                << moveDetailBoundaryWallTime;
         }
 
         Info<< nl
