@@ -121,23 +121,13 @@ inline void controlPatchBoundaryThreadSafe
 {
     Foam::dsmcPatchBoundary& model =
         cloud.boundaries().patchBoundaryModels()[modelI]();
-    const Foam::word& modelType = model.type();
-    const bool threadSafePatchModel =
-        modelType == "dsmcDiffuseWallPatch"
-     || modelType == "dsmcSpecularWallPatch";
 
     if (useOpenMPMoveCriticals(cloud))
     {
-        if (threadSafePatchModel)
+        // Patch models may update shared wall measurements and use cloud RNG.
+        #pragma omp critical(dsmcMoveBoundary)
         {
             model.controlParticle(p, td);
-        }
-        else
-        {
-            #pragma omp critical(dsmcMoveBoundary)
-            {
-                model.controlParticle(p, td);
-            }
         }
     }
     else

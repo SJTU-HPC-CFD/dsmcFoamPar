@@ -1,0 +1,70 @@
+case=zb
+mode=OMP8
+rep=3
+np=1
+OMP_NUM_THREADS=8
+case_dir=/home/superxcx/code/OpenFoam/OF-1706/hyStrath_dlb/run/hyStrath/dsmcFoam+/xcx_test/zb-cylinder-react/omp8
+controlDict=/home/superxcx/code/OpenFoam/OF-1706/hyStrath_dlb/doc/worklog/v2506/detail_mix/repeat_nowrite_compute_20260610/controlDicts/zb_OMP8_rep3_controlDict
+start=2026-06-10T02:28:25+08:00
+/*---------------------------------------------------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  v1706                                 |
+|   \\  /    A nd           | Web:      www.OpenFOAM.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+Build  : v1706
+Arch   : "LSB;label=32;scalar=64"
+Exec   : dsmcFoam+
+Date   : Jun 10 2026
+Time   : 02:28:25
+Host   : "SuperXCX-ROG"
+PID    : 2038184
+Case   : /home/superxcx/code/OpenFoam/OF-1706/hyStrath_dlb/run/hyStrath/dsmcFoam+/xcx_test/zb-cylinder-react/omp8
+nProcs : 1
+sigFpe : Enabling floating point exception trapping (FOAM_SIGFPE).
+fileModificationChecking : Monitoring run-time modified files using timeStampMaster (fileModificationSkew 10)
+allowSystemOperations : Allowing user-supplied system call operations
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+Create time
+
+Create mesh for time = 0
+
+Selecting dynamicFvMesh dynamicRefineFvMesh
+
+Constructing dsmcCloud 
+Selecting the coordinate system model:	dsmcCartesian
+
+Selecting the time-step model:	dsmcConstantTimeStepModel
+
+Constant time-step model:
+- time-step [sec]	6.640048894e-08
+
+Selecting the porous measurement model:	dsmcNoPorousMediumMeasurements
+
+
+Creating dsmcControllers
+
+Creating fields: 
+
+Selecting field: dsmcVolFields
+#0  Foam::error::printStack(Foam::Ostream&) at ??:?
+#1  Foam::sigFpe::sigHandler(int) at ??:?
+#2  ? in "/lib/x86_64-linux-gnu/libc.so.6"
+#3  Foam::timeDataMeas::timeDataMeas(Foam::Time&, Foam::dictionary const&) at ??:?
+#4  Foam::dsmcField::dsmcField(Foam::Time&, Foam::polyMesh const&, Foam::dsmcCloud&, Foam::dictionary const&) at ??:?
+#5  Foam::dsmcVolFields::dsmcVolFields(Foam::Time&, Foam::polyMesh const&, Foam::dsmcCloud&, Foam::dictionary const&) at ??:?
+#6  Foam::dsmcField::adddictionaryConstructorToTable<Foam::dsmcVolFields>::New(Foam::Time&, Foam::polyMesh const&, Foam::dsmcCloud&, Foam::dictionary const&) at ??:?
+#7  Foam::dsmcField::New(Foam::Time&, Foam::polyMesh const&, Foam::dsmcCloud&, Foam::dictionary const&) at ??:?
+#8  Foam::dsmcFieldProperties::dsmcFieldProperties(Foam::Time&, Foam::polyMesh const&, Foam::dsmcCloud&) at ??:?
+#9  Foam::dsmcCloud::dsmcCloud(Foam::Time&, Foam::word const&, Foam::dynamicFvMesh const&, bool) at ??:?
+#10  ? at ??:?
+#11  ? at ??:?
+#12  ? in "/lib/x86_64-linux-gnu/libc.so.6"
+#13  __libc_start_main in "/lib/x86_64-linux-gnu/libc.so.6"
+#14  ? at ??:?
+/usr/bin/timeout: the monitored command dumped core
+real 3.93
+user 1.19
+sys 0.41

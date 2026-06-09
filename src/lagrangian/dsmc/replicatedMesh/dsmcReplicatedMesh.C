@@ -21,6 +21,8 @@ License
 #include "dsmcCloud.H"
 #include "OStringStream.H"
 #include "IStringStream.H"
+#include "IOdictionary.H"
+#include "IOField.H"
 #include "volFields.H"
 #include "scotchDecomp.H"
 #include "parmetis.h"
@@ -1105,6 +1107,236 @@ void dsmcReplicatedMesh::writeCellOwner() const
     cellOwnerField.write();
     Info<< "Written cellOwner field at output time "
         << mesh_.time().timeName() << endl;
+}
+
+
+void dsmcReplicatedMesh::writeGatheredCloudOnRank0() const
+{
+    if (!active_ || myRank_ != 0) return;
+
+    IOdictionary uniformPropsDict
+    (
+        IOobject
+        (
+            Cloud<dsmcParcel>::cloudPropertiesName,
+            mesh_.time().timeName(),
+            "uniform"/cloud::prefix/cloud_.name(),
+            mesh_,
+            IOobject::NO_READ,
+            IOobject::NO_WRITE,
+            false
+        )
+    );
+
+    for (label procI = 0; procI < nProcs_; ++procI)
+    {
+        const word procName("processor" + Foam::name(procI));
+        uniformPropsDict.add(procName, dictionary());
+        uniformPropsDict.subDict(procName).add
+        (
+            "particleCount",
+            dsmcParcel::particleCount_
+        );
+    }
+
+    uniformPropsDict.writeObject
+    (
+        IOstream::ASCII,
+        IOstream::currentVersion,
+        mesh_.time().writeCompression()
+    );
+
+    if (!cloud_.size())
+    {
+        Info<< "Replicated mesh: rank0 gathered cloud is empty at output time "
+            << mesh_.time().timeName() << endl;
+        return;
+    }
+
+    particle::writeFields(cloud_);
+
+    const label np = cloud_.size();
+
+    IOField<vector> U(cloud_.fieldIOobject("U", IOobject::NO_READ), np);
+    IOField<scalar> RWF
+    (
+        cloud_.fieldIOobject("radialWeight", IOobject::NO_READ),
+        np
+    );
+    IOField<scalar> ERot
+    (
+        cloud_.fieldIOobject("ERot", IOobject::NO_READ),
+        np
+    );
+    IOField<labelField> vibLevel
+    (
+        cloud_.fieldIOobject("vibLevel", IOobject::NO_READ),
+        np
+    );
+    IOField<label> ELevel
+    (
+        cloud_.fieldIOobject("ELevel", IOobject::NO_READ),
+        np
+    );
+    IOField<label> typeId
+    (
+        cloud_.fieldIOobject("typeId", IOobject::NO_READ),
+        np
+    );
+    IOField<label> newParcel
+    (
+        cloud_.fieldIOobject("newParcel", IOobject::NO_READ),
+        np
+    );
+    IOField<label> classification
+    (
+        cloud_.fieldIOobject("classification", IOobject::NO_READ),
+        np
+    );
+
+    IOField<label> stuckToWall
+    (
+        cloud_.fieldIOobject("stuckToWall", IOobject::NO_READ),
+        np
+    );
+    IOField<scalarField> wallTemperature
+    (
+        cloud_.fieldIOobject("wallTemperature", IOobject::NO_READ),
+        np
+    );
+    IOField<vectorField> wallVectors
+    (
+        cloud_.fieldIOobject("wallVectors", IOobject::NO_READ),
+        np
+    );
+
+    IOField<label> isTracked
+    (
+        cloud_.fieldIOobject("isTracked", IOobject::NO_READ),
+        np
+    );
+    IOField<label> inPatchId
+    (
+        cloud_.fieldIOobject("inPatchId", IOobject::NO_READ),
+        np
+    );
+    IOField<scalar> tracerInitialTime
+    (
+        cloud_.fieldIOobject("tracerInitialTime", IOobject::NO_READ),
+        np
+    );
+    IOField<vector> tracerInitialPosition
+    (
+        cloud_.fieldIOobject("tracerInitialPosition", IOobject::NO_READ),
+        np
+    );
+    IOField<vector> tracerCurrentPosition
+    (
+        cloud_.fieldIOobject("tracerCurrentPosition", IOobject::NO_READ),
+        np
+    );
+    IOField<vector> tracerDistanceTravelled
+    (
+        cloud_.fieldIOobject("tracerDistanceTravelled", IOobject::NO_READ),
+        np
+    );
+
+    bool hasRWF = false;
+    bool hasERot = false;
+    bool hasELevel = false;
+    bool hasStuck = false;
+    bool hasTracked = false;
+
+    label i = 0;
+    forAllConstIter(Cloud<dsmcParcel>, cloud_, iter)
+    {
+        const dsmcParcel& p = iter();
+
+        U[i] = p.U();
+        RWF[i] = p.RWF();
+        ERot[i] = p.ERot();
+        vibLevel[i] = p.vibLevel();
+        ELevel[i] = p.ELevel();
+        typeId[i] = p.typeId();
+        newParcel[i] = p.newParcel();
+        classification[i] = p.classification();
+
+        stuckToWall[i] = p.isStuck();
+        if (stuckToWall[i])
+        {
+            wallTemperature[i] = p.stuck().wallTemperature();
+            wallVectors[i] = p.stuck().wallVectors();
+            hasStuck = true;
+        }
+
+        isTracked[i] = p.isTracked();
+        if (isTracked[i])
+        {
+            inPatchId[i] = p.tracked().inPatchId();
+            tracerInitialTime[i] = p.tracked().initialTime();
+            tracerInitialPosition[i] = p.tracked().initialPosition();
+            tracerCurrentPosition[i] = p.tracked().currentPosition();
+            tracerDistanceTravelled[i] = p.tracked().distanceTravelledVector();
+            hasTracked = true;
+        }
+        else
+        {
+            inPatchId[i] = -1;
+            tracerInitialTime[i] = 0;
+            tracerInitialPosition[i] = vector::zero;
+            tracerCurrentPosition[i] = vector::zero;
+            tracerDistanceTravelled[i] = vector::zero;
+        }
+
+        hasRWF = hasRWF || RWF[i] > 1.0;
+        hasERot = hasERot || ERot[i] > 0.0;
+        hasELevel = hasELevel || ELevel[i] > 0;
+
+        ++i;
+    }
+
+    U.write();
+
+    if (hasRWF)
+    {
+        RWF.write();
+    }
+
+    if (hasERot)
+    {
+        ERot.write();
+    }
+
+    if (hasELevel)
+    {
+        ELevel.write();
+    }
+
+    typeId.write();
+    newParcel.write();
+    classification.write();
+
+    if (hasStuck)
+    {
+        stuckToWall.write();
+        wallTemperature.write();
+        wallVectors.write();
+    }
+
+    if (hasTracked)
+    {
+        isTracked.write();
+        inPatchId.write();
+        tracerInitialTime.write();
+        tracerInitialPosition.write();
+        tracerCurrentPosition.write();
+        tracerDistanceTravelled.write();
+    }
+
+    vibLevel.write();
+
+    Info<< "Replicated mesh: wrote gathered cloud on rank0 at output time "
+        << mesh_.time().timeName() << " with " << np << " parcels" << endl;
 }
 
 

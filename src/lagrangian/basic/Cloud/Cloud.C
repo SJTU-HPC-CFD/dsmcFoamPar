@@ -139,6 +139,67 @@ template<class TrackData>
 inline void setMoveSeed(TrackData&, const label, ...)
 {}
 
+template<class TrackCloudType>
+inline auto replicatedMeshActive(const TrackCloudType& cloud, int)
+-> decltype(cloud.replicatedMeshActive(), bool())
+{
+    return cloud.replicatedMeshActive();
+}
+
+template<class TrackCloudType>
+inline bool replicatedMeshActive(const TrackCloudType&, long)
+{
+    return false;
+}
+
+template<class TrackData>
+inline auto copyMoveDetailProfile(TrackData& dst, const TrackData& src, int)
+-> decltype(dst.moveDetailProfile = src.moveDetailProfile, void())
+{
+    dst.moveDetailProfile = src.moveDetailProfile;
+}
+
+template<class TrackData>
+inline void copyMoveDetailProfile(TrackData&, const TrackData&, long)
+{}
+
+template<class TrackData>
+inline auto accumulateMoveDetailProfile(TrackData& dst, const TrackData& src, int)
+-> decltype
+(
+    dst.moveParcels += src.moveParcels,
+    dst.moveTrackCalls += src.moveTrackCalls,
+    dst.moveSameTetNoFaceHits += src.moveSameTetNoFaceHits,
+    dst.moveInternalTetNoFaceHits += src.moveInternalTetNoFaceHits,
+    dst.moveFaceHits += src.moveFaceHits,
+    dst.moveProcessorHits += src.moveProcessorHits,
+    dst.moveCyclicHits += src.moveCyclicHits,
+    dst.movePatchHits += src.movePatchHits,
+    dst.moveStuckHits += src.moveStuckHits,
+    dst.moveTrackWallTime += src.moveTrackWallTime,
+    dst.moveTrackerWallTime += src.moveTrackerWallTime,
+    dst.moveBoundaryWallTime += src.moveBoundaryWallTime,
+    void()
+)
+{
+    dst.moveParcels += src.moveParcels;
+    dst.moveTrackCalls += src.moveTrackCalls;
+    dst.moveSameTetNoFaceHits += src.moveSameTetNoFaceHits;
+    dst.moveInternalTetNoFaceHits += src.moveInternalTetNoFaceHits;
+    dst.moveFaceHits += src.moveFaceHits;
+    dst.moveProcessorHits += src.moveProcessorHits;
+    dst.moveCyclicHits += src.moveCyclicHits;
+    dst.movePatchHits += src.movePatchHits;
+    dst.moveStuckHits += src.moveStuckHits;
+    dst.moveTrackWallTime += src.moveTrackWallTime;
+    dst.moveTrackerWallTime += src.moveTrackerWallTime;
+    dst.moveBoundaryWallTime += src.moveBoundaryWallTime;
+}
+
+template<class TrackData>
+inline void accumulateMoveDetailProfile(TrackData&, const TrackData&, long)
+{}
+
 template<class TrackCloudType, class ParticleType>
 inline auto storeMoveOrderedParcels
 (
@@ -453,20 +514,38 @@ template<class TrackData>
 void Foam::Cloud<ParticleType>::move(TrackData& td, const scalar trackTime)
 {
     const polyBoundaryMesh& pbm = pMesh().boundaryMesh();
-    const globalMeshData& pData = polyMesh_.globalData();
+    const bool useProcessorPatchTransfer =
+        Pstream::parRun()
+     && !cloudOpenMP::replicatedMeshActive(td.cloud(), 0);
+
+    const labelList emptyLabelList;
+    const labelList* procPatchesPtr = &emptyLabelList;
+    const labelList* procPatchIndicesPtr = &emptyLabelList;
+    const labelList* procPatchNeighboursPtr = &emptyLabelList;
+    const labelList* neighbourProcsPtr = &emptyLabelList;
+
+    if (useProcessorPatchTransfer)
+    {
+        const globalMeshData& pData = polyMesh_.globalData();
+
+        procPatchesPtr = &pData.processorPatches();
+        procPatchIndicesPtr = &pData.processorPatchIndices();
+        procPatchNeighboursPtr = &pData.processorPatchNeighbours();
+        neighbourProcsPtr = &pData[Pstream::myProcNo()];
+    }
 
     // Which patches are processor patches
-    const labelList& procPatches = pData.processorPatches();
+    const labelList& procPatches = *procPatchesPtr;
 
     // Indexing of patches into the procPatches list
-    const labelList& procPatchIndices = pData.processorPatchIndices();
+    const labelList& procPatchIndices = *procPatchIndicesPtr;
 
     // Indexing of equivalent patch on neighbour processor into the
     // procPatches list on the neighbour
-    const labelList& procPatchNeighbours = pData.processorPatchNeighbours();
+    const labelList& procPatchNeighbours = *procPatchNeighboursPtr;
 
     // Which processors this processor is connected to
-    const labelList& neighbourProcs = pData[Pstream::myProcNo()];
+    const labelList& neighbourProcs = *neighbourProcsPtr;
 
     // Indexing from the processor number into the neighbourProcs list
     labelList neighbourProcIndices(Pstream::nProcs(), -1);
@@ -508,7 +587,7 @@ void Foam::Cloud<ParticleType>::move(TrackData& td, const scalar trackTime)
         const bool moveOrderedReuse =
             cloudOpenMP::moveOrderedReuseEnabled(td.cloud(), 0);
 
-        if (Pstream::parRun())
+        if (useProcessorPatchTransfer)
         {
             if (moveOrderedReuse)
             {
@@ -581,6 +660,7 @@ void Foam::Cloud<ParticleType>::move(TrackData& td, const scalar trackTime)
                 #pragma omp parallel num_threads(moveThreads)
                 {
                     TrackData localTd(td.cloud());
+                    cloudOpenMP::copyMoveDetailProfile(localTd, td, 0);
                     cloudOpenMP::setMoveSeed
                     (
                         localTd,
@@ -602,6 +682,11 @@ void Foam::Cloud<ParticleType>::move(TrackData& td, const scalar trackTime)
                             particles[i]->move(localTd, trackTime) ? 1 : 0;
                         switchProcessorFlags[i] =
                             localTd.switchProcessor ? 1 : 0;
+                    }
+
+                    #pragma omp critical(dsmcMoveDetailProfile)
+                    {
+                        cloudOpenMP::accumulateMoveDetailProfile(td, localTd, 0);
                     }
                 }
 
@@ -939,6 +1024,7 @@ void Foam::Cloud<ParticleType>::move(TrackData& td, const scalar trackTime)
         #pragma omp parallel num_threads(moveThreads) reduction(+:deletedParticleCount)
         {
             TrackData localTd(td.cloud());
+            cloudOpenMP::copyMoveDetailProfile(localTd, td, 0);
             cloudOpenMP::setMoveSeed(localTd, omp_get_thread_num(), 0);
 
             #pragma omp for schedule(runtime)
@@ -959,6 +1045,11 @@ void Foam::Cloud<ParticleType>::move(TrackData& td, const scalar trackTime)
                 {
                     ++deletedParticleCount;
                 }
+            }
+
+            #pragma omp critical(dsmcMoveDetailProfile)
+            {
+                cloudOpenMP::accumulateMoveDetailProfile(td, localTd, 0);
             }
         }
 
@@ -1154,7 +1245,11 @@ void Foam::Cloud<ParticleType>::move(TrackData& td, const scalar trackTime)
             {
                 // If we are running in parallel and the particle is on a
                 // boundary face
-                if (Pstream::parRun() && p.face() >= pMesh().nInternalFaces())
+                if
+                (
+                    useProcessorPatchTransfer
+                 && p.face() >= pMesh().nInternalFaces()
+                )
                 {
                     label patchI = pbm.whichPatch(p.face());
 
@@ -1187,7 +1282,7 @@ void Foam::Cloud<ParticleType>::move(TrackData& td, const scalar trackTime)
             }
         }
 
-        if (!Pstream::parRun())
+        if (!useProcessorPatchTransfer)
         {
             break;
         }

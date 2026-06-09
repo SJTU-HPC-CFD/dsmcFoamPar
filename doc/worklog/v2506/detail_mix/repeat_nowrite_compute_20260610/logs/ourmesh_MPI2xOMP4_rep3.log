@@ -1,0 +1,143 @@
+case=ourmesh
+mode=MPI2xOMP4
+rep=3
+np=2
+OMP_NUM_THREADS=4
+case_dir=/home/superxcx/code/OpenFoam/OF-1706/hyStrath_dlb/run/hyStrath/dsmcFoam+/xcx_test/pal-phd-3.3.1-cylinder-react/timecompare/ourmesh/mix-mpi4omp2
+controlDict=/home/superxcx/code/OpenFoam/OF-1706/hyStrath_dlb/doc/worklog/v2506/detail_mix/repeat_nowrite_compute_20260610/controlDicts/ourmesh_MPI2xOMP4_rep3_controlDict
+start=2026-06-10T02:27:23+08:00
+/*---------------------------------------------------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  v1706                                 |
+|   \\  /    A nd           | Web:      www.OpenFOAM.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+Build  : v1706
+Arch   : "LSB;label=32;scalar=64"
+Exec   : dsmcFoam+
+Date   : Jun 10 2026
+Time   : 02:27:23
+Host   : "SuperXCX-ROG"
+PID    : 2037538
+/*---------------------------------------------------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  v1706                                 |
+|   \\  /    A nd           | Web:      www.OpenFOAM.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+Build  : v1706
+Arch   : "LSB;label=32;scalar=64"
+Exec   : dsmcFoam+
+Date   : Jun 10 2026
+Time   : 02:27:23
+Host   : "SuperXCX-ROG"
+PID    : 2037539
+Case   : /home/superxcx/code/OpenFoam/OF-1706/hyStrath_dlb/run/hyStrath/dsmcFoam+/xcx_test/pal-phd-3.3.1-cylinder-react/timecompare/ourmesh/mix-mpi4omp2
+nProcs : 1
+sigFpe : Enabling floating point exception trapping (FOAM_SIGFPE).
+fileModificationChecking : Monitoring run-time modified files using timeStampMaster (fileModificationSkew 10)
+allowSystemOperations : Allowing user-supplied system call operations
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+Create time
+
+Case   : /home/superxcx/code/OpenFoam/OF-1706/hyStrath_dlb/run/hyStrath/dsmcFoam+/xcx_test/pal-phd-3.3.1-cylinder-react/timecompare/ourmesh/mix-mpi4omp2
+nProcs : 1
+sigFpe : Enabling floating point exception trapping (FOAM_SIGFPE).
+fileModificationChecking : Monitoring run-time modified files using timeStampMaster (fileModificationSkew 10)
+allowSystemOperations : Allowing user-supplied system call operations
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+Create time
+
+Create mesh for time = 0
+
+Create mesh for time = 0
+
+Selecting dynamicFvMesh staticFvMesh
+Selecting dynamicFvMesh staticFvMesh
+
+Constructing dsmcCloud 
+
+Constructing dsmcCloud 
+Selecting the coordinate system model:	dsmcCartesian
+
+Selecting the time-step model:	dsmcConstantTimeStepModel
+
+Selecting the coordinate system model:	dsmcCartesian
+
+Selecting the time-step model:	dsmcConstantTimeStepModel
+
+Constant time-step model:
+- time-step [sec]	1e-07
+
+Selecting the porous measurement model:	dsmcNoPorousMediumMeasurements
+
+Constant time-step model:
+- time-step [sec]	1e-07
+
+Selecting the porous measurement model:	dsmcNoPorousMediumMeasurements
+
+
+Creating dsmcControllers
+
+
+Creating dsmcControllers
+
+--> FOAM Warning : 
+    From function bool Foam::rmDir(const fileName &, const bool)
+    in file POSIX.C at line 1047
+    failed to remove directory "/home/superxcx/code/OpenFoam/OF-1706/hyStrath_dlb/run/hyStrath/dsmcFoam+/xcx_test/pal-phd-3.3.1-cylinder-react/timecompare/ourmesh/mix-mpi4omp2/fieldMeasurements"
+Creating fields: 
+
+Selecting field: dsmcVolFields
+Creating fields: 
+
+Selecting field: dsmcVolFields
+#0#0  Foam::error::printStack(Foam::Ostream&)  Foam::error::printStack(Foam::Ostream&) at ??:?
+#1  Foam::sigFpe::sigHandler(int) at ??:?
+#1  Foam::sigFpe::sigHandler(int) at ??:?
+#2  ? at ??:?
+#2  ? in "/lib/x86_64-linux-gnu/libc.so.6"
+#3  Foam::timeDataMeas::timeDataMeas(Foam::Time&, Foam::dictionary const&) in "/lib/x86_64-linux-gnu/libc.so.6"
+#3  Foam::timeDataMeas::timeDataMeas(Foam::Time&, Foam::dictionary const&) at ??:?
+#4  Foam::dsmcField::dsmcField(Foam::Time&, Foam::polyMesh const&, Foam::dsmcCloud&, Foam::dictionary const&) at ??:?
+#4  Foam::dsmcField::dsmcField(Foam::Time&, Foam::polyMesh const&, Foam::dsmcCloud&, Foam::dictionary const&) at ??:?
+#5  Foam::dsmcVolFields::dsmcVolFields(Foam::Time&, Foam::polyMesh const&, Foam::dsmcCloud&, Foam::dictionary const&) at ??:?
+#5  Foam::dsmcVolFields::dsmcVolFields(Foam::Time&, Foam::polyMesh const&, Foam::dsmcCloud&, Foam::dictionary const&) at ??:?
+#6  Foam::dsmcField::adddictionaryConstructorToTable<Foam::dsmcVolFields>::New(Foam::Time&, Foam::polyMesh const&, Foam::dsmcCloud&, Foam::dictionary const&) at ??:?
+#6  Foam::dsmcField::adddictionaryConstructorToTable<Foam::dsmcVolFields>::New(Foam::Time&, Foam::polyMesh const&, Foam::dsmcCloud&, Foam::dictionary const&) at ??:?
+#7  Foam::dsmcField::New(Foam::Time&, Foam::polyMesh const&, Foam::dsmcCloud&, Foam::dictionary const&) at ??:?
+#7  Foam::dsmcField::New(Foam::Time&, Foam::polyMesh const&, Foam::dsmcCloud&, Foam::dictionary const&) at ??:?
+#8  Foam::dsmcFieldProperties::dsmcFieldProperties(Foam::Time&, Foam::polyMesh const&, Foam::dsmcCloud&) at ??:?
+#8  Foam::dsmcFieldProperties::dsmcFieldProperties(Foam::Time&, Foam::polyMesh const&, Foam::dsmcCloud&) at ??:?
+#9  Foam::dsmcCloud::dsmcCloud(Foam::Time&, Foam::word const&, Foam::dynamicFvMesh const&, bool) at ??:?
+#9  Foam::dsmcCloud::dsmcCloud(Foam::Time&, Foam::word const&, Foam::dynamicFvMesh const&, bool) at ??:?
+#10   at ??:?
+#10  ?? at ??:?
+#11   at ??:?
+#11  ?? at ??:?
+#12  ? at ??:?
+#12  ? in "/lib/x86_64-linux-gnu/libc.so.6"
+#13  __libc_start_main in "/lib/x86_64-linux-gnu/libc.so.6"
+#13  __libc_start_main in "/lib/x86_64-linux-gnu/libc.so.6"
+#14   in "/lib/x86_64-linux-gnu/libc.so.6"
+#14  ?? at ??:?
+ at ??:?
+
+===================================================================================
+=   BAD TERMINATION OF ONE OF YOUR APPLICATION PROCESSES
+=   RANK 0 PID 2037538 RUNNING AT SuperXCX-ROG
+=   KILLED BY SIGNAL: 8 (Floating point exception)
+===================================================================================
+
+===================================================================================
+=   BAD TERMINATION OF ONE OF YOUR APPLICATION PROCESSES
+=   RANK 1 PID 2037539 RUNNING AT SuperXCX-ROG
+=   KILLED BY SIGNAL: 8 (Floating point exception)
+===================================================================================
+real 10.04
+user 3.78
+sys 1.62

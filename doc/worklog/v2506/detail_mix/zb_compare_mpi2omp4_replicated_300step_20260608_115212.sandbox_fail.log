@@ -1,0 +1,16 @@
+[mpiexec@SuperXCX-ROG] HYD_sock_listen_on_port (../../../../../src/pm/i_hydra/libhydra/sock/hydra_sock_intel.c:38): cannot open socket (Operation not permitted)
+[mpiexec@SuperXCX-ROG] HYD_sock_listen_on_any_port (../../../../../src/pm/i_hydra/libhydra/sock/hydra_sock_intel.c:100): error listening on port 0
+[mpiexec@SuperXCX-ROG] HYD_bstrap_setup (../../../../../src/pm/i_hydra/libhydra/bstrap/src/intel/i_hydra_bstrap.c:1019): create listening on any port
+[mpiexec@SuperXCX-ROG] Error setting up the bootstrap proxies
+[mpiexec@SuperXCX-ROG] Possible reasons:
+[mpiexec@SuperXCX-ROG] 1. Host is unavailable. Please check that all hosts are available.
+[mpiexec@SuperXCX-ROG] 2. Cannot launch hydra_bstrap_proxy or it crashed on one of the hosts.
+[mpiexec@SuperXCX-ROG]    Make sure hydra_bstrap_proxy is available on all hosts and it has right permissions.
+[mpiexec@SuperXCX-ROG] 3. Firewall refused connection.
+[mpiexec@SuperXCX-ROG]    Check that enough ports are allowed in the firewall and specify them with the I_MPI_PORT_RANGE variable.
+[mpiexec@SuperXCX-ROG] 4. Ssh bootstrap cannot launch processes on remote host.
+[mpiexec@SuperXCX-ROG]    Make sure that passwordless ssh connection is established across compute hosts.
+[mpiexec@SuperXCX-ROG]    You may try using -bootstrap option to select alternative launcher.
+real 1.04
+user 0.00
+sys 0.02

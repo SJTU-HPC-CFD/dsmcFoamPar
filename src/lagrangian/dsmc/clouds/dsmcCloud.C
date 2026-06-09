@@ -1597,6 +1597,7 @@ void Foam::dsmcCloud::evolve_moveAndCollide()
         }
         replicatedMesh_->updateParticleCounts();
         clearMoveOrderedParcels();
+        buildCellOccupancy();
     }
 
     const bool replicatedMeshDelayedReceive =

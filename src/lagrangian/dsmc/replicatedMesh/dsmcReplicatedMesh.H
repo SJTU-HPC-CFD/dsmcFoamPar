@@ -158,6 +158,7 @@ public:
     // Phase C: automatic DLB — called once per step; checks trigger & executes
     void autoRebalance();
     void writeCellOwner() const;
+    void writeGatheredCloudOnRank0() const;
 
     // ---- inline accessors ----
     inline scalar migrationWallTime() const { return migrationWallTime_; }

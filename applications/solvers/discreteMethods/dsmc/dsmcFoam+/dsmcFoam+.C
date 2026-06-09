@@ -173,8 +173,18 @@ bool run
 
             if (dsmc.isOutputRank())
             {
+                IOobject::writeOption oldCloudWriteOpt = dsmc.writeOpt();
+                dsmc.writeOpt() = IOobject::NO_WRITE;
+
                 const scalar tWrite0 = runTime.elapsedCpuTime();
                 runTime.write();
+                dsmc.writeOpt() = oldCloudWriteOpt;
+
+                if (isOutput)
+                {
+                    dsmc.replicatedMeshRef().writeGatheredCloudOnRank0();
+                }
+
                 writeWall = runTime.elapsedCpuTime() - tWrite0;
 
                 if (isOutput)
