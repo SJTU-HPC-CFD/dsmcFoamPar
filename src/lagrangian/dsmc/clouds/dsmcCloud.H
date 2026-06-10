@@ -323,6 +323,12 @@ private:
         //- Refresh whether face-flux tracking is required by active fields
         void refreshTrackerUsage();
 
+        //- True when the current run has no scheduled solver write time
+        bool noScheduledFieldOutput() const;
+
+        //- True when collisions need live macroscopic field temperatures
+        bool collisionModelUsesMacroscopicFieldTemperature() const;
+
         //- Remove electrons after adding their velocities to a DynamicList
         void removeElectrons();
 

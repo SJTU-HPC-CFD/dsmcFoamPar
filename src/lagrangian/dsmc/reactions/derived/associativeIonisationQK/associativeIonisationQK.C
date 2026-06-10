@@ -971,25 +971,7 @@ void associativeIonisationQK::outputResults(const label& counterIndex)
     }
     else
     {
-        label nTotAssociativeIonisationReactions =
-            nTotAssociativeIonisationReactions_;
-        label nAssociativeIonisationReactionsPerTimeStep =
-            nAssociativeIonisationReactionsPerTimeStep_;
-
-        if (Pstream::parRun())
-        {
-            //- Parallel communication
-            reduce(nTotAssociativeIonisationReactions, sumOp<label>());
-            reduce(nAssociativeIonisationReactionsPerTimeStep, sumOp<label>());
-        }
-
-        if (nTotAssociativeIonisationReactions > 0)
-        {
-            Info<< associativeIonisationStr_
-                << " is active, nReactions this time step = "
-                << nAssociativeIonisationReactionsPerTimeStep
-                << endl;
-         }
+        // No terminal output requested; keep the per-step counter reset below.
     }
 
     nAssociativeIonisationReactionsPerTimeStep_ = 0;

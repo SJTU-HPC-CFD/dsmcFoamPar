@@ -112,6 +112,7 @@ class dsmcReplicatedMesh
     List<List<char>> perPeerRecvBuf_;     // per-peer receive buffers
     bool useNoAlltoall_;                  // controlDict flag
     bool useFlatTransfer_;                // flat POD buffer serialization
+    word writeMode_;                      // gathered or processor
 
     // (Phase B) construct myCells_ from cellOwner_
     void rebuildMyCells();
@@ -159,6 +160,8 @@ public:
     void autoRebalance();
     void writeCellOwner() const;
     void writeGatheredCloudOnRank0() const;
+    bool processorWriteEnabled() const;
+    void writeProcessorOutput() const;
 
     // ---- inline accessors ----
     inline scalar migrationWallTime() const { return migrationWallTime_; }

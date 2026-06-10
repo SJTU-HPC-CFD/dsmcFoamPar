@@ -23,12 +23,17 @@ License
 #include "IStringStream.H"
 #include "IOdictionary.H"
 #include "IOField.H"
+#include "IOPosition.H"
+#include "labelIOList.H"
+#include "passiveParticleCloud.H"
 #include "volFields.H"
 #include "scotchDecomp.H"
+#include "domainDecomposition.H"
 #include "parmetis.h"
 #include <mpi.h>
 #include <chrono>
 #include <cstring>
+#include <limits>
 
 namespace Foam
 {
@@ -97,7 +102,8 @@ dsmcReplicatedMesh::dsmcReplicatedMesh(dsmcCloud& cloud, const fvMesh& mesh)
     asyncMigrationPending_(false),
     asyncRecvSize_(0),
     useNoAlltoall_(false),
-    useFlatTransfer_(false)
+    useFlatTransfer_(false),
+    writeMode_("gathered")
 {}
 
 
@@ -317,6 +323,18 @@ void dsmcReplicatedMesh::initialize()
         Info<< "Replicated mesh: flat POD transfer enabled" << endl;
     }
 
+    writeMode_ =
+        mesh_.time().controlDict().lookupOrDefault<word>
+        ("replicatedMeshWriteMode", "gathered");
+    if (writeMode_ != "gathered" && writeMode_ != "processor")
+    {
+        FatalErrorInFunction
+            << "Unknown replicatedMeshWriteMode " << writeMode_
+            << ". Valid values are gathered and processor."
+            << exit(FatalError);
+    }
+    Info<< "Replicated mesh: writeMode=" << writeMode_ << endl;
+
     if (autoDLBEnabled_)
     {
         imbalanceThreshold_ = mesh_.time().controlDict()
@@ -411,6 +429,64 @@ label dsmcReplicatedMesh::reassignByParMetisAdaptiveRepart()
             adjncy[off[nei - myStart]++] = own;
     }
 
+    // ParMETIS owns vertices by vtxdist, not by the current DSMC cellOwner_.
+    // After a DLB step those two layouts differ, so local cellOccupancy() is
+    // not valid for all vertices in this rank's vtxdist range.  Build a
+    // replicated global particle-count field before constructing weights.
+    List<idx_t> localCellParticles(nCells, 0);
+    List<idx_t> globalCellParticles(nCells, 0);
+    forAll(cloud_.cellOccupancy(), cellI)
+    {
+        if (cellI < nCells)
+        {
+            localCellParticles[cellI] =
+                idx_t(cloud_.cellOccupancy()[cellI].size());
+        }
+    }
+    MPI_Allreduce
+    (
+        localCellParticles.data(),
+        globalCellParticles.data(),
+        nCells,
+        MPI_INT,
+        MPI_SUM,
+        MPI_COMM_WORLD
+    );
+
+    const idx_t maxParMetisWeight = std::numeric_limits<idx_t>::max()/4;
+    auto positiveWeight = [&](const scalar value) -> idx_t
+    {
+        if (!(value > scalar(1)))
+        {
+            return idx_t(1);
+        }
+        if (value > scalar(maxParMetisWeight))
+        {
+            return maxParMetisWeight;
+        }
+        return max(idx_t(1), idx_t(value + 0.5));
+    };
+
+    if (myRank_ == 0)
+    {
+        idx_t maxCellParticles = 0;
+        label activeCells = 0;
+        label totalParticles = 0;
+        forAll(globalCellParticles, cellI)
+        {
+            const idx_t nPart = globalCellParticles[cellI];
+            if (nPart > 0)
+            {
+                ++activeCells;
+                totalParticles += label(nPart);
+                maxCellParticles = max(maxCellParticles, nPart);
+            }
+        }
+        Info<< "Phase C ParMETIS weights: particles=" << totalParticles
+            << " activeCells=" << activeCells
+            << " maxCellParticles=" << maxCellParticles << endl;
+    }
+
     // ---- Vertex weights: dual constraint (move + collision) ------------------
     // ncon=2: constraint 0 = N^alpha for move balance
     //         constraint 1 = N*(N-1) for collision balance
@@ -430,25 +506,24 @@ label dsmcReplicatedMesh::reassignByParMetisAdaptiveRepart()
     for (label i = 0; i < myN; ++i)
     {
         const label gi = myStart + i;
-        label nPart = 0;
-        if (cloud_.cellOccupancy().size() > gi)
-            nPart = cloud_.cellOccupancy()[gi].size();
+        const idx_t nPart = globalCellParticles[gi];
 
         if (useDualConstraint)
         {
             // Constraint 0: N^alpha (move balance)
             const scalar wMove = (nPart > 1)
                 ? std::pow(scalar(nPart), alpha_) : scalar(nPart);
-            vwgt[i*2 + 0] = max(idx_t(1), idx_t(wMove + 0.5));
+            vwgt[i*2 + 0] = positiveWeight(wMove);
             // Constraint 1: N*(N-1) (collision balance, compressed range)
-            vwgt[i*2 + 1] =
-                max(idx_t(1), idx_t(nPart) * max(idx_t(nPart - 1), idx_t(0)) + 1);
+            const scalar wColl =
+                scalar(nPart)*max(scalar(nPart - 1), scalar(0)) + scalar(1);
+            vwgt[i*2 + 1] = positiveWeight(wColl);
         }
         else
         {
             const scalar w = (nPart > 1)
                 ? std::pow(scalar(nPart), alpha_) : scalar(nPart);
-            vwgt[i] = max(idx_t(1), idx_t(w + 0.5));
+            vwgt[i] = positiveWeight(w);
         }
     }
 
@@ -463,12 +538,9 @@ label dsmcReplicatedMesh::reassignByParMetisAdaptiveRepart()
             const label own = faceOwner[fi];
             const label nei = faceNei[fi];
             // Particle count on both sides of this face
-            label nOwn = 0, nNei = 0;
-            if (cloud_.cellOccupancy().size() > own)
-                nOwn = cloud_.cellOccupancy()[own].size();
-            if (cloud_.cellOccupancy().size() > nei)
-                nNei = cloud_.cellOccupancy()[nei].size();
-            const idx_t ew = max(idx_t(1), idx_t(nOwn + nNei));
+            const idx_t nOwn = globalCellParticles[own];
+            const idx_t nNei = globalCellParticles[nei];
+            const idx_t ew = positiveWeight(scalar(nOwn) + scalar(nNei));
 
             if (own >= myStart && own < myEnd)
                 adjwgt[localOff[own - myStart]++] = ew;
@@ -515,10 +587,8 @@ label dsmcReplicatedMesh::reassignByParMetisAdaptiveRepart()
         for (label i = 0; i < myN; ++i)
         {
             const label gi = myStart + i;
-            label nPart = 0;
-            if (cloud_.cellOccupancy().size() > gi)
-                nPart = cloud_.cellOccupancy()[gi].size();
-            vsize[i] = max(idx_t(1), idx_t(nPart));
+            const idx_t nPart = globalCellParticles[gi];
+            vsize[i] = positiveWeight(scalar(nPart));
         }
     }
     else if (vsExp > SMALL)
@@ -526,13 +596,10 @@ label dsmcReplicatedMesh::reassignByParMetisAdaptiveRepart()
         for (label i = 0; i < myN; ++i)
         {
             const label gi = myStart + i;
-            label nPart = 0;
-            if (cloud_.cellOccupancy().size() > gi)
-                nPart = cloud_.cellOccupancy()[gi].size();
+            const idx_t nPart = globalCellParticles[gi];
             if (nPart > 1)
             {
-                vsize[i] = max(idx_t(1),
-                    idx_t(std::pow(scalar(nPart), vsExp) + 0.5));
+                vsize[i] = positiveWeight(std::pow(scalar(nPart), vsExp));
             }
         }
     }
@@ -1337,6 +1404,409 @@ void dsmcReplicatedMesh::writeGatheredCloudOnRank0() const
 
     Info<< "Replicated mesh: wrote gathered cloud on rank0 at output time "
         << mesh_.time().timeName() << " with " << np << " parcels" << endl;
+}
+
+
+bool dsmcReplicatedMesh::processorWriteEnabled() const
+{
+    return active_ && writeMode_ == "processor";
+}
+
+
+void dsmcReplicatedMesh::writeProcessorOutput() const
+{
+    if (!active_) return;
+
+    const Time& runTime = mesh_.time();
+    const word timeName = runTime.timeName();
+    const bool writeTimeMesh = runTime.controlDict().lookupOrDefault<bool>
+    (
+        "replicatedMeshProcessorWriteTimeMesh",
+        false
+    );
+    const fileName meshReadInstance = mesh_.facesInstance();
+    const word procMeshInstance = writeTimeMesh ? timeName : runTime.constant();
+
+    if (myRank_ == 0)
+    {
+        Info<< "Replicated mesh: processor output begin at time "
+            << timeName << " (read mesh instance " << meshReadInstance
+            << ", processor mesh instance " << procMeshInstance << ")"
+            << endl;
+    }
+
+    Info<< "Replicated mesh: constructing processor mesh/addressing"
+        << endl;
+
+    domainDecomposition decomposition
+    (
+        IOobject
+        (
+            mesh_.name(),
+            meshReadInstance,
+            runTime,
+            IOobject::NO_READ,
+            IOobject::NO_WRITE,
+            false
+        )
+    );
+
+    if (decomposition.nProcs() != nProcs_)
+    {
+        FatalErrorInFunction
+            << "decomposeParDict numberOfSubdomains "
+            << decomposition.nProcs()
+            << " does not match replicated mesh MPI ranks "
+            << nProcs_ << exit(FatalError);
+    }
+
+    decomposition.setCellToProc(cellOwner_);
+    decomposition.setProcessorMeshInstance(procMeshInstance);
+    decomposition.setProcessorMeshWriteProc(myRank_);
+    decomposition.decomposeMesh();
+    decomposition.writeDecomposition(false);
+
+    Info<< "Replicated mesh: rank " << myRank_
+        << " wrote processor" << myRank_ << " mesh/addressing"
+        << endl;
+
+    MPI_Barrier(MPI_COMM_WORLD);
+
+    if (myRank_ == 0)
+    {
+        Info<< "Replicated mesh: processor mesh/addressing barrier complete"
+            << endl;
+    }
+
+    fileName processorCasePath
+    (
+        runTime.caseName()/fileName(word("processor") + Foam::name(myRank_))
+    );
+
+    Time processorDb
+    (
+        Time::controlDictName,
+        runTime.rootPath(),
+        processorCasePath,
+        word("system"),
+        word("constant")
+    );
+    processorDb.setTime(runTime);
+
+    fvMesh procMesh
+    (
+        IOobject
+        (
+            mesh_.name(),
+            procMeshInstance,
+            processorDb,
+            IOobject::MUST_READ,
+            IOobject::NO_WRITE,
+            false
+        )
+    );
+
+    Info<< "Replicated mesh: rank " << myRank_
+        << " loaded processor" << myRank_ << " mesh from instance "
+        << procMeshInstance << endl;
+
+    labelIOList cellProcAddressing
+    (
+        IOobject
+        (
+            "cellProcAddressing",
+            procMesh.facesInstance(),
+            procMesh.meshSubDir,
+            procMesh,
+            IOobject::MUST_READ,
+            IOobject::NO_WRITE
+        )
+    );
+
+    Info<< "Replicated mesh: rank " << myRank_
+        << " loaded cellProcAddressing with "
+        << cellProcAddressing.size() << " cells" << endl;
+
+    labelList globalToLocal(mesh_.nCells(), -1);
+    forAll(cellProcAddressing, procCellI)
+    {
+        const label globalCellI = cellProcAddressing[procCellI];
+        if (globalCellI >= 0 && globalCellI < globalToLocal.size())
+        {
+            globalToLocal[globalCellI] = procCellI;
+        }
+    }
+
+    label nParcels = 0;
+    label nInvalid = 0;
+    forAllConstIter(Cloud<dsmcParcel>, cloud_, iter)
+    {
+        const dsmcParcel& p = iter();
+        if
+        (
+            p.cell() >= 0
+         && p.cell() < globalToLocal.size()
+         && globalToLocal[p.cell()] >= 0
+        )
+        {
+            ++nParcels;
+        }
+        else
+        {
+            ++nInvalid;
+        }
+    }
+
+    if (nInvalid)
+    {
+        FatalErrorInFunction
+            << "Rank " << myRank_ << " has " << nInvalid
+            << " parcels whose global cells are absent from processor"
+            << myRank_ << " cellProcAddressing at time " << timeName
+            << ". Aborting to avoid invalid reconstructPar output."
+            << exit(FatalError);
+    }
+
+    passiveParticleCloud positions
+    (
+        procMesh,
+        cloud_.name(),
+        IDLList<passiveParticle>()
+    );
+
+    IOField<vector> U(positions.fieldIOobject("U", IOobject::NO_READ), nParcels);
+    IOField<scalar> RWF
+    (
+        positions.fieldIOobject("radialWeight", IOobject::NO_READ),
+        nParcels
+    );
+    IOField<scalar> ERot
+    (
+        positions.fieldIOobject("ERot", IOobject::NO_READ),
+        nParcels
+    );
+    IOField<labelField> vibLevel
+    (
+        positions.fieldIOobject("vibLevel", IOobject::NO_READ),
+        nParcels
+    );
+    IOField<label> ELevel
+    (
+        positions.fieldIOobject("ELevel", IOobject::NO_READ),
+        nParcels
+    );
+    IOField<label> typeId
+    (
+        positions.fieldIOobject("typeId", IOobject::NO_READ),
+        nParcels
+    );
+    IOField<label> newParcel
+    (
+        positions.fieldIOobject("newParcel", IOobject::NO_READ),
+        nParcels
+    );
+    IOField<label> classification
+    (
+        positions.fieldIOobject("classification", IOobject::NO_READ),
+        nParcels
+    );
+    IOField<label> stuckToWall
+    (
+        positions.fieldIOobject("stuckToWall", IOobject::NO_READ),
+        nParcels
+    );
+    IOField<scalarField> wallTemperature
+    (
+        positions.fieldIOobject("wallTemperature", IOobject::NO_READ),
+        nParcels
+    );
+    IOField<vectorField> wallVectors
+    (
+        positions.fieldIOobject("wallVectors", IOobject::NO_READ),
+        nParcels
+    );
+    IOField<label> isTracked
+    (
+        positions.fieldIOobject("isTracked", IOobject::NO_READ),
+        nParcels
+    );
+    IOField<label> inPatchId
+    (
+        positions.fieldIOobject("inPatchId", IOobject::NO_READ),
+        nParcels
+    );
+    IOField<scalar> tracerInitialTime
+    (
+        positions.fieldIOobject("tracerInitialTime", IOobject::NO_READ),
+        nParcels
+    );
+    IOField<vector> tracerInitialPosition
+    (
+        positions.fieldIOobject("tracerInitialPosition", IOobject::NO_READ),
+        nParcels
+    );
+    IOField<vector> tracerCurrentPosition
+    (
+        positions.fieldIOobject("tracerCurrentPosition", IOobject::NO_READ),
+        nParcels
+    );
+    IOField<vector> tracerDistanceTravelled
+    (
+        positions.fieldIOobject("tracerDistanceTravelled", IOobject::NO_READ),
+        nParcels
+    );
+
+    bool hasRWF = false;
+    bool hasERot = false;
+    bool hasELevel = false;
+    bool hasStuck = false;
+    bool hasTracked = false;
+
+    label i = 0;
+    forAllConstIter(Cloud<dsmcParcel>, cloud_, iter)
+    {
+        const dsmcParcel& p = iter();
+        const label localCellI = globalToLocal[p.cell()];
+
+        positions.append
+        (
+            new passiveParticle
+            (
+                procMesh,
+                p.position(),
+                localCellI,
+                true
+            )
+        );
+
+        U[i] = p.U();
+        RWF[i] = p.RWF();
+        ERot[i] = p.ERot();
+        vibLevel[i] = p.vibLevel();
+        ELevel[i] = p.ELevel();
+        typeId[i] = p.typeId();
+        newParcel[i] = p.newParcel();
+        classification[i] = p.classification();
+
+        stuckToWall[i] = p.isStuck();
+        if (stuckToWall[i])
+        {
+            wallTemperature[i] = p.stuck().wallTemperature();
+            wallVectors[i] = p.stuck().wallVectors();
+            hasStuck = true;
+        }
+        else
+        {
+            wallTemperature[i] = scalarField(4, 0.0);
+            wallVectors[i] = vectorField(4, vector::zero);
+        }
+
+        isTracked[i] = p.isTracked();
+        if (isTracked[i])
+        {
+            inPatchId[i] = p.tracked().inPatchId();
+            tracerInitialTime[i] = p.tracked().initialTime();
+            tracerInitialPosition[i] = p.tracked().initialPosition();
+            tracerCurrentPosition[i] = p.tracked().currentPosition();
+            tracerDistanceTravelled[i] = p.tracked().distanceTravelledVector();
+            hasTracked = true;
+        }
+        else
+        {
+            inPatchId[i] = -1;
+            tracerInitialTime[i] = 0;
+            tracerInitialPosition[i] = vector::zero;
+            tracerCurrentPosition[i] = vector::zero;
+            tracerDistanceTravelled[i] = vector::zero;
+        }
+
+        hasRWF = hasRWF || RWF[i] > 1.0;
+        hasERot = hasERot || ERot[i] > 0.0;
+        hasELevel = hasELevel || ELevel[i] > 0;
+
+        ++i;
+    }
+
+    IOdictionary uniformPropsDict
+    (
+        IOobject
+        (
+            Cloud<dsmcParcel>::cloudPropertiesName,
+            processorDb.timeName(),
+            "uniform"/cloud::prefix/cloud_.name(),
+            procMesh,
+            IOobject::NO_READ,
+            IOobject::NO_WRITE,
+            false
+        )
+    );
+
+    labelList processorParticleCounts(nProcs_, 0);
+    label myParticleCount = nParcels;
+    MPI_Allgather
+    (
+        &myParticleCount,
+        1,
+        MPI_INT,
+        processorParticleCounts.data(),
+        1,
+        MPI_INT,
+        MPI_COMM_WORLD
+    );
+
+    forAll(processorParticleCounts, procI)
+    {
+        const word procName("processor" + Foam::name(procI));
+        uniformPropsDict.add(procName, dictionary());
+        uniformPropsDict.subDict(procName).add
+        (
+            "particleCount",
+            processorParticleCounts[procI]
+        );
+    }
+    uniformPropsDict.writeObject
+    (
+        IOstream::ASCII,
+        IOstream::currentVersion,
+        processorDb.writeCompression()
+    );
+
+    if (nParcels)
+    {
+        Info<< "Replicated mesh: rank " << myRank_
+            << " writing processor" << myRank_ << " lagrangian cloud"
+            << endl;
+        IOPosition<Cloud<passiveParticle>>(positions).write();
+        U.write();
+        if (hasRWF) RWF.write();
+        if (hasERot) ERot.write();
+        if (hasELevel) ELevel.write();
+        typeId.write();
+        newParcel.write();
+        classification.write();
+        if (hasStuck)
+        {
+            stuckToWall.write();
+            wallTemperature.write();
+            wallVectors.write();
+        }
+        if (hasTracked)
+        {
+            isTracked.write();
+            inPatchId.write();
+            tracerInitialTime.write();
+            tracerInitialPosition.write();
+            tracerCurrentPosition.write();
+            tracerDistanceTravelled.write();
+        }
+        vibLevel.write();
+    }
+
+    Info<< "Replicated mesh: rank " << myRank_
+        << " wrote processor" << myRank_ << " cloud at output time "
+        << timeName << " with " << nParcels << " parcels" << endl;
+
+    MPI_Barrier(MPI_COMM_WORLD);
 }
 
 

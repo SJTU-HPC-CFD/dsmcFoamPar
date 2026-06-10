@@ -17,7 +17,8 @@
 本文是本轮 `dsmcFoam+` 在 OFv1706 上的 MPI+OpenMP mixed-parallel 方向收尾
 报告。报告范围包括 replicated-mesh raw-MPI mixed path、OpenMP move/collision
 与 replicated mesh lifecycle 的组合、`zb-cylinder-react` raw-MPI 修复、raw-MPI
-输出路径修复，以及最终 no-write 8-core 对比测试。
+输出路径修复、replicated-mesh ParMETIS DLB 权重污染修复，以及最终 no-write
+8-core 对比测试。
 
 本报告与以下报告互为同阶段技术文档：
 
@@ -29,7 +30,7 @@ doc/worklog/v2506/dsmcFoam_plus_mpi_replicated_mesh_dlb_technical_report_2026060
 完整日志、controlDict 快照、CSV 解析结果和自动生成明细报告位于：
 
 ```text
-doc/worklog/v2506/detail_mix/repeat_nowrite_compute_20260610_rerun
+doc/worklog/v2506/detail_mix/repeat_nowrite_compute_20260610_parmetisfix_clean
 ```
 
 ## 1. 结论摘要
@@ -46,6 +47,9 @@ doc/worklog/v2506/detail_mix/repeat_nowrite_compute_20260610_rerun
   避免第一步 move/collision 使用 stale occupancy；
 - raw-MPI replicated-mesh 输出路径使用 rank0 gather/write/re-migrate 方式，
   避免多个 MPI rank 并发写同一套 lagrangian cloud 文件；
+- replicated-mesh ParMETIS DLB 使用全局每 cell 粒子数构造权重，修复 DLB 后
+  本 rank `cellOccupancy()[globalCell]` 与 ParMETIS 连续 `vtxdist` 分片不一致
+  导致的权重污染和 MPI8 卡死；
 - profile/timing 能在 OMP、raw-MPI replicated mesh、mixed MPI+OMP 和标准
   `MPI8origin` 中统一提取外部 `real`、full evolve、move、build occupancy、
   collision、post fields/output、DLB 统计和正确性指标。
@@ -63,18 +67,19 @@ doc/worklog/v2506/detail_mix/repeat_nowrite_compute_20260610_rerun
 
 1. `OMP8` 仍是两个 case 的最佳 8-core 默认配置。
 2. mixed 模式已经可用，但没有超过 `OMP8`：
-   - `ourmesh` 最好 mixed 是 `MPI2xOMP4`，平均 `91.06 s`，比 `OMP8`
-     慢 `4.22%`；
-   - `zb-cylinder-react` 最好 mixed 是 `MPI4xOMP2`，平均 `78.63 s`，
-     比 `OMP8` 慢 `8.03%`。
-3. pure replicated-mesh `MPI8` 不适合作为默认 8-core 性能路径：
-   - `ourmesh` 比 `OMP8` 慢 `28.17%`；
-   - `zb-cylinder-react` 比 `OMP8` 慢 `47.45%`，且波动大。
+   - `ourmesh` 最好 mixed 是 `MPI4xOMP2`，平均 `70.10 s`，比 `OMP8`
+     慢 `12.66%`；`MPI2xOMP4` 为 `70.30 s`，差距只有 `0.20 s`；
+   - `zb-cylinder-react` 最好 mixed 是 `MPI2xOMP4`，平均 `63.66 s`，
+     比 `OMP8` 慢 `8.38%`。
+3. pure replicated-mesh `MPI8` 已稳定跑完，不再出现 ParMETIS 卡死，但不适合
+   作为默认 8-core 性能路径：
+   - `ourmesh` 比 `OMP8` 慢 `63.04%`；
+   - `zb-cylinder-react` 比 `OMP8` 慢 `35.86%`。
 4. 标准 OpenFOAM decomposed `MPI8origin` 在两个 case 上都明显更慢：
-   - `ourmesh` 平均 `147.94 s`，比 `OMP8` 慢 `69.33%`；
-   - `zb-cylinder-react` 平均 `129.74 s`，比 `OMP8` 慢 `78.26%`。
-5. mixed 模式的剩余 gap 主要不在 move。两个 case 中 mixed move 已接近
-   `OMP8`，主要差距来自 collision、build occupancy 和部分 post/logging 开销。
+   - `ourmesh` 平均 `135.07 s`，比 `OMP8` 慢 `117.07%`；
+   - `zb-cylinder-react` 平均 `114.80 s`，比 `OMP8` 慢 `95.44%`。
+5. mixed 模式的剩余 gap 主要来自 collision、build occupancy 和 MPI rank 间
+   duplicated/owner-filtered work；no-write 口径下 post 已不是主导项。
 
 ## 2. 环境、算例和复现实验规则
 
@@ -123,7 +128,7 @@ run/hyStrath/dsmcFoam+/xcx_test/zb-cylinder-react
 
 ```text
 run/hyStrath/dsmcFoam+/xcx_test/zb-cylinder-react/mpi8origin
-doc/worklog/v2506/detail_mix/repeat_nowrite_compute_20260610_rerun/logs/zb_MPI8origin_decomposePar.log
+doc/worklog/v2506/detail_mix/repeat_nowrite_compute_20260610_parmetisfix_clean/logs/zb_MPI8origin_decomposePar.log
 ```
 
 ### 2.3 no-write 控制
@@ -163,10 +168,20 @@ doc/worklog/v2506/detail_mix/repeat_nowrite_compute_20260610
 ```
 
 该目录的失败原因是把 `writeControl` 改为 `timeStep` 后触发 `timeDataMeas`
-除零/浮点异常。本报告只使用有效 rerun 目录：
+除零/浮点异常。
+
+另一个旧目录：
 
 ```text
-doc/worklog/v2506/detail_mix/repeat_nowrite_compute_20260610_rerun
+doc/worklog/v2506/detail_mix/repeat_nowrite_compute_20260610_postwrite
+```
+
+曾被中断运行污染，已经清除，不参与任何正式统计。
+
+本报告只使用 ParMETIS 修复后的 clean 重测目录：
+
+```text
+doc/worklog/v2506/detail_mix/repeat_nowrite_compute_20260610_parmetisfix_clean
 ```
 
 ### 2.4 运行脚本和解析脚本
@@ -188,10 +203,10 @@ doc/worklog/v2506/detail_mix/parse_mix_perf_nowrite_repeats_20260610.py
 输出结果：
 
 ```text
-doc/worklog/v2506/detail_mix/repeat_nowrite_compute_20260610_rerun/run_manifest.tsv
-doc/worklog/v2506/detail_mix/repeat_nowrite_compute_20260610_rerun/results.csv
-doc/worklog/v2506/detail_mix/repeat_nowrite_compute_20260610_rerun/aggregate.csv
-doc/worklog/v2506/detail_mix/repeat_nowrite_compute_20260610_rerun/performance_correctness_summary_20260610.md
+doc/worklog/v2506/detail_mix/repeat_nowrite_compute_20260610_parmetisfix_clean/run_manifest.tsv
+doc/worklog/v2506/detail_mix/repeat_nowrite_compute_20260610_parmetisfix_clean/results.csv
+doc/worklog/v2506/detail_mix/repeat_nowrite_compute_20260610_parmetisfix_clean/aggregate.csv
+doc/worklog/v2506/detail_mix/repeat_nowrite_compute_20260610_parmetisfix_clean/performance_correctness_summary_20260610.md
 ```
 
 ## 3. 源码修改和技术实现
@@ -206,12 +221,14 @@ doc/worklog/v2506/detail_mix/repeat_nowrite_compute_20260610_rerun/performance_c
 | `src/lagrangian/basic/Cloud/Cloud.C` | OpenMP move detail aggregation；replicated mesh raw-MPI 下跳过 OpenFOAM processor-patch transfer |
 | `src/lagrangian/dsmc/clouds/dsmcCloud.C` | replicated-mesh initial distribution / migration 后重建 occupancy |
 | `applications/solvers/discreteMethods/dsmc/dsmcFoam+/dsmcFoam+.C` | replicated raw-MPI 输出时 gather cloud、rank0 write、re-migrate |
-| `src/lagrangian/dsmc/replicatedMesh/dsmcReplicatedMesh.C/H` | rank0 gathered cloud 写出 API 和 flat POD gather 路径 |
+| `src/lagrangian/dsmc/replicatedMesh/dsmcReplicatedMesh.C/H` | rank0 gathered cloud 写出 API、flat POD gather 路径、ParMETIS DLB 全局 cell 权重和权重饱和保护 |
 
-当前相关 diff 规模：
+当前工作树同时包含 mixed 运行脚本、ParMETIS 修复和若干后续优化线；本报告不再用
+单一 diff 规模作为交付判据，正式结论以 clean 重测目录和定向 MPI8 验证日志为准。
 
 ```text
-6 files changed, 349 insertions(+), 20 deletions(-)
+doc/worklog/v2506/detail_mix/mpi8_parmetis_fix_20260610
+doc/worklog/v2506/detail_mix/repeat_nowrite_compute_20260610_parmetisfix_clean
 ```
 
 ### 3.2 构建证据
@@ -268,6 +285,39 @@ raw-MPI replicated mesh 不使用 OpenFOAM `-parallel` processor directories。�
 
 这不是并行文件 I/O，而是 parallel communication + rank0 serial cloud write。
 正式性能比较采用 no-write 口径，因此该路径主要作为功能正确性修复保留。
+
+### 3.7 ParMETIS DLB 权重污染修复
+
+MPI8 定向测试暴露 ParMETIS DLB 第二次以后可能不返回。根因不在 MPI8 本身，
+而在 replicated-mesh DLB 的权重构造：DLB 后粒子实际归属由 `cellOwner_`
+决定，本 rank 持有的 `cellOccupancy()` 不再等于 ParMETIS 连续 `vtxdist`
+分片。如果继续用本 rank 的 `cellOccupancy()[globalCell]` 直接构造
+`vwgt`、`adjwgt` 和 `vsize`，后续 AdaptiveRepart 会收到污染的权重输入。
+
+修复方式：
+
+- 在 `reassignByParMetisAdaptiveRepart()` 开始处对每个 cell 粒子数做
+  `MPI_Allreduce`，得到全局每 cell 粒子数；
+- `vwgt`、`adjwgt` 和 `vsize` 全部改用全局 cell 粒子数构造；
+- 对权重转换加入正值保护和 `idx_t` 饱和保护，避免极端粒子数下整数溢出；
+- 修正 `Ostream << long long` 的重载歧义，保证 OFv1706 编译通过。
+
+定向验证：
+
+| case | run | exit | DLB result | final marker |
+|---|---|---:|---|---|
+| `ourmesh` replicated `MPI8` | 320-step no-write | 0 | 2 次 DLB 返回，`Phase C ParMETIS max = 0.132687133 s` | `Total Iterations = 320`, `End main` |
+| `ourmesh` replicated `MPI8` | 500-step no-write | 0 | 3 次 DLB 返回，`Phase C ParMETIS max = 0.18440913 s` | `Total Iterations = 500`, `End main` |
+
+对应日志：
+
+```text
+doc/worklog/v2506/detail_mix/mpi8_parmetis_fix_20260610/ourmesh_MPI8_320step_parmetis_fix_20260610.log
+doc/worklog/v2506/detail_mix/mpi8_parmetis_fix_20260610/ourmesh_MPI8_500step_parmetis_fix_20260610.log
+```
+
+该修复是 replicated-mesh + ParMETIS DLB 的通用修复。OMP-only 不走这条路径；
+纯 MPI 和 mixed 只要启用 replicated-mesh auto DLB，都应使用修复后的全局权重。
 
 ## 4. Bring-up 和诊断结果
 
@@ -357,37 +407,36 @@ same-tet/tet-walk tracking 和 replicated-mesh move data flow。
 
 | mode | ok/runs | real mean | stdev | min-max | full evolve | move | buildOcc | collision | post | delta vs OMP8 |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| OMP8 | 3/3 | 87.37 | 2.31 | 85.05-89.67 | 80.34 | 45.82 | 6.10 | 3.21 | 24.70 | 0.00% |
-| MPI2xOMP4 | 3/3 | 91.06 | 0.62 | 90.40-91.64 | 83.43 | 46.03 | 6.70 | 14.20 | 22.70 | +4.22% |
-| MPI4xOMP2 | 3/3 | 93.17 | 1.62 | 92.16-95.03 | 85.70 | 45.83 | 5.59 | 23.09 | 22.97 | +6.63% |
-| MPI8 | 3/3 | 111.98 | 2.85 | 108.74-114.06 | 101.84 | 54.76 | 6.61 | 40.59 | 18.89 | +28.17% |
-| MPI8origin | 3/3 | 147.94 | 0.63 | 147.45-148.65 | 146.11 | 111.13 | 14.52 | 18.22 | 21.97 | +69.33% |
+| OMP8 | 3/3 | 62.22 | 1.60 | 61.10-64.06 | 60.46 | 49.11 | 6.62 | 3.52 | 0.65 | 0.00% |
+| MPI2xOMP4 | 3/3 | 70.30 | 1.48 | 68.60-71.18 | 68.12 | 54.41 | 7.54 | 16.87 | 1.07 | +12.99% |
+| MPI4xOMP2 | 3/3 | 70.10 | 1.49 | 68.42-71.24 | 67.91 | 51.95 | 6.84 | 12.67 | 2.20 | +12.66% |
+| MPI8 | 3/3 | 101.45 | 1.43 | 100.01-102.87 | 98.63 | 69.07 | 10.61 | 32.80 | 5.00 | +63.04% |
+| MPI8origin | 3/3 | 135.07 | 2.31 | 132.44-136.78 | 144.27 | 117.47 | 16.31 | 20.56 | 0.48 | +117.07% |
 
 `ourmesh` 结论：
 
 - `OMP8` 最快；
-- `MPI2xOMP4` 是最佳 mixed split，端到端只比 `OMP8` 慢 `4.22%`；
-- `MPI2xOMP4` 和 `MPI4xOMP2` 的 move 基本等于 OMP8，主要差距来自 collision；
-- replicated `MPI8` collision 过高；
+- `MPI4xOMP2` 是平均最快 mixed split，但只比 `MPI2xOMP4` 快 `0.20 s`；
+- mixed move 已低于 pure replicated `MPI8`，但仍慢于 `OMP8`；
+- replicated `MPI8` 已稳定，但 move/build/collision 都高于 mixed split；
 - standard decomposed `MPI8origin` 的 move 极高，是最慢组。
 
 ### 5.3 `zb-cylinder-react` 300-step 性能
 
 | mode | ok/runs | real mean | stdev | min-max | full evolve | move | buildOcc | collision | post | delta vs OMP8 |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| OMP8 | 3/3 | 72.78 | 1.28 | 71.61-74.14 | 66.87 | 37.38 | 7.58 | 9.40 | 11.37 | 0.00% |
-| MPI2xOMP4 | 3/3 | 78.90 | 0.59 | 78.38-79.54 | 72.68 | 41.03 | 10.66 | 14.80 | 11.34 | +8.41% |
-| MPI4xOMP2 | 3/3 | 78.63 | 1.39 | 77.02-79.48 | 73.70 | 38.60 | 7.18 | 22.57 | 11.12 | +8.03% |
-| MPI8 | 3/3 | 107.31 | 12.65 | 94.34-119.62 | 101.31 | 51.03 | 14.19 | 49.16 | 14.97 | +47.45% |
-| MPI8origin | 3/3 | 129.74 | 0.61 | 129.36-130.44 | 130.11 | 83.07 | 19.44 | 25.44 | 14.36 | +78.26% |
+| OMP8 | 3/3 | 58.74 | 1.25 | 57.31-59.61 | 57.76 | 41.69 | 4.26 | 10.46 | 0.18 | 0.00% |
+| MPI2xOMP4 | 3/3 | 63.66 | 1.22 | 62.49-64.92 | 63.59 | 42.89 | 5.11 | 13.43 | 0.27 | +8.38% |
+| MPI4xOMP2 | 3/3 | 67.72 | 0.17 | 67.58-67.91 | 67.42 | 44.66 | 3.73 | 24.39 | 0.55 | +15.28% |
+| MPI8 | 3/3 | 79.81 | 1.59 | 78.20-81.38 | 81.33 | 54.01 | 6.51 | 33.73 | 1.29 | +35.86% |
+| MPI8origin | 3/3 | 114.80 | 1.20 | 113.42-115.60 | 124.21 | 90.73 | 11.23 | 28.69 | 0.13 | +95.44% |
 
 `zb-cylinder-react` 结论：
 
 - `OMP8` 最快；
-- `MPI4xOMP2` 是平均最快 mixed split，但只比 `MPI2xOMP4` 快 `0.27 s`；
-- `MPI2xOMP4` collision 更低，`MPI4xOMP2` move/build 更低，因此两个 mixed
-  split 接近；
-- replicated `MPI8` 明显更慢且波动大；
+- `MPI2xOMP4` 是平均最快 mixed split，比 `OMP8` 慢 `8.38%`；
+- `MPI4xOMP2` 的 build occupancy 更低，但 collision 明显高于 `MPI2xOMP4`；
+- replicated `MPI8` 已稳定，但 move/collision 高于 mixed split；
 - standard decomposed `MPI8origin` 比 replicated `MPI8` 还慢，主要因为 move 和
   build occupancy 高。
 
@@ -395,16 +444,16 @@ same-tet/tet-walk tracking 和 replicated-mesh move data flow。
 
 | case | mode | particles min-max | collisions mean | total energy min-max | stuck max |
 |---|---|---:|---:|---:|---:|
-| ourmesh | OMP8 | 2463551-2463606 | 35678 | 1.2429623320-1.2430972160 | 0 |
-| ourmesh | MPI2xOMP4 | 2463794-2463874 | 35512 | 1.2424455950-1.2431445910 | 0 |
-| ourmesh | MPI4xOMP2 | 2463827-2463927 | 35299 | 1.2413554050-1.2419720340 | 0 |
-| ourmesh | MPI8 | 2463714-2463822 | 34290 | 1.2402538530-1.2409511330 | 0 |
-| ourmesh | MPI8origin | 2463614-2463725 | 35677 | 1.2432503360-1.2433143520 | 0 |
-| zb | OMP8 | 1957935-1957986 | 242244 | 0.0019614338-0.0019618318 | 0 |
-| zb | MPI2xOMP4 | 1957848-1958210 | 229159 | 0.0019582480-0.0019592069 | 0 |
-| zb | MPI4xOMP2 | 1959437-1959631 | 225657 | 0.0019516008-0.0019566291 | 0 |
-| zb | MPI8 | 1958500-1958785 | 221341 | 0.0019540346-0.0019585066 | 0 |
-| zb | MPI8origin | 1957650-1957864 | 240447 | 0.0019619917-0.0019626472 | 0 |
+| ourmesh | OMP8 | 2463545-2463681 | 35591 | 1.2428346060-1.2430942860 | 0 |
+| ourmesh | MPI2xOMP4 | 2463659-2463786 | 35550 | 1.2430114520-1.2431917970 | 0 |
+| ourmesh | MPI4xOMP2 | 2463788-2463938 | 35614 | 1.2423908420-1.2428044570 | 0 |
+| ourmesh | MPI8 | 2463776-2463829 | 35101 | 1.2417871210-1.2424040990 | 0 |
+| ourmesh | MPI8origin | 2463640-2463765 | 35517 | 1.2432013240-1.2433580940 | 0 |
+| zb | OMP8 | 1957484-1958390 | 241823 | 0.0019609871-0.0019620457 | 0 |
+| zb | MPI2xOMP4 | 1958061-1958320 | 226886 | 0.0019510445-0.0019613185 | 0 |
+| zb | MPI4xOMP2 | 1959318-1960011 | 222185 | 0.0019434562-0.0019474198 | 0 |
+| zb | MPI8 | 1957998-1958771 | 206645 | 0.0019326233-0.0019393615 | 0 |
+| zb | MPI8origin | 1957683-1958417 | 240788 | 0.0019622125-0.0019627143 | 0 |
 
 粒子数和总能量在各模式间保持可接受一致性。碰撞数随并行分解和 RNG 消耗顺序
 变化，这是 DSMC 并行调度下预期差异；本轮没有任何 correctness gate 失败。
@@ -415,17 +464,17 @@ Replicated-mesh raw-MPI 模式的 DLB 统计：
 
 | case | mode | migration wall mean | particles max/min mean | rank wall max/min mean | rebalances mean |
 |---|---|---:|---:|---:|---:|
-| ourmesh | MPI2xOMP4 | 1.80 | 1.2712 | 1.0508 | 3.67 |
-| ourmesh | MPI4xOMP2 | 2.27 | 1.2166 | 1.0837 | 3.33 |
-| ourmesh | MPI8 | 2.37 | 2.5574 | 1.0698 | 4.00 |
-| zb | MPI2xOMP4 | 2.23 | 1.2515 | 1.0318 | 3.67 |
-| zb | MPI4xOMP2 | 1.79 | 1.6457 | 1.0256 | 2.33 |
-| zb | MPI8 | 2.45 | 1.7042 | 1.0342 | 2.33 |
+| ourmesh | MPI2xOMP4 | 1.05 | 1.1623 | 1.0005 | 2.67 |
+| ourmesh | MPI4xOMP2 | 1.53 | 1.2190 | 1.0018 | 2.33 |
+| ourmesh | MPI8 | 2.96 | 1.3181 | 1.0030 | 2.67 |
+| zb | MPI2xOMP4 | 2.06 | 1.2048 | 1.0008 | 2.33 |
+| zb | MPI4xOMP2 | 2.47 | 1.2532 | 1.0013 | 2.00 |
+| zb | MPI8 | 2.39 | 1.3424 | 1.0020 | 2.33 |
 
 解释：
 
 - `particles max/min` 不是单独性能判据；
-- 本轮 rank-wall ratio 通常只有 `1.03-1.08`，说明 DLB 后 critical-path balance
+- 本轮 rank-wall ratio 通常只有 `1.0005-1.0030`，说明 DLB 后 critical-path balance
   并不差；
 - pure `MPI8` 仍然慢，主要不是 DLB cadence 本身，而是 collision/move/build
   代价在更多 MPI ranks 下上升。
@@ -447,9 +496,10 @@ collision 和 build occupancy 开销。
 MPI replicated mesh DLB 报告证明 pure-MPI replicated mesh 已从 correctness/port
 阶段进入可运行性能状态，核心收益来自 post/output cleanup 和 same-tet area reuse。
 
-本 mixed 报告显示：mixed split 可以显著优于 pure replicated `MPI8`，尤其
-`ourmesh MPI2xOMP4` 已接近 `OMP8`。这说明 replicated mesh + OMP 的组合是有效的，
-但 pure `MPI8` 在 8-core 下并不是合理默认模式。
+本 mixed 报告显示：mixed split 可以显著优于 pure replicated `MPI8`，并且
+ParMETIS 全局 cell 权重修复后 pure replicated `MPI8` 已稳定通过 500-step 和
+30 组 clean repeat。replicated mesh + OMP 的组合是有效的，但 pure `MPI8`
+在 8-core 下仍不是合理默认性能模式。
 
 ### 6.3 相对 standard OpenFOAM decomposed MPI8
 
@@ -457,8 +507,8 @@ MPI replicated mesh DLB 报告证明 pure-MPI replicated mesh 已从 correctness
 
 | case | MPI8origin vs OMP8 | MPI8origin vs replicated MPI8 |
 |---|---:|---:|
-| ourmesh | +69.33% real | +32.11% real |
-| zb | +78.26% real | +20.90% real |
+| ourmesh | +117.07% real | +33.14% real |
+| zb | +95.44% real | +43.85% real |
 
 标准 decomposed MPI8 的主要问题是 move/build 开销显著高于 OMP8 和 replicated
 MPI8。因此除非必须保持 standard OpenFOAM `-parallel` 工作流，否则不应把
@@ -468,21 +518,24 @@ MPI8。因此除非必须保持 standard OpenFOAM `-parallel` 工作流，否则
 
 优先级按当前 no-write repeat 数据排序：
 
-1. mixed collision 路径。`ourmesh` 中 collision 从 `OMP8 3.21 s` 增至
-   `MPI2xOMP4 14.20 s`、`MPI4xOMP2 23.09 s`、`MPI8 40.59 s`。应检查 collision
+1. mixed collision 路径。`ourmesh` 中 collision 从 `OMP8 3.52 s` 增至
+   `MPI2xOMP4 16.87 s`、`MPI4xOMP2 12.67 s`、`MPI8 32.80 s`；`zb`
+   中 collision 从 `OMP8 10.46 s` 增至 `MPI2xOMP4 13.43 s`、
+   `MPI4xOMP2 24.39 s`、`MPI8 33.73 s`。应检查 collision
    是否仍有 per-rank 全网格/空 cell 遍历、owner filtering、RNG 或反应调用开销。
-2. `zb-cylinder-react` 反应日志和 reaction path。反应 case stdout 很密集，
-   performance run 虽然 no-write，但仍保留完整 log。应增加 reaction verbosity
-   控制或 rank0-only summary 做 A/B。
-3. `buildCellOccupancy()`。`zb MPI2xOMP4 10.66 s`、`zb MPI8 14.19 s`、
-   `zb MPI8origin 19.44 s`，说明该路径仍有可优化空间。可评估 owned/active
+2. `buildCellOccupancy()`。`ourmesh MPI8 10.61 s`、`ourmesh MPI8origin 16.31 s`、
+   `zb MPI8 6.51 s`、`zb MPI8origin 11.23 s`，说明更多 MPI ranks 下该路径
+   仍有可优化空间。可评估 owned/active
    cell list 或迁移后增量更新。
-4. OMP8 move/post。若目标是继续提升当前最佳配置，`OMP8` 的 move 仍是最大项，
-   post fields/output 也是显著项。mixed 是否能超过 OMP8，最终仍取决于这两项的
-   shared baseline 是否继续下降。
-5. 运行时绑核和波动控制。`zb MPI8` 的 `real` 范围是 `94.34-119.62 s`，
-   需用 `OMP_PROC_BIND`、`OMP_PLACES`、Intel MPI pinning 做低成本 A/B 排除调度噪声。
-6. DLB threshold/cadence 不是下一步第一优先级。本轮 rank-wall ratio 已较低，
+3. OMP8 move。若目标是继续提升当前最佳配置，`OMP8` 的 move 仍是最大项：
+   `ourmesh 49.11 s`、`zb 41.69 s`。mixed 是否能超过 OMP8，最终仍取决于
+   move/collision shared baseline 是否继续下降。
+4. `zb-cylinder-react` 反应路径。反应 case 的 collision/reaction 成本对 split
+   很敏感，应继续检查反应调用、owner filtering 和 rank-local 统计开销。
+5. 运行时绑核和波动控制。clean repeat 中 `zb MPI8` 的 `real` 范围已收敛到
+   `78.20-81.38 s`，但 mixed split 的相对排序仍值得用 `OMP_PROC_BIND`、
+   `OMP_PLACES`、Intel MPI pinning 做低成本 A/B。
+6. DLB threshold/cadence 不是下一步第一优先级。本轮 rank-wall ratio 已很低，
    继续调 ParMETIS/DLB 不太可能单独改变端到端排序。
 
 ## 8. 最终建议
@@ -491,10 +544,11 @@ MPI8。因此除非必须保持 standard OpenFOAM `-parallel` 工作流，否则
 
 如果需要 mixed MPI+OpenMP：
 
-- `ourmesh`：优先用 `MPI2xOMP4`；
-- `zb-cylinder-react`：`MPI4xOMP2` 平均最快，但 `MPI2xOMP4` 差距很小，
-  可按后续 case physics 和节点绑核情况复测选择。
+- `ourmesh`：`MPI4xOMP2` 平均最快，`MPI2xOMP4` 只慢 `0.20 s`，两者都可作为
+  mixed 候选；
+- `zb-cylinder-react`：优先用 `MPI2xOMP4`。
 
 不要把 pure replicated `MPI8` 或 standard decomposed `MPI8origin` 作为当前
 8-core 默认性能路径。它们可以作为 MPI path 功能验证和对照基准保留，但不是
-性能最佳选择。
+性能最佳选择。ParMETIS 修复后 replicated `MPI8` 可以作为稳定的 DLB 功能验证
+路径保留。

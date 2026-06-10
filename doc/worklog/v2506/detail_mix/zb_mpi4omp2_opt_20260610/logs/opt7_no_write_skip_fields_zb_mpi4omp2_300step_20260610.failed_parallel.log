@@ -1,0 +1,27 @@
+/*---------------------------------------------------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  v1706                                 |
+|   \\  /    A nd           | Web:      www.OpenFOAM.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+Build  : v1706
+Arch   : "LSB;label=32;scalar=64"
+Exec   : /home/superxcx/code/OpenFoam/OF-1706/hyStrath_dlb/platforms/linux64IccDPInt32Opt/bin/dsmcFoam+ -parallel
+Date   : Jun 10 2026
+Time   : 05:32:45
+Host   : "SuperXCX-ROG"
+PID    : 2148655
+[0] 
+[0] 
+[0] --> FOAM FATAL ERROR: 
+[0] number of processor directories = 1 is not equal to the number of processors = 4
+[0] 
+FOAM parallel run exiting
+[0] 
+Abort(1) on node 0 (rank 0 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 1) - process 0
+real 0.59
+user 0.12
+sys 0.23
+
+exit 1

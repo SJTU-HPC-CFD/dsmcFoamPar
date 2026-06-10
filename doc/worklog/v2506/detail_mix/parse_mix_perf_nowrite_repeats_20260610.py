@@ -11,7 +11,11 @@ from pathlib import Path
 
 
 ROOT = Path("/home/superxcx/code/OpenFoam/OF-1706/hyStrath_dlb")
-OUTDIR = ROOT / "doc/worklog/v2506/detail_mix/repeat_nowrite_compute_20260610_rerun"
+OUTDIR = (
+    Path(sys.argv[1]).resolve()
+    if len(sys.argv) > 1
+    else ROOT / "doc/worklog/v2506/detail_mix/repeat_nowrite_compute_20260610_rerun"
+)
 MANIFEST = OUTDIR / "run_manifest.tsv"
 RESULTS_CSV = OUTDIR / "results.csv"
 AGG_CSV = OUTDIR / "aggregate.csv"

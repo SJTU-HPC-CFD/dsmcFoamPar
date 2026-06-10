@@ -109,6 +109,10 @@ Foam::domainDecomposition::domainDecomposition
     ),
     distributed_(false),
     cellToProc_(nCells()),
+    cellToProcIsSet_(false),
+    processorMeshInstance_(word::null),
+    processorMeshSyncPar_(true),
+    processorMeshWriteProc_(-1),
     procPointAddressing_(nProcs_),
     procFaceAddressing_(nProcs_),
     procCellAddressing_(nProcs_),
@@ -136,9 +140,72 @@ Foam::domainDecomposition::~domainDecomposition()
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
+void Foam::domainDecomposition::setCellToProc(const labelList& cellToProc)
+{
+    if (cellToProc.size() != nCells())
+    {
+        FatalErrorInFunction
+            << "External decomposition size " << cellToProc.size()
+            << " does not match mesh cell count " << nCells()
+            << exit(FatalError);
+    }
+
+    forAll(cellToProc, celli)
+    {
+        if (cellToProc[celli] < 0 || cellToProc[celli] >= nProcs_)
+        {
+            FatalErrorInFunction
+                << "External decomposition has invalid processor label "
+                << cellToProc[celli] << " for cell " << celli
+                << "; valid range is [0," << nProcs_ - 1 << "]"
+                << exit(FatalError);
+        }
+    }
+
+    cellToProc_ = cellToProc;
+    cellToProcIsSet_ = true;
+}
+
+
+void Foam::domainDecomposition::setProcessorMeshInstance(const word& instance)
+{
+    processorMeshInstance_ = instance;
+}
+
+
+void Foam::domainDecomposition::setProcessorMeshSyncPar(const bool syncPar)
+{
+    processorMeshSyncPar_ = syncPar;
+}
+
+
+void Foam::domainDecomposition::setProcessorMeshWriteProc(const label procI)
+{
+    if (procI < -1 || procI >= nProcs_)
+    {
+        FatalErrorInFunction
+            << "Invalid processor mesh write target " << procI
+            << "; valid range is -1 or [0," << nProcs_ - 1 << "]"
+            << exit(FatalError);
+    }
+
+    processorMeshWriteProc_ = procI;
+}
+
+
 bool Foam::domainDecomposition::writeDecomposition(const bool decomposeSets)
 {
     Info<< "\nConstructing processor meshes" << endl;
+
+    const fileName procMeshInstance =
+        processorMeshInstance_ == word::null
+      ? facesInstance()
+      : fileName(processorMeshInstance_);
+
+    const fileName procPointsInstance =
+        processorMeshInstance_ == word::null
+      ? pointsInstance()
+      : fileName(processorMeshInstance_);
 
     // Mark point/faces/cells that are in zones.
     // -1   : not in zone
@@ -204,20 +271,33 @@ bool Foam::domainDecomposition::writeDecomposition(const bool decomposeSets)
     }
 
 
-    // Load refinement data (if any)
-    hexRef8Data baseMeshData
-    (
-        IOobject
+    // Load refinement data (if any). The reader performs Pstream reductions, so
+    // callers that disable processor-patch synchronisation must skip it.
+    autoPtr<hexRef8Data> baseMeshDataPtr;
+    if (processorMeshSyncPar_)
+    {
+        baseMeshDataPtr.reset
         (
-            "dummy",
-            facesInstance(),
-            polyMesh::meshSubDir,
-            *this,
-            IOobject::READ_IF_PRESENT,
-            IOobject::NO_WRITE,
-            false
-        )
-    );
+            new hexRef8Data
+            (
+                IOobject
+                (
+                    "dummy",
+                    facesInstance(),
+                    polyMesh::meshSubDir,
+                    *this,
+                    IOobject::READ_IF_PRESENT,
+                    IOobject::NO_WRITE,
+                    false
+                )
+            )
+        );
+    }
+    else
+    {
+        Info<< "domainDecomposition: skipping hexRef8Data in serial "
+            << "processor mesh construction without patch sync" << endl;
+    }
 
 
 
@@ -231,6 +311,17 @@ bool Foam::domainDecomposition::writeDecomposition(const bool decomposeSets)
     // Write out the meshes
     for (label proci = 0; proci < nProcs_; proci++)
     {
+        if (processorMeshWriteProc_ >= 0 && proci != processorMeshWriteProc_)
+        {
+            continue;
+        }
+
+        if (!processorMeshSyncPar_)
+        {
+            Info<< "domainDecomposition: processor " << proci
+                << " begin processor mesh construction" << endl;
+        }
+
         // Create processor points
         const labelList& curPointLabels = procPointAddressing_[proci];
 
@@ -310,6 +401,14 @@ bool Foam::domainDecomposition::writeDecomposition(const bool decomposeSets)
             }
         }
 
+        if (!processorMeshSyncPar_)
+        {
+            Info<< "domainDecomposition: processor " << proci
+                << " local sizes: points=" << procPoints.size()
+                << " faces=" << procFaces.size()
+                << " cells=" << procCells.size() << endl;
+        }
+
         // Create processor mesh without a boundary
 
         fileName processorCasePath
@@ -341,6 +440,12 @@ bool Foam::domainDecomposition::writeDecomposition(const bool decomposeSets)
         //   Only at writing time will it additionally write the current
         //   points.
 
+        if (!processorMeshSyncPar_)
+        {
+            Info<< "domainDecomposition: processor " << proci
+                << " constructing polyMesh" << endl;
+        }
+
         autoPtr<polyMesh> procMeshPtr;
 
         if (facesInstancePointsPtr_.valid())
@@ -359,12 +464,13 @@ bool Foam::domainDecomposition::writeDecomposition(const bool decomposeSets)
                     IOobject
                     (
                         this->polyMesh::name(), // region of undecomposed mesh
-                        facesInstance(),
+                        procMeshInstance,
                         processorDb
                     ),
                     xferMove(facesInstancePoints),
                     xferMove(procFaces),
-                    xferMove(procCells)
+                    xferMove(procCells),
+                    processorMeshSyncPar_
                 )
             );
         }
@@ -377,16 +483,23 @@ bool Foam::domainDecomposition::writeDecomposition(const bool decomposeSets)
                     IOobject
                     (
                         this->polyMesh::name(), // region of undecomposed mesh
-                        facesInstance(),
+                        procMeshInstance,
                         processorDb
                     ),
                     xferMove(procPoints),
                     xferMove(procFaces),
-                    xferMove(procCells)
+                    xferMove(procCells),
+                    processorMeshSyncPar_
                 )
             );
         }
         polyMesh& procMesh = procMeshPtr();
+
+        if (!processorMeshSyncPar_)
+        {
+            Info<< "domainDecomposition: processor " << proci
+                << " constructed polyMesh" << endl;
+        }
 
 
         // Create processor boundary patches
@@ -515,7 +628,17 @@ bool Foam::domainDecomposition::writeDecomposition(const bool decomposeSets)
         }
 
         // Add boundary patches
-        procMesh.addPatches(procPatches);
+        if (!processorMeshSyncPar_)
+        {
+            Info<< "domainDecomposition: processor " << proci
+                << " adding boundary patches" << endl;
+        }
+        procMesh.addPatches(procPatches, processorMeshSyncPar_);
+        if (!processorMeshSyncPar_)
+        {
+            Info<< "domainDecomposition: processor " << proci
+                << " added boundary patches" << endl;
+        }
 
         // Create and add zones
 
@@ -746,7 +869,17 @@ bool Foam::domainDecomposition::writeDecomposition(const bool decomposeSets)
         // Set the precision of the points data to be min 10
         IOstream::defaultPrecision(max(10u, IOstream::defaultPrecision()));
 
+        if (!processorMeshSyncPar_)
+        {
+            Info<< "domainDecomposition: processor " << proci
+                << " writing polyMesh" << endl;
+        }
         procMesh.write();
+        if (!processorMeshSyncPar_)
+        {
+            Info<< "domainDecomposition: processor " << proci
+                << " wrote polyMesh" << endl;
+        }
 
         // Write points if pointsInstance differing from facesInstance
         if (facesInstancePointsPtr_.valid())
@@ -756,7 +889,7 @@ bool Foam::domainDecomposition::writeDecomposition(const bool decomposeSets)
                 IOobject
                 (
                     "points",
-                    pointsInstance(),
+                    procPointsInstance,
                     polyMesh::meshSubDir,
                     procMesh,
                     IOobject::NO_READ,
@@ -815,22 +948,25 @@ bool Foam::domainDecomposition::writeDecomposition(const bool decomposeSets)
 
 
         // Optional hexRef8 data
-        hexRef8Data
-        (
-            IOobject
+        if (baseMeshDataPtr.valid())
+        {
+            hexRef8Data
             (
-                "dummy",
-                facesInstance(),
-                polyMesh::meshSubDir,
-                procMesh,
-                IOobject::NO_READ,
-                IOobject::NO_WRITE,
-                false
-            ),
-            baseMeshData,
-            procCellAddressing_[proci],
-            procPointAddressing_[proci]
-        ).write();
+                IOobject
+                (
+                    "dummy",
+                    procMeshInstance,
+                    polyMesh::meshSubDir,
+                    procMesh,
+                    IOobject::NO_READ,
+                    IOobject::NO_WRITE,
+                    false
+                ),
+                baseMeshDataPtr(),
+                procCellAddressing_[proci],
+                procPointAddressing_[proci]
+            ).write();
+        }
 
 
         // Statistics
@@ -878,6 +1014,12 @@ bool Foam::domainDecomposition::writeDecomposition(const bool decomposeSets)
         maxProcFaces = max(maxProcFaces, nProcFaces);
 
         // create and write the addressing information
+        if (!processorMeshSyncPar_)
+        {
+            Info<< "domainDecomposition: processor " << proci
+                << " writing addressing" << endl;
+        }
+
         labelIOList pointProcAddressing
         (
             IOobject
@@ -943,6 +1085,12 @@ bool Foam::domainDecomposition::writeDecomposition(const bool decomposeSets)
             procBoundaryAddressing
         );
         boundaryProcAddressing.write();
+
+        if (!processorMeshSyncPar_)
+        {
+            Info<< "domainDecomposition: processor " << proci
+                << " wrote addressing" << endl;
+        }
     }
 
     scalar avgProcCells = scalar(nCells())/nProcs_;

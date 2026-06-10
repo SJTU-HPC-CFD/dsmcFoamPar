@@ -599,23 +599,7 @@ void exchangeQK::outputResults(const label& counterIndex)
     }
     else
     {
-        label nTotExchangeReactions = nTotExchangeReactions_;
-        label nExchangeReactionsPerTimeStep = nExchangeReactionsPerTimeStep_;
-
-        if (Pstream::parRun())
-        {
-            //- Parallel communication
-            reduce(nTotExchangeReactions, sumOp<label>());
-            reduce(nExchangeReactionsPerTimeStep, sumOp<label>());
-        }
-
-        if (nTotExchangeReactions > 0)
-        {
-            Info<< exchangeStr_
-                << " is active, nReactions this time step = "
-                << nExchangeReactionsPerTimeStep
-                << endl;
-         }
+        // No terminal output requested; keep the per-step counter reset below.
     }
 
     nExchangeReactionsPerTimeStep_ = 0;

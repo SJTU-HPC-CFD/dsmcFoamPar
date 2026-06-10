@@ -1,0 +1,693 @@
+case=zb
+mode=OMP8
+rep=1
+np=1
+OMP_NUM_THREADS=8
+case_dir=/home/superxcx/code/OpenFoam/OF-1706/hyStrath_dlb/run/hyStrath/dsmcFoam+/xcx_test/zb-cylinder-react/omp8
+controlDict=/home/superxcx/code/OpenFoam/OF-1706/hyStrath_dlb/doc/worklog/v2506/detail_mix/repeat_nowrite_compute_20260610_parmetisfix_clean/controlDicts/zb_OMP8_rep1_controlDict
+start=2026-06-10T23:36:36+08:00
+/*---------------------------------------------------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  v1706                                 |
+|   \\  /    A nd           | Web:      www.OpenFOAM.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+Build  : v1706
+Arch   : "LSB;label=32;scalar=64"
+Exec   : dsmcFoam+
+Date   : Jun 10 2026
+Time   : 23:36:37
+Host   : "SuperXCX-ROG"
+PID    : 94427
+Case   : /home/superxcx/code/OpenFoam/OF-1706/hyStrath_dlb/run/hyStrath/dsmcFoam+/xcx_test/zb-cylinder-react/omp8
+nProcs : 1
+sigFpe : Enabling floating point exception trapping (FOAM_SIGFPE).
+fileModificationChecking : Monitoring run-time modified files using timeStampMaster (fileModificationSkew 10)
+allowSystemOperations : Allowing user-supplied system call operations
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+Create time
+
+Create mesh for time = 0
+
+Selecting dynamicFvMesh dynamicRefineFvMesh
+
+Constructing dsmcCloud 
+Selecting the coordinate system model:	dsmcCartesian
+
+Selecting the time-step model:	dsmcConstantTimeStepModel
+
+Constant time-step model:
+- time-step [sec]	6.640048894e-08
+
+Selecting the porous measurement model:	dsmcNoPorousMediumMeasurements
+
+
+Creating dsmcControllers
+
+Creating fields: 
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+ measurement option: write
+ nSamples: 1, time interval: 6.640048894e-08
+ nAverages: 15060, time interval: 0.0009999913634
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+ measurement option: write
+ nSamples: 1, time interval: 6.640048894e-08
+ nAverages: 15060, time interval: 0.0009999913634
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+ measurement option: write
+ nSamples: 1, time interval: 6.640048894e-08
+ nAverages: 15060, time interval: 0.0009999913634
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+ measurement option: write
+ nSamples: 1, time interval: 6.640048894e-08
+ nAverages: 15060, time interval: 0.0009999913634
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+ measurement option: write
+ nSamples: 1, time interval: 6.640048894e-08
+ nAverages: 15060, time interval: 0.0009999913634
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+ measurement option: write
+ nSamples: 1, time interval: 6.640048894e-08
+ nAverages: 15060, time interval: 0.0009999913634
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Creating the boundary models: 
+
+Selecting dsmcPatchBoundaryModel dsmcDeletionPatch
+Selecting dsmcPatchBoundaryModel dsmcDeletionPatch
+Selecting dsmcPatchBoundaryModel dsmcDiffuseWallPatch
+Selecting dsmcGeneralBoundaryModel dsmcFreeStreamInflowPatch
+Selecting BinaryCollisionModel LarsenBorgnakkeVariableHardSphere
+
+Creating dsmcReactions
+
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationExchangeQK
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationExchangeQK
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationExchangeQK
+Selecting the reaction model dissociationExchangeQK
+Selecting the reaction model dissociationQK
+Number of reactions created: 12
+
+Constructing constant properties for
+	N2
+	O2
+	NO
+	N
+	O
+Selecting collisionPartnerSelectionModel noTimeCounter
+
+Initialising the measurement fields
+
+Initialising dsmcVolFields field
+Initialising dsmcVolFields field
+Initialising dsmcVolFields field
+Initialising dsmcVolFields field
+Initialising dsmcVolFields field
+Initialising dsmcVolFields field
+
+Starting time loop
+
+Time = 6.640048894e-07
+
+    Collisions                      = 26174
+    Collision candidates           = 35052
+    Collision acceptance rate      = 0.7467191601
+
+    Number of DSMC particles        = 1330303
+    Number of stuck particles       = 0
+    Number of free particles        = 1330303
+    Average linear kinetic energy   = 1.893534933e-19
+    Average rotational energy       = 1.330704924e-21
+    Average vibrational energy      = 2.341381174e-26
+    Average electronic energy       = 0
+    Total energy                    = 0.001522006753
+
+Stage 1.0  ExecutionTime = 11.22 s  ClockTime = 1 s  Iteration 10 (1.04 s)
+
+Time = 1.328009779e-06
+
+    Collisions                      = 36422
+    Collision candidates           = 55045
+    Collision acceptance rate      = 0.6616768099
+
+    Number of DSMC particles        = 1353913
+    Number of stuck particles       = 0
+    Number of free particles        = 1353913
+    Average linear kinetic energy   = 1.866122895e-19
+    Average rotational energy       = 1.565032354e-21
+    Average vibrational energy      = 1.724087851e-25
+    Average electronic energy       = 0
+    Total energy                    = 0.001528655734
+
+Stage 1.0  ExecutionTime = 20.88 s  ClockTime = 3 s  Iteration 20 (1.11 s)
+
+Time = 1.992014668e-06
+
+    Collisions                      = 46533
+    Collision candidates           = 75976
+    Collision acceptance rate      = 0.6124697273
+
+    Number of DSMC particles        = 1377457
+    Number of stuck particles       = 0
+    Number of free particles        = 1377457
+    Average linear kinetic energy   = 1.841536748e-19
+    Average rotational energy       = 1.894262247e-21
+    Average vibrational energy      = 2.372987959e-25
+    Average electronic energy       = 0
+    Total energy                    = 0.001537640161
+
+Stage 1.0  ExecutionTime = 31.27 s  ClockTime = 4 s  Iteration 30 (1.31 s)
+
+Time = 2.656019558e-06
+
+    Collisions                      = 57202
+    Collision candidates           = 97363
+    Collision acceptance rate      = 0.5875127102
+
+    Number of DSMC particles        = 1401053
+    Number of stuck particles       = 0
+    Number of free particles        = 1401053
+    Average linear kinetic energy   = 1.819428127e-19
+    Average rotational energy       = 2.289847839e-21
+    Average vibrational energy      = 2.333023001e-25
+    Average electronic energy       = 0
+    Total energy                    = 0.001548720292
+
+Stage 1.0  ExecutionTime = 42.14 s  ClockTime = 5 s  Iteration 40 (1.44 s)
+
+Time = 3.320024447e-06
+
+    Collisions                      = 66980
+    Collision candidates           = 117925
+    Collision acceptance rate      = 0.567988128
+
+    Number of DSMC particles        = 1424454
+    Number of stuck particles       = 0
+    Number of free particles        = 1424454
+    Average linear kinetic energy   = 1.798903434e-19
+    Average rotational energy       = 2.739238982e-21
+    Average vibrational energy      = 2.513358462e-25
+    Average electronic energy       = 0
+    Total energy                    = 0.001560886783
+
+Stage 1.0  ExecutionTime = 53.44 s  ClockTime = 7 s  Iteration 50 (1.44 s)
+
+Time = 3.984029336e-06
+
+    Collisions                      = 76945
+    Collision candidates           = 138191
+    Collision acceptance rate      = 0.5568018178
+
+    Number of DSMC particles        = 1447701
+    Number of stuck particles       = 0
+    Number of free particles        = 1447701
+    Average linear kinetic energy   = 1.779961554e-19
+    Average rotational energy       = 3.230187752e-21
+    Average vibrational energy      = 3.655091203e-25
+    Average electronic energy       = 0
+    Total energy                    = 0.001574172524
+
+Stage 1.0  ExecutionTime = 65.36 s  ClockTime = 9 s  Iteration 60 (1.52 s)
+
+Time = 4.648034226e-06
+
+    Collisions                      = 86577
+    Collision candidates           = 158267
+    Collision acceptance rate      = 0.5470312826
+
+    Number of DSMC particles        = 1471251
+    Number of stuck particles       = 0
+    Number of free particles        = 1471251
+    Average linear kinetic energy   = 1.762540541e-19
+    Average rotational energy       = 3.740901874e-21
+    Average vibrational energy      = 4.338780585e-25
+    Average electronic energy       = 0
+    Total energy                    = 0.001588910384
+
+Stage 1.0  ExecutionTime = 78.19 s  ClockTime = 10 s  Iteration 70 (1.68 s)
+
+Time = 5.312039115e-06
+
+    Collisions                      = 94981
+    Collision candidates           = 176092
+    Collision acceptance rate      = 0.5393828226
+
+    Number of DSMC particles        = 1494463
+    Number of stuck particles       = 0
+    Number of free particles        = 1494463
+    Average linear kinetic energy   = 1.746148683e-19
+    Average rotational energy       = 4.258433781e-21
+    Average vibrational energy      = 1.177207641e-24
+    Average electronic energy       = 0
+    Total energy                    = 0.001603927746
+
+Stage 1.0  ExecutionTime = 91.79 s  ClockTime = 12 s  Iteration 80 (1.68 s)
+
+Time = 5.976044005e-06
+
+    Collisions                      = 103778
+    Collision candidates           = 194934
+    Collision acceptance rate      = 0.5323750603
+
+    Number of DSMC particles        = 1517759
+    Number of stuck particles       = 0
+    Number of free particles        = 1517759
+    Average linear kinetic energy   = 1.731049289e-19
+    Average rotational energy       = 4.769327263e-21
+    Average vibrational energy      = 1.467205394e-24
+    Average electronic energy       = 0
+    Total energy                    = 0.00161983488
+
+Stage 1.0  ExecutionTime = 105.49 s  ClockTime = 14 s  Iteration 90 (1.77 s)
+
+Time = 6.640048894e-06
+
+    Collisions                      = 112172
+    Collision candidates           = 211590
+    Collision acceptance rate      = 0.5301384754
+
+    Number of DSMC particles        = 1540733
+    Number of stuck particles       = 0
+    Number of free particles        = 1540733
+    Average linear kinetic energy   = 1.716537772e-19
+    Average rotational energy       = 5.294262342e-21
+    Average vibrational energy      = 1.889846865e-24
+    Average electronic energy       = 0
+    Total energy                    = 0.001635795573
+
+Stage 1.0  ExecutionTime = 118.39 s  ClockTime = 16 s  Iteration 100 (1.84 s)
+
+Time = 7.304053783e-06
+
+    Collisions                      = 121078
+    Collision candidates           = 229342
+    Collision acceptance rate      = 0.5279364443
+
+    Number of DSMC particles        = 1564034
+    Number of stuck particles       = 0
+    Number of free particles        = 1564034
+    Average linear kinetic energy   = 1.702866375e-19
+    Average rotational energy       = 5.828952014e-21
+    Average vibrational energy      = 2.408775812e-24
+    Average electronic energy       = 0
+    Total energy                    = 0.001652727224
+
+Stage 1.0  ExecutionTime = 131.92 s  ClockTime = 18 s  Iteration 110 (1.89 s)
+
+Time = 7.968058673e-06
+
+    Collisions                      = 128551
+    Collision candidates           = 246207
+    Collision acceptance rate      = 0.522125691
+
+    Number of DSMC particles        = 1586592
+    Number of stuck particles       = 0
+    Number of free particles        = 1586592
+    Average linear kinetic energy   = 1.689732936e-19
+    Average rotational energy       = 6.353739446e-21
+    Average vibrational energy      = 2.893975687e-24
+    Average electronic energy       = 0
+    Total energy                    = 0.001669062358
+
+Stage 1.0  ExecutionTime = 145.96 s  ClockTime = 20 s  Iteration 120 (1.89 s)
+
+Time = 8.632063562e-06
+
+    Collisions                      = 135956
+    Collision candidates           = 260761
+    Collision acceptance rate      = 0.5213816483
+
+    Number of DSMC particles        = 1609021
+    Number of stuck particles       = 0
+    Number of free particles        = 1609021
+    Average linear kinetic energy   = 1.677674867e-19
+    Average rotational energy       = 6.84278158e-21
+    Average vibrational energy      = 3.607705488e-24
+    Average electronic energy       = 0
+    Total energy                    = 0.00168574436
+
+Stage 1.0  ExecutionTime = 160.03 s  ClockTime = 21 s  Iteration 130 (1.92 s)
+
+Time = 9.296068452e-06
+
+    Collisions                      = 142877
+    Collision candidates           = 275856
+    Collision acceptance rate      = 0.5179405197
+
+    Number of DSMC particles        = 1631672
+    Number of stuck particles       = 0
+    Number of free particles        = 1631672
+    Average linear kinetic energy   = 1.666114432e-19
+    Average rotational energy       = 7.333730696e-21
+    Average vibrational energy      = 4.062939283e-24
+    Average electronic energy       = 0
+    Total energy                    = 0.001702968595
+
+Stage 1.0  ExecutionTime = 174.83 s  ClockTime = 23 s  Iteration 140 (2.1 s)
+
+Time = 9.960073341e-06
+
+    Collisions                      = 150259
+    Collision candidates           = 290751
+    Collision acceptance rate      = 0.5167961589
+
+    Number of DSMC particles        = 1653727
+    Number of stuck particles       = 0
+    Number of free particles        = 1653727
+    Average linear kinetic energy   = 1.654778414e-19
+    Average rotational energy       = 7.843804648e-21
+    Average vibrational energy      = 4.628779596e-24
+    Average electronic energy       = 0
+    Total energy                    = 0.001719806043
+
+Stage 1.0  ExecutionTime = 189.3 s  ClockTime = 25 s  Iteration 150 (2.11 s)
+
+Time = 1.062407823e-05
+
+    Collisions                      = 157605
+    Collision candidates           = 305850
+    Collision acceptance rate      = 0.5153016184
+
+    Number of DSMC particles        = 1675599
+    Number of stuck particles       = 0
+    Number of free particles        = 1675599
+    Average linear kinetic energy   = 1.644342394e-19
+    Average rotational energy       = 8.301931806e-21
+    Average vibrational energy      = 5.033080346e-24
+    Average electronic energy       = 0
+    Total energy                    = 0.001736669935
+
+Stage 1.0  ExecutionTime = 204.02 s  ClockTime = 27 s  Iteration 160 (2.17 s)
+
+Time = 1.128808312e-05
+
+    Collisions                      = 164099
+    Collision candidates           = 319503
+    Collision acceptance rate      = 0.513607071
+
+    Number of DSMC particles        = 1697446
+    Number of stuck particles       = 0
+    Number of free particles        = 1697446
+    Average linear kinetic energy   = 1.634114757e-19
+    Average rotational energy       = 8.769539411e-21
+    Average vibrational energy      = 5.710720869e-24
+    Average electronic energy       = 0
+    Total energy                    = 0.001753666014
+
+Stage 1.0  ExecutionTime = 219.33 s  ClockTime = 29 s  Iteration 170 (2.21 s)
+
+Time = 1.195208801e-05
+
+    Collisions                      = 171527
+    Collision candidates           = 334194
+    Collision acceptance rate      = 0.5132557736
+
+    Number of DSMC particles        = 1718971
+    Number of stuck particles       = 0
+    Number of free particles        = 1718971
+    Average linear kinetic energy   = 1.624302885e-19
+    Average rotational energy       = 9.236434646e-21
+    Average vibrational energy      = 6.752014469e-24
+    Average electronic energy       = 0
+    Total energy                    = 0.001770610351
+
+Stage 1.0  ExecutionTime = 234.7 s  ClockTime = 32 s  Iteration 180 (2.36 s)
+
+Time = 1.26160929e-05
+
+    Collisions                      = 177507
+    Collision candidates           = 346883
+    Collision acceptance rate      = 0.5117200901
+
+    Number of DSMC particles        = 1740300
+    Number of stuck particles       = 0
+    Number of free particles        = 1740300
+    Average linear kinetic energy   = 1.614652918e-19
+    Average rotational energy       = 9.712232234e-21
+    Average vibrational energy      = 6.866137544e-24
+    Average electronic energy       = 0
+    Total energy                    = 0.001787473165
+
+Stage 1.0  ExecutionTime = 250.44 s  ClockTime = 34 s  Iteration 190 (2.36 s)
+
+Time = 1.328009779e-05
+
+    Collisions                      = 183838
+    Collision candidates           = 359359
+    Collision acceptance rate      = 0.5115719935
+
+    Number of DSMC particles        = 1761355
+    Number of stuck particles       = 0
+    Number of free particles        = 1761355
+    Average linear kinetic energy   = 1.605770837e-19
+    Average rotational energy       = 1.014680443e-20
+    Average vibrational energy      = 7.764391103e-24
+    Average electronic energy       = 0
+    Total energy                    = 0.001804314299
+
+Stage 1.0  ExecutionTime = 266.39 s  ClockTime = 36 s  Iteration 200 (2.46 s)
+
+Time = 1.394410268e-05
+
+    Collisions                      = 189174
+    Collision candidates           = 372029
+    Collision acceptance rate      = 0.5084926175
+
+    Number of DSMC particles        = 1781953
+    Number of stuck particles       = 0
+    Number of free particles        = 1781953
+    Average linear kinetic energy   = 1.59714764e-19
+    Average rotational energy       = 1.055607951e-20
+    Average vibrational energy      = 9.229904183e-24
+    Average electronic energy       = 0
+    Total energy                    = 0.001820586526
+
+Stage 1.0  ExecutionTime = 282.87 s  ClockTime = 38 s  Iteration 210 (2.53 s)
+
+Time = 1.460810757e-05
+
+    Collisions                      = 195767
+    Collision candidates           = 384461
+    Collision acceptance rate      = 0.5091985923
+
+    Number of DSMC particles        = 1802359
+    Number of stuck particles       = 0
+    Number of free particles        = 1802359
+    Average linear kinetic energy   = 1.588769703e-19
+    Average rotational energy       = 1.097708643e-20
+    Average vibrational energy      = 1.029994917e-23
+    Average electronic energy       = 0
+    Total energy                    = 0.001836939312
+
+Stage 1.0  ExecutionTime = 299.73 s  ClockTime = 40 s  Iteration 220 (2.83 s)
+
+Time = 1.527211246e-05
+
+    Collisions                      = 202865
+    Collision candidates           = 396850
+    Collision acceptance rate      = 0.5111881063
+
+    Number of DSMC particles        = 1822522
+    Number of stuck particles       = 0
+    Number of free particles        = 1822522
+    Average linear kinetic energy   = 1.580651141e-19
+    Average rotational energy       = 1.138477819e-20
+    Average vibrational energy      = 1.085212648e-23
+    Average electronic energy       = 0
+    Total energy                    = 0.001853075609
+
+Stage 1.0  ExecutionTime = 317.4 s  ClockTime = 43 s  Iteration 230 (2.85 s)
+
+Time = 1.593611735e-05
+
+    Collisions                      = 208232
+    Collision candidates           = 409392
+    Collision acceptance rate      = 0.5086371986
+
+    Number of DSMC particles        = 1842947
+    Number of stuck particles       = 0
+    Number of free particles        = 1842947
+    Average linear kinetic energy   = 1.572925457e-19
+    Average rotational energy       = 1.178062321e-20
+    Average vibrational energy      = 1.158505792e-23
+    Average electronic energy       = 0
+    Total energy                    = 0.001869685441
+
+Stage 1.0  ExecutionTime = 334.74 s  ClockTime = 45 s  Iteration 240 (2.68 s)
+
+Time = 1.660012224e-05
+
+    Collisions                      = 213423
+    Collision candidates           = 420344
+    Collision acceptance rate      = 0.5077341416
+
+    Number of DSMC particles        = 1862657
+    Number of stuck particles       = 0
+    Number of free particles        = 1862657
+    Average linear kinetic energy   = 1.565100608e-19
+    Average rotational energy       = 1.218559566e-20
+    Average vibrational energy      = 1.186302738e-23
+    Average electronic energy       = 0
+    Total energy                    = 0.001885465453
+
+Stage 1.0  ExecutionTime = 352.31 s  ClockTime = 44 s  Iteration 250 (2.76 s)
+
+Time = 1.726412712e-05
+
+    Collisions                      = 218743
+    Collision candidates           = 431333
+    Collision acceptance rate      = 0.5071325403
+
+    Number of DSMC particles        = 1882005
+    Number of stuck particles       = 0
+    Number of free particles        = 1882005
+    Average linear kinetic energy   = 1.557458178e-19
+    Average rotational energy       = 1.258962526e-20
+    Average vibrational energy      = 1.303121793e-23
+    Average electronic energy       = 0
+    Total energy                    = 0.001900996022
+
+Stage 1.0  ExecutionTime = 370.68 s  ClockTime = 46 s  Iteration 260 (2.84 s)
+
+Time = 1.792813201e-05
+
+    Collisions                      = 225017
+    Collision candidates           = 443745
+    Collision acceptance rate      = 0.507086277
+
+    Number of DSMC particles        = 1900906
+    Number of stuck particles       = 0
+    Number of free particles        = 1900906
+    Average linear kinetic energy   = 1.550083593e-19
+    Average rotational energy       = 1.296054879e-20
+    Average vibrational energy      = 1.451288883e-23
+    Average electronic energy       = 0
+    Total energy                    = 0.001915924157
+
+Stage 1.0  ExecutionTime = 391 s  ClockTime = 49 s  Iteration 270 (2.92 s)
+
+Time = 1.85921369e-05
+
+    Collisions                      = 230500
+    Collision candidates           = 455888
+    Collision acceptance rate      = 0.5056066402
+
+    Number of DSMC particles        = 1920030
+    Number of stuck particles       = 0
+    Number of free particles        = 1920030
+    Average linear kinetic energy   = 1.543048875e-19
+    Average rotational energy       = 1.331691336e-20
+    Average vibrational energy      = 1.583543415e-23
+    Average electronic energy       = 0
+    Total energy                    = 0.001931215745
+
+Stage 1.0  ExecutionTime = 409.15 s  ClockTime = 51 s  Iteration 280 (3.04 s)
+
+Time = 1.925614179e-05
+
+    Collisions                      = 236432
+    Collision candidates           = 466370
+    Collision acceptance rate      = 0.5069622832
+
+    Number of DSMC particles        = 1938931
+    Number of stuck particles       = 0
+    Number of free particles        = 1938931
+    Average linear kinetic energy   = 1.53642026e-19
+    Average rotational energy       = 1.36501743e-20
+    Average vibrational energy      = 1.69165337e-23
+    Average electronic energy       = 0
+    Total energy                    = 0.001946404999
+
+Stage 1.0  ExecutionTime = 427.63 s  ClockTime = 54 s  Iteration 290 (3.21 s)
+
+Time = 1.992014668e-05
+
+    Collisions                      = 242361
+    Collision candidates           = 477619
+    Collision acceptance rate      = 0.5074358432
+
+    Number of DSMC particles        = 1957484
+    Number of stuck particles       = 0
+    Number of free particles        = 1957484
+    Average linear kinetic energy   = 1.529424704e-19
+    Average rotational energy       = 1.401080504e-20
+    Average vibrational energy      = 1.823363008e-23
+    Average electronic energy       = 0
+    Total energy                    = 0.001961064344
+
+Stage 1.0  ExecutionTime = 446.81 s  ClockTime = 56 s  Iteration 300 (3.09 s)
+
+End stage 1
+
+
+DSMC solver profile summary
+    solver profile steps          = 300
+    move+collide wall [s]         = 56.67298315
+    move only [s]                 = 41.1385909
+    buildCellOccupancy [s]        = 4.045728743
+    collision phase [s]           = 10.34117576
+    post fields/output [s]        = 0.181420637
+    total profiled [s]            = 55.70691604
+    full evolve wall [s]          = 56.85597413
+    move+collide cpu [s]          = 419.84
+    move only cpu [s]             = 304.69
+    buildCellOccupancy cpu [s]    = 29.46
+    collision phase cpu [s]       = 76.73
+    post fields/output cpu [s]    = 1.18
+    total profiled cpu [s]        = 412.06
+    full evolve cpu [s]           = 421.02
+    OpenMP enabled                = 1
+    OpenMP max threads            = 8
+    OpenMP move                   = 1 (static, chunk 64)
+    OpenMP collision              = dynamic, chunk 8
+
+Total Iterations = 300
+End main
+
+real 57.31
+user 445.08
+sys 2.18

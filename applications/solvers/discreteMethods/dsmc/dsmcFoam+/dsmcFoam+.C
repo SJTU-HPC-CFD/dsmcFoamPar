@@ -164,50 +164,69 @@ bool run
             scalar writeWall = 0.0;
             scalar migrateBackWall = 0.0;
 
-            if (isOutput)
+            if (dsmc.replicatedMeshRef().processorWriteEnabled())
             {
-                const scalar tGather0 = runTime.elapsedCpuTime();
-                dsmc.replicatedMeshRef().gatherParcelsToRank0();
-                gatherWall = runTime.elapsedCpuTime() - tGather0;
+                if (isOutput)
+                {
+                    const scalar tWrite0 = runTime.elapsedCpuTime();
+                    dsmc.replicatedMeshRef().writeProcessorOutput();
+                    writeWall = runTime.elapsedCpuTime() - tWrite0;
+                }
+
+                if (isOutput && dsmc.isOutputRank())
+                {
+                    Info<< "Replicated mesh processor output timing:" << nl
+                        << "    processor write [s]    = " << writeWall
+                        << nl << endl;
+                }
             }
-
-            if (dsmc.isOutputRank())
+            else
             {
-                IOobject::writeOption oldCloudWriteOpt = dsmc.writeOpt();
-                dsmc.writeOpt() = IOobject::NO_WRITE;
+                if (isOutput)
+                {
+                    const scalar tGather0 = runTime.elapsedCpuTime();
+                    dsmc.replicatedMeshRef().gatherParcelsToRank0();
+                    gatherWall = runTime.elapsedCpuTime() - tGather0;
+                }
 
-                const scalar tWrite0 = runTime.elapsedCpuTime();
-                runTime.write();
-                dsmc.writeOpt() = oldCloudWriteOpt;
+                if (dsmc.isOutputRank())
+                {
+                    IOobject::writeOption oldCloudWriteOpt = dsmc.writeOpt();
+                    dsmc.writeOpt() = IOobject::NO_WRITE;
+
+                    const scalar tWrite0 = runTime.elapsedCpuTime();
+                    runTime.write();
+                    dsmc.writeOpt() = oldCloudWriteOpt;
+
+                    if (isOutput)
+                    {
+                        dsmc.replicatedMeshRef().writeGatheredCloudOnRank0();
+                    }
+
+                    writeWall = runTime.elapsedCpuTime() - tWrite0;
+
+                    if (isOutput)
+                    {
+                        dsmc.replicatedMeshRef().writeCellOwner();
+                    }
+                }
 
                 if (isOutput)
                 {
-                    dsmc.replicatedMeshRef().writeGatheredCloudOnRank0();
+                    const scalar tMigrateBack0 = runTime.elapsedCpuTime();
+                    dsmc.replicatedMeshRef().migrateParticlesByCellOwner();
+                    dsmc.replicatedMeshRef().updateParticleCounts();
+                    migrateBackWall = runTime.elapsedCpuTime() - tMigrateBack0;
                 }
 
-                writeWall = runTime.elapsedCpuTime() - tWrite0;
-
-                if (isOutput)
+                if (isOutput && dsmc.isOutputRank())
                 {
-                    dsmc.replicatedMeshRef().writeCellOwner();
+                    Info<< "Replicated mesh output timing:" << nl
+                        << "    gather parcels [s]       = " << gatherWall << nl
+                        << "    rank0 write [s]           = " << writeWall << nl
+                        << "    migrate-back [s]          = " << migrateBackWall
+                        << nl << endl;
                 }
-            }
-
-            if (isOutput)
-            {
-                const scalar tMigrateBack0 = runTime.elapsedCpuTime();
-                dsmc.replicatedMeshRef().migrateParticlesByCellOwner();
-                dsmc.replicatedMeshRef().updateParticleCounts();
-                migrateBackWall = runTime.elapsedCpuTime() - tMigrateBack0;
-            }
-
-            if (isOutput && dsmc.isOutputRank())
-            {
-                Info<< "Replicated mesh output timing:" << nl
-                    << "    gather parcels [s]       = " << gatherWall << nl
-                    << "    rank0 write [s]           = " << writeWall << nl
-                    << "    migrate-back [s]          = " << migrateBackWall
-                    << nl << endl;
             }
         }
         else

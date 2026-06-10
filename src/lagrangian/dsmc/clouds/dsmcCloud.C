@@ -1763,8 +1763,8 @@ void Foam::dsmcCloud::evolve_moveAndCollide()
     }
     //Info<< "collisions" << tab << mesh_.time().elapsedCpuTime() - timer << " s" << endl;
 
-    //- Reactions may have changed cell occupancy, update if any reaction
-    if (reactions_.nReactions() != 0)
+    //- Reactions may have changed cell occupancy, update only if this step reacted
+    if (reactions_.nReactionsPerTimeStep() != 0)
     {
         buildCellOccupancy();
     }
@@ -1813,11 +1813,18 @@ void Foam::dsmcCloud::evolve_fields()
 
     reactions_.outputData();
 
-    fields_.calculateFields();
+    if
+    (
+        !noScheduledFieldOutput()
+     || collisionModelUsesMacroscopicFieldTemperature()
+    )
+    {
+        fields_.calculateFields();
 
-    //timer = mesh_.time().elapsedCpuTime();
-    fields_.writeFields();
-    //Info<< "fields W" << tab << mesh_.time().elapsedCpuTime() - timer << " s" << endl;
+        //timer = mesh_.time().elapsedCpuTime();
+        fields_.writeFields();
+        //Info<< "fields W" << tab << mesh_.time().elapsedCpuTime() - timer << " s" << endl;
+    }
 
     controllers_.calculateProps();
     controllers_.outputResults();
@@ -1836,6 +1843,48 @@ void Foam::dsmcCloud::evolve_fields()
         profilePostFieldsWall_ += elapsedWallSeconds(wallStart);
         profilePostFieldsCpu_ += mesh_.time().elapsedCpuTime() - cpu0;
     }
+}
+
+
+bool Foam::dsmcCloud::noScheduledFieldOutput() const
+{
+    const Time& runTime = mesh_.time();
+
+    if (runTime.outputTime())
+    {
+        return false;
+    }
+
+    const dictionary& dict = runTime.controlDict();
+    const word writeControl =
+        dict.lookupOrDefault<word>("writeControl", "timeStep");
+
+    if (writeControl != "runTime" && writeControl != "adjustableRunTime")
+    {
+        return false;
+    }
+
+    const scalar writeInterval =
+        dict.lookupOrDefault<scalar>("writeInterval", GREAT);
+    const scalar runSpan =
+        runTime.endTime().value() - runTime.startTime().value();
+
+    return writeInterval > runSpan + 0.5*runTime.deltaT().value();
+}
+
+
+bool Foam::dsmcCloud::collisionModelUsesMacroscopicFieldTemperature() const
+{
+    if (!binaryCollisionModel_.valid())
+    {
+        return false;
+    }
+
+    const dictionary& coeffs = binaryCollisionModel_->coeffDict();
+    const word inverseZvFormulation =
+        coeffs.lookupOrDefault<word>("inverseZvFormulation", word::null);
+
+    return inverseZvFormulation == "2008";
 }
 
 

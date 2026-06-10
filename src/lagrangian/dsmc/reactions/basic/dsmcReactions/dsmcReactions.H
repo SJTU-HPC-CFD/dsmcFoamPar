@@ -127,6 +127,9 @@ public:
 
           //- Return const access to the number of reactions
           inline const label& nReactions() const;
+
+          //- Return reactions that occurred in the current time step
+          label nReactionsPerTimeStep() const;
 };
 
 

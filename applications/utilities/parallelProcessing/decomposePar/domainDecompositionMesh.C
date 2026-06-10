@@ -97,7 +97,14 @@ void Foam::domainDecomposition::addInterProcFace
 void Foam::domainDecomposition::decomposeMesh()
 {
     // Decide which cell goes to which processor
-    distributeCells();
+    if (cellToProcIsSet_)
+    {
+        Info<< "\nUsing externally supplied distribution of cells" << endl;
+    }
+    else
+    {
+        distributeCells();
+    }
 
     // Distribute the cells according to the given processor label
 

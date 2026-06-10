@@ -185,6 +185,19 @@ void dsmcReactions::outputData()
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
+label dsmcReactions::nReactionsPerTimeStep() const
+{
+    label nReactionsPerTimeStep = 0;
+
+    forAll(reactions_, r)
+    {
+        nReactionsPerTimeStep += reactions_[r]->nReactionsPerTimeStep();
+    }
+
+    return nReactionsPerTimeStep;
+}
+
+
 } // End namespace Foam
 
 // ************************************************************************* //

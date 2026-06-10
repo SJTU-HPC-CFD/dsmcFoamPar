@@ -628,29 +628,7 @@ void ionisationQK::outputResults(const label& counterIndex)
     }
     else
     {
-        labelList nTotIonisationReactions = nTotIonisationReactions_;
-        labelList nIonisationReactionsPerTimeStep = nIonisationReactionsPerTimeStep_;
-
-        for (label k=0; k<2; k++)
-        {
-            if (ionisationStr_[k].size())
-            {
-                if (Pstream::parRun())
-                {
-                    //- Parallel communication
-                    reduce(nTotIonisationReactions[k], sumOp<label>());
-                    reduce(nIonisationReactionsPerTimeStep[k], sumOp<label>());
-                }
-
-                if (nTotIonisationReactions[k] > 0)
-                {
-                    Info<< ionisationStr_[k]
-                        << " is active, nReactions this time step = "
-                        << nIonisationReactionsPerTimeStep[k]
-                        << endl;
-                 }
-             }
-        }
+        // No terminal output requested; keep the per-step counter reset below.
     }
 
     nIonisationReactionsPerTimeStep_ = 0;

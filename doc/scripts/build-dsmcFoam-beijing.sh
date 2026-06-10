@@ -28,24 +28,30 @@ cd $HYSTRATH_DLB/src/lagrangian/basic
 wmake -j lnInclude 2>/dev/null || true
 wmake -j libso
 
-# 2. Build libgeneralMolecule
+# 2. Build libdecompose
+echo "=== Building libdecompose ==="
+cd $HYSTRATH_DLB/src/parallel/decompose/decompose
+wmake -j lnInclude 2>/dev/null || true
+wmake -j libso
+
+# 3. Build libgeneralMolecule
 echo "=== Building libgeneralMolecule ==="
 cd $HYSTRATH_DLB/src/lagrangian/molecularDynamics/general
 wmake -j lnInclude 2>/dev/null || true
 wmake -j libso
 
-# 3. Build libdsmcFoam+
+# 4. Build libdsmcFoam+
 echo "=== Building libdsmcFoam+ ==="
 cd $HYSTRATH_DLB/src/lagrangian/dsmc
 wmake -j lnInclude 2>/dev/null || true
 wmake -j libso
 
-# 4. Build dsmcFoam+ solver
+# 5. Build dsmcFoam+ solver
 echo "=== Building dsmcFoam+ ==="
 cd $HYSTRATH_DLB/applications/solvers/discreteMethods/dsmc/dsmcFoam+
 wmake -j
 
-# 5. Build dsmcInitialise+ utility
+# 6. Build dsmcInitialise+ utility
 echo "=== Building dsmcInitialise+ ==="
 cd $HYSTRATH_DLB/applications/utilities/preProcessing/dsmc/dsmcInitialise+
 wmake -j

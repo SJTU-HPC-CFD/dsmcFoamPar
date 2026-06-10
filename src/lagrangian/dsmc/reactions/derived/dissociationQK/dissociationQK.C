@@ -686,29 +686,7 @@ void dissociationQK::outputResults(const label& counterIndex)
     }
     else
     {
-        labelList nTotDissociationReactions = nTotDissociationReactions_;
-        labelList nDissociationReactionsPerTimeStep = nDissociationReactionsPerTimeStep_;
-
-        for (label k=0; k<2; k++)
-        {
-            if (dissociationStr_[k].size())
-            {
-                if (Pstream::parRun())
-                {
-                    //- Parallel communication
-                    reduce(nTotDissociationReactions[k], sumOp<label>());
-                    reduce(nDissociationReactionsPerTimeStep[k], sumOp<label>());
-                }
-
-                if (nTotDissociationReactions[k] > 0)
-                {
-                    Info<< dissociationStr_[k]
-                        << " is active, nReactions this time step = "
-                        << nDissociationReactionsPerTimeStep[k]
-                        << endl;
-                 }
-             }
-        }
+        // No terminal output requested; keep the per-step counter reset below.
     }
 
     nDissociationReactionsPerTimeStep_ = 0;

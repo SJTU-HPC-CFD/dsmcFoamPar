@@ -4,7 +4,7 @@ set -u
 
 ROOT="/home/superxcx/code/OpenFoam/OF-1706/hyStrath_dlb"
 DETAIL="$ROOT/doc/worklog/v2506/detail_mix"
-OUTDIR="$DETAIL/repeat_nowrite_compute_20260610_rerun"
+OUTDIR="${OUTDIR:-$DETAIL/repeat_nowrite_compute_20260610_rerun}"
 LOGDIR="$OUTDIR/logs"
 CTRLDIR="$OUTDIR/controlDicts"
 MANIFEST="$OUTDIR/run_manifest.tsv"

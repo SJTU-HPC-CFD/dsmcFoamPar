@@ -1,0 +1,65 @@
+2026-06-10T23:31:32+08:00
+OUTDIR=/home/superxcx/code/OpenFoam/OF-1706/hyStrath_dlb/doc/worklog/v2506/detail_mix/repeat_nowrite_compute_20260610_parmetisfix_clean
+dsmcFoam+=/home/superxcx/code/OpenFoam/OF-1706/hyStrath_dlb/platforms/linux64IccDPInt32Opt/bin/dsmcFoam+
+2026-06-10 06:30:46.482861979 +0800 /home/superxcx/code/OpenFoam/OF-1706/hyStrath_dlb/platforms/linux64IccDPInt32Opt/bin/dsmcFoam+
+2026-06-10 22:30:16.863304784 +0800 /home/superxcx/code/OpenFoam/OF-1706/hyStrath_dlb/platforms/linux64IccDPInt32Opt/lib/libdsmcFoam+.so
+2026-06-10 06:25:50.846946066 +0800 /home/superxcx/code/OpenFoam/OF-1706/hyStrath_dlb/platforms/linux64IccDPInt32Opt/lib/libdecompose.so
+6607f4d
+ M applications/solvers/discreteMethods/dsmc/dsmcFoam+/dsmcFoam+.C
+ M applications/utilities/parallelProcessing/decomposePar/domainDecomposition.C
+ M applications/utilities/parallelProcessing/decomposePar/domainDecomposition.H
+ M applications/utilities/parallelProcessing/decomposePar/domainDecompositionMesh.C
+ M doc/scripts/build-dsmcFoam-beijing.sh
+ M doc/scripts/build-dsmcFoam.sh
+ M doc/worklog/v2506/detail_mix/parse_mix_perf_nowrite_repeats_20260610.py
+ M doc/worklog/v2506/detail_mix/run_mix_perf_nowrite_repeats_20260610.sh
+ M doc/worklog/v2506/detail_mix/run_mpi8origin_nowrite_repeats_20260610.sh
+ M doc/worklog/v2506/detail_mix/run_zb_mpi8origin_nowrite_repeats_20260610.sh
+A  doc/worklog/v2506/detail_mix/zb_mpi4omp2_opt_20260610/controlDicts/baseline_controlDict
+A  doc/worklog/v2506/detail_mix/zb_mpi4omp2_opt_20260610/controlDicts/opt1_collision_cells_controlDict
+A  doc/worklog/v2506/detail_mix/zb_mpi4omp2_opt_20260610/controlDicts/opt2_reaction_output_rank_chemReactDict
+A  doc/worklog/v2506/detail_mix/zb_mpi4omp2_opt_20260610/controlDicts/opt2_reaction_output_rank_controlDict
+A  doc/worklog/v2506/detail_mix/zb_mpi4omp2_opt_20260610/controlDicts/opt3_reaction_silent_chemReactDict
+A  doc/worklog/v2506/detail_mix/zb_mpi4omp2_opt_20260610/controlDicts/opt3_reaction_silent_controlDict
+A  doc/worklog/v2506/detail_mix/zb_mpi4omp2_opt_20260610/controlDicts/opt4_reaction_rebuild_guard_chemReactDict
+A  doc/worklog/v2506/detail_mix/zb_mpi4omp2_opt_20260610/controlDicts/opt4_reaction_rebuild_guard_controlDict
+A  doc/worklog/v2506/detail_mix/zb_mpi4omp2_opt_20260610/controlDicts/opt5_collision_cache_guard_chemReactDict
+A  doc/worklog/v2506/detail_mix/zb_mpi4omp2_opt_20260610/controlDicts/opt5_collision_cache_guard_controlDict
+A  doc/worklog/v2506/detail_mix/zb_mpi4omp2_opt_20260610/controlDicts/opt6_lb_electronic_guard_chemReactDict
+A  doc/worklog/v2506/detail_mix/zb_mpi4omp2_opt_20260610/controlDicts/opt6_lb_electronic_guard_controlDict
+A  doc/worklog/v2506/detail_mix/zb_mpi4omp2_opt_20260610/controlDicts/opt7_no_write_skip_fields_chemReactDict
+A  doc/worklog/v2506/detail_mix/zb_mpi4omp2_opt_20260610/controlDicts/opt7_no_write_skip_fields_controlDict
+A  doc/worklog/v2506/detail_mix/zb_mpi4omp2_opt_20260610/logs/baseline_zb_mpi4omp2_300step_20260610.log
+A  doc/worklog/v2506/detail_mix/zb_mpi4omp2_opt_20260610/logs/opt1_collision_cells_zb_mpi4omp2_300step_20260610.log
+A  doc/worklog/v2506/detail_mix/zb_mpi4omp2_opt_20260610/logs/opt2_reaction_output_rank_zb_mpi4omp2_300step_20260610.log
+A  doc/worklog/v2506/detail_mix/zb_mpi4omp2_opt_20260610/logs/opt3_reaction_silent_zb_mpi4omp2_300step_20260610.log
+A  doc/worklog/v2506/detail_mix/zb_mpi4omp2_opt_20260610/logs/opt4_reaction_rebuild_guard_zb_mpi4omp2_300step_20260610.log
+A  doc/worklog/v2506/detail_mix/zb_mpi4omp2_opt_20260610/logs/opt5_collision_cache_guard_zb_mpi4omp2_300step_20260610.log
+A  doc/worklog/v2506/detail_mix/zb_mpi4omp2_opt_20260610/logs/opt5_collision_cache_guard_zb_mpi4omp2_300step_20260610.time
+A  doc/worklog/v2506/detail_mix/zb_mpi4omp2_opt_20260610/logs/opt6_lb_electronic_guard_zb_mpi4omp2_300step_20260610.log
+A  doc/worklog/v2506/detail_mix/zb_mpi4omp2_opt_20260610/logs/opt6_lb_electronic_guard_zb_mpi4omp2_300step_20260610.time
+A  doc/worklog/v2506/detail_mix/zb_mpi4omp2_opt_20260610/logs/opt7_no_write_skip_fields_zb_mpi4omp2_300step_20260610.failed_parallel.log
+A  doc/worklog/v2506/detail_mix/zb_mpi4omp2_opt_20260610/logs/opt7_no_write_skip_fields_zb_mpi4omp2_300step_20260610.failed_parallel.time
+A  doc/worklog/v2506/detail_mix/zb_mpi4omp2_opt_20260610/logs/opt7_no_write_skip_fields_zb_mpi4omp2_300step_20260610.log
+A  doc/worklog/v2506/detail_mix/zb_mpi4omp2_opt_20260610/logs/opt7_no_write_skip_fields_zb_mpi4omp2_300step_20260610.time
+A  doc/worklog/v2506/detail_mix/zb_mpi4omp2_opt_20260610/opt7_no_write_skip_fields_20260610.md
+ M src/lagrangian/dsmc/Make/files
+ M src/lagrangian/dsmc/Make/options
+M  src/lagrangian/dsmc/clouds/dsmcCloud.C
+M  src/lagrangian/dsmc/clouds/dsmcCloud.H
+M  src/lagrangian/dsmc/reactions/basic/dsmcReactions/dsmcReactions.C
+M  src/lagrangian/dsmc/reactions/basic/dsmcReactions/dsmcReactions.H
+M  src/lagrangian/dsmc/reactions/derived/associativeIonisationQK/associativeIonisationQK.C
+M  src/lagrangian/dsmc/reactions/derived/chargeExchangeQK/chargeExchangeQK.C
+M  src/lagrangian/dsmc/reactions/derived/dissociationQK/dissociationQK.C
+M  src/lagrangian/dsmc/reactions/derived/exchangeQK/exchangeQK.C
+M  src/lagrangian/dsmc/reactions/derived/ionisationQK/ionisationQK.C
+ M src/lagrangian/dsmc/replicatedMesh/dsmcReplicatedMesh.C
+ M src/lagrangian/dsmc/replicatedMesh/dsmcReplicatedMesh.H
+?? doc/worklog/v2506/detail_mix/mpi8_parmetis_fix_20260610/
+?? doc/worklog/v2506/detail_mix/repeat_nowrite_compute_20260610_parmetisfix_clean/
+?? doc/worklog/v2506/detail_mix/repeat_nowrite_compute_20260610_postwrite/
+?? doc/worklog/v2506/detail_mix/run_nowrite_postwrite_repeats_20260610.sh
+?? doc/worklog/v2506/detail_mix/run_ourmesh_mpi8_parmetis_fix_smoke_20260610.sh
+?? doc/worklog/v2506/detail_mpi/processor_write_20260610/
+?? src/lagrangian/applications/

@@ -73,6 +73,19 @@ class domainDecomposition
         //- Processor label for each cell
         labelList cellToProc_;
 
+        //- True when cellToProc_ was supplied by the caller
+        bool cellToProcIsSet_;
+
+        //- Optional processor mesh instance override
+        word processorMeshInstance_;
+
+        //- Use processor-patch parallel synchronisation while constructing
+        //  processor meshes
+        bool processorMeshSyncPar_;
+
+        //- Processor mesh to write, or -1 to write all
+        label processorMeshWriteProc_;
+
         //- Labels of points for each processor
         labelListList procPointAddressing_;
 
@@ -185,6 +198,19 @@ public:
         {
             return distributed_;
         }
+
+        //- Use an externally supplied cell-to-processor map
+        void setCellToProc(const labelList& cellToProc);
+
+        //- Force processor polyMesh/addressing into this instance
+        void setProcessorMeshInstance(const word& instance);
+
+        //- Control processor-patch synchronisation while constructing
+        //  processor meshes
+        void setProcessorMeshSyncPar(const bool syncPar);
+
+        //- Restrict writing to a single processor mesh (-1 writes all)
+        void setProcessorMeshWriteProc(const label procI);
 
         //- Decompose mesh.
         void decomposeMesh();

@@ -10,7 +10,11 @@ EXE_INC = \
     $(OPENMP_FLAGS) \
     -I$(LIB_SRC)/finiteVolume/lnInclude \
     -I$(WM_PROJECT_USER_DIR)/src/lagrangian/basic/lnInclude \
+    -I$(WM_PROJECT_USER_DIR)/src/parallel/decompose/decompose \
+    -I$(WM_PROJECT_USER_DIR)/src/parallel/decompose/decompose/lnInclude \
+    -I$(WM_PROJECT_USER_DIR)/applications/utilities/parallelProcessing/decomposePar \
     -I$(LIB_SRC)/meshTools/lnInclude \
+    -I$(LIB_SRC)/dynamicMesh/lnInclude \
     -I$(LIB_SRC)/dynamicFvMesh/lnInclude \
     -I$(WM_PROJECT_USER_DIR)/src/lagrangian/molecularDynamics/general/lnInclude  \
     -I$(LIB_SRC)/parallel/decompose/decompositionMethods/lnInclude \
@@ -21,9 +25,11 @@ EXE_INC = \
 LIB_LIBS = \
     $(OPENMP_FLAGS) \
     -L$(FOAM_USER_LIBBIN) \
+    -ldecompose \
     -llagrangian+ \
     -lfiniteVolume \
     -lmeshTools \
+    -ldynamicMesh \
     -ldynamicFvMesh \
     -ltopoChangerFvMesh \
     -ldecompositionMethods \

@@ -1,0 +1,309 @@
+/*---------------------------------------------------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  v1706                                 |
+|   \\  /    A nd           | Web:      www.OpenFOAM.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+Build  : v1706
+Arch   : "LSB;label=32;scalar=64"
+Exec   : dsmcFoam+ -case /home/superxcx/code/OpenFoam/OF-1706/hyStrath_dlb/run/hyStrath/dsmcFoam+/xcx_test/pal-phd-3.3.1-cylinder-react/timecompare/ourmesh/mpi2replicatedmesh_processor_write_smoke_20260610
+Date   : Jun 10 2026
+Time   : 07:07:15
+Host   : "SuperXCX-ROG"
+PID    : 2221820
+/*---------------------------------------------------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  v1706                                 |
+|   \\  /    A nd           | Web:      www.OpenFOAM.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+Build  : v1706
+Arch   : "LSB;label=32;scalar=64"
+Exec   : dsmcFoam+ -case /home/superxcx/code/OpenFoam/OF-1706/hyStrath_dlb/run/hyStrath/dsmcFoam+/xcx_test/pal-phd-3.3.1-cylinder-react/timecompare/ourmesh/mpi2replicatedmesh_processor_write_smoke_20260610
+Date   : Jun 10 2026
+Time   : 07:07:15
+Host   : "SuperXCX-ROG"
+PID    : 2221821
+Case   : /home/superxcx/code/OpenFoam/OF-1706/hyStrath_dlb/run/hyStrath/dsmcFoam+/xcx_test/pal-phd-3.3.1-cylinder-react/timecompare/ourmesh/mpi2replicatedmesh_processor_write_smoke_20260610
+nProcs : 1
+sigFpe : Enabling floating point exception trapping (FOAM_SIGFPE).
+Case   : /home/superxcx/code/OpenFoam/OF-1706/hyStrath_dlb/run/hyStrath/dsmcFoam+/xcx_test/pal-phd-3.3.1-cylinder-react/timecompare/ourmesh/mpi2replicatedmesh_processor_write_smoke_20260610
+nProcs : 1
+sigFpe : Enabling floating point exception trapping (FOAM_SIGFPE).
+fileModificationChecking : Monitoring run-time modified files using timeStampMaster (fileModificationSkew 10)
+allowSystemOperations : Allowing user-supplied system call operations
+
+fileModificationChecking : Monitoring run-time modified files using timeStampMaster (fileModificationSkew 10)
+allowSystemOperations : Allowing user-supplied system call operations
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+Create time
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+Create time
+
+Create mesh for time = 0
+
+Create mesh for time = 0
+
+Selecting dynamicFvMesh staticFvMesh
+Selecting dynamicFvMesh staticFvMesh
+
+Constructing dsmcCloud 
+
+Constructing dsmcCloud 
+Selecting the coordinate system model:	dsmcCartesian
+
+Selecting the time-step model:	dsmcConstantTimeStepModel
+
+Selecting the coordinate system model:	dsmcCartesian
+
+Selecting the time-step model:	dsmcConstantTimeStepModel
+
+Constant time-step model:
+- time-step [sec]	1e-07
+
+Selecting the porous measurement model:	dsmcNoPorousMediumMeasurements
+
+Constant time-step model:
+- time-step [sec]	1e-07
+
+Selecting the porous measurement model:	dsmcNoPorousMediumMeasurements
+
+
+Creating dsmcControllers
+
+
+Creating dsmcControllers
+
+Creating fields: 
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+ measurement option: write
+ nSamples: 1, time interval: 1e-07
+ nAverages: 1, time interval: 1e-07
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Creating fields: 
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+ measurement option: write
+ nSamples: 1, time interval: 1e-07
+ nAverages: 1, time interval: 1e-07
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Creating the boundary models: 
+
+Selecting dsmcPatchBoundaryModel dsmcDeletionPatch
+Selecting dsmcPatchBoundaryModel dsmcDeletionPatch
+Selecting dsmcPatchBoundaryModel dsmcDiffuseWallPatch
+Selecting dsmcGeneralBoundaryModel dsmcFreeStreamInflowPatch
+Creating the boundary models: 
+
+Selecting dsmcPatchBoundaryModel dsmcDeletionPatch
+Selecting dsmcPatchBoundaryModel dsmcDeletionPatch
+Selecting dsmcPatchBoundaryModel dsmcDiffuseWallPatch
+Selecting dsmcGeneralBoundaryModel dsmcFreeStreamInflowPatch
+Selecting BinaryCollisionModel LarsenBorgnakkeVariableHardSphere
+
+Creating dsmcReactions
+
+There are no chemical reactions defined.
+Selecting BinaryCollisionModel LarsenBorgnakkeVariableHardSphere
+
+Creating dsmcReactions
+
+There are no chemical reactions defined.
+
+Constructing constant properties for
+	N2
+	O2
+	NO
+	N
+	O
+
+Constructing constant properties for
+	N2
+	O2
+	NO
+	N
+	O
+Selecting collisionPartnerSelectionModel noTimeCounter
+
+Initialising the measurement fields
+
+Initialising dsmcVolFields field
+Selecting collisionPartnerSelectionModel noTimeCounter
+
+Initialising the measurement fields
+
+Initialising dsmcVolFields field
+Replicated mesh: METIS decomposition complete, 104151 cells -> 2 ranks
+Replicated mesh: rank 0 owns 52075 / 104151 cells
+Local mesh: 52075 owned + 156 halo = 52231 / 104151 cells
+Replicated mesh: no-Alltoall async migration enabled
+Replicated mesh: flatTransfer=1 found=1
+Replicated mesh: flat POD transfer enabled
+Replicated mesh: writeMode=processor
+Replicated mesh: initialized with 2 MPI ranks, migrate interval 1
+
+Starting time loop
+
+Time = 1e-07
+
+Replicated mesh: initial particle distribution
+
+Replicated mesh: rank 0 kept 1196041 parcels, deleted 862225 non-owned parcels
+    Collisions                      = 2659
+    Collision candidates           = 2667
+    Collision acceptance rate      = 0.997000375
+
+    Number of DSMC particles        = 2058584
+    Number of stuck particles       = 0
+    Number of free particles        = 2058584
+    Average linear kinetic energy   = 1.115165175e-18
+    Average rotational energy       = 2.588069314e-21
+    Average vibrational energy      = 1.252520714e-24
+    Average electronic energy       = 0
+    Total energy                    = 1.150495762
+Replicated mesh: processor output begin at time 1e-07 (read mesh instance "constant", processor mesh instance 1e-07)
+Replicated mesh: constructing processor mesh/addressing
+
+Using externally supplied distribution of cells
+
+Calculating original mesh data
+
+Distributing cells to processors
+
+Distributing faces to processors
+
+Distributing points to processors
+
+Constructing processor meshes
+
+Processor 0
+    Number of cells = 52075
+    Number of faces shared with processor 1 = 188
+    Number of processor patches = 1
+    Number of processor faces = 188
+    Number of boundary faces = 104994
+
+Number of processor faces = 94
+Max number of cells = 52075 (-0.0009601444057% above average 52075.5)
+Max number of processor patches = 1 (100% above average 0.5)
+Max number of faces between processors = 188 (100% above average 94)
+
+Replicated mesh: rank 0 wrote processor0 mesh/addressing
+Replicated mesh: processor mesh/addressing barrier complete
+Replicated mesh: rank 0 loaded processor0 mesh from instance 1e-07
+Replicated mesh: rank 0 loaded cellProcAddressing with 52075 cells
+Replicated mesh: rank 0 writing processor0 lagrangian cloud
+Replicated mesh: rank 0 wrote processor0 cloud at output time 1e-07 with 1195801 parcels
+Replicated mesh processor output timing:
+    processor write [s]    = 2.9
+
+
+Stage 1.0  ExecutionTime = 8.83 s  ClockTime = 10 s  Iteration 1 (8.83 s)
+
+    Maximum imbalance = 16.17704208%
+
+Time = 2e-07
+
+    Collisions                      = 2662
+    Collision candidates           = 2680
+    Collision acceptance rate      = 0.9932835821
+
+    Number of DSMC particles        = 2059452
+    Number of stuck particles       = 0
+    Number of free particles        = 2059452
+    Average linear kinetic energy   = 1.114723129e-18
+    Average rotational energy       = 2.592362794e-21
+    Average vibrational energy      = 1.946309355e-24
+    Average electronic energy       = 0
+    Total energy                    = 1.150530817
+Replicated mesh: processor output begin at time 2e-07 (read mesh instance "constant", processor mesh instance 2e-07)
+Replicated mesh: constructing processor mesh/addressing
+
+Using externally supplied distribution of cells
+
+Calculating original mesh data
+
+Distributing cells to processors
+
+Distributing faces to processors
+
+Distributing points to processors
+
+Constructing processor meshes
+
+Processor 0
+    Number of cells = 52075
+    Number of faces shared with processor 1 = 188
+    Number of processor patches = 1
+    Number of processor faces = 188
+    Number of boundary faces = 104994
+
+Number of processor faces = 94
+Max number of cells = 52075 (-0.0009601444057% above average 52075.5)
+Max number of processor patches = 1 (100% above average 0.5)
+Max number of faces between processors = 188 (100% above average 94)
+
+Replicated mesh: rank 0 wrote processor0 mesh/addressing
+Replicated mesh: processor mesh/addressing barrier complete
+Replicated mesh: rank 0 loaded processor0 mesh from instance 2e-07
+Replicated mesh: rank 0 loaded cellProcAddressing with 52075 cells
+Replicated mesh: rank 0 writing processor0 lagrangian cloud
+Replicated mesh: rank 0 wrote processor0 cloud at output time 2e-07 with 1196066 parcels
+Replicated mesh processor output timing:
+    processor write [s]    = 2.64
+
+
+Stage 1.0  ExecutionTime = 12.17 s  ClockTime = 13 s  Iteration 2 (3.34 s)
+
+    Maximum imbalance = 16.15381179%
+
+End stage 1
+
+
+DSMC solver profile summary
+    solver profile steps          = 2
+    move+collide wall [s]         = 0.707064462
+    move only [s]                 = 0.443652067
+    buildCellOccupancy [s]        = 0.055407399
+    collision phase [s]           = 0.078950941
+    post fields/output [s]        = 0.895299226
+    total profiled [s]            = 1.473309633
+    full evolve wall [s]          = 1.602381846
+    move+collide cpu [s]          = 0.68
+    move only cpu [s]             = 0.43
+    buildCellOccupancy cpu [s]    = 0.05
+    collision phase cpu [s]       = 0.08
+    post fields/output cpu [s]    = 0.86
+    total profiled cpu [s]        = 1.42
+    full evolve cpu [s]           = 1.52
+    OpenMP enabled                = 0
+    OpenMP max threads            = 1
+    OpenMP move                   = 0 (static, chunk 64)
+    OpenMP collision              = dynamic, chunk 8
+
+
+Replicated mesh profiling summary:
+    migration calls             = 3
+    migration wall time [s]     = 0.029508596
+    local particles (final)     = 1196066
+    particles per rank          = min 863386 max 1196066 max/min 1.385320123
+    rank wall time (evolve, 2 steps): min 0.66 max 0.68 max/min 1.03030303
+
+Total Iterations = 2
+End main
+

@@ -635,23 +635,7 @@ void chargeExchangeQK::outputResults(const label& counterIndex)
     }
     else
     {
-        label nTotChargeExchangeReactions = nTotChargeExchangeReactions_;
-        label nChargeExchangeReactionsPerTimeStep = nChargeExchangeReactionsPerTimeStep_;
-
-        if (Pstream::parRun())
-        {
-            //- Parallel communication
-            reduce(nTotChargeExchangeReactions, sumOp<label>());
-            reduce(nChargeExchangeReactionsPerTimeStep, sumOp<label>());
-        }
-
-        if (nTotChargeExchangeReactions > 0)
-        {
-            Info<< chargeExchangeStr_
-                << " is active, nReactions this time step = "
-                << nChargeExchangeReactionsPerTimeStep
-                << endl;
-         }
+        // No terminal output requested; keep the per-step counter reset below.
     }
 
     nChargeExchangeReactionsPerTimeStep_ = 0;
