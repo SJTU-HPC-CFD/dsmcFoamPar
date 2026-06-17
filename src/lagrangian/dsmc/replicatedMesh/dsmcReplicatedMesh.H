@@ -41,6 +41,15 @@ class dsmcReplicatedMesh
     labelList allParticleCounts_;
 
     scalar migrationWallTime_;
+    scalar migrationPackWallTime_;
+    scalar migrationLocalPrepWallTime_;
+    scalar migrationSizeExchangeWallTime_;
+    scalar migrationRequestPostWallTime_;
+    scalar migrationWaitWallTime_;
+    scalar migrationDeserializeWallTime_;
+    scalar migrationCandidateGatherWallTime_;
+    scalar migrationPostWallTime_;
+    scalar updateParticleCountsWallTime_;
     label migrationCalls_;
     scalar evolveStepTime_;
     label evolveTimeSteps_;
@@ -90,11 +99,16 @@ class dsmcReplicatedMesh
     scalar autoRebalanceWriteWallTime_;
     scalar autoRebalancePostDiagWallTime_;
 
-    // Adaptive K (persistent across DLB calls)
-    label collDivisor_;
-
-    // Adaptive alpha for weight formula w = N^alpha
-    scalar alpha_;
+    // Particle-count exponent for the DLB proxy: w = N^alpha
+    scalar dlbAlpha_;
+    bool adaptiveAlpha_;
+    scalar adaptiveAlphaMin_;
+    scalar adaptiveAlphaMax_;
+    scalar adaptiveAlphaGain_;
+    scalar adaptiveAlphaMaxStep_;
+    scalar adaptiveAlphaWorsenTol_;
+    scalar adaptiveAlphaLastImbalance_;
+    scalar adaptiveAlphaLastStep_;
 
     // ---- Cached per-rank candidate counts (updated during migration) ----
     labelList allProcCandidates_;
@@ -112,6 +126,8 @@ class dsmcReplicatedMesh
     List<List<char>> perPeerRecvBuf_;     // per-peer receive buffers
     bool useNoAlltoall_;                  // controlDict flag
     bool useFlatTransfer_;                // flat POD buffer serialization
+    bool gatherCandidates_;               // gather per-rank collision candidates
+    bool overlapSizeExchange_;            // overlap Alltoall sizes with local prep
     word writeMode_;                      // gathered or processor
 
     // (Phase B) construct myCells_ from cellOwner_

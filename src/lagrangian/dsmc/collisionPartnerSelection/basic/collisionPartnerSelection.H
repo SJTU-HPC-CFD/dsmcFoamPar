@@ -117,6 +117,41 @@ public:
 
             virtual void collide() = 0;
 
+            virtual bool hasCollisionSubphaseProfile() const
+            {
+                return false;
+            }
+
+            virtual scalar collisionLocalLoopWallTime() const
+            {
+                return 0.0;
+            }
+
+            virtual scalar collisionReduceWallTime() const
+            {
+                return 0.0;
+            }
+
+            virtual scalar collisionSigmaWallTime() const
+            {
+                return 0.0;
+            }
+
+            virtual scalar collisionTotalWallTime() const
+            {
+                return 0.0;
+            }
+
+            virtual label collisionLocalAcceptedCount() const
+            {
+                return 0;
+            }
+
+            virtual label collisionLocalCandidateCount() const
+            {
+                return 0;
+            }
+
         // Access
 
         // Check

@@ -1,0 +1,130 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  v1706                                 |
+|   \\  /    A nd           | Web:      www.OpenFOAM.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version         2;
+    format          ascii;
+    class           dictionary;
+    location        "system";
+    object          controlDict;
+}
+
+nTerminalOutputs 2;
+
+application     dsmcFoam+;
+
+startFrom       startTime;
+
+startTime       0;
+
+stopAt          endTime;
+
+endTime         1.32801e-07;
+
+deltaT          6.64005e-08;
+
+sampleSteps     10;
+
+CTC             0.5;
+
+CAC             0.005;
+
+writeControl    runTime;
+
+writeInterval   0.001;
+
+purgeWrite      0;
+
+writeFormat     ascii;
+
+writePrecision  10;
+
+writeCompression uncompressed;
+
+timeFormat      general;
+
+timePrecision   10;
+
+runTimeModifiable no;
+
+adjustTimeStep  no;
+
+useOpenMP       false;
+
+openmpMoveSchedule static;
+
+openmpMoveChunk 64;
+
+openmpThreads   1;
+
+openmpCollisionSchedule dynamic;
+
+openmpCollisionChunk 8;
+
+profileSummary  true;
+
+profileDetail   false;
+
+collisionFastRng true;
+
+replicatedMesh  true;
+
+replicatedMeshDelayedReceive true;
+
+replicatedMeshNoAlltoall true;
+
+replicatedMeshFlatTransfer true;
+
+replicatedMeshDecompMethod metis;
+
+replicatedMeshMigrateInterval 10;
+
+replicatedMeshDLBDualConstraint true;
+
+replicatedMeshAutoDLB false;
+
+replicatedMeshDLBSteps 50;
+
+replicatedMeshDLBForceSteps ( );
+
+replicatedMeshDLBTriggerMode legacyWindow;
+
+replicatedMeshDLBMinGapSteps 50;
+
+replicatedMeshDLBCheckCollective allgather;
+
+replicatedMeshDLBSkipFixedKPostDiag false;
+
+replicatedMeshDLBImbalanceThreshold 1.5;
+
+replicatedMeshDLBFixedK 1;
+
+replicatedMeshDLBInitialK 1024;
+
+replicatedMeshDLBItr 1000;
+
+replicatedMeshDLBUbvec 1.05;
+
+replicatedMeshDLBUbvec1 1.5;
+
+replicatedMeshDLBProfile false;
+
+replicatedMeshDLBProfileSteps 5;
+
+replicatedMeshDLBInitialAlpha 0.8;
+
+replicatedMeshDLBAdaptiveKMode 0;
+
+replicatedMeshDLBVsizeExp 0;
+
+functions
+{
+}
+
+
+// ************************************************************************* //

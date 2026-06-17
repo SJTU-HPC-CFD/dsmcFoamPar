@@ -335,6 +335,25 @@ void Foam::dsmcCloud::buildCellOccupancy()
             }
         }
 
+        // Build owned collision cells for replicated mesh
+        if (replicatedMeshActive())
+        {
+            DynamicList<label> ownedCC(occupancyCollisionCells_.size());
+            forAll(occupancyCollisionCells_, i)
+            {
+                const label cellI = occupancyCollisionCells_[i];
+                if (replicatedMesh_->isMyCell(cellI))
+                {
+                    ownedCC.append(cellI);
+                }
+            }
+            occupancyOwnedCollisionCells_.transfer(ownedCC);
+        }
+        else
+        {
+            occupancyOwnedCollisionCells_ = occupancyCollisionCells_;
+        }
+
         occupancyCellOffsets_.setSize(nCells + 1, 0);
 
         for (label cellI = 0; cellI < nCells; ++cellI)
@@ -481,6 +500,25 @@ void Foam::dsmcCloud::buildCellOccupancy()
                 occupancyCollisionCells_[collisionCellCount++] = cellI;
             }
         }
+    }
+
+    // Build owned collision cells for replicated mesh
+    if (replicatedMeshActive())
+    {
+        DynamicList<label> ownedCC(occupancyCollisionCells_.size());
+        forAll(occupancyCollisionCells_, i)
+        {
+            const label cellI = occupancyCollisionCells_[i];
+            if (replicatedMesh_->isMyCell(cellI))
+            {
+                ownedCC.append(cellI);
+            }
+        }
+        occupancyOwnedCollisionCells_.transfer(ownedCC);
+    }
+    else
+    {
+        occupancyOwnedCollisionCells_ = occupancyCollisionCells_;
     }
 
     occupancyOrderedParcels_.resize(occupancyCellOffsets_.last());
@@ -1212,6 +1250,7 @@ Foam::dsmcCloud::dsmcCloud
     occupancyCellOffsets_(),
     occupancyActiveCells_(),
     occupancyCollisionCells_(),
+    occupancyOwnedCollisionCells_(),
     occupancyOrderedParcelsValid_(false),
     cellOccupancyMaterialized_(true),
     occupancyThreadCellCounts_(),
@@ -1436,6 +1475,7 @@ Foam::dsmcCloud::dsmcCloud
     occupancyCellOffsets_(),
     occupancyActiveCells_(),
     occupancyCollisionCells_(),
+    occupancyOwnedCollisionCells_(),
     occupancyOrderedParcelsValid_(false),
     cellOccupancyMaterialized_(true),
     occupancyThreadCellCounts_(),
@@ -2077,8 +2117,62 @@ void Foam::dsmcCloud::printProfileSummary() const
     scalar moveDetailTrackWallTime = moveDetailTrackWallTime_;
     scalar moveDetailTrackerWallTime = moveDetailTrackerWallTime_;
     scalar moveDetailBoundaryWallTime = moveDetailBoundaryWallTime_;
+    scalar collisionSubphaseLocalLoopWall = 0.0;
+    scalar collisionSubphaseReduceWall = 0.0;
+    scalar collisionSubphaseSigmaWall = 0.0;
+    scalar collisionSubphaseTotalWall = 0.0;
+    scalar collisionSubphaseAccountedWall = 0.0;
+    scalar collisionSubphaseResidualWall = 0.0;
+    label collisionCumulativeCollisions = 0;
+    label collisionCumulativeCandidates = 0;
 
-    const bool replicatedRawMpi = replicatedMeshActive() && !Pstream::parRun();
+    if
+    (
+        collisionPartnerSelectionModel_.valid()
+     && collisionPartnerSelectionModel_->hasCollisionSubphaseProfile()
+    )
+    {
+        collisionSubphaseLocalLoopWall =
+            collisionPartnerSelectionModel_->collisionLocalLoopWallTime();
+        collisionSubphaseReduceWall =
+            collisionPartnerSelectionModel_->collisionReduceWallTime();
+        collisionSubphaseSigmaWall =
+            collisionPartnerSelectionModel_->collisionSigmaWallTime();
+        collisionSubphaseTotalWall =
+            collisionPartnerSelectionModel_->collisionTotalWallTime();
+        collisionCumulativeCollisions =
+            collisionPartnerSelectionModel_->collisionLocalAcceptedCount();
+        collisionCumulativeCandidates =
+            collisionPartnerSelectionModel_->collisionLocalCandidateCount();
+    }
+    collisionSubphaseAccountedWall =
+        collisionSubphaseLocalLoopWall
+      + collisionSubphaseReduceWall
+      + collisionSubphaseSigmaWall;
+    collisionSubphaseResidualWall =
+        collisionSubphaseTotalWall - collisionSubphaseAccountedWall;
+
+    const bool replicatedRawMpi =
+        replicatedMeshActive() && replicatedMesh_->nProcs() > 1;
+    const bool replicatedRawMpiOutput =
+        replicatedRawMpi && replicatedMesh_->myRank() == 0;
+    bool replicatedRawMpiInitialized = false;
+    int replicatedRawMpiSize = 1;
+
+    const label localProfileSteps = profileSteps_;
+    const scalar localFullEvolveWall = profileFullEvolveWall_;
+    const scalar localMoveAndCollideWall = profileMoveAndCollideWall_;
+    const scalar localMoveWall = profileMoveWall_;
+    const scalar localBuildCellOccupancyWall = profileBuildCellOccupancyWall_;
+    const scalar localCollisionWall = profileCollisionWall_;
+    const scalar localPostFieldsWall = profilePostFieldsWall_;
+    const label localParcels = this->size();
+    const label localOwnedCollisionCells = occupancyOwnedCollisionCells_.size();
+    label localFinalCandidates = 0;
+    forAll(nCandidatesPerCell_, cellI)
+    {
+        localFinalCandidates += nCandidatesPerCell_[cellI];
+    }
 
     if (replicatedRawMpi)
     {
@@ -2087,6 +2181,9 @@ void Foam::dsmcCloud::printProfileSummary() const
 
         if (mpiInit)
         {
+            replicatedRawMpiInitialized = true;
+            MPI_Comm_size(MPI_COMM_WORLD, &replicatedRawMpiSize);
+
             MPI_Allreduce
             (
                 MPI_IN_PLACE,
@@ -2189,6 +2286,52 @@ void Foam::dsmcCloud::printProfileSummary() const
             moveDetailTrackWallTime = moveDetailTimes[0];
             moveDetailTrackerWallTime = moveDetailTimes[1];
             moveDetailBoundaryWallTime = moveDetailTimes[2];
+
+            scalar collisionSubphaseTimes[] =
+            {
+                collisionSubphaseLocalLoopWall,
+                collisionSubphaseReduceWall,
+                collisionSubphaseSigmaWall,
+                collisionSubphaseTotalWall,
+                collisionSubphaseAccountedWall,
+                collisionSubphaseResidualWall
+            };
+
+            MPI_Allreduce
+            (
+                MPI_IN_PLACE,
+                collisionSubphaseTimes,
+                6,
+                MPI_DOUBLE,
+                MPI_MAX,
+                MPI_COMM_WORLD
+            );
+
+            collisionSubphaseLocalLoopWall = collisionSubphaseTimes[0];
+            collisionSubphaseReduceWall = collisionSubphaseTimes[1];
+            collisionSubphaseSigmaWall = collisionSubphaseTimes[2];
+            collisionSubphaseTotalWall = collisionSubphaseTimes[3];
+            collisionSubphaseAccountedWall = collisionSubphaseTimes[4];
+            collisionSubphaseResidualWall = collisionSubphaseTimes[5];
+
+            label collisionCumulativeCounts[] =
+            {
+                collisionCumulativeCollisions,
+                collisionCumulativeCandidates
+            };
+
+            MPI_Allreduce
+            (
+                MPI_IN_PLACE,
+                collisionCumulativeCounts,
+                2,
+                MPI_INT,
+                MPI_SUM,
+                MPI_COMM_WORLD
+            );
+
+            collisionCumulativeCollisions = collisionCumulativeCounts[0];
+            collisionCumulativeCandidates = collisionCumulativeCounts[1];
         }
     }
     else if (Pstream::parRun())
@@ -2218,9 +2361,122 @@ void Foam::dsmcCloud::printProfileSummary() const
         reduce(moveDetailTrackWallTime, maxOp<scalar>());
         reduce(moveDetailTrackerWallTime, maxOp<scalar>());
         reduce(moveDetailBoundaryWallTime, maxOp<scalar>());
+        reduce(collisionSubphaseLocalLoopWall, maxOp<scalar>());
+        reduce(collisionSubphaseReduceWall, maxOp<scalar>());
+        reduce(collisionSubphaseSigmaWall, maxOp<scalar>());
+        reduce(collisionSubphaseTotalWall, maxOp<scalar>());
+        reduce(collisionSubphaseAccountedWall, maxOp<scalar>());
+        reduce(collisionSubphaseResidualWall, maxOp<scalar>());
+        reduce(collisionCumulativeCollisions, sumOp<label>());
+        reduce(collisionCumulativeCandidates, sumOp<label>());
     }
 
-    if ((replicatedRawMpi && isOutputRank()) || (!replicatedRawMpi && Pstream::master()))
+    if (profileDetail_ && replicatedRawMpi && replicatedRawMpiInitialized)
+    {
+        const int nScalarDetail = 6;
+        const int nLabelDetail = 4;
+
+        scalar localScalarDetail[nScalarDetail] =
+        {
+            localFullEvolveWall,
+            localMoveAndCollideWall,
+            localMoveWall,
+            localBuildCellOccupancyWall,
+            localCollisionWall,
+            localPostFieldsWall
+        };
+
+        label localLabelDetail[nLabelDetail] =
+        {
+            localProfileSteps,
+            localParcels,
+            localOwnedCollisionCells,
+            localFinalCandidates
+        };
+
+        List<scalar> allScalarDetail;
+        List<label> allLabelDetail;
+
+        if (replicatedRawMpiOutput)
+        {
+            allScalarDetail.setSize(replicatedRawMpiSize*nScalarDetail, 0.0);
+            allLabelDetail.setSize(replicatedRawMpiSize*nLabelDetail, 0);
+        }
+
+        MPI_Gather
+        (
+            localScalarDetail,
+            nScalarDetail,
+            MPI_DOUBLE,
+            replicatedRawMpiOutput ? allScalarDetail.data() : nullptr,
+            nScalarDetail,
+            MPI_DOUBLE,
+            0,
+            MPI_COMM_WORLD
+        );
+
+        MPI_Gather
+        (
+            localLabelDetail,
+            nLabelDetail,
+            MPI_INT,
+            replicatedRawMpiOutput ? allLabelDetail.data() : nullptr,
+            nLabelDetail,
+            MPI_INT,
+            0,
+            MPI_COMM_WORLD
+        );
+
+        if (replicatedRawMpiOutput)
+        {
+            scalar minRankFull = GREAT;
+            scalar maxRankFull = 0.0;
+            scalar minRankCollision = GREAT;
+            scalar maxRankCollision = 0.0;
+
+            Info<< nl
+                << "Replicated mesh profile detail by rank:" << nl
+                << "    rank steps parcels ownedCollCells finalCandidates"
+                << " full move+collide move build collision post" << nl;
+
+            for (int rankI = 0; rankI < replicatedRawMpiSize; ++rankI)
+            {
+                const label labelBase = rankI*nLabelDetail;
+                const label scalarBase = rankI*nScalarDetail;
+                const scalar rankFull = allScalarDetail[scalarBase + 0];
+                const scalar rankCollision = allScalarDetail[scalarBase + 4];
+
+                minRankFull = min(minRankFull, rankFull);
+                maxRankFull = max(maxRankFull, rankFull);
+                minRankCollision = min(minRankCollision, rankCollision);
+                maxRankCollision = max(maxRankCollision, rankCollision);
+
+                Info<< "    rank" << rankI
+                    << " " << allLabelDetail[labelBase + 0]
+                    << " " << allLabelDetail[labelBase + 1]
+                    << " " << allLabelDetail[labelBase + 2]
+                    << " " << allLabelDetail[labelBase + 3]
+                    << " " << rankFull
+                    << " " << allScalarDetail[scalarBase + 1]
+                    << " " << allScalarDetail[scalarBase + 2]
+                    << " " << allScalarDetail[scalarBase + 3]
+                    << " " << rankCollision
+                    << " " << allScalarDetail[scalarBase + 5]
+                    << nl;
+            }
+
+            Info<< "    rank full max/min            = "
+                << maxRankFull/max(minRankFull, SMALL) << nl
+                << "    rank collision max/min       = "
+                << maxRankCollision/max(minRankCollision, SMALL) << nl;
+        }
+    }
+
+    if
+    (
+        (replicatedRawMpi && replicatedRawMpiOutput)
+     || (!replicatedRawMpi && Pstream::master())
+    )
     {
         const scalar accountedWall =
             moveWall
@@ -2277,6 +2533,42 @@ void Foam::dsmcCloud::printProfileSummary() const
                 << moveDetailTrackerWallTime << nl
                 << "    move detail boundary max [s] = "
                 << moveDetailBoundaryWallTime;
+        }
+
+        if (collisionSubphaseTotalWall > SMALL)
+        {
+            const scalar collisionSubphaseMaxSum =
+                collisionSubphaseLocalLoopWall
+              + collisionSubphaseReduceWall
+              + collisionSubphaseSigmaWall;
+
+            Info<< nl
+                << "    collision localLoop max [s] = "
+                << collisionSubphaseLocalLoopWall << nl
+                << "    collision reduce max [s]    = "
+                << collisionSubphaseReduceWall << nl
+                << "    collision sigmaBC max [s]   = "
+                << collisionSubphaseSigmaWall << nl
+                << "    collision total max [s]     = "
+                << collisionSubphaseTotalWall << nl
+                << "    collision accounted max [s] = "
+                << collisionSubphaseAccountedWall << nl
+                << "    collision residual max [s]  = "
+                << collisionSubphaseResidualWall << nl
+                << "    collision subphase max sum [s] = "
+                << collisionSubphaseMaxSum;
+        }
+
+        if (collisionCumulativeCandidates > 0)
+        {
+            Info<< nl
+                << "    collision cumulative global collisions = "
+                << collisionCumulativeCollisions << nl
+                << "    collision cumulative global candidates  = "
+                << collisionCumulativeCandidates << nl
+                << "    collision cumulative acceptance        = "
+                << scalar(collisionCumulativeCollisions)
+                    /max(scalar(collisionCumulativeCandidates), SMALL);
         }
 
         Info<< nl

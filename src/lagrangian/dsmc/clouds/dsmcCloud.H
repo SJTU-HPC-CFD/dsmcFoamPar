@@ -187,6 +187,7 @@ private:
         labelList occupancyCellOffsets_;
         labelList occupancyActiveCells_;
         labelList occupancyCollisionCells_;
+        labelList occupancyOwnedCollisionCells_;
         bool occupancyOrderedParcelsValid_;
         mutable bool cellOccupancyMaterialized_;
         List<labelList> occupancyThreadCellCounts_;
@@ -945,6 +946,11 @@ public:
                 return occupancyCollisionCells_;
             }
 
+            inline const labelList& occupancyOwnedCollisionCells() const
+            {
+                return occupancyOwnedCollisionCells_;
+            }
+
             inline label occupancyStart(const label celli) const
             {
                 return occupancyCellOffsets_[celli];
@@ -968,6 +974,11 @@ public:
             inline bool emitStepDiagnostics() const
             {
                 return profileDetail_;
+            }
+
+            inline bool profileSummaryEnabled() const
+            {
+                return profileSummary_;
             }
 
             // Return how often to write to terminal

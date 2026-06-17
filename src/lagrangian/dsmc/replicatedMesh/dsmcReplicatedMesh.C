@@ -63,7 +63,17 @@ dsmcReplicatedMesh::dsmcReplicatedMesh(dsmcCloud& cloud, const fvMesh& mesh)
     cloud_(cloud), mesh_(mesh),
     cellOwner_(mesh.nCells(), -1), localMesh_(mesh), myCells_(0),
     localParticleCount_(0), allParticleCounts_(0),
-    migrationWallTime_(0.0), migrationCalls_(0),
+    migrationWallTime_(0.0),
+    migrationPackWallTime_(0.0),
+    migrationLocalPrepWallTime_(0.0),
+    migrationSizeExchangeWallTime_(0.0),
+    migrationRequestPostWallTime_(0.0),
+    migrationWaitWallTime_(0.0),
+    migrationDeserializeWallTime_(0.0),
+    migrationCandidateGatherWallTime_(0.0),
+    migrationPostWallTime_(0.0),
+    updateParticleCountsWallTime_(0.0),
+    migrationCalls_(0),
     evolveStepTime_(0.0), evolveTimeSteps_(0),
     active_(false), nProcs_(1), myRank_(0),
     migrateInterval_(1), stepCounter_(0),
@@ -97,12 +107,21 @@ dsmcReplicatedMesh::dsmcReplicatedMesh(dsmcCloud& cloud, const fvMesh& mesh)
     autoRebalanceMigrationWallTime_(0.0),
     autoRebalanceWriteWallTime_(0.0),
     autoRebalancePostDiagWallTime_(0.0),
-    collDivisor_(128),
-    alpha_(1.0),
+    dlbAlpha_(1.0),
+    adaptiveAlpha_(false),
+    adaptiveAlphaMin_(0.5),
+    adaptiveAlphaMax_(2.0),
+    adaptiveAlphaGain_(0.04),
+    adaptiveAlphaMaxStep_(0.08),
+    adaptiveAlphaWorsenTol_(0.05),
+    adaptiveAlphaLastImbalance_(GREAT),
+    adaptiveAlphaLastStep_(0.0),
     asyncMigrationPending_(false),
     asyncRecvSize_(0),
     useNoAlltoall_(false),
     useFlatTransfer_(false),
+    gatherCandidates_(false),
+    overlapSizeExchange_(false),
     writeMode_("gathered")
 {}
 
@@ -253,11 +272,28 @@ void dsmcReplicatedMesh::initialize()
     MPI_Comm_size(MPI_COMM_WORLD, &nProcs_);
     MPI_Comm_rank(MPI_COMM_WORLD, &myRank_);
     allParticleCounts_.setSize(nProcs_, 0);
-    const label defaultK = (nProcs_ >= 8) ? 128 : 64;
-    collDivisor_ = mesh_.time().controlDict().lookupOrDefault<label>
-        ("replicatedMeshDLBInitialK", defaultK);
-    alpha_ = mesh_.time().controlDict().lookupOrDefault<scalar>
-        ("replicatedMeshDLBInitialAlpha", 1.0);
+
+    dlbAlpha_ = mesh_.time().controlDict().lookupOrDefault<scalar>
+        ("replicatedMeshDLBAlpha", 1.0);
+    adaptiveAlpha_ = mesh_.time().controlDict().lookupOrDefault<bool>
+        ("replicatedMeshDLBAdaptiveAlpha", false);
+    adaptiveAlphaMin_ = mesh_.time().controlDict().lookupOrDefault<scalar>
+        ("replicatedMeshDLBAlphaMin", 0.5);
+    adaptiveAlphaMax_ = mesh_.time().controlDict().lookupOrDefault<scalar>
+        ("replicatedMeshDLBAlphaMax", 2.0);
+    adaptiveAlphaGain_ = mesh_.time().controlDict().lookupOrDefault<scalar>
+        ("replicatedMeshDLBAlphaGain", 0.04);
+    adaptiveAlphaMaxStep_ = mesh_.time().controlDict().lookupOrDefault<scalar>
+        ("replicatedMeshDLBAlphaMaxStep", 0.08);
+    adaptiveAlphaWorsenTol_ = mesh_.time().controlDict().lookupOrDefault<scalar>
+        ("replicatedMeshDLBAlphaWorsenTol", 0.05);
+    if (adaptiveAlphaMin_ > adaptiveAlphaMax_)
+    {
+        const scalar tmp = adaptiveAlphaMin_;
+        adaptiveAlphaMin_ = adaptiveAlphaMax_;
+        adaptiveAlphaMax_ = tmp;
+    }
+    dlbAlpha_ = max(adaptiveAlphaMin_, min(adaptiveAlphaMax_, dlbAlpha_));
 
     if (nProcs_ < 2)
     {
@@ -323,6 +359,18 @@ void dsmcReplicatedMesh::initialize()
         Info<< "Replicated mesh: flat POD transfer enabled" << endl;
     }
 
+    gatherCandidates_ =
+        mesh_.time().controlDict().lookupOrDefault<bool>
+        ("replicatedMeshGatherCandidates", false);
+    Info<< "Replicated mesh: gatherCandidates=" << gatherCandidates_
+        << endl;
+
+    overlapSizeExchange_ =
+        mesh_.time().controlDict().lookupOrDefault<bool>
+        ("replicatedMeshOverlapSizeExchange", false);
+    Info<< "Replicated mesh: overlapSizeExchange=" << overlapSizeExchange_
+        << endl;
+
     writeMode_ =
         mesh_.time().controlDict().lookupOrDefault<word>
         ("replicatedMeshWriteMode", "gathered");
@@ -351,10 +399,18 @@ void dsmcReplicatedMesh::initialize()
             .lookupOrDefault<labelList>("replicatedMeshDLBForceSteps", labelList());
         const word checkCollective = mesh_.time().controlDict()
             .lookupOrDefault<word>("replicatedMeshDLBCheckCollective", "allgather");
-        const bool skipFixedKPostDiag = mesh_.time().controlDict()
-            .lookupOrDefault<bool>("replicatedMeshDLBSkipFixedKPostDiag", false);
+        const bool skipPostDiag = mesh_.time().controlDict()
+            .lookupOrDefault<bool>("replicatedMeshDLBSkipPostDiag", false);
         const label minGapSteps = mesh_.time().controlDict()
             .lookupOrDefault<label>("replicatedMeshDLBMinGapSteps", 0);
+        const bool particleGate = mesh_.time().controlDict()
+            .lookupOrDefault<bool>("replicatedMeshDLBParticleGate", true);
+        const scalar particleGateThreshold = mesh_.time().controlDict()
+            .lookupOrDefault<scalar>
+            (
+                "replicatedMeshDLBParticleGateThreshold",
+                imbalanceThreshold_
+            );
 
         Info<< "Phase C auto DLB: enabled (ParMETIS AdaptiveRepart)"
             << ", imbalanceThreshold=" << imbalanceThreshold_
@@ -363,7 +419,19 @@ void dsmcReplicatedMesh::initialize()
             << ", triggerMode=" << autoDLBTriggerMode_
             << ", minGapSteps=" << minGapSteps
             << ", checkCollective=" << checkCollective
-            << ", skipFixedKPostDiag=" << skipFixedKPostDiag << endl;
+            << ", particleGate=" << particleGate
+            << ", particleGateThreshold=" << particleGateThreshold
+            << ", skipPostDiag=" << skipPostDiag
+            << ", adaptiveAlpha=" << adaptiveAlpha_;
+        if (adaptiveAlpha_)
+        {
+            Info<< " alpha0=" << dlbAlpha_
+                << " alphaRange=[" << adaptiveAlphaMin_ << ","
+                << adaptiveAlphaMax_ << "]"
+                << " alphaGain=" << adaptiveAlphaGain_
+                << " alphaMaxStep=" << adaptiveAlphaMaxStep_;
+        }
+        Info<< endl;
         if (forcedDLBSteps_.size())
         {
             Info<< "Phase C auto DLB: forced trigger steps "
@@ -512,7 +580,7 @@ label dsmcReplicatedMesh::reassignByParMetisAdaptiveRepart()
         {
             // Constraint 0: N^alpha (move balance)
             const scalar wMove = (nPart > 1)
-                ? std::pow(scalar(nPart), alpha_) : scalar(nPart);
+                ? std::pow(scalar(nPart), dlbAlpha_) : scalar(nPart);
             vwgt[i*2 + 0] = positiveWeight(wMove);
             // Constraint 1: N*(N-1) (collision balance, compressed range)
             const scalar wColl =
@@ -522,7 +590,7 @@ label dsmcReplicatedMesh::reassignByParMetisAdaptiveRepart()
         else
         {
             const scalar w = (nPart > 1)
-                ? std::pow(scalar(nPart), alpha_) : scalar(nPart);
+                ? std::pow(scalar(nPart), dlbAlpha_) : scalar(nPart);
             vwgt[i] = positiveWeight(w);
         }
     }
@@ -567,7 +635,7 @@ label dsmcReplicatedMesh::reassignByParMetisAdaptiveRepart()
             ("replicatedMeshDLBUbvec1", 1.5);
     }
 
-    Info<< "Phase C ParMETIS: alpha=" << alpha_ << " ncon=" << ncon
+    Info<< "Phase C ParMETIS: alpha=" << dlbAlpha_ << " ncon=" << ncon
         << " ubvec=[";
     for (label c = 0; c < ncon; ++c)
         Info<< (c > 0 ? "," : "") << ubvec[c];
@@ -789,6 +857,40 @@ void dsmcReplicatedMesh::autoRebalance()
         }
     }
 
+    const bool particleGateEnabled = mesh_.time().controlDict()
+        .lookupOrDefault<bool>("replicatedMeshDLBParticleGate", true);
+    const scalar particleGateThreshold = mesh_.time().controlDict()
+        .lookupOrDefault<scalar>
+        (
+            "replicatedMeshDLBParticleGateThreshold",
+            imbalanceThreshold_
+        );
+    bool particleGateAllowsGlobalCheck = true;
+    scalar particleGateImbalance = 1.0;
+    if
+    (
+        particleGateEnabled
+     && !forcedTriggered
+     && allParticleCounts_.size() == nProcs_
+    )
+    {
+        label maxParticles = 0;
+        label minParticles = labelMax;
+        forAll(allParticleCounts_, i)
+        {
+            maxParticles = max(maxParticles, allParticleCounts_[i]);
+            minParticles = min(minParticles, allParticleCounts_[i]);
+        }
+
+        if (maxParticles > 0 && minParticles < labelMax)
+        {
+            particleGateImbalance =
+                scalar(maxParticles) / max(scalar(minParticles), SMALL);
+        }
+        particleGateAllowsGlobalCheck =
+            particleGateImbalance > particleGateThreshold;
+    }
+
     if (forcedDLBSteps_.size())
     {
         if (sarEvalSteps_ >= sarSteps_)
@@ -808,48 +910,65 @@ void dsmcReplicatedMesh::autoRebalance()
     {
         if (ndecps_ % sarSteps_ == 0)
         {
-            const scalar localT = productiveTime_;
-            scalar maxT = 0.0;
-            scalar minT = GREAT;
-            gatherLoadExtrema(localT, maxT, minT);
-
-            if (maxT > SMALL)
+            if (!particleGateAllowsGlobalCheck)
             {
-                const scalar loadImbalance = maxT / max(minT, SMALL);
-
-                bool sarTriggered = false;
-
-                tidl_ += maxT - minT;
-                ++nEvalPeriods_;
-                w2_ = (tidl_ + tdecps_) / scalar(nEvalPeriods_);
-
-                if (nEvalPeriods_ == 1)
+                if (dlbProfile && myRank_ == 0)
                 {
-                    w1_ = w2_;
+                    Info<< "Phase C auto DLB check skipped by particle gate"
+                        << " at step " << currentStep
+                        << ": particle max/min=" << particleGateImbalance
+                        << " threshold=" << particleGateThreshold << nl;
                 }
-                else
+            }
+            else
+            {
+                const scalar localT = productiveTime_;
+                scalar maxT = 0.0;
+                scalar minT = GREAT;
+                gatherLoadExtrema(localT, maxT, minT);
+
+                if (maxT > SMALL)
                 {
-                    sar_ = w2_ - w1_;
-                    w1_ = w2_;
-                    sarTriggered = (sar_ > 0.0);
-                }
+                    const scalar loadImbalance = maxT / max(minT, SMALL);
 
-                const bool thresholdTriggered =
-                    (ndecps_ >= dlbSteps_) && (loadImbalance > imbalanceThreshold_);
+                    bool sarTriggered = false;
 
-                triggered = minGapSatisfied && (sarTriggered || thresholdTriggered);
-                if (triggered)
-                {
-                    const char* reason =
-                        sarTriggered && thresholdTriggered
-                      ? "SAR+threshold"
-                      : (sarTriggered ? "SAR" : "threshold");
+                    tidl_ += maxT - minT;
+                    ++nEvalPeriods_;
+                    w2_ = (tidl_ + tdecps_) / scalar(nEvalPeriods_);
 
-                    Info<< "\nPhase C auto DLB triggered (" << reason
-                        << ") at step " << currentStep
-                        << ": sar=" << sar_
-                        << " loadImbalance=" << loadImbalance
-                        << " threshold=" << imbalanceThreshold_ << nl;
+                    if (nEvalPeriods_ == 1)
+                    {
+                        w1_ = w2_;
+                    }
+                    else
+                    {
+                        sar_ = w2_ - w1_;
+                        w1_ = w2_;
+                        sarTriggered = (sar_ > 0.0);
+                    }
+
+                    const bool thresholdTriggered =
+                        (ndecps_ >= dlbSteps_)
+                     && (loadImbalance > imbalanceThreshold_);
+
+                    triggered =
+                        minGapSatisfied && (sarTriggered || thresholdTriggered);
+                    if (triggered)
+                    {
+                        const char* reason =
+                            sarTriggered && thresholdTriggered
+                          ? "SAR+threshold"
+                          : (sarTriggered ? "SAR" : "threshold");
+
+                        Info<< "\nPhase C auto DLB triggered (" << reason
+                            << ") at step " << currentStep
+                            << ": sar=" << sar_
+                            << " loadImbalance=" << loadImbalance
+                            << " threshold=" << imbalanceThreshold_
+                            << " particleMaxMin=" << particleGateImbalance
+                            << nl;
+                    }
                 }
             }
 
@@ -862,54 +981,111 @@ void dsmcReplicatedMesh::autoRebalance()
         const bool thresholdEligible =
             (autoRebalanceCount_ > 0) && (ndecps_ >= dlbSteps_);
 
-        const scalar localT = productiveTime_;
-        scalar maxT = 0.0;
-        scalar minT = GREAT;
-        gatherLoadExtrema(localT, maxT, minT);
-
-        if (maxT > SMALL)
+        if (!particleGateAllowsGlobalCheck)
         {
-            const scalar loadImbalance = maxT / max(minT, SMALL);
-
-            // SAR trend update
-            tidl_ += maxT - minT;
-            ++nEvalPeriods_;
-            w2_ = (tidl_ + tdecps_) / scalar(nEvalPeriods_);
-
-            bool sarTriggered = false;
-            if (nEvalPeriods_ == 1)
+            if (dlbProfile && myRank_ == 0)
             {
-                w1_ = w2_;
+                Info<< "Phase C auto DLB check skipped by particle gate"
+                    << " at step " << currentStep
+                    << ": particle max/min=" << particleGateImbalance
+                    << " threshold=" << particleGateThreshold << nl;
             }
-            else
+        }
+        else
+        {
+            const scalar localT = productiveTime_;
+            scalar maxT = 0.0;
+            scalar minT = GREAT;
+            gatherLoadExtrema(localT, maxT, minT);
+
+            if (maxT > SMALL)
             {
-                sar_ = w2_ - w1_;
-                w1_ = w2_;
-                sarTriggered = (sar_ > 0.0);
-            }
+                const scalar loadImbalance = maxT / max(minT, SMALL);
 
-            const bool thresholdTriggered =
-                thresholdEligible && (loadImbalance > imbalanceThreshold_);
+                // SAR trend update
+                tidl_ += maxT - minT;
+                ++nEvalPeriods_;
+                w2_ = (tidl_ + tdecps_) / scalar(nEvalPeriods_);
 
-            triggered = minGapSatisfied && (sarTriggered || thresholdTriggered);
-            if (triggered)
-            {
-                const char* reason =
-                    sarTriggered && thresholdTriggered
-                  ? "SAR+threshold"
-                  : (sarTriggered ? "SAR" : "threshold");
+                bool sarTriggered = false;
+                if (nEvalPeriods_ == 1)
+                {
+                    w1_ = w2_;
+                }
+                else
+                {
+                    sar_ = w2_ - w1_;
+                    w1_ = w2_;
+                    sarTriggered = (sar_ > 0.0);
+                }
 
-                Info<< "\nPhase C auto DLB triggered (" << reason
-                    << ") at step " << currentStep
-                    << ": sar=" << sar_
-                    << " loadImbalance=" << loadImbalance
-                    << " threshold=" << imbalanceThreshold_ << nl;
+                const bool thresholdTriggered =
+                    thresholdEligible && (loadImbalance > imbalanceThreshold_);
+
+                triggered =
+                    minGapSatisfied && (sarTriggered || thresholdTriggered);
+                if (triggered)
+                {
+                    const char* reason =
+                        sarTriggered && thresholdTriggered
+                      ? "SAR+threshold"
+                      : (sarTriggered ? "SAR" : "threshold");
+
+                    Info<< "\nPhase C auto DLB triggered (" << reason
+                        << ") at step " << currentStep
+                        << ": sar=" << sar_
+                        << " loadImbalance=" << loadImbalance
+                        << " threshold=" << imbalanceThreshold_
+                        << " particleMaxMin=" << particleGateImbalance
+                        << nl;
+                }
             }
         }
 
         // Current SAR sampling window has been consumed, but productiveTime_
         // remains cumulative until an actual DLB trigger completes.
         sarEvalSteps_ = 0;
+    }
+
+    if (triggered)
+    {
+        const label minRemainingSteps = max
+        (
+            label(0),
+            mesh_.time().controlDict().lookupOrDefault<label>
+            (
+                "replicatedMeshDLBMinRemainingSteps",
+                0
+            )
+        );
+
+        if (minRemainingSteps > 0)
+        {
+            const scalar startTime = mesh_.time().controlDict()
+                .lookupOrDefault<scalar>("startTime", 0.0);
+            const scalar endTime = mesh_.time().controlDict()
+                .lookupOrDefault<scalar>("endTime", mesh_.time().endTime().value());
+            const scalar deltaT = max(mesh_.time().deltaT().value(), SMALL);
+            const label totalSteps = max
+            (
+                label(0),
+                label((endTime - startTime)/deltaT + 0.5)
+            );
+            const label remainingSteps = totalSteps - currentStep;
+
+            if (remainingSteps < minRemainingSteps)
+            {
+                if (myRank_ == 0)
+                {
+                    Info<< "Phase C auto DLB skipped near end at step "
+                        << currentStep
+                        << ": remainingSteps=" << remainingSteps
+                        << " minRemainingSteps=" << minRemainingSteps
+                        << nl;
+                }
+                triggered = false;
+            }
+        }
     }
 
     const auto tCheckEnd = std::chrono::steady_clock::now();
@@ -973,12 +1149,9 @@ void dsmcReplicatedMesh::autoRebalance()
     // Inter-DLB load summary + arm post-DLB snapshot
     const auto tPostDiag0 = std::chrono::steady_clock::now();
     {
-        const label fixedK = mesh_.time().controlDict().lookupOrDefault<label>
-            ("replicatedMeshDLBFixedK", 0);
-        const bool skipFixedKPostDiag = mesh_.time().controlDict()
-            .lookupOrDefault<bool>("replicatedMeshDLBSkipFixedKPostDiag", false);
-        const bool needPostDiag =
-            dlbProfile || (fixedK <= 0) || !skipFixedKPostDiag;
+        const bool skipPostDiag = mesh_.time().controlDict()
+            .lookupOrDefault<bool>("replicatedMeshDLBSkipPostDiag", false);
+        const bool needPostDiag = dlbProfile || adaptiveAlpha_ || !skipPostDiag;
         scalarList allMoveT, allCollT;
         if (needPostDiag)
         {
@@ -1008,122 +1181,93 @@ void dsmcReplicatedMesh::autoRebalance()
                 << " (max=" << maxA << " min=" << minA << ")" << nl;
         }
 
-        // ---- Adaptive K PID: use inter-DLB delta for error signal ----
-        const label adaptiveKMode = mesh_.time().controlDict().lookupOrDefault<label>
-            ("replicatedMeshDLBAdaptiveKMode", 1);
-        if (fixedK <= 0 && lastDLBMoveT_.size() == nProcs_)
+        if (adaptiveAlpha_ && lastDLBMoveT_.size() == nProcs_)
         {
-            // Compute bottleneck + imbalance from delta (max/min)
-            scalar maxWork = 0.0, minWork = GREAT;
+            scalar maxWork = 0.0;
+            scalar minWork = GREAT;
             label bottleneckRank = 0;
-            scalarList dMove(nProcs_), dColl(nProcs_);
+            scalar sumMove = 0.0;
+            scalar sumColl = 0.0;
+            scalarList dMove(nProcs_, 0.0);
+            scalarList dColl(nProcs_, 0.0);
+
             for (label i = 0; i < nProcs_; ++i)
             {
-                dMove[i] = allMoveT[i] - lastDLBMoveT_[i];
-                dColl[i] = allCollT[i] - lastDLBCollT_[i];
-                const scalar w = dMove[i] + dColl[i];
-                if (w > maxWork) { maxWork = w; bottleneckRank = i; }
-                if (w < minWork) { minWork = w; }
-            }
-            const scalar workImbalance = maxWork / max(minWork, SMALL);
-
-            // Direction from moveRatio
-            const scalar bnMoveRatio = dMove[bottleneckRank]
-                / max(dMove[bottleneckRank] + dColl[bottleneckRank], SMALL);
-            scalar avgMoveRatio = 0.0;
-            for (label i = 0; i < nProcs_; ++i)
-                avgMoveRatio += dMove[i] / max(dMove[i] + dColl[i], SMALL);
-            avgMoveRatio /= scalar(nProcs_);
-
-            const scalar totalDelta = sum(dMove) + sum(dColl);
-            const label oldK = collDivisor_;
-
-            if (adaptiveKMode == 0)
-            {
-                // Adaptive alpha with hill-climbing:
-                // weight = N^alpha, alpha in [0.5, 2.0]
-                // Adjust alpha to minimize workImbalance.
-                // Direction hint from move/coll excess, but reverse if
-                // imbalance worsened after last adjustment.
-
-                scalar sumMove = 0.0, sumColl = 0.0;
-                for (label i = 0; i < nProcs_; ++i)
+                dMove[i] = max
+                (
+                    scalar(0.0),
+                    allMoveT[i] - lastDLBMoveT_[i]
+                );
+                dColl[i] = max
+                (
+                    scalar(0.0),
+                    allCollT[i] - lastDLBCollT_[i]
+                );
+                const scalar work = dMove[i] + dColl[i];
+                sumMove += dMove[i];
+                sumColl += dColl[i];
+                if (work > maxWork)
                 {
-                    sumMove += dMove[i];
-                    sumColl += dColl[i];
+                    maxWork = work;
+                    bottleneckRank = i;
                 }
-                const scalar avgMove = sumMove / nProcs_;
-                const scalar avgColl = sumColl / nProcs_;
+                if (work < minWork)
+                {
+                    minWork = work;
+                }
+            }
+
+            const scalar totalWork = sumMove + sumColl;
+            const scalar workImbalance = maxWork / max(minWork, SMALL);
+            const scalar oldAlpha = dlbAlpha_;
+            scalar direction = 0.0;
+            scalar step = 0.0;
+
+            if (totalWork > SMALL && workImbalance > scalar(1.0) + SMALL)
+            {
+                const scalar avgMove = sumMove / scalar(nProcs_);
+                const scalar avgColl = sumColl / scalar(nProcs_);
                 const scalar bnMoveExcess = dMove[bottleneckRank] - avgMove;
                 const scalar bnCollExcess = dColl[bottleneckRank] - avgColl;
+                const scalar excessNorm =
+                    mag(bnMoveExcess) + mag(bnCollExcess) + SMALL;
 
-                static scalar lastImbalance = GREAT;
-                static scalar lastStep = 0.0;
+                // Move-heavy bottleneck: compress particle weights by reducing
+                // alpha. Collision-heavy bottleneck: increase alpha.
+                direction = (bnCollExcess - bnMoveExcess) / excessNorm;
 
-                if (totalDelta > 2.0 * nProcs_)
+                if
+                (
+                    workImbalance > adaptiveAlphaLastImbalance_
+                  + adaptiveAlphaWorsenTol_
+                 && mag(adaptiveAlphaLastStep_) > SMALL
+                )
                 {
-                    const scalar oldAlpha = alpha_;
-
-                    // Determine direction from move/coll excess
-                    // move excess > coll excess → alpha should decrease
-                    // coll excess > move excess → alpha should increase
-                    const scalar totalExcess = mag(bnMoveExcess) + mag(bnCollExcess) + SMALL;
-                    scalar direction = (bnCollExcess - bnMoveExcess) / totalExcess;
-
-                    // If imbalance worsened since last adjustment, reverse direction
-                    if (workImbalance > lastImbalance + 0.05 && mag(lastStep) > SMALL)
-                    {
-                        direction = -Foam::sign(lastStep);
-                    }
-
-                    // Step size proportional to imbalance severity, but small
-                    const scalar severity = min(workImbalance - 1.0, scalar(3.0));
-                    const scalar step = direction * min(severity, scalar(2.0)) * 0.04;
-
-                    alpha_ += step;
-                    alpha_ = max(scalar(0.5), min(scalar(2.0), alpha_));
-
-                    lastStep = alpha_ - oldAlpha;
-                    lastImbalance = workImbalance;
-
-                    Info<< "Phase C adaptive alpha: bottleneck=rank"
-                        << bottleneckRank
-                        << " imbal=" << workImbalance
-                        << " bnMoveExc=" << bnMoveExcess
-                        << " bnCollExc=" << bnCollExcess
-                        << " dir=" << direction
-                        << " alpha: " << oldAlpha << " -> " << alpha_ << nl;
+                    direction = adaptiveAlphaLastStep_ > 0 ? -1.0 : 1.0;
                 }
+
+                const scalar severity =
+                    min(max(workImbalance - scalar(1.0), scalar(0.0)), scalar(2.0));
+                step = direction * min
+                (
+                    adaptiveAlphaMaxStep_,
+                    adaptiveAlphaGain_ * severity
+                );
+
+                dlbAlpha_ += step;
+                dlbAlpha_ = max(adaptiveAlphaMin_, min(adaptiveAlphaMax_, dlbAlpha_));
             }
-            else
-            {
-                // Hill-Climbing controller (mode=1, default)
-                static scalar lastImbalance = GREAT;
-                static label lastDirection = -1;
 
-                if (workImbalance > 1.3 && totalDelta > 2.0 * nProcs_)
-                {
-                    label direction = (bnMoveRatio > avgMoveRatio + 0.03) ? 1 : -1;
+            adaptiveAlphaLastStep_ = dlbAlpha_ - oldAlpha;
+            adaptiveAlphaLastImbalance_ = workImbalance;
 
-                    if (workImbalance > lastImbalance + 0.05)
-                        direction = -lastDirection;
-
-                    const scalar step = direction * min(scalar(0.4),
-                        (workImbalance - 1.0) * scalar(0.4));
-
-                    collDivisor_ = label(
-                        scalar(collDivisor_) * (scalar(1.0) + step) + scalar(0.5)
-                    );
-                    collDivisor_ = max(label(1), min(label(2048), collDivisor_));
-                    lastDirection = direction;
-                }
-                lastImbalance = workImbalance;
-
-                Info<< "Phase C adaptive K (Hill): bottleneck=rank" << bottleneckRank
-                    << " max/min=" << workImbalance
-                    << " (moveRatio=" << bnMoveRatio << " vs avg=" << avgMoveRatio << ")"
-                    << " K: " << oldK << " -> " << collDivisor_ << nl;
-            }
+            Info<< "Phase C adaptive alpha: bottleneck=rank" << bottleneckRank
+                << " workImbalance=" << workImbalance
+                << " moveDelta=" << dMove[bottleneckRank]
+                << " collDelta=" << dColl[bottleneckRank]
+                << " direction=" << direction
+                << " step=" << adaptiveAlphaLastStep_
+                << " alpha: " << oldAlpha << " -> " << dlbAlpha_ << nl;
         }
 
         if (needPostDiag)
@@ -1898,58 +2042,218 @@ void dsmcReplicatedMesh::migrateParticlesByCellOwner()
                 }
             }
         }
-        const auto t1 = std::chrono::steady_clock::now();
-
-        forAll(toDelete, i) { cloud_.deleteParcel(toDelete[i]); }
+        const auto tPackEnd = std::chrono::steady_clock::now();
 
         labelList sendSizes(nProcs_, 0);
         for (label i = 0; i < nProcs_; ++i)
-            sendSizes[i] = sendTD[i].size() * sizeof(dsmcParcel::TransferData);
-        const auto t2 = std::chrono::steady_clock::now();
-
-        // MPI exchange (Alltoall sizes then Isend/Irecv data)
-        labelList recvSizes(nProcs_, 0);
-        MPI_Alltoall(sendSizes.data(), 1, MPI_INT,
-                     recvSizes.data(), 1, MPI_INT, MPI_COMM_WORLD);
-
-        label totalRecvBytes = 0;
-        for (label i = 0; i < nProcs_; ++i)
-            if (i != myRank_) totalRecvBytes += recvSizes[i];
-
-        List<char> recvBuf(totalRecvBytes);
-        labelList recvOffsets(nProcs_, 0);
         {
-            label off = 0;
+            sendSizes[i] = sendTD[i].size() * sizeof(dsmcParcel::TransferData);
+        }
+
+        labelList recvSizes(nProcs_, 0);
+        MPI_Request sizeExchangeReq = MPI_REQUEST_NULL;
+        const bool overlapSizeExchange =
+            overlapSizeExchange_ && !useNoAlltoall_;
+
+        if (overlapSizeExchange)
+        {
+            MPI_Ialltoall
+            (
+                sendSizes.data(),
+                1,
+                MPI_INT,
+                recvSizes.data(),
+                1,
+                MPI_INT,
+                MPI_COMM_WORLD,
+                &sizeExchangeReq
+            );
+        }
+
+        forAll(toDelete, i) { cloud_.deleteParcel(toDelete[i]); }
+        const auto tLocalPrepEnd = std::chrono::steady_clock::now();
+
+        // MPI exchange
+        labelList recvOffsets(nProcs_, 0);
+        List<char> recvBuf;
+        std::chrono::steady_clock::time_point tSizeExchangeEnd;
+        std::chrono::steady_clock::time_point tRequestPostEnd;
+        std::chrono::steady_clock::time_point tWaitEnd;
+
+        if (useNoAlltoall_)
+        {
+            // No size collective: every peer sends one message, including
+            // zero-byte messages, so Probe can discover actual receive sizes.
+            tSizeExchangeEnd = tLocalPrepEnd;
+            DynamicList<MPI_Request> sendReqs(nProcs_ - 1);
+            char zeroByte = 0;
+
             for (label i = 0; i < nProcs_; ++i)
             {
-                recvOffsets[i] = off;
-                if (i != myRank_) off += recvSizes[i];
-            }
-        }
+                if (i == myRank_) continue;
 
-        DynamicList<MPI_Request> allReqs(2 * (nProcs_ - 1));
-        for (label i = 0; i < nProcs_; ++i)
-        {
-            if (i != myRank_ && recvSizes[i] > 0)
-            {
                 MPI_Request req;
-                MPI_Irecv(recvBuf.data() + recvOffsets[i], recvSizes[i],
-                          MPI_BYTE, i, 0, MPI_COMM_WORLD, &req);
-                allReqs.append(req);
+                const void* sendData = &zeroByte;
+                if (sendSizes[i] > 0)
+                {
+                    sendData = sendTD[i].data();
+                }
+                MPI_Isend
+                (
+                    sendData,
+                    sendSizes[i],
+                    MPI_BYTE,
+                    i,
+                    0,
+                    MPI_COMM_WORLD,
+                    &req
+                );
+                sendReqs.append(req);
             }
-        }
-        for (label i = 0; i < nProcs_; ++i)
-        {
-            if (i != myRank_ && sendSizes[i] > 0)
+
+            tRequestPostEnd = std::chrono::steady_clock::now();
+
+            for (label recvI = 0; recvI < nProcs_ - 1; ++recvI)
             {
-                MPI_Request req;
-                MPI_Isend(sendTD[i].data(), sendSizes[i],
-                          MPI_BYTE, i, 0, MPI_COMM_WORLD, &req);
-                allReqs.append(req);
+                MPI_Status status;
+                MPI_Probe(MPI_ANY_SOURCE, 0, MPI_COMM_WORLD, &status);
+
+                int actualBytes = 0;
+                MPI_Get_count(&status, MPI_BYTE, &actualBytes);
+                const label src = status.MPI_SOURCE;
+                recvSizes[src] = actualBytes;
+                prevRecvSizes_[src] = actualBytes;
+
+                if (actualBytes > 0)
+                {
+                    if (actualBytes > perPeerRecvCapacity_[src])
+                    {
+                        perPeerRecvCapacity_[src] = actualBytes;
+                        perPeerRecvBuf_[src].setSize(actualBytes);
+                    }
+                    MPI_Recv
+                    (
+                        perPeerRecvBuf_[src].data(),
+                        actualBytes,
+                        MPI_BYTE,
+                        src,
+                        0,
+                        MPI_COMM_WORLD,
+                        MPI_STATUS_IGNORE
+                    );
+                }
+                else
+                {
+                    MPI_Recv
+                    (
+                        &zeroByte,
+                        0,
+                        MPI_BYTE,
+                        src,
+                        0,
+                        MPI_COMM_WORLD,
+                        MPI_STATUS_IGNORE
+                    );
+                }
             }
+
+            if (sendReqs.size() > 0)
+            {
+                MPI_Waitall
+                (
+                    sendReqs.size(),
+                    sendReqs.data(),
+                    MPI_STATUSES_IGNORE
+                );
+            }
+            tWaitEnd = std::chrono::steady_clock::now();
         }
-        if (allReqs.size() > 0)
-            MPI_Waitall(allReqs.size(), allReqs.data(), MPI_STATUSES_IGNORE);
+        else
+        {
+            if (overlapSizeExchange)
+            {
+                MPI_Wait(&sizeExchangeReq, MPI_STATUS_IGNORE);
+            }
+            else
+            {
+                MPI_Alltoall
+                (
+                    sendSizes.data(),
+                    1,
+                    MPI_INT,
+                    recvSizes.data(),
+                    1,
+                    MPI_INT,
+                    MPI_COMM_WORLD
+                );
+            }
+            tSizeExchangeEnd = std::chrono::steady_clock::now();
+
+            label totalRecvBytes = 0;
+            for (label i = 0; i < nProcs_; ++i)
+            {
+                if (i != myRank_) totalRecvBytes += recvSizes[i];
+            }
+
+            recvBuf.setSize(totalRecvBytes);
+            {
+                label off = 0;
+                for (label i = 0; i < nProcs_; ++i)
+                {
+                    recvOffsets[i] = off;
+                    if (i != myRank_) off += recvSizes[i];
+                }
+            }
+
+            DynamicList<MPI_Request> allReqs(2 * (nProcs_ - 1));
+            for (label i = 0; i < nProcs_; ++i)
+            {
+                if (i != myRank_ && recvSizes[i] > 0)
+                {
+                    MPI_Request req;
+                    MPI_Irecv
+                    (
+                        recvBuf.data() + recvOffsets[i],
+                        recvSizes[i],
+                        MPI_BYTE,
+                        i,
+                        0,
+                        MPI_COMM_WORLD,
+                        &req
+                    );
+                    allReqs.append(req);
+                }
+            }
+            for (label i = 0; i < nProcs_; ++i)
+            {
+                if (i != myRank_ && sendSizes[i] > 0)
+                {
+                    MPI_Request req;
+                    MPI_Isend
+                    (
+                        sendTD[i].data(),
+                        sendSizes[i],
+                        MPI_BYTE,
+                        i,
+                        0,
+                        MPI_COMM_WORLD,
+                        &req
+                    );
+                    allReqs.append(req);
+                }
+            }
+            tRequestPostEnd = std::chrono::steady_clock::now();
+            if (allReqs.size() > 0)
+            {
+                MPI_Waitall
+                (
+                    allReqs.size(),
+                    allReqs.data(),
+                    MPI_STATUSES_IGNORE
+                );
+            }
+            tWaitEnd = std::chrono::steady_clock::now();
+        }
 
         // Deserialize from flat buffer
         label nRecv = 0;
@@ -1959,8 +2263,12 @@ void dsmcReplicatedMesh::migrateParticlesByCellOwner()
             {
                 const label nParcels =
                     recvSizes[i] / sizeof(dsmcParcel::TransferData);
-                const auto* tdArr = reinterpret_cast<const dsmcParcel::TransferData*>
-                    (recvBuf.data() + recvOffsets[i]);
+                const char* recvData =
+                    useNoAlltoall_
+                  ? perPeerRecvBuf_[i].data()
+                  : recvBuf.data() + recvOffsets[i];
+                const auto* tdArr =
+                    reinterpret_cast<const dsmcParcel::TransferData*>(recvData);
                 for (label j = 0; j < nParcels; ++j)
                 {
                     auto* newp = dsmcParcel::unpackTransfer(mesh_, tdArr[j]);
@@ -1970,23 +2278,61 @@ void dsmcReplicatedMesh::migrateParticlesByCellOwner()
                 }
             }
         }
-        const auto t3 = std::chrono::steady_clock::now();
+        const auto tDeserializeEnd = std::chrono::steady_clock::now();
 
         cloud_.setMoveOrderedParcels(kept);
+        const auto tPostEnd = std::chrono::steady_clock::now();
 
-        // Exchange candidate counts
+        // Exchange candidate counts for optional offload diagnostics/planners.
+        // Current replicated-mesh DLB does not consume allProcCandidates_.
         {
-            const labelList& nCandPerCell = cloud_.nCandidatesPerCell();
-            label localCands = 0;
-            for (label i = 0; i < nCandPerCell.size(); ++i)
-                localCands += nCandPerCell[i];
-            allProcCandidates_.setSize(nProcs_, 0);
-            MPI_Allgather(&localCands, 1, MPI_INT,
-                          allProcCandidates_.data(), 1, MPI_INT, MPI_COMM_WORLD);
+            if (gatherCandidates_)
+            {
+                const labelList& nCandPerCell = cloud_.nCandidatesPerCell();
+                label localCands = 0;
+                for (label i = 0; i < nCandPerCell.size(); ++i)
+                    localCands += nCandPerCell[i];
+                allProcCandidates_.setSize(nProcs_, 0);
+                MPI_Allgather
+                (
+                    &localCands,
+                    1,
+                    MPI_INT,
+                    allProcCandidates_.data(),
+                    1,
+                    MPI_INT,
+                    MPI_COMM_WORLD
+                );
+            }
         }
 
         const auto tEnd = std::chrono::steady_clock::now();
         migrationWallTime_ += std::chrono::duration<scalar>(tEnd - tStart).count();
+        migrationPackWallTime_ +=
+            std::chrono::duration<scalar>(tPackEnd - tStart).count();
+        migrationLocalPrepWallTime_ +=
+            std::chrono::duration<scalar>(tLocalPrepEnd - tPackEnd).count();
+        migrationSizeExchangeWallTime_ +=
+            std::chrono::duration<scalar>
+            (
+                tSizeExchangeEnd - tLocalPrepEnd
+            ).count();
+        migrationRequestPostWallTime_ +=
+            std::chrono::duration<scalar>
+            (
+                tRequestPostEnd - tSizeExchangeEnd
+            ).count();
+        migrationWaitWallTime_ +=
+            std::chrono::duration<scalar>(tWaitEnd - tRequestPostEnd).count();
+        migrationDeserializeWallTime_ +=
+            std::chrono::duration<scalar>
+            (
+                tDeserializeEnd - tWaitEnd
+            ).count();
+        migrationPostWallTime_ +=
+            std::chrono::duration<scalar>(tPostEnd - tDeserializeEnd).count();
+        migrationCandidateGatherWallTime_ +=
+            std::chrono::duration<scalar>(tEnd - tPostEnd).count();
         ++migrationCalls_;
         totalParcelsMigrated_ += nMigratedOut;
 
@@ -2000,9 +2346,22 @@ void dsmcReplicatedMesh::migrateParticlesByCellOwner()
                 << " sent " << nMigratedOut << " parcels, received " << nRecv
                 << " (global " << globalMigrated << ")"
                 << " wall " << std::chrono::duration<scalar>(tEnd - tStart).count() << "s"
-                << " [pack " << std::chrono::duration<scalar>(t2 - t1).count() << "s"
-                << " MPI "  << std::chrono::duration<scalar>(t3 - t2).count() << "s"
-                << " deser "<< std::chrono::duration<scalar>(tEnd - t3).count() << "s]"
+                << " [pack " << std::chrono::duration<scalar>
+                    (tPackEnd - tStart).count() << "s"
+                << " prep " << std::chrono::duration<scalar>
+                    (tLocalPrepEnd - tPackEnd).count() << "s"
+                << " sizeX " << std::chrono::duration<scalar>
+                    (tSizeExchangeEnd - tLocalPrepEnd).count() << "s"
+                << " postReq " << std::chrono::duration<scalar>
+                    (tRequestPostEnd - tSizeExchangeEnd).count() << "s"
+                << " wait " << std::chrono::duration<scalar>
+                    (tWaitEnd - tRequestPostEnd).count() << "s"
+                << " deser " << std::chrono::duration<scalar>
+                    (tDeserializeEnd - tWaitEnd).count() << "s"
+                << " post " << std::chrono::duration<scalar>
+                    (tPostEnd - tDeserializeEnd).count() << "s"
+                << " candX " << std::chrono::duration<scalar>
+                    (tEnd - tPostEnd).count() << "s]"
                 << endl;
         }
         return;
@@ -2240,7 +2599,8 @@ void dsmcReplicatedMesh::migrateParticlesByCellOwner()
     // ---- Phase 4: set moveOrderedParcels_ directly (no linked-list rebuild) ---
     cloud_.setMoveOrderedParcels(kept);
 
-    // ---- Phase 5: exchange per-rank candidate counts for offload planner ----
+    // ---- Phase 5: optional per-rank candidate counts for offload planner ----
+    if (gatherCandidates_)
     {
         const labelList& nCandPerCell = cloud_.nCandidatesPerCell();
         label localCands = 0;
@@ -2249,8 +2609,16 @@ void dsmcReplicatedMesh::migrateParticlesByCellOwner()
             localCands += nCandPerCell[i];
         }
         allProcCandidates_.setSize(nProcs_, 0);
-        MPI_Allgather(&localCands, 1, MPI_INT,
-                      allProcCandidates_.data(), 1, MPI_INT, MPI_COMM_WORLD);
+        MPI_Allgather
+        (
+            &localCands,
+            1,
+            MPI_INT,
+            allProcCandidates_.data(),
+            1,
+            MPI_INT,
+            MPI_COMM_WORLD
+        );
     }
 
     const auto tEnd = std::chrono::steady_clock::now();
@@ -2596,10 +2964,15 @@ void dsmcReplicatedMesh::migrateFinish()
 
 void dsmcReplicatedMesh::updateParticleCounts()
 {
+    const auto tStart = std::chrono::steady_clock::now();
     localParticleCount_ = cloud_.size();
     allParticleCounts_.setSize(nProcs_);
     MPI_Allgather(&localParticleCount_, 1, MPI_INT,
                   allParticleCounts_.data(), 1, MPI_INT, MPI_COMM_WORLD);
+    updateParticleCountsWallTime_ += std::chrono::duration<scalar>
+    (
+        std::chrono::steady_clock::now() - tStart
+    ).count();
 }
 
 
@@ -2782,7 +3155,43 @@ void dsmcReplicatedMesh::report() const
     scalar autoRebalanceMigrationWallMax = autoRebalanceMigrationWallTime_;
     scalar autoRebalanceWriteWallMax = autoRebalanceWriteWallTime_;
     scalar autoRebalancePostDiagWallMax = autoRebalancePostDiagWallTime_;
+    const scalar migrationAccountedLocal =
+        migrationPackWallTime_
+      + migrationLocalPrepWallTime_
+      + migrationSizeExchangeWallTime_
+      + migrationRequestPostWallTime_
+      + migrationWaitWallTime_
+      + migrationDeserializeWallTime_
+      + migrationPostWallTime_
+      + migrationCandidateGatherWallTime_;
+    const scalar migrationResidualLocal =
+        migrationWallTime_ - migrationAccountedLocal;
+    const int nMigrationTimingValues = 12;
+    scalar migrationTimingMax[nMigrationTimingValues] =
+    {
+        migrationWallTime_,
+        migrationPackWallTime_,
+        migrationLocalPrepWallTime_,
+        migrationSizeExchangeWallTime_,
+        migrationRequestPostWallTime_,
+        migrationWaitWallTime_,
+        migrationDeserializeWallTime_,
+        migrationPostWallTime_,
+        migrationCandidateGatherWallTime_,
+        updateParticleCountsWallTime_,
+        migrationAccountedLocal,
+        migrationResidualLocal
+    };
 
+    MPI_Allreduce
+    (
+        MPI_IN_PLACE,
+        migrationTimingMax,
+        nMigrationTimingValues,
+        MPI_DOUBLE,
+        MPI_MAX,
+        MPI_COMM_WORLD
+    );
     MPI_Allreduce
     (
         MPI_IN_PLACE,
@@ -2844,6 +3253,44 @@ void dsmcReplicatedMesh::report() const
         << "    migration calls             = " << migrationCalls_ << nl
         << "    migration wall time [s]     = " << migrationWallTime_ << nl
         << "    local particles (final)     = " << localParticleCount_ << nl;
+    {
+        const scalar migrationAccounted =
+            migrationTimingMax[1]
+          + migrationTimingMax[2]
+          + migrationTimingMax[3]
+          + migrationTimingMax[4]
+          + migrationTimingMax[5]
+          + migrationTimingMax[6]
+          + migrationTimingMax[7]
+          + migrationTimingMax[8];
+
+        Info<< "    migration wall max [s]      = "
+            << migrationTimingMax[0] << nl
+            << "    migration pack max [s]      = "
+            << migrationTimingMax[1] << nl
+            << "    migration local prep max [s]= "
+            << migrationTimingMax[2] << nl
+            << "    migration size exchange max [s] = "
+            << migrationTimingMax[3] << nl
+            << "    migration request post max [s] = "
+            << migrationTimingMax[4] << nl
+            << "    migration wait max [s]      = "
+            << migrationTimingMax[5] << nl
+            << "    migration deserialize max [s] = "
+            << migrationTimingMax[6] << nl
+            << "    migration post max [s]      = "
+            << migrationTimingMax[7] << nl
+            << "    migration candidate gather max [s] = "
+            << migrationTimingMax[8] << nl
+            << "    migration accounted max [s] = "
+            << migrationTimingMax[10] << nl
+            << "    migration residual max [s]  = "
+            << migrationTimingMax[11] << nl
+            << "    updateParticleCounts max [s]= "
+            << migrationTimingMax[9] << nl
+            << "    migration subphase max sum [s] = "
+            << migrationAccounted << nl;
+    }
     if (allParticleCounts_.size() > 0)
     {
         const label minP = min(allParticleCounts_);
@@ -2892,6 +3339,14 @@ void dsmcReplicatedMesh::report() const
             << autoRebalanceAccounted << nl
             << "    Phase C auto DLB residual max [s] = "
             << autoRebalanceWallMax - autoRebalanceAccounted << nl;
+        if (adaptiveAlpha_)
+        {
+            Info<< "    Phase C adaptive alpha final = " << dlbAlpha_ << nl
+                << "    Phase C adaptive alpha last imbalance = "
+                << adaptiveAlphaLastImbalance_ << nl
+                << "    Phase C adaptive alpha last step = "
+                << adaptiveAlphaLastStep_ << nl;
+        }
     }
     Info<< endl;
 }

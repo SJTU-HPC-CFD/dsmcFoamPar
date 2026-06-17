@@ -65,13 +65,32 @@ private:
     List<DynamicList<label>> threadWhichSubCell_;
     List<List<DynamicList<label>>> threadSubCells_;
     List<DynamicList<dsmcParcel*>> threadParcelPtrs_;
-    List<DynamicList<vector>> threadVelocities_;
     List<DynamicList<label>> threadTypeIds_;
     List<DynamicList<label>> threadCharges_;
+    List<DynamicList<label>> threadCandidateCells_;
+    DynamicList<label> candidateCellsToClear_;
+    label profileLocalCollisions_;
+    label profileLocalCollisionCandidates_;
+    scalar profileCollisionLocalLoopWall_;
+    scalar profileCollisionReduceWall_;
+    scalar profileCollisionSigmaWall_;
+    scalar profileCollisionPreOutputWall_;
 
     bool collisionFastRng_;
+    bool collisionReduceOnlyOnOutput_;
+    bool collisionOutputGlobalReduce_;
 
     void readControlDictParams();
+
+    void clearCandidateCounts(labelList& nCandidatesPerCell, const label nCells);
+
+    void printReplicatedRankCollisionDetail
+    (
+        const label localCollisions,
+        const label localCollisionCandidates,
+        const label globalCollisions,
+        const label globalCollisionCandidates
+    ) const;
 
 
 
@@ -111,6 +130,41 @@ public:
             void initialConfiguration();
 
             void collide();
+
+            bool hasCollisionSubphaseProfile() const override
+            {
+                return true;
+            }
+
+            scalar collisionLocalLoopWallTime() const override
+            {
+                return profileCollisionLocalLoopWall_;
+            }
+
+            scalar collisionReduceWallTime() const override
+            {
+                return profileCollisionReduceWall_;
+            }
+
+            scalar collisionSigmaWallTime() const override
+            {
+                return profileCollisionSigmaWall_;
+            }
+
+            scalar collisionTotalWallTime() const override
+            {
+                return profileCollisionPreOutputWall_;
+            }
+
+            label collisionLocalAcceptedCount() const override
+            {
+                return profileLocalCollisions_;
+            }
+
+            label collisionLocalCandidateCount() const override
+            {
+                return profileLocalCollisionCandidates_;
+            }
 
         // Write
 

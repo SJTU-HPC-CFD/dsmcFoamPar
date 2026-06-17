@@ -53,6 +53,19 @@ addToRunTimeSelectionTable(collisionPartnerSelection, noTimeCounter, dictionary)
 namespace
 {
 
+typedef std::chrono::steady_clock CollisionClock;
+
+inline scalar elapsedCollisionSeconds
+(
+    const CollisionClock::time_point& start
+)
+{
+    return scalar
+    (
+        std::chrono::duration<double>(CollisionClock::now() - start).count()
+    );
+}
+
 struct FastRng
 {
     uint64_t s0;
@@ -101,6 +114,43 @@ void noTimeCounter::readControlDictParams()
 
     collisionFastRng_ =
         controlDict.lookupOrDefault<bool>("collisionFastRng", false);
+
+    const bool replicatedMpiDefault =
+        controlDict.lookupOrDefault<bool>("replicatedMesh", false);
+    collisionReduceOnlyOnOutput_ =
+        controlDict.lookupOrDefault<bool>
+        (
+            "collisionReduceOnlyOnOutput",
+            replicatedMpiDefault
+        );
+    collisionOutputGlobalReduce_ =
+        controlDict.lookupOrDefault<bool>
+        (
+            "collisionOutputGlobalReduce",
+            !replicatedMpiDefault
+        );
+
+    if (cloud_.isOutputRank() && controlDict.found("collisionReduceOnlyOnOutput"))
+    {
+        Info<< "Collision profile: collisionReduceOnlyOnOutput explicitly set to "
+            << collisionReduceOnlyOnOutput_ << endl;
+    }
+    else if (cloud_.isOutputRank() && replicatedMpiDefault)
+    {
+        Info<< "Collision profile: collisionReduceOnlyOnOutput defaulted to true"
+            << " for replicatedMesh run" << endl;
+    }
+
+    if (cloud_.isOutputRank() && controlDict.found("collisionOutputGlobalReduce"))
+    {
+        Info<< "Collision profile: collisionOutputGlobalReduce explicitly set to "
+            << collisionOutputGlobalReduce_ << endl;
+    }
+    else if (cloud_.isOutputRank() && replicatedMpiDefault)
+    {
+        Info<< "Collision profile: collisionOutputGlobalReduce defaulted to false"
+            << " for replicatedMesh run" << endl;
+    }
 }
 
 
@@ -119,13 +169,215 @@ noTimeCounter::noTimeCounter
     threadWhichSubCell_(),
     threadSubCells_(),
     threadParcelPtrs_(),
-    threadVelocities_(),
     threadTypeIds_(),
     threadCharges_(),
-    collisionFastRng_(false)
+    threadCandidateCells_(),
+    candidateCellsToClear_(),
+    profileLocalCollisions_(0),
+    profileLocalCollisionCandidates_(0),
+    profileCollisionLocalLoopWall_(0.0),
+    profileCollisionReduceWall_(0.0),
+    profileCollisionSigmaWall_(0.0),
+    profileCollisionPreOutputWall_(0.0),
+    collisionFastRng_(false),
+    collisionReduceOnlyOnOutput_(false),
+    collisionOutputGlobalReduce_(true)
 //     propsDict_(dict.subDict(typeName + "Properties"))
 {
     readControlDictParams();
+}
+
+
+void noTimeCounter::clearCandidateCounts
+(
+    labelList& nCandidatesPerCell,
+    const label nCells
+)
+{
+    if (nCandidatesPerCell.size() != nCells)
+    {
+        nCandidatesPerCell.setSize(nCells, 0);
+        candidateCellsToClear_.clear();
+        return;
+    }
+
+    forAll(candidateCellsToClear_, i)
+    {
+        const label cellI = candidateCellsToClear_[i];
+        if (cellI >= 0 && cellI < nCells)
+        {
+            nCandidatesPerCell[cellI] = 0;
+        }
+    }
+
+    candidateCellsToClear_.clear();
+}
+
+
+void noTimeCounter::printReplicatedRankCollisionDetail
+(
+    const label localCollisions,
+    const label localCollisionCandidates,
+    const label globalCollisions,
+    const label globalCollisionCandidates
+) const
+{
+    if
+    (
+        !cloud_.emitStepDiagnostics()
+     || !cloud_.replicatedMeshActive()
+     || cloud_.replicatedMesh().nProcs() <= 1
+    )
+    {
+        return;
+    }
+
+    int mpiInit = 0;
+    MPI_Initialized(&mpiInit);
+    if (!mpiInit)
+    {
+        return;
+    }
+
+    const label myRank = cloud_.replicatedMesh().myRank();
+    const label nRanks = cloud_.replicatedMesh().nProcs();
+    const label nLocalValues = 4;
+    const label nScalarValues = 4;
+
+    label localValues[nLocalValues] =
+    {
+        localCollisions,
+        localCollisionCandidates,
+        profileLocalCollisions_,
+        profileLocalCollisionCandidates_
+    };
+
+    scalar localScalarValues[nScalarValues] =
+    {
+        profileCollisionLocalLoopWall_,
+        profileCollisionReduceWall_,
+        profileCollisionSigmaWall_,
+        profileCollisionPreOutputWall_
+    };
+
+    List<label> allValues;
+    List<scalar> allScalarValues;
+    if (myRank == 0)
+    {
+        allValues.setSize(nRanks*nLocalValues, 0);
+        allScalarValues.setSize(nRanks*nScalarValues, 0.0);
+    }
+
+    MPI_Gather
+    (
+        localValues,
+        nLocalValues,
+        MPI_INT,
+        myRank == 0 ? allValues.data() : nullptr,
+        nLocalValues,
+        MPI_INT,
+        0,
+        MPI_COMM_WORLD
+    );
+
+    MPI_Gather
+    (
+        localScalarValues,
+        nScalarValues,
+        MPI_DOUBLE,
+        myRank == 0 ? allScalarValues.data() : nullptr,
+        nScalarValues,
+        MPI_DOUBLE,
+        0,
+        MPI_COMM_WORLD
+    );
+
+    if (myRank != 0)
+    {
+        return;
+    }
+
+    label minLocalCandidates = labelMax;
+    label maxLocalCandidates = 0;
+    label minCumulativeCandidates = labelMax;
+    label maxCumulativeCandidates = 0;
+
+    Info<< "    Replicated mesh collision detail by rank:" << nl
+        << "        rank localColl localCand cumColl cumCand"
+        << " localAcc cumAcc" << nl;
+
+    for (label rankI = 0; rankI < nRanks; ++rankI)
+    {
+        const label base = rankI*nLocalValues;
+        const label rankLocalCollisions = allValues[base + 0];
+        const label rankLocalCandidates = allValues[base + 1];
+        const label rankCumulativeCollisions = allValues[base + 2];
+        const label rankCumulativeCandidates = allValues[base + 3];
+
+        minLocalCandidates = min(minLocalCandidates, rankLocalCandidates);
+        maxLocalCandidates = max(maxLocalCandidates, rankLocalCandidates);
+        minCumulativeCandidates =
+            min(minCumulativeCandidates, rankCumulativeCandidates);
+        maxCumulativeCandidates =
+            max(maxCumulativeCandidates, rankCumulativeCandidates);
+
+        Info<< "        rank" << rankI
+            << " " << rankLocalCollisions
+            << " " << rankLocalCandidates
+            << " " << rankCumulativeCollisions
+            << " " << rankCumulativeCandidates
+            << " " << scalar(rankLocalCollisions)
+                /max(scalar(rankLocalCandidates), SMALL)
+            << " " << scalar(rankCumulativeCollisions)
+                /max(scalar(rankCumulativeCandidates), SMALL)
+            << nl;
+    }
+
+    Info<< "        local candidates max/min      = "
+        << scalar(maxLocalCandidates)
+            /max(scalar(minLocalCandidates), SMALL) << nl
+        << "        cumulative candidates max/min = "
+        << scalar(maxCumulativeCandidates)
+            /max(scalar(minCumulativeCandidates), SMALL) << nl
+        << "        global collisions/candidates  = "
+        << globalCollisions << " / " << globalCollisionCandidates << nl;
+
+    scalar maxLocalLoopWall = 0.0;
+    scalar maxReduceWall = 0.0;
+    scalar maxSigmaWall = 0.0;
+    scalar maxPreOutputWall = 0.0;
+
+    Info<< "    Replicated mesh collision subphase wall by rank [s]:" << nl
+        << "        rank localLoop reduce sigmaBC preOutputTotal accountedFrac" << nl;
+
+    for (label rankI = 0; rankI < nRanks; ++rankI)
+    {
+        const label base = rankI*nScalarValues;
+        const scalar localLoopWall = allScalarValues[base + 0];
+        const scalar reduceWall = allScalarValues[base + 1];
+        const scalar sigmaWall = allScalarValues[base + 2];
+        const scalar preOutputWall = allScalarValues[base + 3];
+        const scalar accountedWall =
+            localLoopWall + reduceWall + sigmaWall;
+
+        maxLocalLoopWall = max(maxLocalLoopWall, localLoopWall);
+        maxReduceWall = max(maxReduceWall, reduceWall);
+        maxSigmaWall = max(maxSigmaWall, sigmaWall);
+        maxPreOutputWall = max(maxPreOutputWall, preOutputWall);
+
+        Info<< "        rank" << rankI
+            << " " << localLoopWall
+            << " " << reduceWall
+            << " " << sigmaWall
+            << " " << preOutputWall
+            << " " << accountedWall/max(preOutputWall, SMALL)
+            << nl;
+    }
+
+    Info<< "        max localLoop [s]       = " << maxLocalLoopWall << nl
+        << "        max reduce [s]          = " << maxReduceWall << nl
+        << "        max sigmaBC [s]         = " << maxSigmaWall << nl
+        << "        max preOutputTotal [s]  = " << maxPreOutputWall << nl;
 }
 
 
@@ -148,36 +400,69 @@ void noTimeCounter::initialConfiguration()
 
 void noTimeCounter::collide()
 {
+    const bool subphaseTimers = cloud_.profileSummaryEnabled();
+    const CollisionClock::time_point collideWallStart =
+        subphaseTimers ? CollisionClock::now() : CollisionClock::time_point();
+
     if (!cloud_.binaryCollision().active())
     {
+        labelList& nCandidatesPerCell = cloud_.nCandidatesPerCell();
+        clearCandidateCounts(nCandidatesPerCell, cloud_.mesh().nCells());
+        if (subphaseTimers)
+        {
+            profileCollisionPreOutputWall_ +=
+                elapsedCollisionSeconds(collideWallStart);
+        }
         return;
     }
 
     #ifdef _OPENMP
     if (cloud_.openmpEnabled())
     {
+        const CollisionClock::time_point localLoopStart =
+            subphaseTimers ? CollisionClock::now() : CollisionClock::time_point();
         const label statsThreads = max(cloud_.ompNumThreads(), label(1));
         const label collisionChunk = max(cloud_.openmpCollisionChunk(), label(1));
         const bool useFlatOccupancy = cloud_.hasOccupancyOrderedParcels();
         const DynamicList<DynamicList<dsmcParcel*>>* cellOccupancyPtr =
             useFlatOccupancy ? nullptr : &cloud_.cellOccupancy();
         const polyMesh& mesh = cloud_.mesh();
+        const scalarField& cellVolumes = mesh.cellVolumes();
+        const List<dsmcParcel::constantProperties>& constProps =
+            cloud_.constProps();
+        BinaryCollisionModel& binaryCollision = cloud_.binaryCollision();
+        dsmcReactions& reactions = cloud_.reactions();
+        const bool hasReactions = reactions.nReactions() > 0;
+        List<autoPtr<dsmcReaction>>& reactionModels = reactions.reactions();
+        const List<List<label>>& pairModelAddressing =
+            reactions.pairModelAddressing();
+        const volScalarField& nParticles = cloud_.nParticles();
+        scalarField& collisionSelectionRemainder =
+            cloud_.collisionSelectionRemainder();
+        volScalarField& sigmaTcRMaxField = cloud_.sigmaTcRMax();
         const label nCells = mesh.nCells();
+        const labelList& ownedCC = cloud_.occupancyOwnedCollisionCells();
+        const label nOwnedCC = ownedCC.size();
 
         labelList& nCandidatesPerCell = cloud_.nCandidatesPerCell();
-        if (nCandidatesPerCell.size() != nCells)
-        {
-            nCandidatesPerCell.setSize(nCells, 0);
-        }
+        clearCandidateCounts(nCandidatesPerCell, nCells);
 
-        if (threadWhichSubCell_.size() != statsThreads)
+        if
+        (
+            threadWhichSubCell_.size() != statsThreads
+         || threadSubCells_.size() != statsThreads
+         || threadParcelPtrs_.size() != statsThreads
+         || threadTypeIds_.size() != statsThreads
+         || threadCharges_.size() != statsThreads
+         || threadCandidateCells_.size() != statsThreads
+        )
         {
             threadWhichSubCell_.setSize(statsThreads);
             threadSubCells_.setSize(statsThreads);
             threadParcelPtrs_.setSize(statsThreads);
-            threadVelocities_.setSize(statsThreads);
             threadTypeIds_.setSize(statsThreads);
             threadCharges_.setSize(statsThreads);
+            threadCandidateCells_.setSize(statsThreads);
         }
 
         for (label threadI = 0; threadI < statsThreads; ++threadI)
@@ -186,6 +471,7 @@ void noTimeCounter::collide()
             {
                 threadSubCells_[threadI].setSize(8);
             }
+            threadCandidateCells_[threadI].clear();
         }
 
         List<FastRng> threadFastRng(statsThreads);
@@ -231,23 +517,21 @@ void noTimeCounter::collide()
               ? cloud_.occupancyCount(cellI)
               : cellParcelsPtr->size();
 
-            nCandidatesPerCell[cellI] = 0;
-
             if (nC <= 1)
             {
                 return 0;
             }
 
             const scalar selectedPairs =
-                cloud_.collisionSelectionRemainder()[cellI]
+                collisionSelectionRemainder[cellI]
               + 0.5*nC*(nC - 1)
-               *cloud_.nParticles(cellI)
-               *cloud_.sigmaTcRMax()[cellI]
+               *nParticles[cellI]
+               *sigmaTcRMaxField[cellI]
                *cloud_.deltaTValue(cellI)
-               /mesh.cellVolumes()[cellI];
+               /cellVolumes[cellI];
 
             const label nCandidates(selectedPairs);
-            cloud_.collisionSelectionRemainder()[cellI] =
+            collisionSelectionRemainder[cellI] =
                 selectedPairs - nCandidates;
             nCandidatesPerCell[cellI] = nCandidates;
 
@@ -259,15 +543,15 @@ void noTimeCounter::collide()
             DynamicList<label>& whichSubCell = threadWhichSubCell_[threadI];
             List<DynamicList<label>>& subCells = threadSubCells_[threadI];
             DynamicList<dsmcParcel*>& parcelPtrs = threadParcelPtrs_[threadI];
-            DynamicList<vector>& velocities = threadVelocities_[threadI];
             DynamicList<label>& typeIds = threadTypeIds_[threadI];
             DynamicList<label>& charges = threadCharges_[threadI];
+            DynamicList<label>& candidateCells = threadCandidateCells_[threadI];
 
             whichSubCell.setSize(nC);
             parcelPtrs.setSize(nC);
-            velocities.setSize(nC);
             typeIds.setSize(nC);
             charges.setSize(nC);
+            candidateCells.append(cellI);
 
             label subCellCounts[8] = {0, 0, 0, 0, 0, 0, 0, 0};
             label subCellOffsets[8] = {0, 0, 0, 0, 0, 0, 0, 0};
@@ -286,9 +570,8 @@ void noTimeCounter::collide()
                     pos(relPos.x()) + 2*pos(relPos.y()) + 4*pos(relPos.z());
 
                 parcelPtrs[i] = pPtr;
-                velocities[i] = pPtr->U();
                 typeIds[i] = typeId;
-                charges[i] = cloud_.constProps(typeId).charge();
+                charges[i] = constProps[typeId].charge();
                 whichSubCell[i] = subCell;
                 ++subCellCounts[subCell];
             }
@@ -345,31 +628,31 @@ void noTimeCounter::collide()
                 dsmcParcel& parcelQ = *parcelPtrs[candidateQ];
 
                 const scalar sigmaTcR =
-                    cloud_.binaryCollision().sigmaTcR(parcelP, parcelQ);
+                    binaryCollision.sigmaTcR(parcelP, parcelQ);
 
-                if (sigmaTcR > cloud_.sigmaTcRMax()[cellI])
+                if (sigmaTcR > sigmaTcRMaxField[cellI])
                 {
-                    cloud_.sigmaTcRMax()[cellI] = sigmaTcR;
+                    sigmaTcRMaxField[cellI] = sigmaTcR;
                 }
 
                 if ((sigmaTcR/sigmaTcRMax) > random01())
                 {
                     const label rMId =
-                        cloud_.reactions().nReactions() > 0
-                      ? cloud_.reactions().pairModelAddressing()[typeIdP][typeIdQ]
+                        hasReactions
+                      ? pairModelAddressing[typeIdP][typeIdQ]
                       : -1;
 
                     if (rMId != -1)
                     {
-                        cloud_.reactions().reactions()[rMId]->reaction
+                        reactionModels[rMId]->reaction
                         (
                             parcelP,
                             parcelQ
                         );
 
-                        if (cloud_.reactions().reactions()[rMId]->relax())
+                        if (reactionModels[rMId]->relax())
                         {
-                            cloud_.binaryCollision().collide
+                            binaryCollision.collide
                             (
                                 parcelP,
                                 parcelQ,
@@ -379,7 +662,7 @@ void noTimeCounter::collide()
                     }
                     else
                     {
-                        cloud_.binaryCollision().collide
+                        binaryCollision.collide
                         (
                             parcelP,
                             parcelQ,
@@ -389,14 +672,12 @@ void noTimeCounter::collide()
 
                     ++collisions;
 
-                    velocities[candidateP] = parcelP.U();
-                    velocities[candidateQ] = parcelQ.U();
                     typeIds[candidateP] = parcelP.typeId();
                     typeIds[candidateQ] = parcelQ.typeId();
                     charges[candidateP] =
-                        cloud_.constProps(typeIds[candidateP]).charge();
+                        constProps[typeIds[candidateP]].charge();
                     charges[candidateQ] =
-                        cloud_.constProps(typeIds[candidateQ]).charge();
+                        constProps[typeIds[candidateQ]].charge();
                 }
             }
 
@@ -412,8 +693,9 @@ void noTimeCounter::collide()
             if (cloud_.openmpCollisionSchedule() == "static")
             {
                 #pragma omp for schedule(static, collisionChunk)
-                for (label cellI = 0; cellI < nCells; ++cellI)
+                for (label idx = 0; idx < nOwnedCC; ++idx)
                 {
+                    const label cellI = ownedCC[idx];
                     localCollisions += processCell(cellI, threadI);
                     localCandidates += nCandidatesPerCell[cellI];
                 }
@@ -421,8 +703,9 @@ void noTimeCounter::collide()
             else if (cloud_.openmpCollisionSchedule() == "guided")
             {
                 #pragma omp for schedule(guided, collisionChunk)
-                for (label cellI = 0; cellI < nCells; ++cellI)
+                for (label idx = 0; idx < nOwnedCC; ++idx)
                 {
+                    const label cellI = ownedCC[idx];
                     localCollisions += processCell(cellI, threadI);
                     localCandidates += nCandidatesPerCell[cellI];
                 }
@@ -430,8 +713,9 @@ void noTimeCounter::collide()
             else
             {
                 #pragma omp for schedule(dynamic, collisionChunk)
-                for (label cellI = 0; cellI < nCells; ++cellI)
+                for (label idx = 0; idx < nOwnedCC; ++idx)
                 {
+                    const label cellI = ownedCC[idx];
                     localCollisions += processCell(cellI, threadI);
                     localCandidates += nCandidatesPerCell[cellI];
                 }
@@ -441,48 +725,133 @@ void noTimeCounter::collide()
             threadAcceptedCounts[threadI] = localCollisions;
         }
 
+        for (label threadI = 0; threadI < statsThreads; ++threadI)
+        {
+            const DynamicList<label>& candidateCells =
+                threadCandidateCells_[threadI];
+
+            forAll(candidateCells, i)
+            {
+                candidateCellsToClear_.append(candidateCells[i]);
+            }
+        }
+
         label collisionCandidates = sum(threadCandidateCounts);
         label collisions = sum(threadAcceptedCounts);
+        const label localCollisionCandidates = collisionCandidates;
+        const label localCollisions = collisions;
 
-        reduce(collisions, sumOp<label>());
-        reduce(collisionCandidates, sumOp<label>());
+        profileLocalCollisionCandidates_ += localCollisionCandidates;
+        profileLocalCollisions_ += localCollisions;
 
+        if (subphaseTimers)
+        {
+            profileCollisionLocalLoopWall_ +=
+                elapsedCollisionSeconds(localLoopStart);
+        }
+
+        label globalCollisions = localCollisions;
+        label globalCollisionCandidates = localCollisionCandidates;
+
+        if (!collisionReduceOnlyOnOutput_)
+        {
+            const CollisionClock::time_point reduceStart =
+                subphaseTimers
+              ? CollisionClock::now()
+              : CollisionClock::time_point();
+            reduce(globalCollisions, sumOp<label>());
+            reduce(globalCollisionCandidates, sumOp<label>());
+            if (subphaseTimers)
+            {
+                profileCollisionReduceWall_ +=
+                    elapsedCollisionSeconds(reduceStart);
+            }
+        }
+
+        const CollisionClock::time_point sigmaStart =
+            subphaseTimers ? CollisionClock::now() : CollisionClock::time_point();
         cloud_.sigmaTcRMax().correctBoundaryConditions();
+        if (subphaseTimers)
+        {
+            profileCollisionSigmaWall_ += elapsedCollisionSeconds(sigmaStart);
+        }
 
         infoCounter_++;
 
         if(infoCounter_ >= cloud_.nTerminalOutputs())
         {
+            if (collisionReduceOnlyOnOutput_ && collisionOutputGlobalReduce_)
+            {
+                const CollisionClock::time_point reduceStart =
+                    subphaseTimers
+                  ? CollisionClock::now()
+                  : CollisionClock::time_point();
+                reduce(globalCollisions, sumOp<label>());
+                reduce(globalCollisionCandidates, sumOp<label>());
+                if (subphaseTimers)
+                {
+                    profileCollisionReduceWall_ +=
+                        elapsedCollisionSeconds(reduceStart);
+                }
+            }
+
+            if (subphaseTimers)
+            {
+                profileCollisionPreOutputWall_ +=
+                    elapsedCollisionSeconds(collideWallStart);
+            }
+
             const bool replicatedRawMpi =
-                cloud_.replicatedMeshActive() && !Pstream::parRun();
+                cloud_.replicatedMeshActive()
+             && cloud_.replicatedMesh().nProcs() > 1;
+
+            if (!replicatedRawMpi || collisionOutputGlobalReduce_)
+            {
+                printReplicatedRankCollisionDetail
+                (
+                    localCollisions,
+                    localCollisionCandidates,
+                    globalCollisions,
+                    globalCollisionCandidates
+                );
+            }
 
             if (replicatedRawMpi)
             {
-                const label myRank = cloud_.replicatedMesh().myRank();
-
-                if (collisionCandidates)
+                if
+                (
+                    cloud_.replicatedMesh().myRank() == 0
+                 && globalCollisionCandidates
+                )
                 {
-                    Info<< "    Collisions [rank " << myRank << "]"
-                        << "              = " << collisions << nl
-                        << "    Collision candidates [rank " << myRank << "]"
-                        << "  = " << collisionCandidates << nl
+                    if (!collisionOutputGlobalReduce_)
+                    {
+                        Info<< "    Collision global reduction skipped"
+                            << " (rank 0 local diagnostics)" << nl;
+                    }
+                    Info<< "    Collisions                      = "
+                        << globalCollisions << nl
+                        << "    Collision candidates           = "
+                        << globalCollisionCandidates << nl
                         << "    Collision acceptance rate      = "
-                        << scalar(collisions)/scalar(collisionCandidates) << nl
+                        << scalar(globalCollisions)
+                           /scalar(globalCollisionCandidates) << nl
                         << endl;
                 }
-                else
+                else if (cloud_.replicatedMesh().myRank() == 0)
                 {
-                    Info<< "    No collisions [rank " << myRank << "]" << endl;
+                    Info<< "    No collisions" << endl;
                 }
             }
-            else if (cloud_.isOutputRank() && collisionCandidates)
+            else if (cloud_.isOutputRank() && globalCollisionCandidates)
             {
                 Info<< "    Collisions                      = "
-                    << collisions << nl
+                    << globalCollisions << nl
                     << "    Collision candidates           = "
-                    << collisionCandidates << nl
+                    << globalCollisionCandidates << nl
                     << "    Collision acceptance rate      = "
-                    << scalar(collisions)/scalar(collisionCandidates) << nl
+                    << scalar(globalCollisions)
+                       /scalar(globalCollisionCandidates) << nl
                     << endl;
             }
             else if (cloud_.isOutputRank())
@@ -492,13 +861,18 @@ void noTimeCounter::collide()
 
             infoCounter_ = 0;
         }
+        else if (subphaseTimers)
+        {
+            profileCollisionPreOutputWall_ +=
+                elapsedCollisionSeconds(collideWallStart);
+        }
 
         return;
     }
     #endif
 
-    // Temporary storage for subCells
-    List<DynamicList<label>> subCells(8);
+    const CollisionClock::time_point localLoopStart =
+        subphaseTimers ? CollisionClock::now() : CollisionClock::time_point();
 
     label collisionCandidates = 0;
 
@@ -509,15 +883,37 @@ void noTimeCounter::collide()
     const bool useFlatOccupancy = cloud_.hasOccupancyOrderedParcels();
     const DynamicList<DynamicList<dsmcParcel*>>* cellOccupancyPtr =
         useFlatOccupancy ? nullptr : &cloud_.cellOccupancy();
+    const scalarField& cellVolumes = mesh.cellVolumes();
+    const List<dsmcParcel::constantProperties>& constProps =
+        cloud_.constProps();
+    BinaryCollisionModel& binaryCollision = cloud_.binaryCollision();
+    dsmcReactions& reactions = cloud_.reactions();
+    const bool hasReactions = reactions.nReactions() > 0;
+    List<autoPtr<dsmcReaction>>& reactionModels = reactions.reactions();
+    const List<List<label>>& pairModelAddressing =
+        reactions.pairModelAddressing();
+    const volScalarField& nParticles = cloud_.nParticles();
+    scalarField& collisionSelectionRemainder =
+        cloud_.collisionSelectionRemainder();
+    volScalarField& sigmaTcRMaxField = cloud_.sigmaTcRMax();
+
+    const labelList& ownedCollCells = cloud_.occupancyOwnedCollisionCells();
 
     labelList& nCandidatesPerCell = cloud_.nCandidatesPerCell();
-    if (nCandidatesPerCell.size() != nCells)
+    clearCandidateCounts(nCandidatesPerCell, nCells);
+
+    if (threadWhichSubCell_.size() < 1)
     {
-        nCandidatesPerCell.setSize(nCells, 0);
+        threadWhichSubCell_.setSize(1);
+        threadSubCells_.setSize(1);
+        threadParcelPtrs_.setSize(1);
+        threadTypeIds_.setSize(1);
+        threadCharges_.setSize(1);
     }
-    forAll(nCandidatesPerCell, cellI)
+
+    if (threadSubCells_[0].size() != 8)
     {
-        nCandidatesPerCell[cellI] = 0;
+        threadSubCells_[0].setSize(8);
     }
 
     FastRng fastRng
@@ -526,14 +922,14 @@ void noTimeCounter::collide()
       + uint64_t(mesh.time().timeIndex() + 1)
     );
 
-    auto randomLabel = [&](const label minValue, const label maxValue) -> label
+    auto randomIndex = [&](const label n) -> label
     {
         if (!collisionFastRng_)
         {
-            return cloud_.randomLabel(minValue, maxValue);
+            return cloud_.randomLabel(0, n - 1);
         }
 
-        return minValue + fastRng.position(maxValue - minValue + 1);
+        return fastRng.position(n);
     };
 
     auto random01 = [&]() -> scalar
@@ -543,7 +939,11 @@ void noTimeCounter::collide()
              : rndGen_.sample01<scalar>();
     };
 
-    for (label cellI = 0; cellI < nCells; ++cellI)
+    auto processCell =
+    [&]
+    (
+        const label cellI
+    )
     {
         const scalar deltaT = cloud_.deltaTValue(cellI);
 
@@ -552,269 +952,299 @@ void noTimeCounter::collide()
         const label occStart =
             useFlatOccupancy ? cloud_.occupancyStart(cellI) : 0;
 
-        const scalar& cellVolume = mesh.cellVolumes()[cellI];
+        const scalar& cellVolume = cellVolumes[cellI];
 
         const label nC =
             useFlatOccupancy
           ? cloud_.occupancyCount(cellI)
           : cellParcelsPtr->size();
 
-        if (nC > 1)
+        if (nC <= 1)
         {
+            return;
+        }
 
-            // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-            // Assign particles to one of 8 Cartesian subCells
+        const scalar sigmaTcRMax = sigmaTcRMaxField[cellI];
 
-            // Clear temporary lists
-            forAll(subCells, i)
+        const scalar selectedPairs =
+            collisionSelectionRemainder[cellI]
+            + 0.5*nC*(nC - 1)*nParticles[cellI]*sigmaTcRMax*deltaT
+            /cellVolume;
+
+        const label nCandidates(selectedPairs);
+
+        collisionSelectionRemainder[cellI] =
+            selectedPairs - nCandidates;
+
+        nCandidatesPerCell[cellI] = nCandidates;
+
+        if (nCandidates <= 0)
+        {
+            return;
+        }
+
+        candidateCellsToClear_.append(cellI);
+        collisionCandidates += nCandidates;
+
+        DynamicList<label>& whichSubCell = threadWhichSubCell_[0];
+        List<DynamicList<label>>& subCells = threadSubCells_[0];
+        DynamicList<dsmcParcel*>& parcelPtrs = threadParcelPtrs_[0];
+        DynamicList<label>& typeIds = threadTypeIds_[0];
+        DynamicList<label>& charges = threadCharges_[0];
+
+        whichSubCell.setSize(nC);
+        parcelPtrs.setSize(nC);
+        typeIds.setSize(nC);
+        charges.setSize(nC);
+
+        label subCellCounts[8] = {0, 0, 0, 0, 0, 0, 0, 0};
+        label subCellOffsets[8] = {0, 0, 0, 0, 0, 0, 0, 0};
+        const point& cC = mesh.cellCentres()[cellI];
+
+        for (label i = 0; i < nC; ++i)
+        {
+            dsmcParcel* pPtr =
+                useFlatOccupancy
+              ? cloud_.occupancyParcel(occStart + i)
+              : (*cellParcelsPtr)[i];
+
+            const label typeId = pPtr->typeId();
+            const vector relPos = pPtr->position() - cC;
+            const label subCell =
+                pos(relPos.x()) + 2*pos(relPos.y()) + 4*pos(relPos.z());
+
+            parcelPtrs[i] = pPtr;
+            typeIds[i] = typeId;
+            charges[i] = constProps[typeId].charge();
+            whichSubCell[i] = subCell;
+            ++subCellCounts[subCell];
+        }
+
+        for (label subCellI = 0; subCellI < 8; ++subCellI)
+        {
+            subCells[subCellI].setSize(subCellCounts[subCellI]);
+        }
+
+        for (label i = 0; i < nC; ++i)
+        {
+            const label subCell = whichSubCell[i];
+            subCells[subCell][subCellOffsets[subCell]++] = i;
+        }
+
+        for (label c = 0; c < nCandidates; c++)
+        {
+            const label candidateP = randomIndex(nC);
+            label candidateQ = -1;
+
+            const List<label>& subCellPs = subCells[whichSubCell[candidateP]];
+
+            const label nSC = subCellPs.size();
+
+            if (nSC > 1)
             {
-                subCells[i].clear();
+                do
+                {
+                    candidateQ = subCellPs[randomIndex(nSC)];
+
+                } while (candidateP == candidateQ);
+            }
+            else
+            {
+                do
+                {
+                    candidateQ = randomIndex(nC);
+
+                } while (candidateP == candidateQ);
             }
 
-            // Inverse addressing specifying which subCell a parcel is in
-            List<label> whichSubCell(nC);
+            const label typeIdP = typeIds[candidateP];
+            const label typeIdQ = typeIds[candidateQ];
+            const label chargeP = charges[candidateP];
+            const label chargeQ = charges[candidateQ];
 
-            const point& cC = mesh.cellCentres()[cellI];
-
-            for (label i = 0; i < nC; ++i)
+            // Do not allow electron-electron collisions.
+            if (chargeP == -1 && chargeQ == -1)
             {
-                const dsmcParcel& p =
-                    useFlatOccupancy
-                  ? *cloud_.occupancyParcel(occStart + i)
-                  : *(*cellParcelsPtr)[i];
-
-                vector relPos = p.position() - cC;
-
-                label subCell =
-                    pos(relPos.x()) + 2*pos(relPos.y()) + 4*pos(relPos.z());
-
-                subCells[subCell].append(i);
-
-                whichSubCell[i] = subCell;
+                continue;
             }
 
-            // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            dsmcParcel& parcelP = *parcelPtrs[candidateP];
+            dsmcParcel& parcelQ = *parcelPtrs[candidateQ];
 
-            scalar sigmaTcRMax = cloud_.sigmaTcRMax()[cellI];
+            const scalar sigmaTcR = binaryCollision.sigmaTcR
+            (
+                parcelP,
+                parcelQ
+            );
 
-            //scalar selectedPairs = 0.0;
-
-            scalar selectedPairs =
-                cloud_.collisionSelectionRemainder()[cellI]
-                + 0.5*nC*(nC - 1)*cloud_.nParticles(cellI)*sigmaTcRMax*deltaT
-                /cellVolume;
-
-            const label nCandidates(selectedPairs);
-
-            cloud_.collisionSelectionRemainder()[cellI] = selectedPairs - nCandidates;
-
-            nCandidatesPerCell[cellI] = nCandidates;
-
-            collisionCandidates += nCandidates;
-
-            for (label c = 0; c < nCandidates; c++)
+            if (sigmaTcR > sigmaTcRMaxField[cellI])
             {
-                // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-                // subCell candidate selection procedure
+                sigmaTcRMaxField[cellI] = sigmaTcR;
+            }
 
-                // Select the first collision candidate
-                //label candidateP = rndGen_.position<label>(0, nC - 1);
-                label candidateP = randomLabel(0, nC-1);
+            if ((sigmaTcR/sigmaTcRMax) > random01())
+            {
+                const label rMId =
+                    hasReactions
+                  ? pairModelAddressing[typeIdP][typeIdQ]
+                  : -1;
 
-                // Declare the second collision candidate
-                label candidateQ = -1;
-
-                const List<label>& subCellPs = subCells[whichSubCell[candidateP]];
-
-                const label nSC = subCellPs.size();
-
-                if (nSC > 1)
+                if(rMId != -1)
                 {
-                    // If there are two or more particle in a subCell, choose
-                    // another from the same cell.  If the same candidate is
-                    // chosen, choose again.
-
-                    do
-                    {
-                        //candidateQ = subCellPs[rndGen_.position<label>(0, nSC - 1)]; OLD
-                        candidateQ = subCellPs[randomLabel(0, nSC-1)];
-
-                    } while (candidateP == candidateQ);
-                }
-                else
-                {
-                    // Select a possible second collision candidate from the
-                    // whole cell.  If the same candidate is chosen, choose
-                    // again.
-
-                    do
-                    {
-                        //candidateQ = rndGen_.position<label>(0, nC - 1); OLD
-                        candidateQ = randomLabel(0, nC-1);
-
-                    } while (candidateP == candidateQ);
-                }
-
-                // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-                // uniform candidate selection procedure
-
-                // // Select the first collision candidate
-                // label candidateP = cloud_.randomLabel(0, nC-1);
-
-                // // Select a possible second collision candidate
-                // label candidateQ = cloud_.randomLabel(0, nC-1);
-
-                // // If the same candidate is chosen, choose again
-                // while (candidateP == candidateQ)
-                // {
-                //     candidateQ = cloud_.randomLabel(0, nC-1);
-                // }
-
-                // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-                dsmcParcel& parcelP =
-                    useFlatOccupancy
-                  ? *cloud_.occupancyParcel(occStart + candidateP)
-                  : *(*cellParcelsPtr)[candidateP];
-                dsmcParcel& parcelQ =
-                    useFlatOccupancy
-                  ? *cloud_.occupancyParcel(occStart + candidateQ)
-                  : *(*cellParcelsPtr)[candidateQ];
-
-                label chargeP = -2;
-                label chargeQ = -2;
-
-                chargeP = cloud_.constProps(parcelP.typeId()).charge();
-                chargeQ = cloud_.constProps(parcelQ.typeId()).charge();
-
-                //do not allow electron-electron collisions
-
-                if(!(chargeP == -1 && chargeQ == -1))
-                {
-
-                    scalar sigmaTcR = cloud_.binaryCollision().sigmaTcR
+                    reactionModels[rMId]->reaction
                     (
                         parcelP,
                         parcelQ
                     );
 
-
-                    // Update the maximum value of sigmaTcR stored, but use the
-                    // initial value in the acceptance-rejection criteria because
-                    // the number of collision candidates selected was based on this
-
-
-                    if (sigmaTcR > cloud_.sigmaTcRMax()[cellI])
+                    if(reactionModels[rMId]->relax())
                     {
-                        cloud_.sigmaTcRMax()[cellI] = sigmaTcR;
-                    }
-
-                    if ((sigmaTcR/sigmaTcRMax) > random01())
-                    {
-                        // chemical reactions
-
-                        // find which reaction model parcel p and q should use
-                        label rMId = cloud_.reactions().returnModelId(parcelP, parcelQ);
-
-    //                             Info << " parcelP id: " <<  parcelP.typeId()
-    //                                 << " parcelQ id: " << parcelQ.typeId()
-    //                                 << " reaction model: " << rMId
-    //                                 << endl;
-
-                        if(rMId != -1)
-                        {
-                            // try to react molecules
-    //                         if(cloud_.reactions().reactions()[rMId]->reactWithLists())
-    //                         {
-                                // so far for recombination only
-    //                                     reactions_.reactions()[rMId]->reaction
-    //                                     (
-    //                                         parcelP,
-    //                                         parcelQ,
-    //                                         candidateList,
-    //                                         candidateSubList,
-    //                                         candidateP,
-    //                                         whichSubCell
-    //                                     );
-    //                         }
-    //                         else
-    //                         {
-                                cloud_.reactions().reactions()[rMId]->reaction
-                                (
-                                    parcelP,
-                                    parcelQ
-                                );
-    //                         }
-                            // if reaction unsuccessful use conventional collision model
-                            if(cloud_.reactions().reactions()[rMId]->relax())
-                            {
-                                cloud_.binaryCollision().collide
-                                (
-                                    parcelP,
-                                    parcelQ,
-                                    cellI
-                                );
-                            }
-                        }
-                        else // if reaction model not found, use conventional collision model
-                        {
-                            cloud_.binaryCollision().collide
-                            (
-                                parcelP,
-                                parcelQ,
-                                cellI
-                            );
-                        }
-
-                        collisions++;
+                        binaryCollision.collide
+                        (
+                            parcelP,
+                            parcelQ,
+                            cellI
+                        );
                     }
                 }
+                else
+                {
+                    binaryCollision.collide
+                    (
+                        parcelP,
+                        parcelQ,
+                        cellI
+                    );
+                }
+
+                collisions++;
+
+                typeIds[candidateP] = parcelP.typeId();
+                typeIds[candidateQ] = parcelQ.typeId();
+                charges[candidateP] =
+                    constProps[typeIds[candidateP]].charge();
+                charges[candidateQ] =
+                    constProps[typeIds[candidateQ]].charge();
             }
+        }
+    };
+
+    forAll(ownedCollCells, i)
+    {
+        processCell(ownedCollCells[i]);
+    }
+
+    const label localCollisionCandidates = collisionCandidates;
+    const label localCollisions = collisions;
+
+    profileLocalCollisionCandidates_ += localCollisionCandidates;
+    profileLocalCollisions_ += localCollisions;
+
+    if (subphaseTimers)
+    {
+        profileCollisionLocalLoopWall_ +=
+            elapsedCollisionSeconds(localLoopStart);
+    }
+
+    label globalCollisions = localCollisions;
+    label globalCollisionCandidates = localCollisionCandidates;
+
+    if (!collisionReduceOnlyOnOutput_)
+    {
+        const CollisionClock::time_point reduceStart =
+            subphaseTimers ? CollisionClock::now() : CollisionClock::time_point();
+        reduce(globalCollisions, sumOp<label>());
+        reduce(globalCollisionCandidates, sumOp<label>());
+        if (subphaseTimers)
+        {
+            profileCollisionReduceWall_ += elapsedCollisionSeconds(reduceStart);
         }
     }
 
-    reduce(collisions, sumOp<label>());
-
-    reduce(collisionCandidates, sumOp<label>());
-
+    const CollisionClock::time_point sigmaStart =
+        subphaseTimers ? CollisionClock::now() : CollisionClock::time_point();
     cloud_.sigmaTcRMax().correctBoundaryConditions();
+    if (subphaseTimers)
+    {
+        profileCollisionSigmaWall_ += elapsedCollisionSeconds(sigmaStart);
+    }
 
     infoCounter_++;
 
     if(infoCounter_ >= cloud_.nTerminalOutputs())
     {
+        if (collisionReduceOnlyOnOutput_ && collisionOutputGlobalReduce_)
+        {
+            const CollisionClock::time_point reduceStart =
+                subphaseTimers ? CollisionClock::now() : CollisionClock::time_point();
+            reduce(globalCollisions, sumOp<label>());
+            reduce(globalCollisionCandidates, sumOp<label>());
+            if (subphaseTimers)
+            {
+                profileCollisionReduceWall_ +=
+                    elapsedCollisionSeconds(reduceStart);
+            }
+        }
+
+        if (subphaseTimers)
+        {
+            profileCollisionPreOutputWall_ +=
+            elapsedCollisionSeconds(collideWallStart);
+    }
+
         const bool replicatedRawMpi =
-            cloud_.replicatedMeshActive() && !Pstream::parRun();
+            cloud_.replicatedMeshActive()
+         && cloud_.replicatedMesh().nProcs() > 1;
+
+        if (!replicatedRawMpi || collisionOutputGlobalReduce_)
+        {
+            printReplicatedRankCollisionDetail
+            (
+                localCollisions,
+                localCollisionCandidates,
+                globalCollisions,
+                globalCollisionCandidates
+            );
+        }
 
         if (replicatedRawMpi)
         {
-            const label myRank = cloud_.replicatedMesh().myRank();
-
-            if (collisionCandidates)
+            if
+            (
+                cloud_.replicatedMesh().myRank() == 0
+             && globalCollisionCandidates
+            )
             {
-                Info<< "    Collisions [rank " << myRank << "]"
-                    << "              = " << collisions << nl
-                    << "    Collision candidates [rank " << myRank << "]"
-                    << "  = " << collisionCandidates << nl
+                if (!collisionOutputGlobalReduce_)
+                {
+                    Info<< "    Collision global reduction skipped"
+                        << " (rank 0 local diagnostics)" << nl;
+                }
+                Info<< "    Collisions                      = "
+                    << globalCollisions << nl
+                    << "    Collision candidates           = "
+                    << globalCollisionCandidates << nl
                     << "    Collision acceptance rate      = "
-                    << scalar(collisions)/scalar(collisionCandidates) << nl
+                    << scalar(globalCollisions)
+                       /scalar(globalCollisionCandidates) << nl
                     << endl;
             }
-            else
+            else if (cloud_.replicatedMesh().myRank() == 0)
             {
-                Info<< "    No collisions [rank " << myRank << "]" << endl;
+                Info<< "    No collisions" << endl;
             }
 
             infoCounter_ = 0;
         }
-        else if (cloud_.isOutputRank() && collisionCandidates)
+        else if (cloud_.isOutputRank() && globalCollisionCandidates)
         {
             Info<< "    Collisions                      = "
-                << collisions << nl
+                << globalCollisions << nl
                 << "    Collision candidates           = "
-                << collisionCandidates << nl
+                << globalCollisionCandidates << nl
                 << "    Collision acceptance rate      = "
-                << scalar(collisions)/scalar(collisionCandidates) << nl
+                << scalar(globalCollisions)
+                   /scalar(globalCollisionCandidates) << nl
                 << endl;
 
             infoCounter_ = 0;
@@ -829,6 +1259,11 @@ void noTimeCounter::collide()
         {
             infoCounter_ = 0;
         }
+    }
+    else if (subphaseTimers)
+    {
+        profileCollisionPreOutputWall_ +=
+            elapsedCollisionSeconds(collideWallStart);
     }
 }
 
