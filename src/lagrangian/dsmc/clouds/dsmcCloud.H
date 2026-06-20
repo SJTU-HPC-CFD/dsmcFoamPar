@@ -324,6 +324,9 @@ private:
         //- Refresh whether face-flux tracking is required by active fields
         void refreshTrackerUsage();
 
+        //- Invalidate cached parcel-order/occupancy views after particle edits
+        void invalidateParcelTraversalCaches();
+
         //- True when the current run has no scheduled solver write time
         bool noScheduledFieldOutput() const;
 
@@ -918,6 +921,12 @@ public:
                 moveOrderedParcelsValid_ = false;
                 moveAppendedParcels_.clear();
             }
+
+            //- Transfer particle to cloud and invalidate stale traversal caches
+            void addParticle(dsmcParcel* pPtr);
+
+            //- Remove particle from cloud and invalidate stale traversal caches
+            void deleteParticle(dsmcParcel& p);
 
             void deleteParcel(dsmcParcel* p);
 

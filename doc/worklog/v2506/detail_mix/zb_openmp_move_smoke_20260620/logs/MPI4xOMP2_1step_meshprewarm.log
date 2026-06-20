@@ -1,0 +1,688 @@
+label=MPI4xOMP2_1step
+np=4
+threads=2
+/*---------------------------------------------------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  v1706                                 |
+|   \\  /    A nd           | Web:      www.OpenFOAM.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+Build  : v1706
+Arch   : "LSB;label=32;scalar=64"
+Exec   : dsmcFoam+
+Date   : Jun 20 2026
+Time   : 23:50:06
+Host   : "SuperXCX-ROG"
+PID    : 270705
+/*---------------------------------------------------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  v1706                                 |
+|   \\  /    A nd           | Web:      www.OpenFOAM.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+Build  : v1706
+Arch   : "LSB;label=32;scalar=64"
+Exec   : dsmcFoam+
+Date   : Jun 20 2026
+Time   : 23:50:06
+Host   : "SuperXCX-ROG"
+PID    : 270707
+Case   : /home/superxcx/code/OpenFoam/OF-1706/hyStrath_dlb/run/hyStrath/dsmcFoam+/xcx_test/zb-cylinder-react/mpi4omp2
+nProcs : 1
+sigFpe : Enabling floating point exception trapping (FOAM_SIGFPE).
+Case   : /home/superxcx/code/OpenFoam/OF-1706/hyStrath_dlb/run/hyStrath/dsmcFoam+/xcx_test/zb-cylinder-react/mpi4omp2
+nProcs : 1
+sigFpe : Enabling floating point exception trapping (FOAM_SIGFPE).
+/*---------------------------------------------------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  v1706                                 |
+|   \\  /    A nd           | Web:      www.OpenFOAM.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+Build  : v1706
+Arch   : "LSB;label=32;scalar=64"
+Exec   : dsmcFoam+
+Date   : Jun 20 2026
+Time   : 23:50:06
+Host   : "SuperXCX-ROG"
+PID    : 270708
+fileModificationChecking : Monitoring run-time modified files using timeStampMaster (fileModificationSkew 10)
+allowSystemOperations : Allowing user-supplied system call operations
+
+fileModificationChecking : Monitoring run-time modified files using timeStampMaster (fileModificationSkew 10)
+allowSystemOperations : Allowing user-supplied system call operations
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+Create time
+
+/*---------------------------------------------------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  v1706                                 |
+|   \\  /    A nd           | Web:      www.OpenFOAM.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+Build  : v1706
+Arch   : "LSB;label=32;scalar=64"
+Exec   : dsmcFoam+
+Date   : Jun 20 2026
+Time   : 23:50:06
+Host   : "SuperXCX-ROG"
+PID    : 270706
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+Create time
+
+Case   : /home/superxcx/code/OpenFoam/OF-1706/hyStrath_dlb/run/hyStrath/dsmcFoam+/xcx_test/zb-cylinder-react/mpi4omp2
+nProcs : 1
+sigFpe : Enabling floating point exception trapping (FOAM_SIGFPE).
+fileModificationChecking : Monitoring run-time modified files using timeStampMaster (fileModificationSkew 10)
+allowSystemOperations : Allowing user-supplied system call operations
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+Create time
+
+Case   : /home/superxcx/code/OpenFoam/OF-1706/hyStrath_dlb/run/hyStrath/dsmcFoam+/xcx_test/zb-cylinder-react/mpi4omp2
+nProcs : 1
+sigFpe : Enabling floating point exception trapping (FOAM_SIGFPE).
+fileModificationChecking : Monitoring run-time modified files using timeStampMaster (fileModificationSkew 10)
+allowSystemOperations : Allowing user-supplied system call operations
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+Create time
+
+Create mesh for time = 0
+
+Create mesh for time = 0
+
+Create mesh for time = 0
+
+Selecting dynamicFvMesh dynamicRefineFvMesh
+Create mesh for time = 0
+
+Selecting dynamicFvMesh dynamicRefineFvMesh
+Selecting dynamicFvMesh dynamicRefineFvMesh
+Selecting dynamicFvMesh dynamicRefineFvMesh
+
+Constructing dsmcCloud 
+
+Constructing dsmcCloud 
+
+Constructing dsmcCloud 
+
+Constructing dsmcCloud 
+Selecting the coordinate system model:	dsmcCartesian
+
+Selecting the time-step model:	dsmcConstantTimeStepModel
+
+Constant time-step model:
+- time-step [sec]	6.640048894e-08
+
+Selecting the porous measurement model:	dsmcNoPorousMediumMeasurements
+
+
+Creating dsmcControllers
+
+Creating fields: 
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+ measurement option: write
+ nSamples: 1, time interval: 6.640048894e-08
+ nAverages: 15060, time interval: 0.0009999913634
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Selecting the coordinate system model:	dsmcCartesian
+
+Selecting the time-step model:	dsmcConstantTimeStepModel
+
+Constant time-step model:
+- time-step [sec]	6.640048894e-08
+
+Selecting the porous measurement model:	dsmcNoPorousMediumMeasurements
+
+
+Creating dsmcControllers
+
+Creating fields: 
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+ measurement option: write
+ nSamples: 1, time interval: 6.640048894e-08
+ nAverages: 15060, time interval: 0.0009999913634
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+ measurement option: write
+ nSamples: 1, time interval: 6.640048894e-08
+ nAverages: 15060, time interval: 0.0009999913634
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Selecting the coordinate system model:	dsmcCartesian
+
+Selecting the time-step model:	dsmcConstantTimeStepModel
+
+Constant time-step model:
+- time-step [sec]	6.640048894e-08
+
+Selecting the porous measurement model:	dsmcNoPorousMediumMeasurements
+
+
+Creating dsmcControllers
+
+Creating fields: 
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+ measurement option: write
+ nSamples: 1, time interval: 6.640048894e-08
+ nAverages: 15060, time interval: 0.0009999913634
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+ measurement option: write
+ nSamples: 1, time interval: 6.640048894e-08
+ nAverages: 15060, time interval: 0.0009999913634
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+ measurement option: write
+ nSamples: 1, time interval: 6.640048894e-08
+ nAverages: 15060, time interval: 0.0009999913634
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+ measurement option: write
+ nSamples: 1, time interval: 6.640048894e-08
+ nAverages: 15060, time interval: 0.0009999913634
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+ measurement option: write
+ nSamples: 1, time interval: 6.640048894e-08
+ nAverages: 15060, time interval: 0.0009999913634
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+ measurement option: write
+ nSamples: 1, time interval: 6.640048894e-08
+ nAverages: 15060, time interval: 0.0009999913634
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+ measurement option: write
+ nSamples: 1, time interval: 6.640048894e-08
+ nAverages: 15060, time interval: 0.0009999913634
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+ measurement option: write
+ nSamples: 1, time interval: 6.640048894e-08
+ nAverages: 15060, time interval: 0.0009999913634
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+ measurement option: write
+ nSamples: 1, time interval: 6.640048894e-08
+ nAverages: 15060, time interval: 0.0009999913634
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+ measurement option: write
+ nSamples: 1, time interval: 6.640048894e-08
+ nAverages: 15060, time interval: 0.0009999913634
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+ measurement option: write
+ nSamples: 1, time interval: 6.640048894e-08
+ nAverages: 15060, time interval: 0.0009999913634
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+ measurement option: write
+ nSamples: 1, time interval: 6.640048894e-08
+ nAverages: 15060, time interval: 0.0009999913634
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+ measurement option: write
+ nSamples: 1, time interval: 6.640048894e-08
+ nAverages: 15060, time interval: 0.0009999913634
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Creating the boundary models: 
+
+Selecting dsmcPatchBoundaryModel dsmcDeletionPatch
+Selecting dsmcPatchBoundaryModel dsmcDeletionPatch
+Selecting dsmcPatchBoundaryModel dsmcDiffuseWallPatch
+Selecting dsmcGeneralBoundaryModel dsmcFreeStreamInflowPatch
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+ measurement option: write
+ nSamples: 1, time interval: 6.640048894e-08
+ nAverages: 15060, time interval: 0.0009999913634
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Selecting BinaryCollisionModel LarsenBorgnakkeVariableHardSphere
+
+Creating dsmcReactions
+
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationExchangeQK
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationExchangeQK
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationExchangeQK
+Selecting the reaction model dissociationExchangeQK
+Selecting the reaction model dissociationQK
+Number of reactions created: 12
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+ measurement option: write
+ nSamples: 1, time interval: 6.640048894e-08
+ nAverages: 15060, time interval: 0.0009999913634
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Creating the boundary models: 
+
+Selecting dsmcPatchBoundaryModel dsmcDeletionPatch
+Selecting dsmcPatchBoundaryModel dsmcDeletionPatch
+Selecting dsmcPatchBoundaryModel dsmcDiffuseWallPatch
+Selecting dsmcGeneralBoundaryModel dsmcFreeStreamInflowPatch
+Selecting the coordinate system model:	dsmcCartesian
+
+Selecting the time-step model:	dsmcConstantTimeStepModel
+
+Constant time-step model:
+- time-step [sec]	6.640048894e-08
+
+Selecting the porous measurement model:	dsmcNoPorousMediumMeasurements
+
+
+Creating dsmcControllers
+
+Selecting BinaryCollisionModel LarsenBorgnakkeVariableHardSphere
+
+Creating dsmcReactions
+
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationExchangeQK
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationQK
+Creating fields: 
+
+Selecting field: dsmcVolFields
+Selecting the reaction model dissociationExchangeQK
+
+TimeData Statistics: 
+Selecting the reaction model dissociationQK
+ measurement option: write
+Selecting the reaction model dissociationExchangeQK
+Selecting the reaction model dissociationExchangeQK
+ nSamples: 1, time interval: 6.640048894e-08
+ nAverages: 15060, time interval: 0.0009999913634
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Selecting the reaction model dissociationQK
+Number of reactions created: 12
+Creating the boundary models: 
+
+Selecting dsmcPatchBoundaryModel dsmcDeletionPatch
+Selecting dsmcPatchBoundaryModel dsmcDeletionPatch
+Selecting dsmcPatchBoundaryModel dsmcDiffuseWallPatch
+Selecting dsmcGeneralBoundaryModel dsmcFreeStreamInflowPatch
+Selecting BinaryCollisionModel LarsenBorgnakkeVariableHardSphere
+
+Creating dsmcReactions
+
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationExchangeQK
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationExchangeQK
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationExchangeQK
+Selecting the reaction model dissociationExchangeQK
+Selecting the reaction model dissociationQK
+Number of reactions created: 12
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+ measurement option: write
+ nSamples: 1, time interval: 6.640048894e-08
+ nAverages: 15060, time interval: 0.0009999913634
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+ measurement option: write
+ nSamples: 1, time interval: 6.640048894e-08
+ nAverages: 15060, time interval: 0.0009999913634
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+ measurement option: write
+ nSamples: 1, time interval: 6.640048894e-08
+ nAverages: 15060, time interval: 0.0009999913634
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+ measurement option: write
+ nSamples: 1, time interval: 6.640048894e-08
+ nAverages: 15060, time interval: 0.0009999913634
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+ measurement option: write
+ nSamples: 1, time interval: 6.640048894e-08
+ nAverages: 15060, time interval: 0.0009999913634
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Creating the boundary models: 
+
+Selecting dsmcPatchBoundaryModel dsmcDeletionPatch
+Selecting dsmcPatchBoundaryModel dsmcDeletionPatch
+Selecting dsmcPatchBoundaryModel dsmcDiffuseWallPatch
+Selecting dsmcGeneralBoundaryModel dsmcFreeStreamInflowPatch
+Selecting BinaryCollisionModel LarsenBorgnakkeVariableHardSphere
+
+Creating dsmcReactions
+
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationExchangeQK
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationExchangeQK
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationExchangeQK
+Selecting the reaction model dissociationExchangeQK
+Selecting the reaction model dissociationQK
+Number of reactions created: 12
+
+Constructing constant properties for
+
+Constructing constant properties for
+	N2
+	O2
+	NO
+	N
+	O
+	N2
+	O2
+	NO
+	N
+	O
+
+Constructing constant properties for
+	N2
+	O2
+	NO
+	N
+	O
+Selecting collisionPartnerSelectionModel noTimeCounter
+Collision profile: collisionReduceOnlyOnOutput defaulted to true for replicatedMesh run
+Collision profile: collisionOutputGlobalReduce defaulted to false for replicatedMesh run
+
+Initialising the measurement fields
+
+Initialising dsmcVolFields field
+Initialising dsmcVolFields field
+Selecting collisionPartnerSelectionModel noTimeCounter
+Collision profile: collisionReduceOnlyOnOutput defaulted to true for replicatedMesh run
+Collision profile: collisionOutputGlobalReduce defaulted to false for replicatedMesh run
+
+Initialising the measurement fields
+
+Initialising dsmcVolFields field
+Initialising dsmcVolFields field
+Initialising dsmcVolFields field
+Initialising dsmcVolFields field
+Initialising dsmcVolFields field
+Initialising dsmcVolFields field
+Initialising dsmcVolFields field
+Initialising dsmcVolFields field
+Initialising dsmcVolFields field
+Initialising dsmcVolFields field
+Selecting collisionPartnerSelectionModel noTimeCounter
+Collision profile: collisionReduceOnlyOnOutput defaulted to true for replicatedMesh run
+Collision profile: collisionOutputGlobalReduce defaulted to false for replicatedMesh run
+
+Initialising the measurement fields
+
+Initialising dsmcVolFields field
+Initialising dsmcVolFields field
+Initialising dsmcVolFields field
+Initialising dsmcVolFields field
+Initialising dsmcVolFields field
+Initialising dsmcVolFields field
+
+Constructing constant properties for
+	N2
+	O2
+	NO
+	N
+	O
+Selecting collisionPartnerSelectionModel noTimeCounter
+Collision profile: collisionReduceOnlyOnOutput defaulted to true for replicatedMesh run
+Collision profile: collisionOutputGlobalReduce defaulted to false for replicatedMesh run
+
+Initialising the measurement fields
+
+Initialising dsmcVolFields field
+Initialising dsmcVolFields field
+Initialising dsmcVolFields field
+Initialising dsmcVolFields field
+Initialising dsmcVolFields field
+Initialising dsmcVolFields field
+Replicated mesh: METIS decomposition complete, 60000 cells -> 4 ranks
+Replicated mesh: rank 0 owns 15022 / 60000 cells
+Local mesh: 15022 owned + 492 halo = 15514 / 60000 cells
+Replicated mesh: flatTransfer=1 found=1
+Replicated mesh: flat POD transfer enabled
+Replicated mesh: gatherCandidates=0
+Replicated mesh: overlapSizeExchange=0
+Replicated mesh: writeMode=gathered
+Phase C auto DLB: enabled (ParMETIS AdaptiveRepart), imbalanceThreshold=1.5, dlbSteps=50, sarSteps=50, triggerMode=legacyWindow, minGapSteps=50, checkCollective=allgather, particleGate=0, particleGateThreshold=1.5, skipPostDiag=0, adaptiveAlpha=0
+Replicated mesh: initialized with 4 MPI ranks, migrate interval 10
+
+Starting time loop
+
+Replicated mesh: initial particle distribution
+
+Replicated mesh: rank 0 kept 201681 parcels, deleted 1105064 non-owned parcels
+[0] #0  Foam::error::printStack(Foam::Ostream&)[3] #0  Foam::error::printStack(Foam::Ostream&)[1] #0  Foam::error::printStack(Foam::Ostream&)[2] #0  Foam::error::printStack(Foam::Ostream&) at ??:?
+[0] #1  Foam::sigSegv::sigHandler(int) at ??:?
+[3] #1  Foam::sigSegv::sigHandler(int) at ??:?
+[1] #1  Foam::sigSegv::sigHandler(int) at ??:?
+[2] #1  Foam::sigSegv::sigHandler(int) at ??:?
+[3] #2  ? at ??:?
+[0] #2  ? at ??:?
+[1] #2  ? in "/lib/x86_64-linux-gnu/libc.so.6"
+ in "/lib/x86_64-linux-gnu/libc.so.6"
+[3] #3  [0] #3  double Foam::particle::trackToFace<Foam::dsmcParcel::trackingData>(Foam::Vector<double> const&, Foam::dsmcParcel::trackingData&, bool)double Foam::particle::trackToFace<Foam::dsmcParcel::trackingData>(Foam::Vector<double> const&, Foam::dsmcParcel::trackingData&, bool) at ??:?
+[2] #2  ? in "/lib/x86_64-linux-gnu/libc.so.6"
+[1] #3  double Foam::particle::trackToFace<Foam::dsmcParcel::trackingData>(Foam::Vector<double> const&, Foam::dsmcParcel::trackingData&, bool) in "/lib/x86_64-linux-gnu/libc.so.6"
+[2] #3  double Foam::particle::trackToFace<Foam::dsmcParcel::trackingData>(Foam::Vector<double> const&, Foam::dsmcParcel::trackingData&, bool) at ??:?
+[0] #4  Foam::dsmcParcel::move(Foam::dsmcParcel::trackingData&, double) at ??:?
+ at ??:?
+[3] #4  Foam::dsmcParcel::move(Foam::dsmcParcel::trackingData&, double)[1] #4  Foam::dsmcParcel::move(Foam::dsmcParcel::trackingData&, double) at ??:?
+ at ??:?
+[2] #4  Foam::dsmcParcel::move(Foam::dsmcParcel::trackingData&, double)[0] #5  ? at ??:?
+[3] #5  ? at ??:?
+[1] #5  ? at ??:?
+[2] #5  ? at dsmcCloud.C:?
+[0] #6  __kmp_invoke_microtask at dsmcCloud.C:?
+[3] #6  __kmp_invoke_microtask at dsmcCloud.C:?
+[1] #6  __kmp_invoke_microtask at dsmcCloud.C:?
+[2] #6  __kmp_invoke_microtask at ??:?
+[3] #7  ? at ??:?
+[0] #7  ? at ??:?
+[2] #7  ? at ??:?
+[1] #7  ? at /localdisk/promo-build/20250422/tmp/lin_32e-rtl_int_5_nor_dyn.rel.c0.s0.tcm1.t1..h1-anompclxlin01/../../src/kmp_runtime.cpp:8336
+[0] #8  __kmp_fork_call at /localdisk/promo-build/20250422/tmp/lin_32e-rtl_int_5_nor_dyn.rel.c0.s0.tcm1.t1..h1-anompclxlin01/../../src/kmp_runtime.cpp:8336
+[3] #8  __kmp_fork_call at /localdisk/promo-build/20250422/tmp/lin_32e-rtl_int_5_nor_dyn.rel.c0.s0.tcm1.t1..h1-anompclxlin01/../../src/kmp_runtime.cpp:8336
+[2] #8  __kmp_fork_call at /localdisk/promo-build/20250422/tmp/lin_32e-rtl_int_5_nor_dyn.rel.c0.s0.tcm1.t1..h1-anompclxlin01/../../src/kmp_runtime.cpp:8336
+[1] #8  ? at /localdisk/promo-build/20250422/tmp/lin_32e-rtl_int_5_nor_dyn.rel.c0.s0.tcm1.t1..h1-anompclxlin01/../../src/kmp_runtime.cpp:2698
+[3] #9  __kmpc_fork_call at /localdisk/promo-build/20250422/tmp/lin_32e-rtl_int_5_nor_dyn.rel.c0.s0.tcm1.t1..h1-anompclxlin01/../../src/kmp_runtime.cpp:2698
+[0] #9  __kmpc_fork_call at /localdisk/promo-build/20250422/tmp/lin_32e-rtl_int_5_nor_dyn.rel.c0.s0.tcm1.t1..h1-anompclxlin01/../../src/kmp_runtime.cpp:6638
+[1] #9  ? at /localdisk/promo-build/20250422/tmp/lin_32e-rtl_int_5_nor_dyn.rel.c0.s0.tcm1.t1..h1-anompclxlin01/../../src/kmp_runtime.cpp:2698
+[2] #9  __kmpc_fork_call at /localdisk/promo-build/20250422/tmp/lin_32e-rtl_int_5_nor_dyn.rel.c0.s0.tcm1.t1..h1-anompclxlin01/../../src/kmp_csupport.cpp:398
+[3] #10  void Foam::Cloud<Foam::dsmcParcel>::move<Foam::dsmcParcel::trackingData>(Foam::dsmcParcel::trackingData&, double) at /localdisk/promo-build/20250422/tmp/lin_32e-rtl_int_5_nor_dyn.rel.c0.s0.tcm1.t1..h1-anompclxlin01/../../src/kmp_csupport.cpp:398
+[0] #10  void Foam::Cloud<Foam::dsmcParcel>::move<Foam::dsmcParcel::trackingData>(Foam::dsmcParcel::trackingData&, double) at ??:?
+[3] #11  Foam::dsmcCloud::evolve_moveAndCollide() at ??:?
+[0] #11  Foam::dsmcCloud::evolve_moveAndCollide() at ??:?
+[3] #12  Foam::dsmcCloud::evolve() at ??:?
+[0] #12  Foam::dsmcCloud::evolve() at /localdisk/promo-build/20250422/tmp/lin_32e-rtl_int_5_nor_dyn.rel.c0.s0.tcm1.t1..h1-anompclxlin01/../../src/kmp_csupport.cpp:398
+[2] #10  void Foam::Cloud<Foam::dsmcParcel>::move<Foam::dsmcParcel::trackingData>(Foam::dsmcParcel::trackingData&, double) at /localdisk/promo-build/20250422/tmp/lin_32e-rtl_int_5_nor_dyn.rel.c0.s0.tcm1.t1..h1-anompclxlin01/../../src/z_Linux_util.cpp:740
+[1] #10  ? at ??:?
+[3] #13  ? in "/lib/x86_64-linux-gnu/libc.so.6"
+[1] #11  ? at ??:?
+[0] #13   at ??:?
+[2] #11  Foam::dsmcCloud::evolve_moveAndCollide() at ??:?
+[3] #14  ? in "/lib/x86_64-linux-gnu/libc.so.6"
+ at ??:?
+[2] #12  Foam::dsmcCloud::evolve()? at ??:?
+[0] #14   at ??:?
+[3] #15  ? at ??:?
+[2] #13  ?? in "/lib/x86_64-linux-gnu/libc.so.6"
+[3] #16  __libc_start_main at ??:?
+[0] #15  ? at ??:?
+[2] #14   in "/lib/x86_64-linux-gnu/libc.so.6"
+[3] #17  ?? in "/lib/x86_64-linux-gnu/libc.so.6"
+[0] #16  __libc_start_main at ??:?
+[2] #15  ? at ??:?
+ in "/lib/x86_64-linux-gnu/libc.so.6"
+[0] #17   in "/lib/x86_64-linux-gnu/libc.so.6"
+[2] #16  __libc_start_main? in "/lib/x86_64-linux-gnu/libc.so.6"
+[2] #17   at ??:?
+? at ??:?
+
+===================================================================================
+=   BAD TERMINATION OF ONE OF YOUR APPLICATION PROCESSES
+=   RANK 0 PID 270705 RUNNING AT SuperXCX-ROG
+=   KILLED BY SIGNAL: 9 (Killed)
+===================================================================================
+
+===================================================================================
+=   BAD TERMINATION OF ONE OF YOUR APPLICATION PROCESSES
+=   RANK 1 PID 270706 RUNNING AT SuperXCX-ROG
+=   KILLED BY SIGNAL: 11 (Segmentation fault)
+===================================================================================
+
+===================================================================================
+=   BAD TERMINATION OF ONE OF YOUR APPLICATION PROCESSES
+=   RANK 2 PID 270707 RUNNING AT SuperXCX-ROG
+=   KILLED BY SIGNAL: 9 (Killed)
+===================================================================================
+
+===================================================================================
+=   BAD TERMINATION OF ONE OF YOUR APPLICATION PROCESSES
+=   RANK 3 PID 270708 RUNNING AT SuperXCX-ROG
+=   KILLED BY SIGNAL: 9 (Killed)
+===================================================================================
+real 23.78
+user 13.37
+sys 7.96

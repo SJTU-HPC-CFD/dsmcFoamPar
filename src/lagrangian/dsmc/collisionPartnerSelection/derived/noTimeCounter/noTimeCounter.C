@@ -441,8 +441,18 @@ void noTimeCounter::collide()
             cloud_.collisionSelectionRemainder();
         volScalarField& sigmaTcRMaxField = cloud_.sigmaTcRMax();
         const label nCells = mesh.nCells();
-        const labelList& ownedCC = cloud_.occupancyOwnedCollisionCells();
-        const label nOwnedCC = ownedCC.size();
+        const bool replicatedCollisionUseActiveCells =
+            cloud_.replicatedMeshActive()
+         && mesh.time().controlDict().lookupOrDefault<bool>
+            (
+                "replicatedMeshCollisionUseActiveCells",
+                false
+            );
+        const labelList& collisionCells =
+            replicatedCollisionUseActiveCells
+          ? cloud_.occupancyActiveCells()
+          : cloud_.occupancyOwnedCollisionCells();
+        const label nCollisionCells = collisionCells.size();
 
         labelList& nCandidatesPerCell = cloud_.nCandidatesPerCell();
         clearCandidateCounts(nCandidatesPerCell, nCells);
@@ -693,9 +703,9 @@ void noTimeCounter::collide()
             if (cloud_.openmpCollisionSchedule() == "static")
             {
                 #pragma omp for schedule(static, collisionChunk)
-                for (label idx = 0; idx < nOwnedCC; ++idx)
+                for (label idx = 0; idx < nCollisionCells; ++idx)
                 {
-                    const label cellI = ownedCC[idx];
+                    const label cellI = collisionCells[idx];
                     localCollisions += processCell(cellI, threadI);
                     localCandidates += nCandidatesPerCell[cellI];
                 }
@@ -703,9 +713,9 @@ void noTimeCounter::collide()
             else if (cloud_.openmpCollisionSchedule() == "guided")
             {
                 #pragma omp for schedule(guided, collisionChunk)
-                for (label idx = 0; idx < nOwnedCC; ++idx)
+                for (label idx = 0; idx < nCollisionCells; ++idx)
                 {
-                    const label cellI = ownedCC[idx];
+                    const label cellI = collisionCells[idx];
                     localCollisions += processCell(cellI, threadI);
                     localCandidates += nCandidatesPerCell[cellI];
                 }
@@ -713,9 +723,9 @@ void noTimeCounter::collide()
             else
             {
                 #pragma omp for schedule(dynamic, collisionChunk)
-                for (label idx = 0; idx < nOwnedCC; ++idx)
+                for (label idx = 0; idx < nCollisionCells; ++idx)
                 {
-                    const label cellI = ownedCC[idx];
+                    const label cellI = collisionCells[idx];
                     localCollisions += processCell(cellI, threadI);
                     localCandidates += nCandidatesPerCell[cellI];
                 }
@@ -897,7 +907,17 @@ void noTimeCounter::collide()
         cloud_.collisionSelectionRemainder();
     volScalarField& sigmaTcRMaxField = cloud_.sigmaTcRMax();
 
-    const labelList& ownedCollCells = cloud_.occupancyOwnedCollisionCells();
+    const bool replicatedCollisionUseActiveCells =
+        cloud_.replicatedMeshActive()
+     && mesh.time().controlDict().lookupOrDefault<bool>
+        (
+            "replicatedMeshCollisionUseActiveCells",
+            false
+        );
+    const labelList& collisionCells =
+        replicatedCollisionUseActiveCells
+      ? cloud_.occupancyActiveCells()
+      : cloud_.occupancyOwnedCollisionCells();
 
     labelList& nCandidatesPerCell = cloud_.nCandidatesPerCell();
     clearCandidateCounts(nCandidatesPerCell, nCells);
@@ -1129,9 +1149,9 @@ void noTimeCounter::collide()
         }
     };
 
-    forAll(ownedCollCells, i)
+    forAll(collisionCells, i)
     {
-        processCell(ownedCollCells[i]);
+        processCell(collisionCells[i]);
     }
 
     const label localCollisionCandidates = collisionCandidates;

@@ -455,6 +455,11 @@ label dsmcReplicatedMesh::reassignByParMetisAdaptiveRepart()
     const label nIntFaces = mesh_.nInternalFaces();
     const labelList& faceOwner = mesh_.faceOwner();
     const labelList& faceNei = mesh_.faceNeighbour();
+    const bool dlbProfile = mesh_.time().controlDict().lookupOrDefault<bool>
+    (
+        "replicatedMeshDLBProfile",
+        false
+    );
 
     // ---- Distributed graph: each rank holds nCells/nProcs_ vertices --------
     const label localN = nCells / nProcs_;
@@ -511,6 +516,11 @@ label dsmcReplicatedMesh::reassignByParMetisAdaptiveRepart()
                 idx_t(cloud_.cellOccupancy()[cellI].size());
         }
     }
+    if (dlbProfile && myRank_ == 0)
+    {
+        Info<< "Phase C ParMETIS profile: entering particle-count allreduce"
+            << endl;
+    }
     MPI_Allreduce
     (
         localCellParticles.data(),
@@ -520,6 +530,11 @@ label dsmcReplicatedMesh::reassignByParMetisAdaptiveRepart()
         MPI_SUM,
         MPI_COMM_WORLD
     );
+    if (dlbProfile && myRank_ == 0)
+    {
+        Info<< "Phase C ParMETIS profile: particle-count allreduce complete"
+            << endl;
+    }
 
     const idx_t maxParMetisWeight = std::numeric_limits<idx_t>::max()/4;
     auto positiveWeight = [&](const scalar value) -> idx_t
@@ -677,6 +692,10 @@ label dsmcReplicatedMesh::reassignByParMetisAdaptiveRepart()
     Info<< "Phase C ParMETIS: AdaptiveRepart (" << nCells << " cells, "
         << ncon << " constraints, ubvec=" << ubvec[0] << ")" << endl;
 
+    if (dlbProfile && myRank_ == 0)
+    {
+        Info<< "Phase C ParMETIS profile: entering AdaptiveRepart" << endl;
+    }
     ParMETIS_V3_AdaptiveRepart
     (
         vtxdist.data(), xadj.data(), adjncy.data(),
@@ -685,6 +704,10 @@ label dsmcReplicatedMesh::reassignByParMetisAdaptiveRepart()
         tpwgts.data(), ubvec.data(), &itr,
         options, &edgecut, part.data(), &comm
     );
+    if (dlbProfile && myRank_ == 0)
+    {
+        Info<< "Phase C ParMETIS profile: AdaptiveRepart complete" << endl;
+    }
 
     // ---- Gather new partition from all ranks --------------------------------
     // Each rank has its LOCAL portion of the new partition.
@@ -697,9 +720,19 @@ label dsmcReplicatedMesh::reassignByParMetisAdaptiveRepart()
         displs[i] = (i < nProcs_) ? i * localN : 0;
         recvCounts[i] = (i == nProcs_ - 1) ? (nCells - i * localN) : localN;
     }
+    if (dlbProfile && myRank_ == 0)
+    {
+        Info<< "Phase C ParMETIS profile: entering partition allgatherv"
+            << endl;
+    }
     MPI_Allgatherv(part.data(), myN, MPI_INT,
                    fullPart.data(), recvCounts.data(), displs.data(),
                    MPI_INT, MPI_COMM_WORLD);
+    if (dlbProfile && myRank_ == 0)
+    {
+        Info<< "Phase C ParMETIS profile: partition allgatherv complete"
+            << endl;
+    }
 
     // ---- Update cellOwner_ ------------------------------------------------
     label nChanged = 0;
@@ -844,6 +877,7 @@ void dsmcReplicatedMesh::autoRebalance()
 
     bool triggered = false;
     bool forcedTriggered = false;
+    bool globalTriggerDecisionComputed = false;
 
     if (forcedDLBSteps_.size())
     {
@@ -954,6 +988,7 @@ void dsmcReplicatedMesh::autoRebalance()
 
                     triggered =
                         minGapSatisfied && (sarTriggered || thresholdTriggered);
+                    globalTriggerDecisionComputed = true;
                     if (triggered)
                     {
                         const char* reason =
@@ -1024,6 +1059,7 @@ void dsmcReplicatedMesh::autoRebalance()
 
                 triggered =
                     minGapSatisfied && (sarTriggered || thresholdTriggered);
+                globalTriggerDecisionComputed = true;
                 if (triggered)
                 {
                     const char* reason =
@@ -1088,6 +1124,36 @@ void dsmcReplicatedMesh::autoRebalance()
         }
     }
 
+    if (globalTriggerDecisionComputed)
+    {
+        const int localTriggered = triggered ? 1 : 0;
+        int triggeredSum = 0;
+        MPI_Allreduce
+        (
+            &localTriggered,
+            &triggeredSum,
+            1,
+            MPI_INT,
+            MPI_SUM,
+            MPI_COMM_WORLD
+        );
+
+        if
+        (
+            triggeredSum != 0
+         && triggeredSum != nProcs_
+         && myRank_ == 0
+        )
+        {
+            Info<< "Phase C auto DLB trigger mismatch across ranks at step "
+                << currentStep
+                << ": local decisions were inconsistent, promoting to global OR"
+                << nl;
+        }
+
+        triggered = (triggeredSum != 0);
+    }
+
     const auto tCheckEnd = std::chrono::steady_clock::now();
     autoRebalanceCheckWallTime_ +=
         std::chrono::duration<scalar>(tCheckEnd - tAuto0).count();
@@ -1122,7 +1188,19 @@ void dsmcReplicatedMesh::autoRebalance()
     }
 
     const auto tDecEnd = std::chrono::steady_clock::now();
-    tdecps_ += std::chrono::duration<scalar>(tDecEnd - tDecStart).count();
+    const scalar localDecWall =
+        std::chrono::duration<scalar>(tDecEnd - tDecStart).count();
+    scalar globalDecWall = localDecWall;
+    MPI_Allreduce
+    (
+        &localDecWall,
+        &globalDecWall,
+        1,
+        MPI_DOUBLE,
+        MPI_MAX,
+        MPI_COMM_WORLD
+    );
+    tdecps_ += globalDecWall;
 
     lastAutoRebalanceStep_ = currentStep;
     ++autoRebalanceCount_;
@@ -2002,8 +2080,9 @@ void dsmcReplicatedMesh::migrateParticlesByCellOwner()
         DynamicList<dsmcParcel*> toDelete(cloud_.size() / 4);
         DynamicList<dsmcParcel*> kept(cloud_.size());
         label nMigratedOut = 0;
+        const bool useOrderedTraversal = false;
 
-        if (cloud_.hasMoveOrderedParcels())
+        if (useOrderedTraversal)
         {
             const auto& ordered = cloud_.moveOrderedParcels();
             for (label i = 0; i < ordered.size(); ++i)
@@ -2280,7 +2359,7 @@ void dsmcReplicatedMesh::migrateParticlesByCellOwner()
         }
         const auto tDeserializeEnd = std::chrono::steady_clock::now();
 
-        cloud_.setMoveOrderedParcels(kept);
+        cloud_.clearMoveOrderedParcels();
         const auto tPostEnd = std::chrono::steady_clock::now();
 
         // Exchange candidate counts for optional offload diagnostics/planners.
@@ -2375,8 +2454,9 @@ void dsmcReplicatedMesh::migrateParticlesByCellOwner()
     DynamicList<dsmcParcel*> toDelete(cloud_.size() / 4);
     DynamicList<dsmcParcel*> kept(cloud_.size());
     label nMigratedOut = 0;
+    const bool useOrderedTraversal = false;
 
-    if (cloud_.hasMoveOrderedParcels())
+    if (useOrderedTraversal)
     {
         const auto& ordered = cloud_.moveOrderedParcels();
         for (label i = 0; i < ordered.size(); ++i)
@@ -2597,7 +2677,7 @@ void dsmcReplicatedMesh::migrateParticlesByCellOwner()
     const auto t3 = std::chrono::steady_clock::now();
 
     // ---- Phase 4: set moveOrderedParcels_ directly (no linked-list rebuild) ---
-    cloud_.setMoveOrderedParcels(kept);
+    cloud_.clearMoveOrderedParcels();
 
     // ---- Phase 5: optional per-rank candidate counts for offload planner ----
     if (gatherCandidates_)
@@ -2671,8 +2751,9 @@ void dsmcReplicatedMesh::migrateBegin()
     DynamicList<dsmcParcel*> toDelete(cloud_.size() / 4);
     DynamicList<dsmcParcel*> kept(cloud_.size());
     label nMigratedOut = 0;
+    const bool useOrderedTraversal = false;
 
-    if (cloud_.hasMoveOrderedParcels())
+    if (useOrderedTraversal)
     {
         const auto& ordered = cloud_.moveOrderedParcels();
         for (label i = 0; i < ordered.size(); ++i)
@@ -2880,7 +2961,7 @@ void dsmcReplicatedMesh::migrateBegin()
     }
 
     // Set moveOrdered with kept parcels (local only, no received yet)
-    cloud_.setMoveOrderedParcels(kept);
+    cloud_.clearMoveOrderedParcels();
 
     asyncMigrationPending_ = true;
     totalParcelsMigrated_ += nMigratedOut;
@@ -2906,7 +2987,6 @@ void dsmcReplicatedMesh::migrateFinish()
         MPI_Waitall(asyncReqs_.size(), asyncReqs_.data(), statuses.data());
 
         // First nProcs_-1 requests are Irecv (one per peer != myRank_)
-        DynamicList<dsmcParcel*> received(1024);
         label reqIdx = 0;
         for (label i = 0; i < nProcs_; ++i)
         {
@@ -2922,14 +3002,9 @@ void dsmcReplicatedMesh::migrateFinish()
                 {
                     auto* newp = new dsmcParcel(mesh_, is);
                     cloud_.addParticle(newp);
-                    received.append(newp);
                 }
             }
             ++reqIdx;
-        }
-        if (received.size() > 0)
-        {
-            cloud_.appendBatchToMoveOrdered(received);
         }
     }
     else if (asyncReqs_.size() > 0)
@@ -2938,16 +3013,13 @@ void dsmcReplicatedMesh::migrateFinish()
 
         if (asyncRecvSize_ > 0)
         {
-            DynamicList<dsmcParcel*> received(asyncRecvSize_ / 100);
             ISpanStream is(asyncRecvBuf_.data(), asyncRecvSize_,
                            IOstream::BINARY);
             while (!is.eof())
             {
                 auto* newp = new dsmcParcel(mesh_, is);
                 cloud_.addParticle(newp);
-                received.append(newp);
             }
-            cloud_.appendBatchToMoveOrdered(received);
         }
     }
 

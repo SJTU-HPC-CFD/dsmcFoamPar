@@ -933,6 +933,47 @@ void Foam::dsmcCloud::collisions()
 }
 
 
+void Foam::dsmcCloud::invalidateParcelTraversalCaches()
+{
+    // Keep the current arrays alive until the next explicit rebuild. Reaction
+    // and split models can add parcels inside the OpenMP collision loop while
+    // other threads are still reading the current-step occupancy snapshot.
+    moveOrderedParcelsValid_ = false;
+    moveAppendedParcels_.clear();
+    occupancyOrderedParcelsValid_ = false;
+    cellOccupancyMaterialized_ = false;
+}
+
+
+void Foam::dsmcCloud::addParticle(dsmcParcel* pPtr)
+{
+    Cloud<dsmcParcel>::addParticle(pPtr);
+
+    if (moveOrderedParcelsValid_)
+    {
+        moveAppendedParcels_.append(pPtr);
+        occupancyOrderedParcelsValid_ = false;
+        cellOccupancyMaterialized_ = false;
+    }
+    else if (!moveAppendCaptureActive_)
+    {
+        invalidateParcelTraversalCaches();
+    }
+    else
+    {
+        occupancyOrderedParcelsValid_ = false;
+        cellOccupancyMaterialized_ = false;
+    }
+}
+
+
+void Foam::dsmcCloud::deleteParticle(dsmcParcel& p)
+{
+    Cloud<dsmcParcel>::deleteParticle(p);
+    invalidateParcelTraversalCaches();
+}
+
+
 void Foam::dsmcCloud::addNewParcel
 (
     const vector& position,
@@ -989,8 +1030,19 @@ void Foam::dsmcCloud::addNewParcel
 
     porousMeas().additionInteraction(*pPtr, newParcel);
 
+    #ifdef _OPENMP
+    if (openmpEnabled_ && openmpMoveEnabled_ && omp_in_parallel())
+    {
+        #pragma omp critical(dsmcAddParticle)
+        {
+            addParticle(pPtr);
+        }
+
+        return;
+    }
+    #endif
+
     addParticle(pPtr);
-    recordMoveAppendedParcel(pPtr);
 }
 
 
@@ -1048,8 +1100,19 @@ void Foam::dsmcCloud::addNewStuckParcel
 
     porousMeas().additionInteraction(p, newParcel);
 
+    #ifdef _OPENMP
+    if (openmpEnabled_ && openmpMoveEnabled_ && omp_in_parallel())
+    {
+        #pragma omp critical(dsmcAddParticle)
+        {
+            addParticle(pPtr);
+        }
+
+        return;
+    }
+    #endif
+
     addParticle(pPtr);
-    recordMoveAppendedParcel(pPtr);
 }
 
 
@@ -1616,6 +1679,124 @@ void Foam::dsmcCloud::evolve_moveAndCollide()
         this->dumpParticlePositions();
     }
 
+    const bool debugReplicatedParticleState =
+        replicatedMeshActive()
+     && controlDict_.lookupOrDefault<bool>
+        (
+            "replicatedMeshDebugParticleState",
+            false
+        );
+
+    auto reportReplicatedParticleState = [&](const char* tag)
+    {
+        if (!debugReplicatedParticleState)
+        {
+            return;
+        }
+
+        label nParcels = 0;
+        label nFree = 0;
+        label nStuck = 0;
+        label badCell = 0;
+        label nonOwner = 0;
+        label badFace = 0;
+        label badTetFace = 0;
+        label badTetPt = 0;
+        label badStepFraction = 0;
+        label minCell = mesh_.nCells();
+        label maxCell = -1;
+        label firstBadCell = -1;
+        label firstBadFace = -1;
+        label firstBadTetFace = -1;
+        label firstBadTetPt = -1;
+
+        forAllConstIter(dsmcCloud, *this, iter)
+        {
+            const dsmcParcel& p = iter();
+            ++nParcels;
+
+            if (p.isFree())
+            {
+                ++nFree;
+            }
+            else
+            {
+                ++nStuck;
+            }
+
+            const label cellI = p.cell();
+            if (cellI >= 0 && cellI < mesh_.nCells())
+            {
+                minCell = min(minCell, cellI);
+                maxCell = max(maxCell, cellI);
+
+                if (!replicatedMesh_->isMyCell(cellI))
+                {
+                    ++nonOwner;
+                }
+            }
+            else
+            {
+                ++badCell;
+                if (firstBadCell < 0)
+                {
+                    firstBadCell = cellI;
+                }
+            }
+
+            const label faceI = p.face();
+            if (faceI < -1 || faceI >= mesh_.nFaces())
+            {
+                ++badFace;
+                if (firstBadFace < 0)
+                {
+                    firstBadFace = faceI;
+                }
+            }
+
+            const label tetFaceI = p.tetFace();
+            const label tetPtI = p.tetPt();
+            if (tetFaceI < 0 || tetFaceI >= mesh_.nFaces())
+            {
+                ++badTetFace;
+                if (firstBadTetFace < 0)
+                {
+                    firstBadTetFace = tetFaceI;
+                }
+            }
+            else if (tetPtI < 0 || tetPtI >= mesh_.faces()[tetFaceI].size())
+            {
+                ++badTetPt;
+                if (firstBadTetPt < 0)
+                {
+                    firstBadTetPt = tetPtI;
+                }
+            }
+
+            if (p.stepFraction() < -SMALL || p.stepFraction() > 1 + SMALL)
+            {
+                ++badStepFraction;
+            }
+        }
+
+        Pout<< "Replicated mesh particle state [" << tag << "]: "
+            << "rank=" << replicatedMesh_->myRank()
+            << " parcels=" << nParcels
+            << " free=" << nFree
+            << " stuck=" << nStuck
+            << " cellRange=[" << minCell << "," << maxCell << "]"
+            << " badCell=" << badCell
+            << " nonOwner=" << nonOwner
+            << " badFace=" << badFace
+            << " badTetFace=" << badTetFace
+            << " badTetPt=" << badTetPt
+            << " badStepFraction=" << badStepFraction
+            << " firstBad(cell face tetFace tetPt)=("
+            << firstBadCell << " " << firstBadFace << " "
+            << firstBadTetFace << " " << firstBadTetPt << ")"
+            << endl;
+    };
+
     if (openmpEnabled_ && openmpMoveEnabled_)
     {
         beginMoveAppendCapture();
@@ -1638,6 +1819,7 @@ void Foam::dsmcCloud::evolve_moveAndCollide()
         replicatedMesh_->updateParticleCounts();
         clearMoveOrderedParcels();
         buildCellOccupancy();
+        reportReplicatedParticleState("afterInitialDistribution");
     }
 
     const bool replicatedMeshDelayedReceive =
@@ -1685,6 +1867,7 @@ void Foam::dsmcCloud::evolve_moveAndCollide()
     const steadyWallClock::time_point moveWallStart = steadyWallClock::now();
     const scalar moveCpuStart =
         profileSummary_ ? mesh_.time().elapsedCpuTime() : 0.0;
+    reportReplicatedParticleState("beforeMove");
     Cloud<dsmcParcel>::move(td, deltaTValue());
     if (openmpEnabled_ && openmpMoveEnabled_)
     {
@@ -1960,6 +2143,7 @@ void Foam::dsmcCloud::storeMoveOrderedParcels
     moveOrderedParcels_ = parcels;
     moveOrderedThreadOffsets_ = threadOffsets;
     moveOrderedParcelsValid_ = true;
+    moveAppendedParcels_.clear();
 }
 
 
@@ -1972,16 +2156,12 @@ void Foam::dsmcCloud::transferMoveOrderedParcels
     moveOrderedParcels_.transfer(parcels);
     moveOrderedThreadOffsets_ = threadOffsets;
     moveOrderedParcelsValid_ = true;
+    moveAppendedParcels_.clear();
 }
 
 
 void Foam::dsmcCloud::beginMoveAppendCapture()
 {
-    if (!moveAppendCaptureActive_)
-    {
-        moveAppendedParcels_.clear();
-    }
-
     moveAppendCaptureActive_ = true;
 }
 
@@ -1989,7 +2169,6 @@ void Foam::dsmcCloud::beginMoveAppendCapture()
 void Foam::dsmcCloud::endMoveAppendCapture()
 {
     moveAppendCaptureActive_ = false;
-    moveAppendedParcels_.clear();
 }
 
 
@@ -2069,6 +2248,7 @@ void Foam::dsmcCloud::appendBatchToMoveOrdered
     }
 
     moveOrderedParcelsValid_ = true;
+    moveAppendedParcels_.clear();
 }
 
 
@@ -2077,10 +2257,6 @@ void Foam::dsmcCloud::deleteParcel(dsmcParcel* p)
     if (p)
     {
         deleteParticle(*p);
-        moveOrderedParcelsValid_ = false;
-        moveOrderedThreadOffsets_.clear();
-        occupancyOrderedParcelsValid_ = false;
-        cellOccupancyMaterialized_ = false;
     }
 }
 

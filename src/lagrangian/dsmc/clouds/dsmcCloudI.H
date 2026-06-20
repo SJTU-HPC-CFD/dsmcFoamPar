@@ -407,7 +407,10 @@ inline Foam::scalarField Foam::dsmcCloud::maxwellianMostProbableSpeed
 
 inline void Foam::dsmcCloud::clear()
 {
-    return IDLList<dsmcParcel>::clear();
+    IDLList<dsmcParcel>::clear();
+    invalidateParcelTraversalCaches();
+    moveOrderedParcels_.clear();
+    moveAppendedParcels_.clear();
 }
 
 

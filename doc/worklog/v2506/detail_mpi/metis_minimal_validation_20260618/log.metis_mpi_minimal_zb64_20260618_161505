@@ -1,0 +1,27 @@
+date=2026-06-18T16:15:05+08:00
+host=SuperXCX-ROG
+bin=/home/superxcx/code/OpenFoam/OF-1706/hyStrath_dlb/doc/worklog/v2506/detail_mpi/metis_minimal_validation_20260618/metis_mpi_minimal
+owner=/home/superxcx/code/OpenFoam/OF-1706/hyStrath_dlb/run/hyStrath/dsmcFoam+/xcx_test/zb-cylinder-react/mpi8/constant/polyMesh/owner
+neighbour=/home/superxcx/code/OpenFoam/OF-1706/hyStrath_dlb/run/hyStrath/dsmcFoam+/xcx_test/zb-cylinder-react/mpi8/constant/polyMesh/neighbour
+np=2
+mpiexec=mpirun
+parmetis_dir=/home/superxcx/code/DSMC/dsmcFoam++/parmetis-install
+mpi_root=/home/superxcx/intel/oneapi/mpi/2021.16
+compiler_root=/home/superxcx/intel/oneapi/compiler/2025.2
+ldd:
+	libmpicxx.so.12 => /home/superxcx/intel/oneapi/mpi/2021.16/lib/libmpicxx.so.12 (0x00007ef92d200000)
+	libmpifort.so.12 => /home/superxcx/intel/oneapi/mpi/2021.16/lib/libmpifort.so.12 (0x00007ef92ce00000)
+	libmpi.so.12 => /home/superxcx/intel/oneapi/mpi/2021.16/lib/libmpi.so.12 (0x00007ef922c00000)
+	libmetis.so => /home/superxcx/code/DSMC/dsmcFoam++/parmetis-install/lib/libmetis.so (0x00007ef92d5ae000)
+	libGKlib.so.0 => /home/superxcx/code/DSMC/dsmcFoam++/parmetis-install/lib/libGKlib.so.0 (0x00007ef92d54e000)
+	libsvml.so => /home/superxcx/intel/oneapi/compiler/2025.2/lib/libsvml.so (0x00007ef920c00000)
+	libirng.so => /home/superxcx/intel/oneapi/compiler/2025.2/lib/libirng.so (0x00007ef92cd07000)
+	libimf.so => /home/superxcx/intel/oneapi/compiler/2025.2/lib/libimf.so (0x00007ef920600000)
+	libintlc.so.5 => /home/superxcx/intel/oneapi/compiler/2025.2/lib/libintlc.so.5 (0x00007ef92cca5000)
+
+[metis-minimal] rank0 start owner=/home/superxcx/code/OpenFoam/OF-1706/hyStrath_dlb/run/hyStrath/dsmcFoam+/xcx_test/zb-cylinder-react/mpi8/constant/polyMesh/owner neighbour=/home/superxcx/code/OpenFoam/OF-1706/hyStrath_dlb/run/hyStrath/dsmcFoam+/xcx_test/zb-cylinder-react/mpi8/constant/polyMesh/neighbour cells=60000 parts=2 mpiSize=2 fpe=1
+[metis-minimal] METIS_PartGraphKway rc=1 edgecut=550 minPart=0 maxPart=1 checksum=1010225146
+[metis-minimal] first 16 parts: 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+real 0.78
+user 0.12
+sys 0.29

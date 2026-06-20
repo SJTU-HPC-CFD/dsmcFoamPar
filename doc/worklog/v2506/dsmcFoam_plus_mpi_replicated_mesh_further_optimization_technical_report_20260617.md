@@ -15,7 +15,7 @@
 ```
 
 本文是 `doc/worklog/v2506/dsmcFoam_plus_mpi_replicated_mesh_dlb_technical_report_20260608.md`
-之后的 follow-up 收尾报告，覆盖 2026-06-11 到 2026-06-17 这轮 MPI replicated-mesh
+之后的 follow-up 收尾报告，覆盖 2026-06-11 到 2026-06-18 这轮 MPI replicated-mesh
 进一步优化工作。主线包括：
 
 - collision owned-cell 迭代裁剪和单线程 collision kernel 热路径优化；
@@ -23,6 +23,8 @@
 - `ourmesh` 上 alpha / Dual / adaptive-alpha / forced-vs-auto 的 DLB 行为复核；
 - `zb-cylinder-react` 上当前 MPI8 replicated-mesh DLB 最优配置的矩阵筛选、repeat3
   确认和回归复测；
+- 基于本轮配置体系，对 `zb-cylinder-react` 和 `ourmesh` 分别补做 5 模式
+  `repeat3` 正式对比更新；
 - 已保留、默认关闭、以及明确证伪的后续优化方向。
 
 本文与以下报告互为同阶段技术文档：
@@ -41,7 +43,7 @@ doc/worklog/v2506/detail_mix
 
 ## 1. 结论摘要
 
-当前这轮 follow-up 的结论可以压缩为五点：
+当前这轮 follow-up 的结论可以压缩为六点：
 
 1. MPI replicated-mesh collision 的第一层问题确实存在于“遍历空间和串行热路径”，
    但这不是最终瓶颈。
@@ -78,7 +80,13 @@ replicatedMeshOverlapSizeExchange false;
    - 2026-06-17 首次 repeat3 均值：`real = 65.88 s`
    - 同日回归复测 repeat3 均值：`real = 66.54 s`
    - 相比此前确认的最佳单次 `67.65 s`，平均改进约 `2.6%`
-5. 本轮有两个方向被明确证伪为“不应默认开启”：
+5. 在同一套 follow-up 配置体系下补做的最新五模正式对比表明，replicated-mesh
+   mixed 模式也明显受益，但纯 MPI8 仍落后于 mixed 和 OMP8。
+   - `zb` 最新均值：
+     `OMP8 55.41 s < MPI2xOMP4 59.26 s < MPI4xOMP2 60.48 s < MPI8 69.32 s < MPI8origin 107.68 s`
+   - `ourmesh` 最新均值：
+     `OMP8 63.23 s < MPI4xOMP2 66.09 s < MPI2xOMP4 67.43 s < MPI8 84.25 s < MPI8origin 126.63 s`
+6. 本轮有两个方向被明确证伪为“不应默认开启”：
    - `DualConstraint true` 在 `ourmesh` 和 `zb` 都没有带来端到端收益；
    - `replicatedMeshOverlapSizeExchange true` 的 `MPI_Ialltoall` overlap
      实验在 `zb` 上反而慢于当前最优。
@@ -124,6 +132,11 @@ run/hyStrath/dsmcFoam+/xcx_test/zb-cylinder-react/mpi8
 
 ```text
 run/hyStrath/dsmcFoam+/xcx_test/pal-phd-3.3.1-cylinder-react/timecompare/ourmesh/omp8
+run/hyStrath/dsmcFoam+/xcx_test/pal-phd-3.3.1-cylinder-react/timecompare/ourmesh/mix-mpi4omp2
+run/hyStrath/dsmcFoam+/xcx_test/pal-phd-3.3.1-cylinder-react/timecompare/ourmesh/mpi8origin
+run/hyStrath/dsmcFoam+/xcx_test/zb-cylinder-react/mpi2omp4
+run/hyStrath/dsmcFoam+/xcx_test/zb-cylinder-react/mpi4omp2
+run/hyStrath/dsmcFoam+/xcx_test/zb-cylinder-react/mpi8origin
 run/hyStrath/dsmcFoam+/xcx_test/zb-cylinder-react/omp8
 ```
 
@@ -482,9 +495,118 @@ replicatedMeshOverlapSizeExchange false;
 
 这些都没有稳定超过当前最优，说明 `zb` 这一路径已经比较接近“可由控制项榨出的上限”。
 
-## 9. 当前推荐状态和后续方向
+## 9. 最新五模正式对比更新
 
-### 9.1 当前推荐状态
+本节补充 2026-06-17 到 2026-06-18 的两组最新五模 `repeat3` 正式重测。
+这两组结果用于更新本轮 follow-up 阶段的实际性能基线，但不覆盖
+`dsmcFoam_plus_mpi_omp_mixed_technical_report_20260610.md` 作为当日历史收尾报告
+的原始记录。
+
+统一口径：
+
+- `zb-cylinder-react`：300 steps，no-write，5 模式各 `repeat3`
+- `ourmesh`：500 steps，no-write，5 模式各 `repeat3`
+- replicated-mesh 模式统一参考本轮 MPI8 正式控制体系
+- 全部运行 `exit 0`，`stuck = 0`
+
+### 9.1 `zb-cylinder-react` 五模更新
+
+结果目录：
+
+```text
+doc/worklog/v2506/detail_mix/zb_full_series_current_mpi8cfg_repeat3_20260617
+```
+
+`real` 均值：
+
+| mode | real mean [s] | full evolve [s] | move [s] | buildOcc [s] | collision [s] |
+|---|---:|---:|---:|---:|---:|
+| OMP8 | 55.41 | 50.85 | 37.06 | 3.92 | 8.68 |
+| MPI2xOMP4 | 59.26 | 53.35 | 39.78 | 4.79 | 8.54 |
+| MPI4xOMP2 | 60.48 | 54.02 | 40.46 | 3.83 | 9.61 |
+| MPI8 | 69.32 | 60.67 | 46.39 | 4.98 | 10.75 |
+| MPI8origin | 107.68 | 107.65 | 79.64 | 9.87 | 23.71 |
+
+排序：
+
+```text
+OMP8 < MPI2xOMP4 < MPI4xOMP2 < MPI8 < MPI8origin
+```
+
+相对 2026-06-10 历史正式五模对比，本轮 follow-up 配置体系下的新均值变化为：
+
+- `OMP8`: `58.74 -> 55.41 s`
+- `MPI2xOMP4`: `63.66 -> 59.26 s`
+- `MPI4xOMP2`: `67.72 -> 60.48 s`
+- `MPI8`: `79.81 -> 69.32 s`
+- `MPI8origin`: `114.80 -> 107.68 s`
+
+解释：
+
+- `MPI2xOMP4` 和 `MPI4xOMP2` 在参考当前 replicated-mesh 控制项后，都比 6 月 10 日
+  的旧 mixed 正式口径明显更快；
+- `MPI8` 也显著改善，但仍落后于两组 mixed；
+- `MPI8origin` 仍然是最慢的 8-core 对照。
+
+### 9.2 `ourmesh` 五模更新
+
+结果目录：
+
+```text
+doc/worklog/v2506/detail_mix/ourmesh_full_series_current_mpi8cfg_repeat3_20260618
+```
+
+`real` 均值：
+
+| mode | real mean [s] | full evolve [s] | move [s] | buildOcc [s] | collision [s] |
+|---|---:|---:|---:|---:|---:|
+| OMP8 | 63.23 | 57.55 | 47.41 | 6.21 | 2.80 |
+| MPI2xOMP4 | 67.43 | 61.79 | 50.32 | 7.45 | 3.23 |
+| MPI4xOMP2 | 66.09 | 59.50 | 48.91 | 6.56 | 3.11 |
+| MPI8 | 84.25 | 75.28 | 60.46 | 10.43 | 4.85 |
+| MPI8origin | 126.63 | 126.50 | 109.11 | 15.21 | 11.49 |
+
+排序：
+
+```text
+OMP8 < MPI4xOMP2 < MPI2xOMP4 < MPI8 < MPI8origin
+```
+
+相对 2026-06-10 历史正式五模对比，本轮 follow-up 配置体系下的新均值变化为：
+
+- `OMP8`: `62.22 -> 63.23 s`
+- `MPI2xOMP4`: `70.30 -> 67.43 s`
+- `MPI4xOMP2`: `70.10 -> 66.09 s`
+- `MPI8`: `101.45 -> 84.25 s`
+- `MPI8origin`: `135.07 -> 126.63 s`
+
+解释：
+
+- `OMP8` 这次略慢于 6 月 10 日的旧均值，属于正常波动；
+- mixed 两组都明显改善；
+- 和 `zb` 不同，`ourmesh` 现在是 `MPI4xOMP2` 略优于 `MPI2xOMP4`；
+- `MPI8` 进步最大，但仍显著落后于 mixed。
+
+### 9.3 五模更新后的整体判断
+
+结合 `zb` 和 `ourmesh` 两组最新正式对比，可以把本轮 follow-up 的并行口径收敛为：
+
+1. pure replicated-mesh `MPI8` 在这轮 follow-up 后确实比 6 月 10 日正式口径快了很多；
+2. 但 pure MPI8 仍不是 8-core 默认路径；
+3. mixed replicated-mesh 路径在新控制体系下同样受益，并继续保持“最接近 OMP8”
+   的可用替代；
+4. `MPI8origin` 在两个 case 上都稳定最慢；
+5. 因此，本轮更合理的推荐顺序仍然是：
+
+```text
+优先 OMP8
+其次按 case 选择 mixed（zb 偏 MPI2xOMP4，ourmesh 偏 MPI4xOMP2）
+最后才是 pure MPI8 replicated mesh
+```
+
+## 10. 当前推荐状态和后续方向
+
+### 10.1 当前推荐状态
 
 对当前本地源码树，推荐分两层理解。
 
@@ -513,7 +635,7 @@ replicatedMeshGatherCandidates false;
 replicatedMeshOverlapSizeExchange false;
 ```
 
-### 9.2 后续真正值得做的方向
+### 10.2 后续真正值得做的方向
 
 这轮工作已经把“继续简单切配置”的收益空间基本榨干。若要再向前推进，应优先考虑：
 
@@ -530,7 +652,7 @@ replicatedMeshOverlapSizeExchange false;
    - 重点不再是补更多 collision kernel 微优化，而是减少 phase barrier、
      缩小 move/build arrival skew，或者让 DLB 真正看到 collision 负载。
 
-## 10. 对本轮结果的最终判断
+## 11. 对本轮结果的最终判断
 
 这轮 follow-up 已经把 replicated-mesh MPI8 的问题边界收紧得比较清楚：
 

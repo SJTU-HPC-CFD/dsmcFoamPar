@@ -192,6 +192,9 @@ public:
             //- Increment the nTrackingRescues counter
             void trackingRescue() const
             {
+                #ifdef _OPENMP
+                #pragma omp atomic
+                #endif
                 nTrackingRescues_++;
                 if (cloud::debug && size() && (nTrackingRescues_ % size() == 0))
                 {

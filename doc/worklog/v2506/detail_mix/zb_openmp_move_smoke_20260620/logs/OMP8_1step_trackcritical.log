@@ -1,0 +1,181 @@
+/*---------------------------------------------------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  v1706                                 |
+|   \\  /    A nd           | Web:      www.OpenFOAM.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+Build  : v1706
+Arch   : "LSB;label=32;scalar=64"
+Exec   : dsmcFoam+
+Date   : Jun 21 2026
+Time   : 00:20:33
+Host   : "SuperXCX-ROG"
+PID    : 293719
+Case   : /home/superxcx/code/OpenFoam/OF-1706/hyStrath_dlb/run/hyStrath/dsmcFoam+/xcx_test/zb-cylinder-react/omp8
+nProcs : 1
+sigFpe : Enabling floating point exception trapping (FOAM_SIGFPE).
+fileModificationChecking : Monitoring run-time modified files using timeStampMaster (fileModificationSkew 10)
+allowSystemOperations : Allowing user-supplied system call operations
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+Create time
+
+Create mesh for time = 0
+
+Selecting dynamicFvMesh dynamicRefineFvMesh
+
+Constructing dsmcCloud 
+Selecting the coordinate system model:	dsmcCartesian
+
+Selecting the time-step model:	dsmcConstantTimeStepModel
+
+Constant time-step model:
+- time-step [sec]	6.640048894e-08
+
+Selecting the porous measurement model:	dsmcNoPorousMediumMeasurements
+
+
+Creating dsmcControllers
+
+Creating fields: 
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+ measurement option: write
+ nSamples: 1, time interval: 6.640048894e-08
+ nAverages: 15060, time interval: 0.0009999913634
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+ measurement option: write
+ nSamples: 1, time interval: 6.640048894e-08
+ nAverages: 15060, time interval: 0.0009999913634
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+ measurement option: write
+ nSamples: 1, time interval: 6.640048894e-08
+ nAverages: 15060, time interval: 0.0009999913634
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+ measurement option: write
+ nSamples: 1, time interval: 6.640048894e-08
+ nAverages: 15060, time interval: 0.0009999913634
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+ measurement option: write
+ nSamples: 1, time interval: 6.640048894e-08
+ nAverages: 15060, time interval: 0.0009999913634
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+ measurement option: write
+ nSamples: 1, time interval: 6.640048894e-08
+ nAverages: 15060, time interval: 0.0009999913634
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Creating the boundary models: 
+
+Selecting dsmcPatchBoundaryModel dsmcDeletionPatch
+Selecting dsmcPatchBoundaryModel dsmcDeletionPatch
+Selecting dsmcPatchBoundaryModel dsmcDiffuseWallPatch
+Selecting dsmcGeneralBoundaryModel dsmcFreeStreamInflowPatch
+Selecting BinaryCollisionModel LarsenBorgnakkeVariableHardSphere
+
+Creating dsmcReactions
+
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationExchangeQK
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationExchangeQK
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationExchangeQK
+Selecting the reaction model dissociationExchangeQK
+Selecting the reaction model dissociationQK
+Number of reactions created: 12
+
+Constructing constant properties for
+	N2
+	O2
+	NO
+	N
+	O
+Selecting collisionPartnerSelectionModel noTimeCounter
+
+Initialising the measurement fields
+
+Initialising dsmcVolFields field
+Initialising dsmcVolFields field
+Initialising dsmcVolFields field
+Initialising dsmcVolFields field
+Initialising dsmcVolFields field
+Initialising dsmcVolFields field
+
+Starting time loop
+
+OpenMP move parcel snapshot: parcels=1313538 cloudSize=1313538 ordered=0 hasOrdered=0 priorSize=0 appended=6793 canReuse=0 offsetsOk=0 threads=8 null=0 duplicate=0 badCells=0 badTetFaces=0 badTetPts=0 firstBad(i cell tetFace tetPt)=(-1 -1 -1 -1)
+malloc(): unaligned tcache chunk detected
+free(): invalid size
+--> FOAM Warning : 
+    From function bool Foam::dictionary::add(entry *, bool)
+    in file db/dictionary/dictionary.C at line 
+872
+    Reading "JobInfo" from line 0 to line 0
+    attempt to add entry 
+FatalIOError which already exists in dictionary "JobInfo"
+
+
+--> FOAM FATAL IO ERROR: 
+attempt to read ror in IOstempt to read beyond EOF""/home/superxcx/rxcx/code/Foap/OF-1706/hyS06/tySthath_dlb/runStrath/dsh/doam+/m+/_test/zb-zb-cylilinder--eact/omp8//yystemconcrolDict.openmpMoveTrackackCrttilal" for operation  for operation Foam::Istream &Foam::operator>>(Istream &, Switch &)Foam::Istream &Foam::operator>>(Istream &, Switch &)
+
+file: /home/superxcx/code/OpenFoam/OF-llocated. at line 39.
+
+    From function virtual Foam::Istream &Foam::ITstream::read(token &)
+    in file db/IOstreams/Tstreams/ITstream.C at line 82.
+
+FOAM exiting
+
+--> FOAM FATAL IO ERROR: 
+attempt to read ror in IOstempt to read beyond EOF""/home/superxcx/rxcx/code/Foap/OF-1706/hyS06/tySthath_dlb/runStrath/dsh/doam+/m+/_test/zb-zb-cylilinder--eact/omp8//yystemconcrolDict.openmpMoveTrackackCrttilal" for operation  for operation Foam::Istream &Foam::operator>>(Istream &, Switch &)Foam::Istream &Foam::operator>>(Istream &, Switch &)
+
+file: /home/superxcx/code/OpenFoam/OF-llocated. at line 39.
+
+    From function virtual Foam::Istream &Foam::ITstream::read(token &)
+    in file db/IOstreams/Tstreams/ITstream.C at line 82.
+
+FOAM exiting
+
+/usr/bin/timeout: the monitored command dumped core
+real 10.74
+user 2.71
+sys 1.73

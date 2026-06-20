@@ -579,6 +579,25 @@ void Foam::Cloud<ParticleType>::move(TrackData& td, const scalar trackTime)
     if (useOpenMPMove)
     {
         #ifdef _OPENMP
+        // Build demand-driven mesh data before particle tracking enters
+        // the OpenMP region.  Several tracking accessors are lazily
+        // initialised and are not safe to construct concurrently.
+        (void)polyMesh_.solutionD();
+        (void)polyMesh_.tetBasePtIs();
+        (void)polyMesh_.cells();
+        (void)polyMesh_.oldPoints();
+        (void)polyMesh_.cellVolumes();
+        (void)polyMesh_.cellCentres();
+        (void)polyMesh_.faceAreas();
+        (void)polyMesh_.faceCentres();
+        const polyBoundaryMesh& boundaryMesh = polyMesh_.boundaryMesh();
+        (void)boundaryMesh.patchID();
+        forAll(boundaryMesh, patchI)
+        {
+            (void)boundaryMesh[patchI].faceCells();
+        }
+        (void)this->cellHasWallFaces();
+
         const label moveThreads =
             max(label(1), cloudOpenMP::moveThreads(td.cloud(), 0));
         const word moveSchedule = cloudOpenMP::moveSchedule(td.cloud(), 0);
