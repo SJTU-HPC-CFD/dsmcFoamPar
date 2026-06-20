@@ -2080,7 +2080,14 @@ void dsmcReplicatedMesh::migrateParticlesByCellOwner()
         DynamicList<dsmcParcel*> toDelete(cloud_.size() / 4);
         DynamicList<dsmcParcel*> kept(cloud_.size());
         label nMigratedOut = 0;
-        const bool useOrderedTraversal = false;
+        const bool maintainMoveOrdered =
+            cloud_.openmpEnabled()
+         && cloud_.openmpMoveEnabled()
+         && cloud_.ompNumThreads() > 1;
+        const bool useOrderedTraversal =
+            maintainMoveOrdered
+         && cloud_.hasMoveOrderedParcels()
+         && cloud_.moveOrderedParcels().size() == cloud_.size();
 
         if (useOrderedTraversal)
         {
@@ -2359,7 +2366,14 @@ void dsmcReplicatedMesh::migrateParticlesByCellOwner()
         }
         const auto tDeserializeEnd = std::chrono::steady_clock::now();
 
-        cloud_.clearMoveOrderedParcels();
+        if (maintainMoveOrdered && kept.size() == cloud_.size())
+        {
+            cloud_.setMoveOrderedParcels(kept);
+        }
+        else
+        {
+            cloud_.clearMoveOrderedParcels();
+        }
         const auto tPostEnd = std::chrono::steady_clock::now();
 
         // Exchange candidate counts for optional offload diagnostics/planners.
@@ -2454,7 +2468,14 @@ void dsmcReplicatedMesh::migrateParticlesByCellOwner()
     DynamicList<dsmcParcel*> toDelete(cloud_.size() / 4);
     DynamicList<dsmcParcel*> kept(cloud_.size());
     label nMigratedOut = 0;
-    const bool useOrderedTraversal = false;
+    const bool maintainMoveOrdered =
+        cloud_.openmpEnabled()
+     && cloud_.openmpMoveEnabled()
+     && cloud_.ompNumThreads() > 1;
+    const bool useOrderedTraversal =
+        maintainMoveOrdered
+     && cloud_.hasMoveOrderedParcels()
+     && cloud_.moveOrderedParcels().size() == cloud_.size();
 
     if (useOrderedTraversal)
     {
@@ -2677,7 +2698,14 @@ void dsmcReplicatedMesh::migrateParticlesByCellOwner()
     const auto t3 = std::chrono::steady_clock::now();
 
     // ---- Phase 4: set moveOrderedParcels_ directly (no linked-list rebuild) ---
-    cloud_.clearMoveOrderedParcels();
+    if (maintainMoveOrdered && kept.size() == cloud_.size())
+    {
+        cloud_.setMoveOrderedParcels(kept);
+    }
+    else
+    {
+        cloud_.clearMoveOrderedParcels();
+    }
 
     // ---- Phase 5: optional per-rank candidate counts for offload planner ----
     if (gatherCandidates_)
@@ -2751,7 +2779,14 @@ void dsmcReplicatedMesh::migrateBegin()
     DynamicList<dsmcParcel*> toDelete(cloud_.size() / 4);
     DynamicList<dsmcParcel*> kept(cloud_.size());
     label nMigratedOut = 0;
-    const bool useOrderedTraversal = false;
+    const bool maintainMoveOrdered =
+        cloud_.openmpEnabled()
+     && cloud_.openmpMoveEnabled()
+     && cloud_.ompNumThreads() > 1;
+    const bool useOrderedTraversal =
+        maintainMoveOrdered
+     && cloud_.hasMoveOrderedParcels()
+     && cloud_.moveOrderedParcels().size() == cloud_.size();
 
     if (useOrderedTraversal)
     {
@@ -2960,8 +2995,16 @@ void dsmcReplicatedMesh::migrateBegin()
         }
     }
 
-    // Set moveOrdered with kept parcels (local only, no received yet)
-    cloud_.clearMoveOrderedParcels();
+    // Set moveOrdered with kept parcels; received parcels are appended in
+    // migrateFinish(). This keeps the next occupancy build off the linked list.
+    if (maintainMoveOrdered && kept.size() == cloud_.size())
+    {
+        cloud_.setMoveOrderedParcels(kept);
+    }
+    else
+    {
+        cloud_.clearMoveOrderedParcels();
+    }
 
     asyncMigrationPending_ = true;
     totalParcelsMigrated_ += nMigratedOut;
@@ -2980,11 +3023,18 @@ void dsmcReplicatedMesh::migrateFinish()
 {
     if (!asyncMigrationPending_) return;
 
+    const bool maintainMoveOrdered =
+        cloud_.openmpEnabled()
+     && cloud_.openmpMoveEnabled()
+     && cloud_.ompNumThreads() > 1;
+
     if (useNoAlltoall_ && asyncReqs_.size() > 0)
     {
         // No-Alltoall path: use MPI_Get_count per peer
         List<MPI_Status> statuses(asyncReqs_.size());
         MPI_Waitall(asyncReqs_.size(), asyncReqs_.data(), statuses.data());
+
+        DynamicList<dsmcParcel*> received(1024);
 
         // First nProcs_-1 requests are Irecv (one per peer != myRank_)
         label reqIdx = 0;
@@ -3002,9 +3052,23 @@ void dsmcReplicatedMesh::migrateFinish()
                 {
                     auto* newp = new dsmcParcel(mesh_, is);
                     cloud_.addParticle(newp);
+                    received.append(newp);
                 }
             }
             ++reqIdx;
+        }
+        if
+        (
+            received.size() > 0
+         && maintainMoveOrdered
+         && cloud_.hasMoveOrderedParcels()
+        )
+        {
+            cloud_.appendBatchToMoveOrdered(received);
+        }
+        else if (received.size() > 0)
+        {
+            cloud_.clearMoveOrderedParcels();
         }
     }
     else if (asyncReqs_.size() > 0)
@@ -3013,12 +3077,27 @@ void dsmcReplicatedMesh::migrateFinish()
 
         if (asyncRecvSize_ > 0)
         {
+            DynamicList<dsmcParcel*> received(asyncRecvSize_ / 100);
             ISpanStream is(asyncRecvBuf_.data(), asyncRecvSize_,
                            IOstream::BINARY);
             while (!is.eof())
             {
                 auto* newp = new dsmcParcel(mesh_, is);
                 cloud_.addParticle(newp);
+                received.append(newp);
+            }
+            if
+            (
+                received.size() > 0
+             && maintainMoveOrdered
+             && cloud_.hasMoveOrderedParcels()
+            )
+            {
+                cloud_.appendBatchToMoveOrdered(received);
+            }
+            else if (received.size() > 0)
+            {
+                cloud_.clearMoveOrderedParcels();
             }
         }
     }

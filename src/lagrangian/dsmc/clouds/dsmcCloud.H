@@ -920,6 +920,8 @@ public:
                 moveOrderedThreadOffsets_.clear();
                 moveOrderedParcelsValid_ = false;
                 moveAppendedParcels_.clear();
+                occupancyOrderedParcelsValid_ = false;
+                cellOccupancyMaterialized_ = false;
             }
 
             //- Transfer particle to cloud and invalidate stale traversal caches

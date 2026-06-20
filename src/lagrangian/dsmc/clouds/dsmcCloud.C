@@ -1817,7 +1817,10 @@ void Foam::dsmcCloud::evolve_moveAndCollide()
             replicatedMesh_->migrateParticlesByCellOwner();
         }
         replicatedMesh_->updateParticleCounts();
-        clearMoveOrderedParcels();
+        if (!hasMoveOrderedParcels())
+        {
+            clearMoveOrderedParcels();
+        }
         buildCellOccupancy();
         reportReplicatedParticleState("afterInitialDistribution");
     }
@@ -1838,7 +1841,10 @@ void Foam::dsmcCloud::evolve_moveAndCollide()
     {
         replicatedMesh_->migrateFinish();
         replicatedMesh_->updateParticleCounts();
-        clearMoveOrderedParcels();
+        if (!hasMoveOrderedParcels())
+        {
+            clearMoveOrderedParcels();
+        }
     }
 
     //- Remove electrons
@@ -1862,6 +1868,11 @@ void Foam::dsmcCloud::evolve_moveAndCollide()
     //     to be counted with the RWF that the parcel had at the beginning of
     //     its move step, i.e. RWF(cell = x), _neither_ RWF(cell = y) _nor_
     //     RWF(face = y1)
+
+    if (openmpEnabled_ && openmpMoveEnabled_ && ompNumThreads_ > 1)
+    {
+        prepareOpenMPMoveMeshData();
+    }
 
     //scalar timer = mesh_.time().elapsedCpuTime();
     const steadyWallClock::time_point moveWallStart = steadyWallClock::now();
@@ -1916,7 +1927,10 @@ void Foam::dsmcCloud::evolve_moveAndCollide()
                 replicatedMesh_->migrateParticlesByCellOwner();
             }
             replicatedMesh_->updateParticleCounts();
-            clearMoveOrderedParcels();
+            if (!hasMoveOrderedParcels())
+            {
+                clearMoveOrderedParcels();
+            }
         }
 
         replicatedMesh_->advanceStepCounter();
@@ -1935,7 +1949,10 @@ void Foam::dsmcCloud::evolve_moveAndCollide()
                 {
                     replicatedMesh_->migrateFinish();
                     replicatedMesh_->updateParticleCounts();
-                    clearMoveOrderedParcels();
+                    if (!hasMoveOrderedParcels())
+                    {
+                        clearMoveOrderedParcels();
+                    }
                 }
 
                 Info<< nl
@@ -1944,7 +1961,10 @@ void Foam::dsmcCloud::evolve_moveAndCollide()
                 replicatedMesh_->reassignCellOwner();
                 replicatedMesh_->migrateParticlesByCellOwner();
                 replicatedMesh_->updateParticleCounts();
-                clearMoveOrderedParcels();
+                if (!hasMoveOrderedParcels())
+                {
+                    clearMoveOrderedParcels();
+                }
                 break;
             }
         }
@@ -2001,7 +2021,10 @@ void Foam::dsmcCloud::evolve_moveAndCollide()
         {
             replicatedMesh_->migrateFinish();
             replicatedMesh_->updateParticleCounts();
-            clearMoveOrderedParcels();
+            if (!hasMoveOrderedParcels())
+            {
+                clearMoveOrderedParcels();
+            }
             buildCellOccupancy();
         }
 
@@ -2014,7 +2037,10 @@ void Foam::dsmcCloud::evolve_moveAndCollide()
 
         if (replicatedMesh_->autoRebalanceCount() > prevRebalances)
         {
-            clearMoveOrderedParcels();
+            if (!hasMoveOrderedParcels())
+            {
+                clearMoveOrderedParcels();
+            }
             buildCellOccupancy();
         }
     }
@@ -2131,6 +2157,8 @@ void Foam::dsmcCloud::rebuildMoveOrderedParcels()
     }
     moveOrderedParcelsValid_ = true;
     moveAppendedParcels_.clear();
+    occupancyOrderedParcelsValid_ = false;
+    cellOccupancyMaterialized_ = false;
 }
 
 
@@ -2144,6 +2172,8 @@ void Foam::dsmcCloud::storeMoveOrderedParcels
     moveOrderedThreadOffsets_ = threadOffsets;
     moveOrderedParcelsValid_ = true;
     moveAppendedParcels_.clear();
+    occupancyOrderedParcelsValid_ = false;
+    cellOccupancyMaterialized_ = false;
 }
 
 
@@ -2157,6 +2187,8 @@ void Foam::dsmcCloud::transferMoveOrderedParcels
     moveOrderedThreadOffsets_ = threadOffsets;
     moveOrderedParcelsValid_ = true;
     moveAppendedParcels_.clear();
+    occupancyOrderedParcelsValid_ = false;
+    cellOccupancyMaterialized_ = false;
 }
 
 
@@ -2222,6 +2254,8 @@ void Foam::dsmcCloud::setMoveOrderedParcels
     }
     moveOrderedParcelsValid_ = true;
     moveAppendedParcels_.clear();
+    occupancyOrderedParcelsValid_ = false;
+    cellOccupancyMaterialized_ = false;
 }
 
 
@@ -2249,6 +2283,8 @@ void Foam::dsmcCloud::appendBatchToMoveOrdered
 
     moveOrderedParcelsValid_ = true;
     moveAppendedParcels_.clear();
+    occupancyOrderedParcelsValid_ = false;
+    cellOccupancyMaterialized_ = false;
 }
 
 

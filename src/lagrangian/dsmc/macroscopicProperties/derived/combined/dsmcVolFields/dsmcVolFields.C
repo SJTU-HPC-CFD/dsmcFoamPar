@@ -120,6 +120,118 @@ namespace
         }
     }
 
+    template<class Type>
+    void snapshotField
+    (
+        const Foam::Field<Type>& src,
+        Foam::Field<Type>& dst
+    )
+    {
+        dst.setSize(src.size());
+        forAll(src, i)
+        {
+            dst[i] = src[i];
+        }
+    }
+
+    template<class Type>
+    void restoreField
+    (
+        Foam::Field<Type>& dst,
+        const Foam::Field<Type>& src
+    )
+    {
+        dst.setSize(src.size());
+        forAll(src, i)
+        {
+            dst[i] = src[i];
+        }
+    }
+
+    template<class Type>
+    void snapshotFieldList
+    (
+        const Foam::List<Foam::Field<Type>>& src,
+        Foam::List<Foam::Field<Type>>& dst
+    )
+    {
+        dst.setSize(src.size());
+        forAll(src, i)
+        {
+            snapshotField(src[i], dst[i]);
+        }
+    }
+
+    template<class Type>
+    void restoreFieldList
+    (
+        Foam::List<Foam::Field<Type>>& dst,
+        const Foam::List<Foam::Field<Type>>& src
+    )
+    {
+        dst.setSize(src.size());
+        forAll(src, i)
+        {
+            restoreField(dst[i], src[i]);
+        }
+    }
+
+    template<class Type>
+    void snapshotFieldListList
+    (
+        const Foam::List<Foam::List<Foam::Field<Type>>>& src,
+        Foam::List<Foam::List<Foam::Field<Type>>>& dst
+    )
+    {
+        dst.setSize(src.size());
+        forAll(src, i)
+        {
+            snapshotFieldList(src[i], dst[i]);
+        }
+    }
+
+    template<class Type>
+    void restoreFieldListList
+    (
+        Foam::List<Foam::List<Foam::Field<Type>>>& dst,
+        const Foam::List<Foam::List<Foam::Field<Type>>>& src
+    )
+    {
+        dst.setSize(src.size());
+        forAll(src, i)
+        {
+            restoreFieldList(dst[i], src[i]);
+        }
+    }
+
+    template<class Type>
+    void snapshotFieldListListList
+    (
+        const Foam::List<Foam::List<Foam::List<Foam::Field<Type>>>>& src,
+        Foam::List<Foam::List<Foam::List<Foam::Field<Type>>>>& dst
+    )
+    {
+        dst.setSize(src.size());
+        forAll(src, i)
+        {
+            snapshotFieldListList(src[i], dst[i]);
+        }
+    }
+
+    template<class Type>
+    void restoreFieldListListList
+    (
+        Foam::List<Foam::List<Foam::List<Foam::Field<Type>>>>& dst,
+        const Foam::List<Foam::List<Foam::List<Foam::Field<Type>>>>& src
+    )
+    {
+        dst.setSize(src.size());
+        forAll(src, i)
+        {
+            restoreFieldListList(dst[i], src[i]);
+        }
+    }
+
     struct dsmcVolSharedSampleCache
     {
         struct BuildProfile
@@ -1319,7 +1431,7 @@ dsmcVolFields::dsmcVolFields
     nTimeSteps_(0.0),
     mfpTref_(273.0),
     nMinParcelsTvib_(1),
-    iMeanMinTvib_(0.0),
+    iMeanMinTvib_(0.01),
     fieldName_(propsDict_.lookup("fieldName")),
     speciesIds_(),
     typeIdToSpeciesIndex_(),
@@ -2360,7 +2472,7 @@ void dsmcVolFields::createField()
         mesh_.time().controlDict().lookupOrDefault<label>("nMinParcelsTvib", 1);
 
     iMeanMinTvib_ =
-        mesh_.time().controlDict().lookupOrDefault<scalar>("iMeanMinTvib", 0.0);
+        mesh_.time().controlDict().lookupOrDefault<scalar>("iMeanMinTvib", 0.01);
 
     averagingAcrossManyRuns_ =
         propsDict_.lookupOrDefault<bool>("averagingAcrossManyRuns", false);
@@ -2990,6 +3102,143 @@ void dsmcVolFields::calculateField()
         const scalar nAvTimeSteps = nTimeSteps_;
         const bool computeOutputFields =
             !cloud_.replicatedMeshActive() || cloud_.isOutputRank();
+        const bool restoreLocalAfterOutput =
+            cloud_.replicatedMeshActive() && !time_.resetFieldsAtOutput();
+
+        scalarField localDsmcNCum;
+        scalarField localNCum;
+        scalarField localDsmcNElecLvlCum;
+        scalarField localDsmcMCum;
+        scalarField localMCum;
+        scalarField localDsmcLinearKECum;
+        scalarField localLinearKECum;
+        scalarField localDsmcErotCum;
+        scalarField localDsmcZetaRotCum;
+        scalarField localDsmcMuuCum;
+        scalarField localDsmcMuvCum;
+        scalarField localDsmcMuwCum;
+        scalarField localDsmcMvvCum;
+        scalarField localDsmcMvwCum;
+        scalarField localDsmcMwwCum;
+        scalarField localDsmcMccCum;
+        scalarField localDsmcMccuCum;
+        scalarField localDsmcMccvCum;
+        scalarField localDsmcMccwCum;
+        scalarField localDsmcEuCum;
+        scalarField localDsmcEvCum;
+        scalarField localDsmcEwCum;
+        scalarField localDsmcECum;
+        scalarField localZetaVib;
+        scalarField localDsmcNClassICum;
+        scalarField localDsmcNClassIICum;
+        scalarField localDsmcNClassIIICum;
+        scalarField localCollisionSeparation;
+        scalarField localDsmcNCollsCum;
+        vectorField localDsmcMomentumCum;
+        vectorField localMomentumCum;
+
+        List<scalarField> localDsmcSpeciesEelecCum;
+        List<scalarField> localDsmcNSpeciesCum;
+        List<scalarField> localNSpeciesCum;
+        List<scalarField> localDsmcMccSpeciesCum;
+        List<scalarField> localDsmcNGrndElecLvlSpeciesCum;
+        List<scalarField> localDsmcN1stElecLvlSpeciesCum;
+        List<List<scalarField>> localDsmcSpeciesEvibModCum;
+
+        List<scalarField> localRhoNBF;
+        List<scalarField> localRhoMBF;
+        List<scalarField> localLinearKEBF;
+        List<scalarField> localErotBF;
+        List<scalarField> localZetaRotBF;
+        List<scalarField> localQBF;
+        List<scalarField> localZetaVibBF;
+        List<scalarField> localRhoNIntBF;
+        List<scalarField> localRhoNElecBF;
+        List<vectorField> localMomentumBF;
+        List<vectorField> localFDBF;
+
+        List<List<scalarField>> localSpeciesEvibBF;
+        List<List<scalarField>> localSpeciesEelecBF;
+        List<List<scalarField>> localSpeciesRhoNBF;
+        List<List<scalarField>> localSpeciesMccBF;
+        List<List<List<scalarField>>> localSpeciesEvibModBF;
+
+        if (restoreLocalAfterOutput)
+        {
+            snapshotField(dsmcNCum_, localDsmcNCum);
+            snapshotField(nCum_, localNCum);
+            snapshotField(dsmcNElecLvlCum_, localDsmcNElecLvlCum);
+            snapshotField(dsmcMCum_, localDsmcMCum);
+            snapshotField(mCum_, localMCum);
+            snapshotField(dsmcLinearKECum_, localDsmcLinearKECum);
+            snapshotField(linearKECum_, localLinearKECum);
+            snapshotField(dsmcErotCum_, localDsmcErotCum);
+            snapshotField(dsmcZetaRotCum_, localDsmcZetaRotCum);
+            snapshotField(dsmcMuuCum_, localDsmcMuuCum);
+            snapshotField(dsmcMuvCum_, localDsmcMuvCum);
+            snapshotField(dsmcMuwCum_, localDsmcMuwCum);
+            snapshotField(dsmcMvvCum_, localDsmcMvvCum);
+            snapshotField(dsmcMvwCum_, localDsmcMvwCum);
+            snapshotField(dsmcMwwCum_, localDsmcMwwCum);
+            snapshotField(dsmcMccCum_, localDsmcMccCum);
+            snapshotField(dsmcMccuCum_, localDsmcMccuCum);
+            snapshotField(dsmcMccvCum_, localDsmcMccvCum);
+            snapshotField(dsmcMccwCum_, localDsmcMccwCum);
+            snapshotField(dsmcEuCum_, localDsmcEuCum);
+            snapshotField(dsmcEvCum_, localDsmcEvCum);
+            snapshotField(dsmcEwCum_, localDsmcEwCum);
+            snapshotField(dsmcECum_, localDsmcECum);
+            snapshotField(zetaVib_, localZetaVib);
+            snapshotField(dsmcNClassICum_, localDsmcNClassICum);
+            snapshotField(dsmcNClassIICum_, localDsmcNClassIICum);
+            snapshotField(dsmcNClassIIICum_, localDsmcNClassIIICum);
+            snapshotField(collisionSeparation_, localCollisionSeparation);
+            snapshotField(dsmcNCollsCum_, localDsmcNCollsCum);
+            snapshotField(dsmcMomentumCum_, localDsmcMomentumCum);
+            snapshotField(momentumCum_, localMomentumCum);
+
+            snapshotFieldList(dsmcSpeciesEelecCum_, localDsmcSpeciesEelecCum);
+            snapshotFieldList(dsmcNSpeciesCum_, localDsmcNSpeciesCum);
+            snapshotFieldList(nSpeciesCum_, localNSpeciesCum);
+            snapshotFieldList(dsmcMccSpeciesCum_, localDsmcMccSpeciesCum);
+            snapshotFieldList
+            (
+                dsmcNGrndElecLvlSpeciesCum_,
+                localDsmcNGrndElecLvlSpeciesCum
+            );
+            snapshotFieldList
+            (
+                dsmcN1stElecLvlSpeciesCum_,
+                localDsmcN1stElecLvlSpeciesCum
+            );
+            snapshotFieldListList
+            (
+                dsmcSpeciesEvibModCum_,
+                localDsmcSpeciesEvibModCum
+            );
+
+            snapshotFieldList(rhoNBF_, localRhoNBF);
+            snapshotFieldList(rhoMBF_, localRhoMBF);
+            snapshotFieldList(linearKEBF_, localLinearKEBF);
+            snapshotFieldList(ErotBF_, localErotBF);
+            snapshotFieldList(zetaRotBF_, localZetaRotBF);
+            snapshotFieldList(qBF_, localQBF);
+            snapshotFieldList(zetaVibBF_, localZetaVibBF);
+            snapshotFieldList(rhoNIntBF_, localRhoNIntBF);
+            snapshotFieldList(rhoNElecBF_, localRhoNElecBF);
+            snapshotFieldList(momentumBF_, localMomentumBF);
+            snapshotFieldList(fDBF_, localFDBF);
+
+            snapshotFieldListList(speciesEvibBF_, localSpeciesEvibBF);
+            snapshotFieldListList(speciesEelecBF_, localSpeciesEelecBF);
+            snapshotFieldListList(speciesRhoNBF_, localSpeciesRhoNBF);
+            snapshotFieldListList(speciesMccBF_, localSpeciesMccBF);
+            snapshotFieldListListList
+            (
+                speciesEvibModBF_,
+                localSpeciesEvibModBF
+            );
+        }
 
         if (cloud_.replicatedMeshActive())
         {
@@ -3178,14 +3427,21 @@ void dsmcVolFields::calculateField()
                     speciesZetaVibMod[i].setSize(nVibMod, 0.0);
                     speciesTvibMod[i].setSize(nVibMod, 0.0);
                     scalar zetaByTvibMod = 0.0;
+                    const bool enoughTvibSamples =
+                        dsmcNSpeciesCum_[i][celli] >= nMinParcelsTvib_;
+
+                    if (nVibMod > 0 && enoughTvibSamples)
+                    {
+                        moleculesRhoN += nSpeciesCum_[i][celli];
+                    }
 
                     forAll(dsmcSpeciesEvibModCum_[i], mod)
                     {
                         if
                         (
                             dsmcSpeciesEvibModCum_[i][mod][celli] > VSMALL
-                         && dsmcNSpeciesCum_[i][celli] >= nMinParcelsTvib_
-                         && speciesZetaVibMod.size() > SMALL
+                         && enoughTvibSamples
+                         && nVibMod > 0
                         )
                         {
                             const scalar thetaV =
@@ -3205,7 +3461,7 @@ void dsmcVolFields::calculateField()
 
                                 speciesZetaVib[i] += speciesZetaVibMod[i][mod];
                                     
-                                zetaByTvibMod = speciesZetaVibMod[i][mod]
+                                zetaByTvibMod += speciesZetaVibMod[i][mod]
                                     *speciesTvibMod[i][mod];
                             }
                         }
@@ -3213,8 +3469,6 @@ void dsmcVolFields::calculateField()
 
                     if (speciesZetaVib[i] > SMALL)
                     {
-                        moleculesRhoN += nSpeciesCum_[i][celli];
-                        
                         speciesTvib[i] = zetaByTvibMod/speciesZetaVib[i];
                         
                         Tvib_[celli] += nSpeciesCum_[i][celli]*speciesTvib[i];
@@ -3719,7 +3973,26 @@ void dsmcVolFields::calculateField()
                             scalarList speciesZetaVibMod(nVibMod, 0.0);
                             scalarList speciesTvibMod(nVibMod, 0.0);
 
-                            if (speciesRhoNBF_[i][j][k] > SMALL)
+                            const bool enoughTvibSamples =
+                                celli >= 0
+                             && celli < dsmcNSpeciesCum_[i].size()
+                             && dsmcNSpeciesCum_[i][celli] >= nMinParcelsTvib_;
+
+                            if
+                            (
+                                nVibMod > 0
+                             && enoughTvibSamples
+                             && speciesRhoNBF_[i][j][k] > SMALL
+                            )
+                            {
+                                moleculesRhoN += speciesRhoNBF_[i][j][k];
+                            }
+
+                            if
+                            (
+                                speciesRhoNBF_[i][j][k] > SMALL
+                             && enoughTvibSamples
+                            )
                             {
                                 forAll(speciesZetaVibMod, mod)
                                 {
@@ -3751,8 +4024,6 @@ void dsmcVolFields::calculateField()
 
                             if (speciesZetaVibBF_[i][j][k] > SMALL)
                             {
-                                moleculesRhoN += speciesRhoNBF_[i][j][k];
-                                
                                 speciesTvibBF_[i][j][k] = zetaByTvibMod
                                     /speciesZetaVibBF_[i][j][k];
                                     
@@ -4115,6 +4386,83 @@ void dsmcVolFields::calculateField()
         if (averagingAcrossManyRuns_ && !time_.resetFieldsAtOutput())
         {
             writeOut();
+        }
+
+        if (restoreLocalAfterOutput)
+        {
+            restoreField(dsmcNCum_, localDsmcNCum);
+            restoreField(nCum_, localNCum);
+            restoreField(dsmcNElecLvlCum_, localDsmcNElecLvlCum);
+            restoreField(dsmcMCum_, localDsmcMCum);
+            restoreField(mCum_, localMCum);
+            restoreField(dsmcLinearKECum_, localDsmcLinearKECum);
+            restoreField(linearKECum_, localLinearKECum);
+            restoreField(dsmcErotCum_, localDsmcErotCum);
+            restoreField(dsmcZetaRotCum_, localDsmcZetaRotCum);
+            restoreField(dsmcMuuCum_, localDsmcMuuCum);
+            restoreField(dsmcMuvCum_, localDsmcMuvCum);
+            restoreField(dsmcMuwCum_, localDsmcMuwCum);
+            restoreField(dsmcMvvCum_, localDsmcMvvCum);
+            restoreField(dsmcMvwCum_, localDsmcMvwCum);
+            restoreField(dsmcMwwCum_, localDsmcMwwCum);
+            restoreField(dsmcMccCum_, localDsmcMccCum);
+            restoreField(dsmcMccuCum_, localDsmcMccuCum);
+            restoreField(dsmcMccvCum_, localDsmcMccvCum);
+            restoreField(dsmcMccwCum_, localDsmcMccwCum);
+            restoreField(dsmcEuCum_, localDsmcEuCum);
+            restoreField(dsmcEvCum_, localDsmcEvCum);
+            restoreField(dsmcEwCum_, localDsmcEwCum);
+            restoreField(dsmcECum_, localDsmcECum);
+            restoreField(zetaVib_, localZetaVib);
+            restoreField(dsmcNClassICum_, localDsmcNClassICum);
+            restoreField(dsmcNClassIICum_, localDsmcNClassIICum);
+            restoreField(dsmcNClassIIICum_, localDsmcNClassIIICum);
+            restoreField(collisionSeparation_, localCollisionSeparation);
+            restoreField(dsmcNCollsCum_, localDsmcNCollsCum);
+            restoreField(dsmcMomentumCum_, localDsmcMomentumCum);
+            restoreField(momentumCum_, localMomentumCum);
+
+            restoreFieldList(dsmcSpeciesEelecCum_, localDsmcSpeciesEelecCum);
+            restoreFieldList(dsmcNSpeciesCum_, localDsmcNSpeciesCum);
+            restoreFieldList(nSpeciesCum_, localNSpeciesCum);
+            restoreFieldList(dsmcMccSpeciesCum_, localDsmcMccSpeciesCum);
+            restoreFieldList
+            (
+                dsmcNGrndElecLvlSpeciesCum_,
+                localDsmcNGrndElecLvlSpeciesCum
+            );
+            restoreFieldList
+            (
+                dsmcN1stElecLvlSpeciesCum_,
+                localDsmcN1stElecLvlSpeciesCum
+            );
+            restoreFieldListList
+            (
+                dsmcSpeciesEvibModCum_,
+                localDsmcSpeciesEvibModCum
+            );
+
+            restoreFieldList(rhoNBF_, localRhoNBF);
+            restoreFieldList(rhoMBF_, localRhoMBF);
+            restoreFieldList(linearKEBF_, localLinearKEBF);
+            restoreFieldList(ErotBF_, localErotBF);
+            restoreFieldList(zetaRotBF_, localZetaRotBF);
+            restoreFieldList(qBF_, localQBF);
+            restoreFieldList(zetaVibBF_, localZetaVibBF);
+            restoreFieldList(rhoNIntBF_, localRhoNIntBF);
+            restoreFieldList(rhoNElecBF_, localRhoNElecBF);
+            restoreFieldList(momentumBF_, localMomentumBF);
+            restoreFieldList(fDBF_, localFDBF);
+
+            restoreFieldListList(speciesEvibBF_, localSpeciesEvibBF);
+            restoreFieldListList(speciesEelecBF_, localSpeciesEelecBF);
+            restoreFieldListList(speciesRhoNBF_, localSpeciesRhoNBF);
+            restoreFieldListList(speciesMccBF_, localSpeciesMccBF);
+            restoreFieldListListList
+            (
+                speciesEvibModBF_,
+                localSpeciesEvibModBF
+            );
         }
     }
 

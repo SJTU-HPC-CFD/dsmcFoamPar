@@ -414,7 +414,8 @@ Foam::Cloud<ParticleType>::Cloud
     polyMesh_(pMesh),
     labels_(),
     nTrackingRescues_(),
-    cellWallFacesPtr_()
+    cellWallFacesPtr_(),
+    openmpMoveMeshDataReady_(false)
 {
     checkPatches();
 
@@ -440,7 +441,8 @@ Foam::Cloud<ParticleType>::Cloud
     polyMesh_(pMesh),
     labels_(),
     nTrackingRescues_(),
-    cellWallFacesPtr_()
+    cellWallFacesPtr_(),
+    openmpMoveMeshDataReady_(false)
 {
     checkPatches();
 
@@ -465,6 +467,32 @@ const
     }
 
     return cellWallFacesPtr_();
+}
+
+
+template<class ParticleType>
+void Foam::Cloud<ParticleType>::prepareOpenMPMoveMeshData() const
+{
+    #ifdef _OPENMP
+    if (!openmpMoveMeshDataReady_)
+    {
+        // Build demand-driven mesh data before particle tracking enters
+        // the OpenMP region. Several tracking accessors are lazily
+        // initialised and are not safe to construct concurrently.
+        (void)polyMesh_.tetBasePtIs();
+        (void)polyMesh_.cells();
+        (void)polyMesh_.cellVolumes();
+        (void)polyMesh_.cellCentres();
+        const polyBoundaryMesh& boundaryMesh = polyMesh_.boundaryMesh();
+        (void)boundaryMesh.patchID();
+        forAll(boundaryMesh, patchI)
+        {
+            (void)boundaryMesh[patchI].faceCells();
+        }
+        (void)this->cellHasWallFaces();
+        openmpMoveMeshDataReady_ = true;
+    }
+    #endif
 }
 
 
@@ -579,24 +607,7 @@ void Foam::Cloud<ParticleType>::move(TrackData& td, const scalar trackTime)
     if (useOpenMPMove)
     {
         #ifdef _OPENMP
-        // Build demand-driven mesh data before particle tracking enters
-        // the OpenMP region.  Several tracking accessors are lazily
-        // initialised and are not safe to construct concurrently.
-        (void)polyMesh_.solutionD();
-        (void)polyMesh_.tetBasePtIs();
-        (void)polyMesh_.cells();
-        (void)polyMesh_.oldPoints();
-        (void)polyMesh_.cellVolumes();
-        (void)polyMesh_.cellCentres();
-        (void)polyMesh_.faceAreas();
-        (void)polyMesh_.faceCentres();
-        const polyBoundaryMesh& boundaryMesh = polyMesh_.boundaryMesh();
-        (void)boundaryMesh.patchID();
-        forAll(boundaryMesh, patchI)
-        {
-            (void)boundaryMesh[patchI].faceCells();
-        }
-        (void)this->cellHasWallFaces();
+        prepareOpenMPMoveMeshData();
 
         const label moveThreads =
             max(label(1), cloudOpenMP::moveThreads(td.cloud(), 0));
@@ -1476,6 +1487,7 @@ void Foam::Cloud<ParticleType>::autoMap
     // Reset stored data that relies on the mesh
 //    polyMesh_.clearCellTree();
     cellWallFacesPtr_.clear();
+    openmpMoveMeshDataReady_ = false;
 
     // Ask for the tetBasePtIs to trigger all processors to build
     // them, otherwise, if some processors have no particles then

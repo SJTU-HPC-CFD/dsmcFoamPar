@@ -178,7 +178,8 @@ Foam::Cloud<ParticleType>::Cloud
     polyMesh_(pMesh),
     labels_(),
     nTrackingRescues_(),
-    cellWallFacesPtr_()
+    cellWallFacesPtr_(),
+    openmpMoveMeshDataReady_(false)
 {
     checkPatches();
 
@@ -198,7 +199,8 @@ Foam::Cloud<ParticleType>::Cloud
     polyMesh_(pMesh),
     labels_(),
     nTrackingRescues_(),
-    cellWallFacesPtr_()
+    cellWallFacesPtr_(),
+    openmpMoveMeshDataReady_(false)
 {
     checkPatches();
 

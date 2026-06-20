@@ -87,6 +87,9 @@ class Cloud
         //- Does the cell have wall faces
         mutable autoPtr<PackedBoolList> cellWallFacesPtr_;
 
+        //- Demand-driven mesh data needed before OpenMP particle tracking
+        mutable bool openmpMoveMeshDataReady_;
+
 
     // Private Member Functions
 
@@ -205,6 +208,9 @@ public:
 
             //- Whether each cell has any wall faces (demand driven data)
             const PackedBoolList& cellHasWallFaces() const;
+
+            //- Build demand-driven mesh data needed before OpenMP tracking
+            void prepareOpenMPMoveMeshData() const;
 
             //- Switch to specify if particles of the cloud can return
             //  non-zero wall distance values.  By default, assume
