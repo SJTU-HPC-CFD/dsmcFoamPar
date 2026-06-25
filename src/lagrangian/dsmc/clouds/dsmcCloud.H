@@ -166,6 +166,7 @@ private:
         labelList moveOrderedThreadOffsets_;
         bool moveOrderedParcelsValid_;
         bool moveAppendCaptureActive_;
+        label moveAppendCaptureDepth_;
         DynamicList<dsmcParcel*> moveAppendedParcels_;
 
         //- Accumulated wall/cpu timings
@@ -175,12 +176,26 @@ private:
         scalar profileBuildCellOccupancyWall_;
         scalar profileCollisionWall_;
         scalar profilePostFieldsWall_;
+        scalar profilePostReactionsWall_;
+        scalar profilePostFieldCalcWall_;
+        scalar profilePostFieldWriteWall_;
+        scalar profilePostControllersWall_;
+        scalar profilePostBoundariesWall_;
+        scalar profilePostBoundaryMeasWall_;
+        scalar profilePostCleanWall_;
         scalar profileFullEvolveCpu_;
         scalar profileMoveAndCollideCpu_;
         scalar profileMoveCpu_;
         scalar profileBuildCellOccupancyCpu_;
         scalar profileCollisionCpu_;
         scalar profilePostFieldsCpu_;
+        scalar profilePostReactionsCpu_;
+        scalar profilePostFieldCalcCpu_;
+        scalar profilePostFieldWriteCpu_;
+        scalar profilePostControllersCpu_;
+        scalar profilePostBoundariesCpu_;
+        scalar profilePostBoundaryMeasCpu_;
+        scalar profilePostCleanCpu_;
 
         //- Flat cell occupancy view used by OpenMP paths
         DynamicList<dsmcParcel*> occupancyOrderedParcels_;
@@ -476,6 +491,29 @@ public:
         //- Return refernce to the random object
         inline Random& rndGen();
 
+        typedef scalar (*CollisionSample01Function)(void*);
+        typedef label (*CollisionPositionFunction)(void*, label);
+
+        //- Install a thread-local collision RNG while inside collision kernels
+        void setCollisionRngContext
+        (
+            void* context,
+            CollisionSample01Function sample01,
+            CollisionPositionFunction position
+        );
+
+        //- Clear the thread-local collision RNG context
+        void clearCollisionRngContext();
+
+        //- Collision/reaction hot-path random scalar with thread-local fallback
+        scalar collisionSample01();
+
+        //- Collision/reaction hot-path random label with thread-local fallback
+        label collisionRandomLabel
+        (
+            const label valOne,
+            const label valTwo
+        );
 
     // Random implementation corrections
         //Generates a random integer between valMin and valMax

@@ -1,0 +1,1320 @@
+/*---------------------------------------------------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  2506                                  |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+Build  : 95a5dfacc7-20250714 OPENFOAM=2506 version=v2506
+Arch   : "LSB;label=32;scalar=64"
+Exec   : dsmcFoam+
+Date   : Jun 05 2026
+Time   : 03:05:18
+Host   : SuperXCX-ROG
+PID    : 79294
+I/O    : uncollated
+Case   : /home/superxcx/code/DSMC/dsmcFoam++/hyStrath_xcx/case/cylinder_react/mixparallel/finalcheck/omp8
+nProcs : 1
+trapFpe: Floating point exception trapping enabled (FOAM_SIGFPE).
+fileModificationChecking : Monitoring run-time modified files using timeStampMaster (fileModificationSkew 5, maxFileModificationPolls 20)
+allowSystemOperations : Allowing user-supplied system call operations
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+Create time
+
+--> FOAM Warning : 
+    From static Foam::IOstreamOption::compressionType Foam::IOstreamOption::compressionEnum(const word &, const compressionType)
+    in file db/options/IOstreamOption.C at line 189
+    Unknown compression specifier 'uncompressed' using compression off
+Create mesh for time = 0
+
+
+Constructing dsmcCloud
+Selecting the coordinate system model:	dsmcCartesian
+
+Selecting the time-step model:	dsmcConstantTimeStepModel
+
+Constant time-step model:
+- time-step [sec]	6.640048894e-08
+
+Selecting the porous measurement model:	dsmcNoPorousMediumMeasurements
+
+
+Creating dsmcControllers
+
+Creating fields: 
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+Resetting fields at output until time: 2.456818091e-06
+ measurement option: write
+ nSamples: 1, time interval: 6.640048894e-08
+ nAverages: 300, time interval: 1.992014668e-05
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+Resetting fields at output until time: 2.456818091e-06
+ measurement option: write
+ nSamples: 1, time interval: 6.640048894e-08
+ nAverages: 300, time interval: 1.992014668e-05
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+Resetting fields at output until time: 2.456818091e-06
+ measurement option: write
+ nSamples: 1, time interval: 6.640048894e-08
+ nAverages: 300, time interval: 1.992014668e-05
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+Resetting fields at output until time: 2.456818091e-06
+ measurement option: write
+ nSamples: 1, time interval: 6.640048894e-08
+ nAverages: 300, time interval: 1.992014668e-05
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+Resetting fields at output until time: 2.456818091e-06
+ measurement option: write
+ nSamples: 1, time interval: 6.640048894e-08
+ nAverages: 300, time interval: 1.992014668e-05
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+Resetting fields at output until time: 2.456818091e-06
+ measurement option: write
+ nSamples: 1, time interval: 6.640048894e-08
+ nAverages: 300, time interval: 1.992014668e-05
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Creating the boundary models: 
+
+Selecting dsmcPatchBoundaryModel dsmcDeletionPatch
+Selecting dsmcPatchBoundaryModel dsmcDeletionPatch
+Selecting dsmcPatchBoundaryModel dsmcDiffuseWallPatch
+Selecting dsmcGeneralBoundaryModel dsmcFreeStreamInflowPatch
+Selecting BinaryCollisionModel LarsenBorgnakkeVariableHardSphere
+OpenMP enabled for dsmcCloud with 8 thread-local RNG streams using collision schedule 'dynamic' (chunk 8)', move kernel enabled (static, chunk 64), adaptive partition enabled (interval 5, imbalance 1.1, drift 0.1), collision partition cost (candidate x1, active-cell x0)
+
+Constructing constant properties for
+    N2
+    O2
+    NO
+    N
+    O
+
+Creating dsmcReactions
+
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationExchangeQK
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationExchangeQK
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationExchangeQK
+Selecting the reaction model dissociationExchangeQK
+Selecting the reaction model dissociationQK
+Number of reactions created: 12
+Selecting collisionPartnerSelectionModel noTimeCounter
+
+Initialising the measurement fields
+
+Initialising dsmcVolFields field
+Initialising dsmcVolFields field
+Initialising dsmcVolFields field
+Initialising dsmcVolFields field
+Initialising dsmcVolFields field
+Initialising dsmcVolFields field
+DSMC dynamic load balancing: disabled, mode external-repartition, check interval 1, cooldown 0, max imbalance 0.1, timer gate off
+
+Starting time loop
+
+ExecutionTime = 4.01 s  ClockTime = 3 s
+
+ExecutionTime = 5.18 s  ClockTime = 4 s
+
+ExecutionTime = 6.3 s  ClockTime = 4 s
+
+ExecutionTime = 7.47 s  ClockTime = 4 s
+
+ExecutionTime = 8.58 s  ClockTime = 4 s
+
+ExecutionTime = 9.8 s  ClockTime = 4 s
+
+ExecutionTime = 11.06 s  ClockTime = 4 s
+
+ExecutionTime = 12.2 s  ClockTime = 5 s
+
+ExecutionTime = 13.42 s  ClockTime = 5 s
+
+Time = 6.640048894e-07
+
+    Collisions                      = 27474
+    Collision candidates           = 96055
+    Collision acceptance rate      = 0.2860236323
+    Candidate-cell sigmaTcRMax avg/max/min = 1.000000383e-15 / 1.020574358e-15 / 1e-15
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1330296
+    Number of molecules             = 7.981776e+15
+    Mass in system                  = 3.827917753e-10
+    Average linear kinetic energy   = 1.893627628e-19
+    Average rotational energy       = 1.337017068e-21
+    Average vibrational energy      = 2.157541836e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.122751983e-19
+ExecutionTime = 14.75 s  ClockTime = 5 s
+
+ExecutionTime = 15.95 s  ClockTime = 5 s
+
+ExecutionTime = 17.17 s  ClockTime = 5 s
+
+ExecutionTime = 18.39 s  ClockTime = 5 s
+
+ExecutionTime = 19.63 s  ClockTime = 6 s
+
+ExecutionTime = 20.88 s  ClockTime = 6 s
+
+ExecutionTime = 22.11 s  ClockTime = 6 s
+
+ExecutionTime = 23.49 s  ClockTime = 6 s
+
+ExecutionTime = 24.82 s  ClockTime = 6 s
+
+ExecutionTime = 26.12 s  ClockTime = 6 s
+
+Time = 1.328009779e-06
+
+    Collisions                      = 36914
+    Collision candidates           = 113838
+    Collision acceptance rate      = 0.3242678192
+    Candidate-cell sigmaTcRMax avg/max/min = 1.000007223e-15 / 1.039185657e-15 / 1e-15
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1353941
+    Number of molecules             = 8.123646e+15
+    Mass in system                  = 3.895963468e-10
+    Average linear kinetic energy   = 1.866275416e-19
+    Average rotational energy       = 1.571828253e-21
+    Average vibrational energy      = 2.157542685e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.097747967e-19
+ExecutionTime = 27.83 s  ClockTime = 7 s
+
+ExecutionTime = 29.28 s  ClockTime = 7 s
+
+ExecutionTime = 30.92 s  ClockTime = 7 s
+
+ExecutionTime = 32.48 s  ClockTime = 7 s
+
+ExecutionTime = 33.86 s  ClockTime = 7 s
+
+ExecutionTime = 35.3 s  ClockTime = 8 s
+
+ExecutionTime = 36.73 s  ClockTime = 8 s
+
+ExecutionTime = 38.11 s  ClockTime = 8 s
+
+ExecutionTime = 39.49 s  ClockTime = 8 s
+
+ExecutionTime = 40.88 s  ClockTime = 8 s
+
+Time = 1.992014668e-06
+
+    Collisions                      = 47123
+    Collision candidates           = 133394
+    Collision acceptance rate      = 0.3532617659
+    Candidate-cell sigmaTcRMax avg/max/min = 1.000062762e-15 / 1.141488473e-15 / 1e-15
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1377416
+    Number of molecules             = 8.264496e+15
+    Mass in system                  = 3.963528924e-10
+    Average linear kinetic energy   = 1.841897677e-19
+    Average rotational energy       = 1.895550905e-21
+    Average vibrational energy      = 2.157524178e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.076605604e-19
+ExecutionTime = 42.51 s  ClockTime = 9 s
+
+ExecutionTime = 43.9 s  ClockTime = 9 s
+
+ExecutionTime = 45.31 s  ClockTime = 9 s
+
+ExecutionTime = 46.8 s  ClockTime = 9 s
+
+ExecutionTime = 48.17 s  ClockTime = 9 s
+
+ExecutionTime = 49.67 s  ClockTime = 9 s
+
+ExecutionTime = 51.23 s  ClockTime = 10 s
+
+
+Start sample at time 2.456818091e-06 and step 37
+
+
+Start sample at time 2.456818091e-06 and step 37
+
+
+Start sample at time 2.456818091e-06 and step 37
+
+
+Start sample at time 2.456818091e-06 and step 37
+
+
+Start sample at time 2.456818091e-06 and step 37
+
+
+Start sample at time 2.456818091e-06 and step 37
+
+ExecutionTime = 52.77 s  ClockTime = 10 s
+
+ExecutionTime = 54.17 s  ClockTime = 10 s
+
+ExecutionTime = 55.58 s  ClockTime = 10 s
+
+Time = 2.656019558e-06
+
+    Collisions                      = 57092
+    Collision candidates           = 152380
+    Collision acceptance rate      = 0.3746685917
+    Candidate-cell sigmaTcRMax avg/max/min = 1.000229347e-15 / 1.158433581e-15 / 1e-15
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1401007
+    Number of molecules             = 8.406042e+15
+    Mass in system                  = 4.031384656e-10
+    Average linear kinetic energy   = 1.819767485e-19
+    Average rotational energy       = 2.284634819e-21
+    Average vibrational energy      = 2.157566455e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.058370478e-19
+ExecutionTime = 57.27 s  ClockTime = 11 s
+
+ExecutionTime = 58.72 s  ClockTime = 11 s
+
+ExecutionTime = 60.16 s  ClockTime = 11 s
+
+ExecutionTime = 61.62 s  ClockTime = 11 s
+
+ExecutionTime = 63.03 s  ClockTime = 11 s
+
+ExecutionTime = 64.62 s  ClockTime = 11 s
+
+ExecutionTime = 66.06 s  ClockTime = 12 s
+
+ExecutionTime = 67.53 s  ClockTime = 12 s
+
+ExecutionTime = 68.99 s  ClockTime = 12 s
+
+ExecutionTime = 70.43 s  ClockTime = 12 s
+
+Time = 3.320024447e-06
+
+    Collisions                      = 66973
+    Collision candidates           = 171978
+    Collision acceptance rate      = 0.3894277175
+    Candidate-cell sigmaTcRMax avg/max/min = 1.000568232e-15 / 1.202410214e-15 / 1e-15
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1424460
+    Number of molecules             = 8.54676e+15
+    Mass in system                  = 4.098888335e-10
+    Average linear kinetic energy   = 1.799728788e-19
+    Average rotational energy       = 2.723076579e-21
+    Average vibrational energy      = 2.15754609e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.042714163e-19
+ExecutionTime = 72.26 s  ClockTime = 13 s
+
+ExecutionTime = 73.83 s  ClockTime = 13 s
+
+ExecutionTime = 75.34 s  ClockTime = 13 s
+
+ExecutionTime = 76.83 s  ClockTime = 13 s
+
+ExecutionTime = 78.35 s  ClockTime = 13 s
+
+ExecutionTime = 79.85 s  ClockTime = 14 s
+
+ExecutionTime = 81.38 s  ClockTime = 14 s
+
+ExecutionTime = 82.96 s  ClockTime = 14 s
+
+ExecutionTime = 84.92 s  ClockTime = 14 s
+
+ExecutionTime = 86.51 s  ClockTime = 14 s
+
+Time = 3.984029336e-06
+
+    Collisions                      = 77033
+    Collision candidates           = 190907
+    Collision acceptance rate      = 0.4035106099
+    Candidate-cell sigmaTcRMax avg/max/min = 1.001175502e-15 / 1.215224462e-15 / 1e-15
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1447657
+    Number of molecules             = 8.685942e+15
+    Mass in system                  = 4.165615811e-10
+    Average linear kinetic energy   = 1.780864174e-19
+    Average rotational energy       = 3.206917623e-21
+    Average vibrational energy      = 2.157583647e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.028691715e-19
+ExecutionTime = 88.65 s  ClockTime = 15 s
+
+ExecutionTime = 90.3 s  ClockTime = 15 s
+
+ExecutionTime = 91.96 s  ClockTime = 15 s
+
+ExecutionTime = 93.62 s  ClockTime = 15 s
+
+ExecutionTime = 95.17 s  ClockTime = 16 s
+
+ExecutionTime = 96.82 s  ClockTime = 16 s
+
+ExecutionTime = 98.64 s  ClockTime = 16 s
+
+ExecutionTime = 100.22 s  ClockTime = 16 s
+
+ExecutionTime = 102.09 s  ClockTime = 16 s
+
+ExecutionTime = 103.68 s  ClockTime = 17 s
+
+Time = 4.648034226e-06
+
+    Collisions                      = 85931
+    Collision candidates           = 209559
+    Collision acceptance rate      = 0.4100563564
+    Candidate-cell sigmaTcRMax avg/max/min = 1.001820554e-15 / 1.238110112e-15 / 1e-15
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1471325
+    Number of molecules             = 8.82795e+15
+    Mass in system                  = 4.233704247e-10
+    Average linear kinetic energy   = 1.763449627e-19
+    Average rotational energy       = 3.691634628e-21
+    Average vibrational energy      = 2.157644245e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.016130398e-19
+ExecutionTime = 105.75 s  ClockTime = 17 s
+
+ExecutionTime = 107.4 s  ClockTime = 17 s
+
+ExecutionTime = 109.02 s  ClockTime = 17 s
+
+ExecutionTime = 110.61 s  ClockTime = 18 s
+
+ExecutionTime = 112.24 s  ClockTime = 18 s
+
+ExecutionTime = 113.88 s  ClockTime = 18 s
+
+ExecutionTime = 115.48 s  ClockTime = 18 s
+
+ExecutionTime = 117.16 s  ClockTime = 18 s
+
+ExecutionTime = 118.79 s  ClockTime = 19 s
+
+ExecutionTime = 120.42 s  ClockTime = 19 s
+
+Time = 5.312039115e-06
+
+    Collisions                      = 95129
+    Collision candidates           = 227219
+    Collision acceptance rate      = 0.4186665728
+    Candidate-cell sigmaTcRMax avg/max/min = 1.002667955e-15 / 1.258349049e-15 / 1e-15
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1494490
+    Number of molecules             = 8.96694e+15
+    Mass in system                  = 4.300326952e-10
+    Average linear kinetic energy   = 1.747391963e-19
+    Average rotational energy       = 4.180619397e-21
+    Average vibrational energy      = 2.157727852e-20
+    Average electronic energy       = 0
+    Average total energy            = 2.004970943e-19
+ExecutionTime = 122.54 s  ClockTime = 19 s
+
+ExecutionTime = 124.13 s  ClockTime = 19 s
+
+ExecutionTime = 125.73 s  ClockTime = 20 s
+
+ExecutionTime = 127.44 s  ClockTime = 20 s
+
+ExecutionTime = 129.42 s  ClockTime = 20 s
+
+ExecutionTime = 131.08 s  ClockTime = 20 s
+
+ExecutionTime = 132.73 s  ClockTime = 20 s
+
+ExecutionTime = 134.63 s  ClockTime = 21 s
+
+ExecutionTime = 136.59 s  ClockTime = 21 s
+
+ExecutionTime = 138.35 s  ClockTime = 21 s
+
+Time = 5.976044005e-06
+
+    Collisions                      = 103328
+    Collision candidates           = 243920
+    Collision acceptance rate      = 0.4236142998
+    Candidate-cell sigmaTcRMax avg/max/min = 1.003591873e-15 / 1.288087916e-15 / 1e-15
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1517834
+    Number of molecules             = 9.107004e+15
+    Mass in system                  = 4.367499511e-10
+    Average linear kinetic energy   = 1.732084553e-19
+    Average rotational energy       = 4.704559367e-21
+    Average vibrational energy      = 2.157761377e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.994906285e-19
+ExecutionTime = 140.62 s  ClockTime = 22 s
+
+ExecutionTime = 142.26 s  ClockTime = 20 s
+
+ExecutionTime = 143.88 s  ClockTime = 20 s
+
+ExecutionTime = 145.48 s  ClockTime = 21 s
+
+ExecutionTime = 147.12 s  ClockTime = 21 s
+
+ExecutionTime = 148.73 s  ClockTime = 21 s
+
+ExecutionTime = 150.46 s  ClockTime = 21 s
+
+ExecutionTime = 152.2 s  ClockTime = 22 s
+
+ExecutionTime = 153.88 s  ClockTime = 22 s
+
+ExecutionTime = 155.5 s  ClockTime = 22 s
+
+Time = 6.640048894e-06
+
+    Collisions                      = 111724
+    Collision candidates           = 260414
+    Collision acceptance rate      = 0.4290245532
+    Candidate-cell sigmaTcRMax avg/max/min = 1.00459248e-15 / 1.294000881e-15 / 1e-15
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1540704
+    Number of molecules             = 9.244224e+15
+    Mass in system                  = 4.433268582e-10
+    Average linear kinetic energy   = 1.717849164e-19
+    Average rotational energy       = 5.219514791e-21
+    Average vibrational energy      = 2.157844648e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.985828777e-19
+ExecutionTime = 157.7 s  ClockTime = 22 s
+
+ExecutionTime = 159.38 s  ClockTime = 22 s
+
+ExecutionTime = 161.05 s  ClockTime = 23 s
+
+ExecutionTime = 162.73 s  ClockTime = 23 s
+
+ExecutionTime = 164.41 s  ClockTime = 23 s
+
+ExecutionTime = 166.08 s  ClockTime = 23 s
+
+ExecutionTime = 167.82 s  ClockTime = 24 s
+
+ExecutionTime = 169.51 s  ClockTime = 24 s
+
+ExecutionTime = 171.3 s  ClockTime = 24 s
+
+ExecutionTime = 173.03 s  ClockTime = 24 s
+
+Time = 7.304053783e-06
+
+    Collisions                      = 119858
+    Collision candidates           = 277167
+    Collision acceptance rate      = 0.4324396483
+    Candidate-cell sigmaTcRMax avg/max/min = 1.005499619e-15 / 1.294000881e-15 / 1e-15
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1563533
+    Number of molecules             = 9.381198e+15
+    Mass in system                  = 4.498965763e-10
+    Average linear kinetic energy   = 1.704217985e-19
+    Average rotational energy       = 5.730205919e-21
+    Average vibrational energy      = 2.15794808e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.977314852e-19
+ExecutionTime = 175.42 s  ClockTime = 24 s
+
+ExecutionTime = 177.15 s  ClockTime = 25 s
+
+ExecutionTime = 178.86 s  ClockTime = 25 s
+
+ExecutionTime = 180.54 s  ClockTime = 25 s
+
+ExecutionTime = 182.24 s  ClockTime = 25 s
+
+ExecutionTime = 184.01 s  ClockTime = 26 s
+
+ExecutionTime = 185.73 s  ClockTime = 26 s
+
+ExecutionTime = 187.48 s  ClockTime = 26 s
+
+ExecutionTime = 189.21 s  ClockTime = 26 s
+
+ExecutionTime = 191 s  ClockTime = 27 s
+
+Time = 7.968058673e-06
+
+    Collisions                      = 127836
+    Collision candidates           = 292883
+    Collision acceptance rate      = 0.4364746332
+    Candidate-cell sigmaTcRMax avg/max/min = 1.006548991e-15 / 1.301268791e-15 / 1e-15
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1586285
+    Number of molecules             = 9.51771e+15
+    Mass in system                  = 4.564485054e-10
+    Average linear kinetic energy   = 1.691383471e-19
+    Average rotational energy       = 6.236088587e-21
+    Average vibrational energy      = 2.157905919e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.969534949e-19
+ExecutionTime = 193.34 s  ClockTime = 27 s
+
+ExecutionTime = 195.12 s  ClockTime = 27 s
+
+ExecutionTime = 196.85 s  ClockTime = 27 s
+
+ExecutionTime = 198.59 s  ClockTime = 28 s
+
+ExecutionTime = 200.44 s  ClockTime = 28 s
+
+ExecutionTime = 202.21 s  ClockTime = 28 s
+
+ExecutionTime = 203.95 s  ClockTime = 28 s
+
+ExecutionTime = 205.7 s  ClockTime = 29 s
+
+ExecutionTime = 207.46 s  ClockTime = 29 s
+
+ExecutionTime = 209.21 s  ClockTime = 29 s
+
+Time = 8.632063562e-06
+
+    Collisions                      = 134528
+    Collision candidates           = 306854
+    Collision acceptance rate      = 0.4384104493
+    Candidate-cell sigmaTcRMax avg/max/min = 1.007604343e-15 / 1.301268791e-15 / 1e-15
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1608651
+    Number of molecules             = 9.651906e+15
+    Mass in system                  = 4.628891657e-10
+    Average linear kinetic energy   = 1.679462278e-19
+    Average rotational energy       = 6.728726934e-21
+    Average vibrational energy      = 2.157889664e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.962538514e-19
+ExecutionTime = 211.66 s  ClockTime = 29 s
+
+ExecutionTime = 213.42 s  ClockTime = 30 s
+
+ExecutionTime = 215.28 s  ClockTime = 30 s
+
+ExecutionTime = 217.15 s  ClockTime = 30 s
+
+ExecutionTime = 218.95 s  ClockTime = 30 s
+
+ExecutionTime = 220.79 s  ClockTime = 31 s
+
+ExecutionTime = 222.7 s  ClockTime = 31 s
+
+ExecutionTime = 224.51 s  ClockTime = 31 s
+
+ExecutionTime = 226.31 s  ClockTime = 31 s
+
+ExecutionTime = 228.14 s  ClockTime = 32 s
+
+Time = 9.296068452e-06
+
+    Collisions                      = 142497
+    Collision candidates           = 322277
+    Collision acceptance rate      = 0.4421569023
+    Candidate-cell sigmaTcRMax avg/max/min = 1.008679494e-15 / 1.350406254e-15 / 1e-15
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1631406
+    Number of molecules             = 9.788436e+15
+    Mass in system                  = 4.694318429e-10
+    Average linear kinetic energy   = 1.668101007e-19
+    Average rotational energy       = 7.214396571e-21
+    Average vibrational energy      = 2.157984931e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.956043466e-19
+ExecutionTime = 230.61 s  ClockTime = 32 s
+
+ExecutionTime = 232.4 s  ClockTime = 32 s
+
+ExecutionTime = 234.25 s  ClockTime = 32 s
+
+ExecutionTime = 236.14 s  ClockTime = 33 s
+
+ExecutionTime = 238 s  ClockTime = 33 s
+
+ExecutionTime = 239.76 s  ClockTime = 33 s
+
+ExecutionTime = 241.58 s  ClockTime = 33 s
+
+ExecutionTime = 243.43 s  ClockTime = 33 s
+
+ExecutionTime = 245.28 s  ClockTime = 34 s
+
+ExecutionTime = 247.14 s  ClockTime = 34 s
+
+Time = 9.960073341e-06
+
+    Collisions                      = 150077
+    Collision candidates           = 336732
+    Collision acceptance rate      = 0.4456867776
+    Candidate-cell sigmaTcRMax avg/max/min = 1.009715042e-15 / 1.350406254e-15 / 1e-15
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1653519
+    Number of molecules             = 9.921114e+15
+    Mass in system                  = 4.757954021e-10
+    Average linear kinetic energy   = 1.656894601e-19
+    Average rotational energy       = 7.705185085e-21
+    Average vibrational energy      = 2.158049543e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.949751406e-19
+ExecutionTime = 249.77 s  ClockTime = 34 s
+
+ExecutionTime = 251.6 s  ClockTime = 35 s
+
+ExecutionTime = 253.51 s  ClockTime = 35 s
+
+ExecutionTime = 255.42 s  ClockTime = 35 s
+
+ExecutionTime = 257.27 s  ClockTime = 35 s
+
+ExecutionTime = 259.15 s  ClockTime = 36 s
+
+ExecutionTime = 261.07 s  ClockTime = 36 s
+
+ExecutionTime = 262.94 s  ClockTime = 36 s
+
+ExecutionTime = 264.83 s  ClockTime = 36 s
+
+ExecutionTime = 266.74 s  ClockTime = 37 s
+
+Time = 1.062407823e-05
+
+    Collisions                      = 157010
+    Collision candidates           = 350747
+    Collision acceptance rate      = 0.4476445985
+    Candidate-cell sigmaTcRMax avg/max/min = 1.010728887e-15 / 1.419629164e-15 / 1e-15
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1675549
+    Number of molecules             = 1.0053294e+16
+    Mass in system                  = 4.821273439e-10
+    Average linear kinetic energy   = 1.64654828e-19
+    Average rotational energy       = 8.166496999e-21
+    Average vibrational energy      = 2.15818148e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.944031398e-19
+ExecutionTime = 269.34 s  ClockTime = 37 s
+
+ExecutionTime = 271.23 s  ClockTime = 37 s
+
+ExecutionTime = 273.16 s  ClockTime = 37 s
+
+ExecutionTime = 275.03 s  ClockTime = 38 s
+
+ExecutionTime = 276.94 s  ClockTime = 38 s
+
+ExecutionTime = 278.87 s  ClockTime = 38 s
+
+ExecutionTime = 280.87 s  ClockTime = 39 s
+
+ExecutionTime = 282.77 s  ClockTime = 39 s
+
+ExecutionTime = 284.69 s  ClockTime = 39 s
+
+ExecutionTime = 286.62 s  ClockTime = 39 s
+
+Time = 1.128808312e-05
+
+    Collisions                      = 164279
+    Collision candidates           = 365251
+    Collision acceptance rate      = 0.4497701581
+    Candidate-cell sigmaTcRMax avg/max/min = 1.011764555e-15 / 1.419629164e-15 / 1e-15
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1697262
+    Number of molecules             = 1.0183572e+16
+    Mass in system                  = 4.88377198e-10
+    Average linear kinetic energy   = 1.636453387e-19
+    Average rotational energy       = 8.617638467e-21
+    Average vibrational energy      = 2.158194119e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.938449183e-19
+ExecutionTime = 289.42 s  ClockTime = 40 s
+
+ExecutionTime = 291.33 s  ClockTime = 40 s
+
+ExecutionTime = 293.21 s  ClockTime = 40 s
+
+ExecutionTime = 295.16 s  ClockTime = 40 s
+
+ExecutionTime = 297.09 s  ClockTime = 41 s
+
+ExecutionTime = 299.03 s  ClockTime = 41 s
+
+ExecutionTime = 300.93 s  ClockTime = 41 s
+
+ExecutionTime = 302.96 s  ClockTime = 41 s
+
+ExecutionTime = 304.98 s  ClockTime = 42 s
+
+ExecutionTime = 307.09 s  ClockTime = 42 s
+
+Time = 1.195208801e-05
+
+    Collisions                      = 170785
+    Collision candidates           = 378681
+    Collision acceptance rate      = 0.4509996541
+    Candidate-cell sigmaTcRMax avg/max/min = 1.012731585e-15 / 1.419629164e-15 / 1e-15
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1718575
+    Number of molecules             = 1.031145e+16
+    Mass in system                  = 4.94510209e-10
+    Average linear kinetic energy   = 1.626778559e-19
+    Average rotational energy       = 9.07452227e-21
+    Average vibrational energy      = 2.158241625e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.933347944e-19
+ExecutionTime = 309.95 s  ClockTime = 42 s
+
+ExecutionTime = 311.94 s  ClockTime = 43 s
+
+ExecutionTime = 313.89 s  ClockTime = 43 s
+
+ExecutionTime = 315.86 s  ClockTime = 43 s
+
+ExecutionTime = 317.82 s  ClockTime = 43 s
+
+ExecutionTime = 319.8 s  ClockTime = 44 s
+
+ExecutionTime = 321.83 s  ClockTime = 44 s
+
+ExecutionTime = 323.81 s  ClockTime = 44 s
+
+ExecutionTime = 325.81 s  ClockTime = 44 s
+
+ExecutionTime = 327.79 s  ClockTime = 45 s
+
+Time = 1.26160929e-05
+
+    Collisions                      = 177730
+    Collision candidates           = 391904
+    Collision acceptance rate      = 0.4535039193
+    Candidate-cell sigmaTcRMax avg/max/min = 1.013787498e-15 / 1.419629164e-15 / 1e-15
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1740036
+    Number of molecules             = 1.0440216e+16
+    Mass in system                  = 5.006840751e-10
+    Average linear kinetic energy   = 1.617535523e-19
+    Average rotational energy       = 9.50835787e-21
+    Average vibrational energy      = 2.158290133e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.928448115e-19
+ExecutionTime = 330.78 s  ClockTime = 45 s
+
+ExecutionTime = 332.78 s  ClockTime = 45 s
+
+ExecutionTime = 334.79 s  ClockTime = 46 s
+
+ExecutionTime = 337.19 s  ClockTime = 46 s
+
+ExecutionTime = 339.31 s  ClockTime = 46 s
+
+ExecutionTime = 341.4 s  ClockTime = 47 s
+
+ExecutionTime = 343.45 s  ClockTime = 47 s
+
+ExecutionTime = 345.69 s  ClockTime = 47 s
+
+ExecutionTime = 347.71 s  ClockTime = 47 s
+
+ExecutionTime = 349.69 s  ClockTime = 48 s
+
+Time = 1.328009779e-05
+
+    Collisions                      = 183800
+    Collision candidates           = 403758
+    Collision acceptance rate      = 0.4552231782
+    Candidate-cell sigmaTcRMax avg/max/min = 1.014708162e-15 / 1.419629164e-15 / 1e-15
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1761115
+    Number of molecules             = 1.056669e+16
+    Mass in system                  = 5.067547791e-10
+    Average linear kinetic energy   = 1.609039868e-19
+    Average rotational energy       = 9.90055605e-21
+    Average vibrational energy      = 2.158361255e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.923881554e-19
+ExecutionTime = 352.65 s  ClockTime = 48 s
+
+ExecutionTime = 354.59 s  ClockTime = 48 s
+
+ExecutionTime = 356.61 s  ClockTime = 48 s
+
+ExecutionTime = 358.71 s  ClockTime = 49 s
+
+ExecutionTime = 360.78 s  ClockTime = 49 s
+
+ExecutionTime = 362.82 s  ClockTime = 49 s
+
+ExecutionTime = 364.84 s  ClockTime = 49 s
+
+ExecutionTime = 366.89 s  ClockTime = 50 s
+
+ExecutionTime = 369.12 s  ClockTime = 50 s
+
+ExecutionTime = 371.15 s  ClockTime = 50 s
+
+Time = 1.394410268e-05
+
+    Collisions                      = 189449
+    Collision candidates           = 415516
+    Collision acceptance rate      = 0.4559367148
+    Candidate-cell sigmaTcRMax avg/max/min = 1.015676165e-15 / 1.419629164e-15 / 1e-15
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1781770
+    Number of molecules             = 1.069062e+16
+    Mass in system                  = 5.126930467e-10
+    Average linear kinetic energy   = 1.600158935e-19
+    Average rotational energy       = 1.033427956e-20
+    Average vibrational energy      = 2.158546902e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.919356421e-19
+ExecutionTime = 374.18 s  ClockTime = 51 s
+
+ExecutionTime = 376.23 s  ClockTime = 51 s
+
+ExecutionTime = 378.27 s  ClockTime = 51 s
+
+ExecutionTime = 380.37 s  ClockTime = 52 s
+
+ExecutionTime = 382.48 s  ClockTime = 52 s
+
+ExecutionTime = 384.73 s  ClockTime = 52 s
+
+ExecutionTime = 386.93 s  ClockTime = 52 s
+
+ExecutionTime = 389.18 s  ClockTime = 51 s
+
+ExecutionTime = 391.3 s  ClockTime = 51 s
+
+ExecutionTime = 393.46 s  ClockTime = 52 s
+
+Time = 1.460810757e-05
+
+    Collisions                      = 195551
+    Collision candidates           = 427425
+    Collision acceptance rate      = 0.4575095046
+    Candidate-cell sigmaTcRMax avg/max/min = 1.016642355e-15 / 1.419629164e-15 / 1e-15
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1802375
+    Number of molecules             = 1.081425e+16
+    Mass in system                  = 5.186210186e-10
+    Average linear kinetic energy   = 1.591885939e-19
+    Average rotational energy       = 1.075208771e-20
+    Average vibrational energy      = 2.15869226e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.915276043e-19
+ExecutionTime = 396.6 s  ClockTime = 52 s
+
+ExecutionTime = 398.68 s  ClockTime = 52 s
+
+ExecutionTime = 400.79 s  ClockTime = 53 s
+
+ExecutionTime = 402.88 s  ClockTime = 53 s
+
+ExecutionTime = 405.03 s  ClockTime = 53 s
+
+ExecutionTime = 407.18 s  ClockTime = 54 s
+
+ExecutionTime = 409.62 s  ClockTime = 54 s
+
+ExecutionTime = 411.78 s  ClockTime = 54 s
+
+ExecutionTime = 413.91 s  ClockTime = 54 s
+
+ExecutionTime = 416.02 s  ClockTime = 55 s
+
+Time = 1.527211246e-05
+
+    Collisions                      = 200951
+    Collision candidates           = 439468
+    Collision acceptance rate      = 0.4572596867
+    Candidate-cell sigmaTcRMax avg/max/min = 1.017617202e-15 / 1.419629164e-15 / 1e-15
+
+Cloud name: dsmc
+    Number of dsmc particles        = 1822742
+    Number of molecules             = 1.0936452e+16
+    Mass in system                  = 5.244845348e-10
+    Average linear kinetic energy   = 1.583617327e-19
+    Average rotational energy       = 1.115850792e-20
+    Average vibrational energy      = 2.158729231e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.911075329e-19
+ExecutionTime = 419.3 s  ClockTime = 55 s
+
+ExecutionTime = 421.52 s  ClockTime = 55 s
+
+ExecutionTime = 423.72 s  ClockTime = 56 s
+
+ExecutionTime = 425.93 s  ClockTime = 56 s
+
+ExecutionTime = 428.1 s  ClockTime = 56 s
+
+ExecutionTime = 430.23 s  ClockTime = 56 s
+
+ExecutionTime = 432.33 s  ClockTime = 57 s
+
+ExecutionTime = 434.46 s  ClockTime = 57 s
+
+ExecutionTime = 436.6 s  ClockTime = 57 s
+
+ExecutionTime = 439.96 s  ClockTime = 58 s
+
+Time = 1.593611735e-05
+
+    Collisions                      = 207660
+    Collision candidates           = 450960
+    Collision acceptance rate      = 0.4604843002
+    Candidate-cell sigmaTcRMax avg/max/min = 1.018549951e-15 / 1.419629164e-15 / 1e-15
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 1
+Cloud name: dsmc
+    Number of dsmc particles        = 1842666
+    Number of molecules             = 1.1055996e+16
+    Mass in system                  = 5.302093198e-10
+    Average linear kinetic energy   = 1.575984856e-19
+    Average rotational energy       = 1.153333496e-20
+    Average vibrational energy      = 2.158872352e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.907205441e-19
+ExecutionTime = 444.27 s  ClockTime = 58 s
+
+ExecutionTime = 446.4 s  ClockTime = 59 s
+
+ExecutionTime = 448.62 s  ClockTime = 59 s
+
+ExecutionTime = 450.78 s  ClockTime = 59 s
+
+ExecutionTime = 454.08 s  ClockTime = 60 s
+
+ExecutionTime = 457.36 s  ClockTime = 60 s
+
+ExecutionTime = 459.57 s  ClockTime = 60 s
+
+ExecutionTime = 461.77 s  ClockTime = 61 s
+
+ExecutionTime = 463.99 s  ClockTime = 61 s
+
+ExecutionTime = 466.22 s  ClockTime = 61 s
+
+Time = 1.660012224e-05
+
+    Collisions                      = 212281
+    Collision candidates           = 462924
+    Collision acceptance rate      = 0.4585655529
+    Candidate-cell sigmaTcRMax avg/max/min = 1.01957606e-15 / 1.419629164e-15 / 1e-15
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 1
+Cloud name: dsmc
+    Number of dsmc particles        = 1862360
+    Number of molecules             = 1.117416e+16
+    Mass in system                  = 5.358793086e-10
+    Average linear kinetic energy   = 1.568509732e-19
+    Average rotational energy       = 1.190720184e-20
+    Average vibrational energy      = 2.158925893e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.90347434e-19
+ExecutionTime = 469.59 s  ClockTime = 62 s
+
+ExecutionTime = 471.75 s  ClockTime = 62 s
+
+ExecutionTime = 474 s  ClockTime = 62 s
+
+ExecutionTime = 476.22 s  ClockTime = 63 s
+
+ExecutionTime = 478.5 s  ClockTime = 63 s
+
+ExecutionTime = 480.74 s  ClockTime = 63 s
+
+ExecutionTime = 482.99 s  ClockTime = 64 s
+
+ExecutionTime = 485.25 s  ClockTime = 64 s
+
+ExecutionTime = 487.46 s  ClockTime = 64 s
+
+ExecutionTime = 489.92 s  ClockTime = 64 s
+
+Time = 1.726412712e-05
+
+    Collisions                      = 217705
+    Collision candidates           = 472938
+    Collision acceptance rate      = 0.4603246091
+    Candidate-cell sigmaTcRMax avg/max/min = 1.020466702e-15 / 1.419629164e-15 / 1e-15
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Cloud name: dsmc
+    Number of dsmc particles        = 1881905
+    Number of molecules             = 1.129143e+16
+    Mass in system                  = 5.415006175e-10
+    Average linear kinetic energy   = 1.561268199e-19
+    Average rotational energy       = 1.2282878e-20
+    Average vibrational energy      = 2.159126621e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.900009641e-19
+ExecutionTime = 493.32 s  ClockTime = 65 s
+
+ExecutionTime = 495.52 s  ClockTime = 65 s
+
+ExecutionTime = 497.73 s  ClockTime = 65 s
+
+ExecutionTime = 499.98 s  ClockTime = 66 s
+
+ExecutionTime = 502.21 s  ClockTime = 66 s
+
+ExecutionTime = 504.93 s  ClockTime = 66 s
+
+ExecutionTime = 507.45 s  ClockTime = 67 s
+
+ExecutionTime = 509.82 s  ClockTime = 67 s
+
+ExecutionTime = 512.16 s  ClockTime = 67 s
+
+ExecutionTime = 514.42 s  ClockTime = 68 s
+
+Time = 1.792813201e-05
+
+    Collisions                      = 224135
+    Collision candidates           = 484939
+    Collision acceptance rate      = 0.462192152
+    Candidate-cell sigmaTcRMax avg/max/min = 1.021297152e-15 / 1.419629164e-15 / 1e-15
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Cloud name: dsmc
+    Number of dsmc particles        = 1900991
+    Number of molecules             = 1.1405946e+16
+    Mass in system                  = 5.469976786e-10
+    Average linear kinetic energy   = 1.554117826e-19
+    Average rotational energy       = 1.265607108e-20
+    Average vibrational energy      = 2.15924556e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.896603092e-19
+ExecutionTime = 517.93 s  ClockTime = 68 s
+
+ExecutionTime = 520.18 s  ClockTime = 68 s
+
+ExecutionTime = 522.46 s  ClockTime = 69 s
+
+ExecutionTime = 524.69 s  ClockTime = 69 s
+
+ExecutionTime = 527 s  ClockTime = 69 s
+
+ExecutionTime = 529.22 s  ClockTime = 70 s
+
+ExecutionTime = 531.48 s  ClockTime = 70 s
+
+ExecutionTime = 533.76 s  ClockTime = 70 s
+
+ExecutionTime = 536.07 s  ClockTime = 71 s
+
+ExecutionTime = 538.36 s  ClockTime = 71 s
+
+Time = 1.85921369e-05
+
+    Collisions                      = 230108
+    Collision candidates           = 495739
+    Collision acceptance rate      = 0.464171671
+    Candidate-cell sigmaTcRMax avg/max/min = 1.022214459e-15 / 1.419629164e-15 / 1e-15
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Cloud name: dsmc
+    Number of dsmc particles        = 1920055
+    Number of molecules             = 1.152033e+16
+    Mass in system                  = 5.524822464e-10
+    Average linear kinetic energy   = 1.54719609e-19
+    Average rotational energy       = 1.300191846e-20
+    Average vibrational energy      = 2.159340817e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.893149356e-19
+ExecutionTime = 541.97 s  ClockTime = 71 s
+
+ExecutionTime = 544.27 s  ClockTime = 72 s
+
+ExecutionTime = 546.6 s  ClockTime = 72 s
+
+ExecutionTime = 549.28 s  ClockTime = 72 s
+
+ExecutionTime = 551.67 s  ClockTime = 73 s
+
+ExecutionTime = 554.03 s  ClockTime = 73 s
+
+ExecutionTime = 556.38 s  ClockTime = 73 s
+
+ExecutionTime = 558.67 s  ClockTime = 73 s
+
+ExecutionTime = 561.02 s  ClockTime = 74 s
+
+ExecutionTime = 563.34 s  ClockTime = 74 s
+
+Time = 1.925614179e-05
+
+    Collisions                      = 235275
+    Collision candidates           = 506818
+    Collision acceptance rate      = 0.4642198975
+    Candidate-cell sigmaTcRMax avg/max/min = 1.023170002e-15 / 1.419629164e-15 / 1e-15
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Cloud name: dsmc
+    Number of dsmc particles        = 1938935
+    Number of molecules             = 1.163361e+16
+    Mass in system                  = 5.579152399e-10
+    Average linear kinetic energy   = 1.540378479e-19
+    Average rotational energy       = 1.334761782e-20
+    Average vibrational energy      = 2.159480776e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.889802735e-19
+ExecutionTime = 566.94 s  ClockTime = 75 s
+
+ExecutionTime = 569.21 s  ClockTime = 75 s
+
+ExecutionTime = 571.48 s  ClockTime = 75 s
+
+ExecutionTime = 573.81 s  ClockTime = 75 s
+
+ExecutionTime = 576.11 s  ClockTime = 76 s
+
+ExecutionTime = 578.43 s  ClockTime = 76 s
+
+ExecutionTime = 580.74 s  ClockTime = 76 s
+
+ExecutionTime = 583.1 s  ClockTime = 77 s
+
+ExecutionTime = 585.43 s  ClockTime = 77 s
+
+ExecutionTime = 587.76 s  ClockTime = 77 s
+
+Time = 1.992014668e-05
+
+    Collisions                      = 240977
+    Collision candidates           = 518328
+    Collision acceptance rate      = 0.4649121792
+    Candidate-cell sigmaTcRMax avg/max/min = 1.0240927e-15 / 1.419629164e-15 / 1e-15
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Cloud name: dsmc
+    Number of dsmc particles        = 1957421
+    Number of molecules             = 1.1744526e+16
+    Mass in system                  = 5.632344546e-10
+    Average linear kinetic energy   = 1.53372942e-19
+    Average rotational energy       = 1.367890511e-20
+    Average vibrational energy      = 2.159620221e-20
+    Average electronic energy       = 0
+    Average total energy            = 1.886480493e-19
+ExecutionTime = 591.54 s  ClockTime = 78 s
+
+
+Main loop profiling summary:
+    main loop wall time [s]      = 77.78039049
+    solver profile steps          = 300
+    runTime.loop [s]              = 0.006219445
+    loop header/output [s]        = 0.000367731
+    dsmc.evolve call [s]          = 74.7139864
+    loadBalancer.update [s]       = 0.007797467
+    loadBalancer.perform [s]      = 0.000324736
+    dsmc.info [s]                 = 3.009452358
+    runTime.write/print [s]       = 0.042052898
+    step residual [s]             = 0.000168588
+    solver accounted [s]          = 77.78036962
+    main-accounted residual [s]   = 2.086700002e-05
+
+Move profiling summary:
+    move calls                    = 600
+    move pre-control/partition [s]= 5.192601839
+    move reset/setup [s]          = 0.002838091
+    move extract parcels [s]      = 0.467049948
+    move parallel kernel wall [s] = 30.94076221
+    move commit/survivor rebuild [s] = 1.357836244
+    move transfer/delete finalize [s] = 0
+    total profiled [s]            = 37.96108833
+
+BuildCellOccupancy profiling summary:
+    buildCellOccupancy calls      = 303
+    extract parcels [s]           = 0.289440657
+    count/reduce [s]              = 1.692023821
+    allocate/fill [s]             = 1.829923068
+    total profiled [s]            = 3.811387546
+
+Collision profiling summary:
+    collision calls               = 300
+    precompute candidates [s]     = 0.069160213
+    rebuild partition [s]         = 4.4693e-05
+    selection/collide [s]         = 20.23725855
+    total profiled [s]            = 20.30646346
+
+Evolve profiling summary:
+    evolve calls                  = 300
+    pre/update setup [s]          = 0.002215032
+    move only [s]                 = 38.10127114
+    buildCellOccupancy [s]        = 3.491106571
+    coordSystem [s]               = 0.000484942
+    collision phase [s]           = 20.61886309
+    reaction/output [s]           = 0.000330589
+    post fields/output [s]        = 12.49893663
+    rank-time bookkeeping [s]     = 0
+    auto DLB/rebalance [s]        = 0
+    post-profile residual [s]     = 0.000212177
+    total profiled [s]            = 74.71099296
+    full evolve accounted [s]     = 74.71342017
+    full evolve wall [s]          = 74.71342017
+    evolve residual [s]           = 7.105427358e-14
+
+End
+

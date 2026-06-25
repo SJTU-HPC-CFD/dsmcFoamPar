@@ -40,6 +40,7 @@ SourceFiles
 #include "polyMesh.H"
 #include "volFields.H"
 #include "dsmcCloud.H"
+#include "HashSet.H"
 #include <chrono>
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
@@ -153,9 +154,10 @@ protected:
         List<scalarField> dsmcN1stElecLvlSpeciesCum_;
         List<scalarField> speciesMfp_;
         List<scalarField> speciesMcr_;
+        labelList dsmcNResetCells_;
 
 
-      //- Boundary measurements
+        //- Boundary measurements
       
         List<scalarField> rhoNBF_;
         List<scalarField> rhoMBF_;
@@ -193,6 +195,8 @@ protected:
         bool writeRotationalTemperature_;
         bool writeVibrationalTemperature_;
         bool writeElectronicTemperature_;
+        bool restrictOutputFields_;
+        HashSet<word> outputFieldNames_;
         bool profileSummaryEnabled_;
         bool profileDetailEnabled_;
         scalar profileSampleAccumWallTime_;
@@ -209,9 +213,12 @@ protected:
         scalar profileFieldCombineWallTime_;
         scalar profileCellReduceWallTime_;
         scalar profileBoundaryAccumWallTime_;
+        scalar profileOutputSnapshotWallTime_;
+        scalar profileOutputReduceWallTime_;
         scalar profileOutputComputeWallTime_;
         scalar profileFieldWriteWallTime_;
         scalar profileOutputResetWallTime_;
+        scalar profileOutputRestoreWallTime_;
         scalar profileOutputTimeWallTime_;
         label profileCalls_;
         bool finalProfilePrinted_;
@@ -226,6 +233,13 @@ protected:
         void writeOut();
 
         void calculateWallUnitVectors();
+
+        bool outputFieldEnabled
+        (
+            const word& fieldKey,
+            const word& objectName,
+            const bool defaultEnabled = true
+        ) const;
 
 
 public:

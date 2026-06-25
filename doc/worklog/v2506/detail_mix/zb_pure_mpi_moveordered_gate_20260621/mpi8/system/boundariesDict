@@ -1,0 +1,102 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  v1706                                 |
+|   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    location    "system";
+    object      boundariesDict;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+dsmcGeneralBoundaries
+(
+    boundary
+    {
+        generalBoundaryProperties
+        {
+            patchName                           inlet;
+        }
+
+        boundaryModel   dsmcFreeStreamInflowPatch;
+
+        dsmcFreeStreamInflowPatchProperties
+        {
+            typeIds                   (N2 O2);
+		    translationalTemperature     88.06;
+		    rotationalTemperature        88.06; 
+		    vibrationalTemperature       88.06;
+		    electronicTemperature        0;
+
+		    velocity          (2819.64 0 0);
+            numberDensities
+            {
+            N2                1.541202e+21;
+            O2                0.434698e21;
+            };
+        }
+    }
+);
+
+dsmcPatchBoundaries
+(
+    boundary
+    {
+        patchBoundaryProperties
+        {
+            patchName                           inlet;
+        }
+
+        boundaryModel   dsmcDeletionPatch;
+
+        dsmcDeletionPatchProperties
+        {
+            allSpecies		yes;
+        }
+    }
+    
+    boundary
+    {
+        patchBoundaryProperties
+        {
+            patchName                           outlet;
+        }
+
+        boundaryModel   dsmcDeletionPatch;
+
+        dsmcDeletionPatchProperties
+        {
+            allSpecies		yes;
+        }
+    }
+    
+    
+
+    boundary
+    {
+        patchBoundaryProperties
+        {
+            patchName         BCWall;
+        }
+
+        boundaryModel   dsmcDiffuseWallPatch;
+
+        dsmcDiffuseWallPatchProperties
+        {
+            velocity 			(0 0 0);
+            temperature			297.5;
+        }
+    }
+);
+
+dsmcCyclicBoundaries
+(
+);
+
+// ************************************************************************* //

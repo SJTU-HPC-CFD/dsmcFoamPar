@@ -29,6 +29,7 @@ License
 #include "volFields.H"
 #include "scotchDecomp.H"
 #include "domainDecomposition.H"
+#include "fvFieldDecomposer.H"
 #include "parmetis.h"
 #include <mpi.h>
 #include <chrono>
@@ -53,6 +54,37 @@ public:
         IStringStream(string(buffer, size), format)
     {}
 };
+
+
+template<class GeoField>
+label writeProcessorVolumeFields
+(
+    const fvMesh& completeMesh,
+    const fvFieldDecomposer& decomposer
+)
+{
+    HashTable<const GeoField*> fields = completeMesh.lookupClass<GeoField>();
+    label nWritten = 0;
+
+    for
+    (
+        typename HashTable<const GeoField*>::const_iterator iter =
+            fields.cbegin();
+        iter != fields.cend();
+        ++iter
+    )
+    {
+        const GeoField& field = *iter();
+        if (field.writeOpt() != IOobject::AUTO_WRITE)
+        {
+            continue;
+        }
+        decomposer.decomposeField(field)().write();
+        ++nWritten;
+    }
+
+    return nWritten;
+}
 
 // ============================================================================
 // Constructor / Destructor
@@ -122,7 +154,9 @@ dsmcReplicatedMesh::dsmcReplicatedMesh(dsmcCloud& cloud, const fvMesh& mesh)
     useFlatTransfer_(false),
     gatherCandidates_(false),
     overlapSizeExchange_(false),
-    writeMode_("gathered")
+    writeMode_("gathered"),
+    processorWriteDecompVersion_(-1),
+    processorWriteMeshInstance_(word::null)
 {}
 
 
@@ -1647,7 +1681,17 @@ void dsmcReplicatedMesh::writeProcessorOutput() const
         false
     );
     const fileName meshReadInstance = mesh_.facesInstance();
-    const word procMeshInstance = writeTimeMesh ? timeName : runTime.constant();
+    const label ownerVersion = rebalanceCount_ + autoRebalanceCount_;
+    word procMeshInstance =
+        writeTimeMesh || ownerVersion > 0 ? timeName : runTime.constant();
+    if
+    (
+        processorWriteMeshInstance_ != word::null
+     && processorWriteDecompVersion_ == ownerVersion
+    )
+    {
+        procMeshInstance = processorWriteMeshInstance_;
+    }
 
     if (myRank_ == 0)
     {
@@ -1660,37 +1704,97 @@ void dsmcReplicatedMesh::writeProcessorOutput() const
     Info<< "Replicated mesh: constructing processor mesh/addressing"
         << endl;
 
-    domainDecomposition decomposition
-    (
-        IOobject
-        (
-            mesh_.name(),
-            meshReadInstance,
-            runTime,
-            IOobject::NO_READ,
-            IOobject::NO_WRITE,
-            false
-        )
-    );
+    const fileName processorDir =
+        runTime.path()/fileName(word("processor") + Foam::name(myRank_));
 
-    if (decomposition.nProcs() != nProcs_)
+    auto processorPolyMeshComplete =
+        [&](const word& instance)
+        {
+            const fileName procPolyMeshDir =
+                processorDir/instance/polyMesh::meshSubDir;
+
+            return
+                isFile(procPolyMeshDir/"cellProcAddressing")
+             && isFile(procPolyMeshDir/"faceProcAddressing")
+             && isFile(procPolyMeshDir/"boundaryProcAddressing")
+             && isFile(procPolyMeshDir/"faces")
+             && isFile(procPolyMeshDir/"owner")
+             && isFile(procPolyMeshDir/"neighbour")
+             && isFile(procPolyMeshDir/"boundary")
+             && isFile(procPolyMeshDir/"points");
+        };
+
+    auto writeProcessorMesh =
+        [&](const word& instance, const char* role)
+        {
+            domainDecomposition decomposition
+            (
+                IOobject
+                (
+                    mesh_.name(),
+                    meshReadInstance,
+                    runTime,
+                    IOobject::NO_READ,
+                    IOobject::NO_WRITE,
+                    false
+                )
+            );
+
+            if (decomposition.nProcs() != nProcs_)
+            {
+                FatalErrorInFunction
+                    << "decomposeParDict numberOfSubdomains "
+                    << decomposition.nProcs()
+                    << " does not match replicated mesh MPI ranks "
+                    << nProcs_ << exit(FatalError);
+            }
+
+            decomposition.setCellToProc(cellOwner_);
+            decomposition.setProcessorMeshInstance(instance);
+            decomposition.setProcessorMeshWriteProc(myRank_);
+            decomposition.setProcessorMeshAllProcPatches(true);
+            decomposition.decomposeMesh();
+            decomposition.writeDecomposition(false);
+
+            Info<< "Replicated mesh: rank " << myRank_
+                << " wrote processor" << myRank_ << " " << role
+                << " mesh/addressing at instance " << instance << endl;
+        };
+
+    const word constantInstance = runTime.constant();
+    if
+    (
+        procMeshInstance != constantInstance
+     && !processorPolyMeshComplete(constantInstance)
+    )
     {
-        FatalErrorInFunction
-            << "decomposeParDict numberOfSubdomains "
-            << decomposition.nProcs()
-            << " does not match replicated mesh MPI ranks "
-            << nProcs_ << exit(FatalError);
+        // reconstructPar constructs processorMeshes before stepping through
+        // output times, so it requires a bootstrap processor constant mesh even
+        // when the first valid owner partition is time-specific after DLB.
+        writeProcessorMesh(constantInstance, "bootstrap");
     }
 
-    decomposition.setCellToProc(cellOwner_);
-    decomposition.setProcessorMeshInstance(procMeshInstance);
-    decomposition.setProcessorMeshWriteProc(myRank_);
-    decomposition.decomposeMesh();
-    decomposition.writeDecomposition(false);
+    if
+    (
+        processorWriteDecompVersion_ != ownerVersion
+     || !processorPolyMeshComplete(procMeshInstance)
+    )
+    {
+        writeProcessorMesh(procMeshInstance, "output");
 
-    Info<< "Replicated mesh: rank " << myRank_
-        << " wrote processor" << myRank_ << " mesh/addressing"
-        << endl;
+        processorWriteDecompVersion_ = ownerVersion;
+        processorWriteMeshInstance_ = procMeshInstance;
+
+        Info<< "Replicated mesh: rank " << myRank_
+            << " wrote processor" << myRank_ << " mesh/addressing"
+            << endl;
+    }
+    else
+    {
+        Info<< "Replicated mesh: rank " << myRank_
+            << " reusing processor" << myRank_ << " mesh/addressing"
+            << endl;
+    }
 
     MPI_Barrier(MPI_COMM_WORLD);
 
@@ -1745,9 +1849,83 @@ void dsmcReplicatedMesh::writeProcessorOutput() const
         )
     );
 
+    labelIOList faceProcAddressing
+    (
+        IOobject
+        (
+            "faceProcAddressing",
+            procMesh.facesInstance(),
+            procMesh.meshSubDir,
+            procMesh,
+            IOobject::MUST_READ,
+            IOobject::NO_WRITE
+        )
+    );
+
+    labelIOList boundaryProcAddressing
+    (
+        IOobject
+        (
+            "boundaryProcAddressing",
+            procMesh.facesInstance(),
+            procMesh.meshSubDir,
+            procMesh,
+            IOobject::MUST_READ,
+            IOobject::NO_WRITE
+        )
+    );
+
     Info<< "Replicated mesh: rank " << myRank_
-        << " loaded cellProcAddressing with "
-        << cellProcAddressing.size() << " cells" << endl;
+        << " loaded processor addressing with "
+        << cellProcAddressing.size() << " cells, "
+        << faceProcAddressing.size() << " faces, "
+        << boundaryProcAddressing.size() << " patches" << endl;
+
+    fvFieldDecomposer fieldDecomposer
+    (
+        mesh_,
+        procMesh,
+        faceProcAddressing,
+        cellProcAddressing,
+        boundaryProcAddressing
+    );
+
+    const label nVolScalar =
+        writeProcessorVolumeFields<volScalarField>(mesh_, fieldDecomposer);
+    const label nVolVector =
+        writeProcessorVolumeFields<volVectorField>(mesh_, fieldDecomposer);
+    const label nVolSphericalTensor =
+        writeProcessorVolumeFields<volSphericalTensorField>
+        (
+            mesh_,
+            fieldDecomposer
+        );
+    const label nVolSymmTensor =
+        writeProcessorVolumeFields<volSymmTensorField>(mesh_, fieldDecomposer);
+    const label nVolTensor =
+        writeProcessorVolumeFields<volTensorField>(mesh_, fieldDecomposer);
+
+    Info<< "Replicated mesh: rank " << myRank_
+        << " wrote processor" << myRank_ << " volume fields at output time "
+        << timeName
+        << " (scalar=" << nVolScalar
+        << ", vector=" << nVolVector
+        << ", sphericalTensor=" << nVolSphericalTensor
+        << ", symmTensor=" << nVolSymmTensor
+        << ", tensor=" << nVolTensor << ")" << endl;
+
+    const bool writeCloud = runTime.controlDict().lookupOrDefault<bool>
+    (
+        "replicatedMeshProcessorWriteCloud",
+        true
+    );
+    if (!writeCloud)
+    {
+        Info<< "Replicated mesh: rank " << myRank_
+            << " skipped processor" << myRank_
+            << " lagrangian cloud at output time " << timeName << endl;
+        return;
+    }
 
     labelList globalToLocal(mesh_.nCells(), -1);
     forAll(cellProcAddressing, procCellI)
@@ -1761,6 +1939,12 @@ void dsmcReplicatedMesh::writeProcessorOutput() const
 
     label nParcels = 0;
     label nInvalid = 0;
+    bool hasRWF = false;
+    bool hasERot = false;
+    bool hasELevel = false;
+    bool hasStuck = false;
+    bool hasTracked = false;
+
     forAllConstIter(Cloud<dsmcParcel>, cloud_, iter)
     {
         const dsmcParcel& p = iter();
@@ -1772,6 +1956,11 @@ void dsmcReplicatedMesh::writeProcessorOutput() const
         )
         {
             ++nParcels;
+            hasRWF = hasRWF || p.RWF() > 1.0;
+            hasERot = hasERot || p.ERot() > 0.0;
+            hasELevel = hasELevel || p.ELevel() > 0;
+            hasStuck = hasStuck || p.isStuck();
+            hasTracked = hasTracked || p.isTracked();
         }
         else
         {
@@ -1789,6 +1978,31 @@ void dsmcReplicatedMesh::writeProcessorOutput() const
             << exit(FatalError);
     }
 
+    int localFieldFlags[5] =
+    {
+        hasRWF ? 1 : 0,
+        hasERot ? 1 : 0,
+        hasELevel ? 1 : 0,
+        hasStuck ? 1 : 0,
+        hasTracked ? 1 : 0
+    };
+    int globalFieldFlags[5] = {0, 0, 0, 0, 0};
+    MPI_Allreduce
+    (
+        localFieldFlags,
+        globalFieldFlags,
+        5,
+        MPI_INT,
+        MPI_MAX,
+        MPI_COMM_WORLD
+    );
+
+    hasRWF = globalFieldFlags[0] != 0;
+    hasERot = globalFieldFlags[1] != 0;
+    hasELevel = globalFieldFlags[2] != 0;
+    hasStuck = globalFieldFlags[3] != 0;
+    hasTracked = globalFieldFlags[4] != 0;
+
     passiveParticleCloud positions
     (
         procMesh,
@@ -1797,24 +2011,9 @@ void dsmcReplicatedMesh::writeProcessorOutput() const
     );
 
     IOField<vector> U(positions.fieldIOobject("U", IOobject::NO_READ), nParcels);
-    IOField<scalar> RWF
-    (
-        positions.fieldIOobject("radialWeight", IOobject::NO_READ),
-        nParcels
-    );
-    IOField<scalar> ERot
-    (
-        positions.fieldIOobject("ERot", IOobject::NO_READ),
-        nParcels
-    );
     IOField<labelField> vibLevel
     (
         positions.fieldIOobject("vibLevel", IOobject::NO_READ),
-        nParcels
-    );
-    IOField<label> ELevel
-    (
-        positions.fieldIOobject("ELevel", IOobject::NO_READ),
         nParcels
     );
     IOField<label> typeId
@@ -1832,57 +2031,91 @@ void dsmcReplicatedMesh::writeProcessorOutput() const
         positions.fieldIOobject("classification", IOobject::NO_READ),
         nParcels
     );
-    IOField<label> stuckToWall
-    (
-        positions.fieldIOobject("stuckToWall", IOobject::NO_READ),
-        nParcels
-    );
-    IOField<scalarField> wallTemperature
-    (
-        positions.fieldIOobject("wallTemperature", IOobject::NO_READ),
-        nParcels
-    );
-    IOField<vectorField> wallVectors
-    (
-        positions.fieldIOobject("wallVectors", IOobject::NO_READ),
-        nParcels
-    );
-    IOField<label> isTracked
-    (
-        positions.fieldIOobject("isTracked", IOobject::NO_READ),
-        nParcels
-    );
-    IOField<label> inPatchId
-    (
-        positions.fieldIOobject("inPatchId", IOobject::NO_READ),
-        nParcels
-    );
-    IOField<scalar> tracerInitialTime
-    (
-        positions.fieldIOobject("tracerInitialTime", IOobject::NO_READ),
-        nParcels
-    );
-    IOField<vector> tracerInitialPosition
-    (
-        positions.fieldIOobject("tracerInitialPosition", IOobject::NO_READ),
-        nParcels
-    );
-    IOField<vector> tracerCurrentPosition
-    (
-        positions.fieldIOobject("tracerCurrentPosition", IOobject::NO_READ),
-        nParcels
-    );
-    IOField<vector> tracerDistanceTravelled
-    (
-        positions.fieldIOobject("tracerDistanceTravelled", IOobject::NO_READ),
-        nParcels
-    );
 
-    bool hasRWF = false;
-    bool hasERot = false;
-    bool hasELevel = false;
-    bool hasStuck = false;
-    bool hasTracked = false;
+    IOField<scalar>* RWFPtr = hasRWF
+      ? new IOField<scalar>
+        (
+            positions.fieldIOobject("radialWeight", IOobject::NO_READ),
+            nParcels
+        )
+      : nullptr;
+    IOField<scalar>* ERotPtr = hasERot
+      ? new IOField<scalar>
+        (
+            positions.fieldIOobject("ERot", IOobject::NO_READ),
+            nParcels
+        )
+      : nullptr;
+    IOField<label>* ELevelPtr = hasELevel
+      ? new IOField<label>
+        (
+            positions.fieldIOobject("ELevel", IOobject::NO_READ),
+            nParcels
+        )
+      : nullptr;
+    IOField<label>* stuckToWallPtr = hasStuck
+      ? new IOField<label>
+        (
+            positions.fieldIOobject("stuckToWall", IOobject::NO_READ),
+            nParcels
+        )
+      : nullptr;
+    IOField<scalarField>* wallTemperaturePtr = hasStuck
+      ? new IOField<scalarField>
+        (
+            positions.fieldIOobject("wallTemperature", IOobject::NO_READ),
+            nParcels
+        )
+      : nullptr;
+    IOField<vectorField>* wallVectorsPtr = hasStuck
+      ? new IOField<vectorField>
+        (
+            positions.fieldIOobject("wallVectors", IOobject::NO_READ),
+            nParcels
+        )
+      : nullptr;
+    IOField<label>* isTrackedPtr = hasTracked
+      ? new IOField<label>
+        (
+            positions.fieldIOobject("isTracked", IOobject::NO_READ),
+            nParcels
+        )
+      : nullptr;
+    IOField<label>* inPatchIdPtr = hasTracked
+      ? new IOField<label>
+        (
+            positions.fieldIOobject("inPatchId", IOobject::NO_READ),
+            nParcels
+        )
+      : nullptr;
+    IOField<scalar>* tracerInitialTimePtr = hasTracked
+      ? new IOField<scalar>
+        (
+            positions.fieldIOobject("tracerInitialTime", IOobject::NO_READ),
+            nParcels
+        )
+      : nullptr;
+    IOField<vector>* tracerInitialPositionPtr = hasTracked
+      ? new IOField<vector>
+        (
+            positions.fieldIOobject("tracerInitialPosition", IOobject::NO_READ),
+            nParcels
+        )
+      : nullptr;
+    IOField<vector>* tracerCurrentPositionPtr = hasTracked
+      ? new IOField<vector>
+        (
+            positions.fieldIOobject("tracerCurrentPosition", IOobject::NO_READ),
+            nParcels
+        )
+      : nullptr;
+    IOField<vector>* tracerDistanceTravelledPtr = hasTracked
+      ? new IOField<vector>
+        (
+            positions.fieldIOobject("tracerDistanceTravelled", IOobject::NO_READ),
+            nParcels
+        )
+      : nullptr;
 
     label i = 0;
     forAllConstIter(Cloud<dsmcParcel>, cloud_, iter)
@@ -1902,49 +2135,62 @@ void dsmcReplicatedMesh::writeProcessorOutput() const
         );
 
         U[i] = p.U();
-        RWF[i] = p.RWF();
-        ERot[i] = p.ERot();
         vibLevel[i] = p.vibLevel();
-        ELevel[i] = p.ELevel();
         typeId[i] = p.typeId();
         newParcel[i] = p.newParcel();
         classification[i] = p.classification();
 
-        stuckToWall[i] = p.isStuck();
-        if (stuckToWall[i])
+        if (RWFPtr)
         {
-            wallTemperature[i] = p.stuck().wallTemperature();
-            wallVectors[i] = p.stuck().wallVectors();
-            hasStuck = true;
+            (*RWFPtr)[i] = p.RWF();
         }
-        else
+        if (ERotPtr)
         {
-            wallTemperature[i] = scalarField(4, 0.0);
-            wallVectors[i] = vectorField(4, vector::zero);
+            (*ERotPtr)[i] = p.ERot();
         }
-
-        isTracked[i] = p.isTracked();
-        if (isTracked[i])
+        if (ELevelPtr)
         {
-            inPatchId[i] = p.tracked().inPatchId();
-            tracerInitialTime[i] = p.tracked().initialTime();
-            tracerInitialPosition[i] = p.tracked().initialPosition();
-            tracerCurrentPosition[i] = p.tracked().currentPosition();
-            tracerDistanceTravelled[i] = p.tracked().distanceTravelledVector();
-            hasTracked = true;
-        }
-        else
-        {
-            inPatchId[i] = -1;
-            tracerInitialTime[i] = 0;
-            tracerInitialPosition[i] = vector::zero;
-            tracerCurrentPosition[i] = vector::zero;
-            tracerDistanceTravelled[i] = vector::zero;
+            (*ELevelPtr)[i] = p.ELevel();
         }
 
-        hasRWF = hasRWF || RWF[i] > 1.0;
-        hasERot = hasERot || ERot[i] > 0.0;
-        hasELevel = hasELevel || ELevel[i] > 0;
+        if (stuckToWallPtr)
+        {
+            (*stuckToWallPtr)[i] = p.isStuck();
+            if ((*stuckToWallPtr)[i])
+            {
+                (*wallTemperaturePtr)[i] = p.stuck().wallTemperature();
+                (*wallVectorsPtr)[i] = p.stuck().wallVectors();
+            }
+            else
+            {
+                (*wallTemperaturePtr)[i] = scalarField(4, 0.0);
+                (*wallVectorsPtr)[i] = vectorField(4, vector::zero);
+            }
+        }
+
+        if (isTrackedPtr)
+        {
+            (*isTrackedPtr)[i] = p.isTracked();
+            if ((*isTrackedPtr)[i])
+            {
+                (*inPatchIdPtr)[i] = p.tracked().inPatchId();
+                (*tracerInitialTimePtr)[i] = p.tracked().initialTime();
+                (*tracerInitialPositionPtr)[i] =
+                    p.tracked().initialPosition();
+                (*tracerCurrentPositionPtr)[i] =
+                    p.tracked().currentPosition();
+                (*tracerDistanceTravelledPtr)[i] =
+                    p.tracked().distanceTravelledVector();
+            }
+            else
+            {
+                (*inPatchIdPtr)[i] = -1;
+                (*tracerInitialTimePtr)[i] = 0;
+                (*tracerInitialPositionPtr)[i] = vector::zero;
+                (*tracerCurrentPositionPtr)[i] = vector::zero;
+                (*tracerDistanceTravelledPtr)[i] = vector::zero;
+            }
+        }
 
         ++i;
     }
@@ -1993,36 +2239,56 @@ void dsmcReplicatedMesh::writeProcessorOutput() const
         processorDb.writeCompression()
     );
 
-    if (nParcels)
+    Info<< "Replicated mesh: rank " << myRank_
+        << " writing processor" << myRank_ << " lagrangian cloud"
+        << endl;
+
+    IOPosition<Cloud<passiveParticle>>(positions).write();
+    U.write();
+    if (RWFPtr)
     {
-        Info<< "Replicated mesh: rank " << myRank_
-            << " writing processor" << myRank_ << " lagrangian cloud"
-            << endl;
-        IOPosition<Cloud<passiveParticle>>(positions).write();
-        U.write();
-        if (hasRWF) RWF.write();
-        if (hasERot) ERot.write();
-        if (hasELevel) ELevel.write();
-        typeId.write();
-        newParcel.write();
-        classification.write();
-        if (hasStuck)
-        {
-            stuckToWall.write();
-            wallTemperature.write();
-            wallVectors.write();
-        }
-        if (hasTracked)
-        {
-            isTracked.write();
-            inPatchId.write();
-            tracerInitialTime.write();
-            tracerInitialPosition.write();
-            tracerCurrentPosition.write();
-            tracerDistanceTravelled.write();
-        }
-        vibLevel.write();
+        RWFPtr->write();
     }
+    if (ERotPtr)
+    {
+        ERotPtr->write();
+    }
+    if (ELevelPtr)
+    {
+        ELevelPtr->write();
+    }
+    typeId.write();
+    newParcel.write();
+    classification.write();
+    if (stuckToWallPtr)
+    {
+        stuckToWallPtr->write();
+        wallTemperaturePtr->write();
+        wallVectorsPtr->write();
+    }
+    if (isTrackedPtr)
+    {
+        isTrackedPtr->write();
+        inPatchIdPtr->write();
+        tracerInitialTimePtr->write();
+        tracerInitialPositionPtr->write();
+        tracerCurrentPositionPtr->write();
+        tracerDistanceTravelledPtr->write();
+    }
+    vibLevel.write();
+
+    delete RWFPtr;
+    delete ERotPtr;
+    delete ELevelPtr;
+    delete stuckToWallPtr;
+    delete wallTemperaturePtr;
+    delete wallVectorsPtr;
+    delete isTrackedPtr;
+    delete inPatchIdPtr;
+    delete tracerInitialTimePtr;
+    delete tracerInitialPositionPtr;
+    delete tracerCurrentPositionPtr;
+    delete tracerDistanceTravelledPtr;
 
     Info<< "Replicated mesh: rank " << myRank_
         << " wrote processor" << myRank_ << " cloud at output time "

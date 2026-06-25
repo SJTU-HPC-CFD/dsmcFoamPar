@@ -516,6 +516,88 @@ doc/worklog/v2506/detail_mix/zb_reduced_prewarm_mpi8_20260621
   imbalance。当前 `collision phase = 16.40 s`，而 2026-06-17 最佳单次为
   `10.62 s`。
 
+### 6.6 `replicatedMeshMigrateInterval=10` 的正确性复核
+
+背景：
+
+- write 修复后，mixed 超算结果仍出现局部流场异常；
+- `MPI16+OMP4` 在 1/4 圆柱驻点附近与 `OMP64` 对照相比，`p`、`rhoN`、
+  `dsmcNMean` 大体接近，但 `wallHeatFlux` 明显偏高；
+- 用户随后将 `replicatedMeshMigrateInterval` 从 `10` 改为 `1`，同一类流场和
+  壁面结果恢复正常。
+
+典型点值对比：
+
+| quantity | MPI16xOMP4, migrate=10 | OMP64 | difference |
+|---|---:|---:|---:|
+| `p_mixture` | 307.50 | 301.84 | +1.9% |
+| `rhoN_mixture` | 1.866e22 | 1.902e22 | -1.9% |
+| `dsmcNMean_mixture` | 125.54 | 132.32 | -5.1% |
+| `wallHeatFlux_mixture` | 92501.56 | 69468.62 | +33.2% |
+
+最初判断是 boundary flux 归属问题：粒子跨到非本 rank owner cell 后，在下一次
+migration 前仍由旧 rank 执行 move；如果这期间撞到壁面，`dsmcPatchBoundary` 会把
+`qBF/fDBF/rhoNBF` 记在旧 rank 的 `boundaryFluxMeasurements()` 中，而
+`dsmcVolFields` 在 replicated mesh 输出时会对 boundary 累积量做全局 `sumReduce`。
+因此非 owner rank 的壁面事件也会进入最终 `wallHeatFlux`。
+
+进一步分析后，问题被提升为更底层的 owner 一致性问题：
+
+1. `dsmcCloud::evolve_moveAndCollide()` 中 `Cloud<dsmcParcel>::move()` 先执行；
+2. replicated mesh 的 `migrateParticlesByCellOwner()` 只在
+   `stepCounter % replicatedMeshMigrateInterval == 0` 时执行；
+3. move 和可选 migration 之后才 `buildCellOccupancy()`；
+4. `noTimeCounter` 默认只遍历 `occupancyOwnedCollisionCells()`，即只对本 rank
+   owner cell 做 collision。
+
+这意味着 `replicatedMeshMigrateInterval=10` 时，跨 owner 粒子最多会在旧 rank 上
+滞留 9 步：
+
+```text
+particle moves from rank A owned cell to rank B owned cell
+particle still physically resides on rank A until the next migration
+
+rank A:
+  buildCellOccupancy can see the parcel in a B-owned cell
+  but collision loops only over A-owned cells
+  -> the parcel does not collide in that B-owned cell
+
+rank B:
+  owns the B-owned cell
+  but does not have the parcel yet
+  -> the parcel is also missing from rank B collision
+```
+
+因此 `migrationInterval=10` 不是单纯的 write 或 wall flux 归并问题，而是会破坏
+当前 raw-MPI replicated mesh 的核心不变量：
+
+```text
+before collision/reaction/sampling, every parcel must reside on the owner rank
+of its current cell
+```
+
+这也解释了用户观察到的通信边界不连续：在 processor-owner 边界附近，跨 owner 粒子
+在若干步内没有参与正确 cell 的 collision/reaction/sampling，局部分布函数自然会出现
+断裂或偏差。
+
+评估过的修复方向：
+
+| direction | correctness | implementation risk | conclusion |
+|---|---|---|---|
+| `migrationInterval=1` | 高 | 低 | 当前正确性基线 |
+| 只修 wall flux face-owner 归属 | 只修壁面事件 | 中 | 不足以修 bulk flow |
+| 非 owner active cell 也参与 collision | 不严格 | 中 | 会把同一物理 cell 的粒子拆成多份局部碰撞 |
+| ghost/halo parcel collision | 理论可行 | 高 | 接近重新设计跨分区 DSMC collision |
+| 每步迁移但优化 migration 成本 | 高 | 中 | 后续推荐方向 |
+
+结论：
+
+- `replicatedMeshMigrateInterval=10` 与当前 owned-cell collision 架构不自洽；
+- `replicatedMeshMigrateInterval=1` 不是单纯 workaround，而是当前实现保证物理一致性的
+  必要条件；
+- 后续性能工作不应继续尝试让 `migrate=10` 通过局部补丁“看起来正常”，而应在保持
+  `migrate=1` 的前提下优化每步 migration 的扫描、打包、通信和计数更新成本。
+
 ## 7. 当前结论
 
 ### 7.1 正确性
@@ -528,12 +610,13 @@ doc/worklog/v2506/detail_mix/zb_reduced_prewarm_mpi8_20260621
 - DLB trigger 跨 rank 决策不一致风险；
 - OpenMP move lazy mesh data 并发初始化风险；
 - replicatedMesh write 只写 rank0 gathered cloud，并输出 `cellOwner` 场；
-- write 后 migrate-back 恢复计算态。
+- write 后 migrate-back 恢复计算态；
+- 明确 `replicatedMeshMigrateInterval=1` 是当前 raw-MPI replicated mesh 的正确性基线。
 
 仍需继续验证：
 
-- full write-on 流场结果是否与 OMP8 对照完全一致，尤其是 `foamToEnsight`
-  后的物理场分布；
+- full write-on 流场结果是否在 `replicatedMeshMigrateInterval=1` 口径下与 OMP8
+  对照完全一致，尤其是 `foamToEnsight` 后的物理场分布；
 - 大规模 MPI64 / OMP64 / mixed64 在 write-on 口径下的稳定性和输出后继续计算能力；
 - processor-write 路径是否值得作为替代 rank0 gather-write 的大规模输出方案。
 
@@ -548,7 +631,9 @@ doc/worklog/v2506/detail_mix/zb_reduced_prewarm_mpi8_20260621
 
 - MPI8 当前仍比 2026-06-17 最佳慢，主要不是 move，而是 collision/DLB/rank imbalance；
 - write-on 口径下，rank0 gather/write 本身在大粒子数超算 case 中约 `20+ s/次`，
-  会显著改变端到端总时间。
+  会显著改变端到端总时间；
+- 若从 `replicatedMeshMigrateInterval=10` 改为 `1`，migration 通信和 pack/unpack
+  开销会增加，必须重新建立性能基线。
 
 当前建议：
 
@@ -556,8 +641,9 @@ doc/worklog/v2506/detail_mix/zb_reduced_prewarm_mpi8_20260621
 2. write 正确性单独用短步数/指定 output time 验证；
 3. 大规模超算生产输出优先考虑减少输出频率，或继续完善 processor-write/reconstructPar
    路径，避免所有 parcel 长期集中到 rank0 写出；
-4. MPI8 下一步不应再优先做 OpenMP prewarm，而应回到 collision rank imbalance、
-   DLB check cadence、以及 collision 权重 proxy 的针对性分析。
+4. replicated mesh 正确性测试统一使用 `replicatedMeshMigrateInterval=1`；
+5. MPI8 下一步不应再优先做 OpenMP prewarm，而应回到每步 migration 成本、
+   collision rank imbalance、DLB check cadence、以及 collision 权重 proxy 的针对性分析。
 
 ## 8. 后续待办
 
@@ -570,14 +656,68 @@ doc/worklog/v2506/detail_mix/zb_reduced_prewarm_mpi8_20260621
    - 记录 rank wall max/min 与 particle max/min；
    - 判断是否需要把 DLB weight 从纯粒子数 proxy 扩展到 active collision-cell 或候选数
      的低开销近似。
-3. DLB cadence：
+3. 每步 migration 成本：
+   - 在 `replicatedMeshMigrateInterval=1` 下重建 OMP8、MPI2xOMP4、MPI4xOMP2、MPI8
+     的 no-write 性能基线；
+   - profile `migrateBegin/migrateFinish`、pack、size exchange、receive/apply、
+     `updateParticleCounts()`；
+   - 优先优化“每步只迁移跨 owner 粒子”的扫描和通信开销，而不是恢复
+     `replicatedMeshMigrateInterval=10`。
+4. DLB cadence：
    - 重新验证 `replicatedMeshSARSteps=50`、`MinGapSteps=50`、`allgather` 的当前最优性；
    - 若当前 `checks=300` 仍导致 check wall 偏大，继续把 expensive collective 与
      per-step entry 分开优化。
-4. write：
+5. write：
    - 对比 rank0 gather-write 与 processor-write；
    - 检查 `foamToEnsight` 后的场和 OMP8 对照；
    - 如果 rank0 write 成本成为超算总时间主要部分，优先推进 processor-write。
+
+### 8.1 processor-write 后续实现状态
+
+已在 2026-06-21 补齐 raw-MPI replicated-mesh 真正 processor 写出闭环：
+
+```text
+doc/worklog/v2506/detail_mpi/processor_write_full_20260621/processor_write_full_20260621.md
+```
+
+当前验证结论：
+
+- `replicatedMeshWriteMode processor` 下，运行时不再由 rank0 串行写 root 全局场、
+  root cloud 或 root `cellOwner`；
+- 每个 MPI rank 写自己的 `processorN/` mesh/addressing、volFields 和
+  lagrangian cloud；
+- processor mesh/addressing 按 owner 分区版本复用，避免每个 output time 重写；
+- 标准 `reconstructPar` 可重构 root volFields 和 lagrangian cloud；
+- 2-rank clean smoke 中，`1e-07` 和 `2e-07` 的 root 粒子数均等于 processor
+  粒子数之和；
+- DLB owner 变化验证已按 `mpi4omp2` 完成：1000 steps，500-step output，
+  250-step forced DLB，4 次 DLB 与 2 次 processor output 均成功；
+- 为适配 DLB 后 processor patch 拓扑变化，processor-write 路径现在固定写出
+  `nProcs-1` 个 processor patch；非邻居 rank 使用 0-face patch，保证
+  `reconstructPar` 连续读取多个 output time 时 patch list 稳定；
+- `mpi4omp2` DLB 验证中，`3.320025e-05` 与 `6.64005e-05` 两个 output time
+  均 `reconstructPar` 成功，root 粒子数等于各 processor 粒子数之和；
+- 编译、运行、重构验证统一使用 `doc/scripts/env.sh` 和
+  `doc/scripts/build-dsmcFoam.sh`，避免旧用户 OpenFOAM `reconstructPar` /
+  `libreconstruct.so` 与当前库混用。
+
+最新验证路径：
+
+```text
+doc/worklog/v2506/detail_mix/build_processor_write_true_parallel_20260621.log
+doc/worklog/v2506/detail_mpi/processor_write_full_20260621/log.true_parallel_final_smoke_run
+doc/worklog/v2506/detail_mpi/processor_write_full_20260621/log.true_parallel_final_smoke_reconstruct
+doc/worklog/v2506/detail_mix/build_processor_write_fixed_proc_patches_20260621.log
+doc/worklog/v2506/detail_mpi/processor_write_full_20260621/log.zb_mpi4omp2_dlb250_write500_1000step_fixedpatches_run
+doc/worklog/v2506/detail_mpi/processor_write_full_20260621/log.zb_mpi4omp2_dlb250_write500_1000step_fixedpatches_reconstruct
+```
+
+生产使用注意：
+
+- processor-write 的目标是降低大网格、大粒子数下 root 串行 write 成本；
+- 因为运行阶段不再生成 root time 场，`foamToEnsight` 或 root case 后处理必须放在
+  `reconstructPar` 之后；
+- 该路径和 no-write compute 性能基线应分开评估。
 
 ## 9. 证据路径
 
@@ -609,6 +749,15 @@ doc/worklog/v2506/detail_mix/zb_reduced_prewarm_omp8_20260621
 doc/worklog/v2506/detail_mix/zb_reduced_prewarm_mpi8_20260621
 ```
 
+`replicatedMeshMigrateInterval` 正确性复核相关源码：
+
+```text
+src/lagrangian/dsmc/clouds/dsmcCloud.C
+src/lagrangian/dsmc/collisionPartnerSelection/derived/noTimeCounter/noTimeCounter.C
+src/lagrangian/dsmc/boundaries/basic/dsmcPatchBoundary/dsmcPatchBoundary.C
+src/lagrangian/dsmc/macroscopicProperties/derived/combined/dsmcVolFields/dsmcVolFields.C
+```
+
 超算 write-on 输出日志：
 
 ```text
@@ -626,3 +775,247 @@ doc/worklog/v2506/detail_mpi/metis_minimal_validation_20260618
 doc/worklog/v2506/detail_mpi/parmetis_rebuild_20260619/makeParMETIS.sh
 ```
 
+## 10. 2026-06-24 续补：超算 64 核系列、FastRNG 与 post/output 优化
+
+### 10.1 本轮新增范围
+
+本轮在前述正确性修复基础上继续补齐三类工作：
+
+- 超算 `palphd3.3.1react-m8-fixoutput` 完整 8750 步 64 核系列性能复核；
+- `collisionFastRng true` 在 OpenMP、mixed MPI+OpenMP、pure MPI replicated mesh collision 路径中的实际生效修正；
+- `dsmcVolFields` 后处理计算和 replicated processor-write 输出字段数量优化。
+
+该节只记录这轮最新状态，不覆盖前文关于 ParMETIS、processor-write 正确性和
+`replicatedMeshMigrateInterval=1` 的结论。
+
+### 10.2 最新超算性能结果
+
+结果目录：
+
+```text
+results/palphd3.3.1react-m8-fixoutput
+```
+
+算例口径：
+
+- Palharini PhD 3.3.1 reactive cylinder case；
+- 总核数 64；
+- `replicatedMeshMigrateInterval=1`；
+- 8750 iterations，对应 `endTime 0.0035`、`deltaT 4e-07`；
+- mixed/pure MPI replicated mesh 走 processor-write 输出；
+- 表中 `ClockTime` 取最终 `Stage 1.0` 行，profile wall 取最终
+  `DSMC solver profile summary`。
+
+| case | log | ClockTime [s] | move+collide [s] | move [s] | buildCellOccupancy [s] | collision [s] | migration [s] | DLB 次数 | 结论 |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---|
+| OMP64 | `omp64_3637765.out` | 3140 | 1786.35 | 892.42 | 421.54 | 430.05 | - | - | 纯 OMP 在该超算 case 不再是最优，collision/build/move 总体偏大。 |
+| MPI2xOMP32 | `mpi2omp32_3637766.out` | 3096 | 2124.54 | 810.85 | 190.96 | 414.33 | 828.14 | 43 | migration 和 DLB 过重，性能最差之一。 |
+| MPI4xOMP16 | `mpi4omp16_3637767.out` | 2390 | 1731.05 | 814.76 | 133.05 | 382.48 | 502.73 | 30 | 比 MPI2xOMP32 明显好，但 migration 仍重。 |
+| MPI8xOMP8 | `mpi8omp8_3637768.out` | 1923 | 1420.56 | 755.70 | 111.97 | 336.05 | 272.75 | 14 | mixed 中间档，collision 最低，但不是总时间最优。 |
+| MPI16xOMP4 | `mpi16omp4_3637769.out` | 1759 | 1417.55 | 760.07 | 114.38 | 381.68 | 249.56 | 18 | 接近最优，migration 低于 MPI8xOMP8，但 collision 偏高。 |
+| MPI32xOMP2 | `mpi32omp2_3637770.out` | 1680 | 1370.49 | 756.26 | 126.55 | 399.90 | 196.28 | 11 | 当前这组完整 8750 步超算系列最优。 |
+| MPI64 | `mpi64_3637771.out` | 2291 | 1882.19 | 930.64 | 417.37 | 401.50 | 386.18 | 42 | pure MPI64 可正常跑完，但性能明显不如 MPI32xOMP2。 |
+
+直接结论：
+
+- 当前 64 核生产配置优先级应是 `MPI32xOMP2`，其次 `MPI16xOMP4`；
+- `MPI64` 不是最佳，慢点主要不是单一 collision，而是 `move/buildCellOccupancy/migration/DLB`
+  的组合开销；
+- `OMP64` 在该超算 case 也不是最佳，说明大核数 OpenMP collision 的线程收益已经被
+  build/move、线程调度、内存访问和后处理阶段限制；
+- `MPI8xOMP8` 的 collision profile 最低，但总时间输给 `MPI32xOMP2`，说明不能只看
+  collision，需要同时看 migration 和 DLB 触发代价。
+
+### 10.3 FastRNG 修正
+
+这轮修正后，`collisionFastRng true` 不再只对一部分 OpenMP collision 生效，而是在：
+
+- OpenMP collision 线程循环中为每个线程建立 `FastRng`；
+- mixed MPI+OpenMP 中用 `rank + thread + timeIndex` 生成线程本地种子；
+- pure MPI replicated mesh 单线程 collision 路径中也建立 `FastRng`；
+- collision/reaction 调用链通过 `cloud_.setCollisionRngContext(...)` 使用同一个
+  fast RNG context，避免 reaction 内部仍退回原始 `rndGen_` 热路径。
+
+关键源码位置：
+
+```text
+src/lagrangian/dsmc/collisionPartnerSelection/derived/noTimeCounter/noTimeCounter.C
+  OpenMP path: threadFastRng + setCollisionRngContext
+  replicated single-thread path: FastRng + setCollisionRngContext
+```
+
+`mpi32omp2beforefastrng_3634454.out` 与 `mpi32omp2_3637770.out` 的单次对比：
+
+| case | ClockTime [s] | move+collide [s] | move [s] | buildCellOccupancy [s] | collision [s] | migration [s] | DLB 次数 |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| before FastRNG scope fix | 1569 | 1251.37 | 716.93 | 123.53 | 344.43 | 220.61 | 13 |
+| after FastRNG scope fix | 1680 | 1370.49 | 756.26 | 126.55 | 399.90 | 196.28 | 11 |
+
+这个差异不能简单解释为“DLB 次数增加”：修正后 DLB 次数反而从 13 降到 11，
+migration wall 也从 220.61 s 降到 196.28 s。性能增加主要体现在 move 和 collision
+本身，说明 FastRNG scope 修正改变了随机序列和微观演化轨迹后，粒子分布、候选对、
+反应路径和局部负载状态都可能发生真实变化。由于这是随机 DSMC 程序，修正 RNG
+热路径后不应期待 bitwise 复现旧日志。
+
+当前判断：
+
+- `collisionFastRng false` 会退回原始 RNG 热路径，通常更慢，不建议作为性能配置；
+- FastRNG 修正后的性能需要用新基线评估，不能再拿修正前日志作为“同一物理轨迹”的严格对照；
+- 若要区分纯波动和 RNG 轨迹差异，需要固定同一版本做 repeat3，而不是跨修正版本单次比较。
+
+### 10.4 post/output 开销定位与优化
+
+此前确认 `post fields/output` 的主要开销不是文件写入本身，而是
+`dsmcVolFields::calculateField()` 中宏观场计算。为降低大算例 output 成本，本轮做了三类优化：
+
+1. `dsmcVolFields` 共享采样 cache：
+   - 在单次 field calculation 中先构建 per-cell/per-species 的共享累积量；
+   - 混合场 `rhoN/rhoM/p/Ttra/Trot/Tvib/U` 等从共享 cache 派生，减少多场重复遍历 parcel；
+   - 预计算 type mass、rotational zeta、vibrational quantum 等常量；
+   - 对 active cell 做局部 reset，避免每次清空全域大数组。
+
+2. processor cloud 可选字段懒分配：
+   - `radialWeight`、`ERot`、`ELevel`、`stuckToWall/wallTemperature/wallVectors`、
+     tracked 相关字段先在本 rank 检测，再用 `MPI_Allreduce` 得到全局是否需要；
+   - 只有全局确实存在对应信息时才分配和写出这些字段；
+   - 基础字段 `position/U/vibLevel/typeId/newParcel/classification` 仍保持写出。
+
+3. 输出字段白名单：
+   - `dsmcVolFieldsProperties` 支持 `writeFields (...)`；
+   - 不配置时保持旧行为，仍写全部字段；
+   - 可配置只写关心的宏观场，例如 `writeFields (p Ttra U wallHeatFlux);`；
+   - 该白名单只控制 volFields 写出数量，不改变求解器物理推进。
+
+新增控制项：
+
+```text
+replicatedMeshProcessorWriteCloud true;   // 默认 true，写 processor lagrangian cloud
+replicatedMeshProcessorWriteCloud false;  // 只写 processor mesh/volFields，跳过 cloud
+```
+
+`replicatedMeshProcessorWriteCloud false` 的用途是做纯宏观场输出或调试后处理开销。
+如果后续需要 `reconstructPar` 恢复 lagrangian cloud，则不能关闭。
+
+本地验证结果：
+
+```text
+run/hyStrath/dsmcFoam+/xcx_test/zb-cylinder-react/mpi4omp2/log.codex_mpi4omp2_10step_outputfilter_cloudskip_np4_omp2_foreground_20260624_155259
+```
+
+- 临时配置 `writeFields (p Ttra U wallHeatFlux)`；
+- 临时配置 `replicatedMeshProcessorWriteCloud false`；
+- 输出日志显示 rank0 写出 `scalar=19, vector=6`，并跳过 `processor0 lagrangian cloud`；
+- `processor fields/cloud write = 0.399130284 s`；
+- `post field calculate = 0.439340028 s`；
+- `post field write = 0.001786365 s`；
+- 10 steps 正常 `End main`。
+
+no-write compute 口径回归：
+
+```text
+run/hyStrath/dsmcFoam+/xcx_test/zb-cylinder-react/mpi4omp2/log.codex_mpi4omp2_300step_outputfilter_nowrite_np4_omp2_foreground_20260624_154408
+```
+
+- 严格运行模式：`4 MPI x 2 OpenMP`，`mpirun -np 4`，`OMP_NUM_THREADS=2`；
+- 300 steps 正常 `End main`；
+- `real 68.23 s`；
+- `post field calculate = 0`、`post field write = 0`，证明 no-write 口径没有引入后处理开销；
+- `move+collide wall = 67.85252556 s`；
+- `move only = 46.46549126 s`；
+- `buildCellOccupancy = 3.738757474 s`；
+- `collision phase = 10.53373378 s`；
+- `migration wall time = 20.01529794 s`；
+- DLB rebalances = 2。
+
+### 10.5 当前配置建议
+
+超算 full-run 生产：
+
+```text
+replicatedMesh true;
+replicatedMeshMigrateInterval 1;
+replicatedMeshDecompMethod metis;
+replicatedMeshAutoDLB true;
+replicatedMeshDLBDualConstraint false;
+replicatedMeshDLBAlpha 1;
+replicatedMeshDLBAdaptiveAlpha false;
+collisionFastRng true;
+replicatedMeshWriteMode processor;
+replicatedMeshProcessorWriteTimeMesh false;
+```
+
+64 核建议优先尝试：
+
+```text
+MPI32 x OMP2
+```
+
+若关注壁面热流和通信边界正确性，继续保持：
+
+```text
+replicatedMeshMigrateInterval 1;
+```
+
+不建议为了性能回到 `migrate=10`。之前已经确认 `migrate=10` 可能导致通信边界处粒子
+重定位滞后，进而影响局部流场连续性和壁面事件统计。生产上应先接受 `migrate=1`
+作为正确性基线，再优化每步 migration 的实现成本。
+
+输出配置：
+
+- 需要完整 lagrangian 重构时：保持 `replicatedMeshProcessorWriteCloud true` 或不写该项；
+- 只需要宏观场时：可以临时设为 `false`，同时用 `writeFields (...)` 限制 volFields；
+- 任何性能对比都应区分 no-write compute、processor-write、reconstructPar 和
+  foamToEnsight 四个阶段。
+
+### 10.6 仍需跟进的问题
+
+1. 超算 `MPI32xOMP2` 需要 repeat3，确认 1680 s 是否稳定优于 `MPI16xOMP4`。
+2. FastRNG 修正后应重新建立 mixed 系列基线，旧的 before-fastrng 单次日志只能作历史参考。
+3. post 计算已经减少重复遍历，但宏观场计算本身不可避免；后续收益主要来自字段白名单、
+   sampleInterval、减少输出频率和只在需要时写 cloud。
+4. `MPI64` 的 buildCellOccupancy 和 migration 仍明显偏高，后续若继续优化 pure MPI，
+   应优先看 occupancy 数据结构、迁移扫描和每步通信，而不是继续调 DLB 权重。
+5. 壁面热流偏高/不平滑问题和并行模式相关时，必须保持 `migrate=1`、统一 processor
+   reconstruct 流程，并单独检查采样面积、面 owner 事件归属和采样步数，不应混入性能口径。
+
+### 10.7 新增证据路径
+
+超算 64 核系列：
+
+```text
+results/palphd3.3.1react-m8-fixoutput/omp64_3637765.out
+results/palphd3.3.1react-m8-fixoutput/mpi2omp32_3637766.out
+results/palphd3.3.1react-m8-fixoutput/mpi4omp16_3637767.out
+results/palphd3.3.1react-m8-fixoutput/mpi8omp8_3637768.out
+results/palphd3.3.1react-m8-fixoutput/mpi16omp4_3637769.out
+results/palphd3.3.1react-m8-fixoutput/mpi32omp2_3637770.out
+results/palphd3.3.1react-m8-fixoutput/mpi64_3637771.out
+results/palphd3.3.1react-m8-fixoutput/mpi32omp2beforefastrng_3634454.out
+```
+
+FastRNG 与 post/output 构建：
+
+```text
+doc/worklog/v2506/detail_mix/build_fastrng_scope_20260622.log
+doc/worklog/v2506/detail_mix/build_fastrng_scope_final_20260622.log
+doc/worklog/v2506/detail_mix/build_output_filter_cloudskip_20260624_154051.log
+doc/worklog/v2506/detail_mix/build_output_filter_cloudskip_solver_20260624_154110.log
+```
+
+本地 post/output 验证：
+
+```text
+run/hyStrath/dsmcFoam+/xcx_test/zb-cylinder-react/mpi4omp2/log.codex_mpi4omp2_300step_outputfilter_nowrite_np4_omp2_foreground_20260624_154408
+run/hyStrath/dsmcFoam+/xcx_test/zb-cylinder-react/mpi4omp2/log.codex_mpi4omp2_10step_outputfilter_cloudskip_np4_omp2_foreground_20260624_155259
+```
+
+相关源码：
+
+```text
+src/lagrangian/dsmc/collisionPartnerSelection/derived/noTimeCounter/noTimeCounter.C
+src/lagrangian/dsmc/clouds/dsmcCloud.C
+src/lagrangian/dsmc/clouds/dsmcCloud.H
+src/lagrangian/dsmc/replicatedMesh/dsmcReplicatedMesh.C
+src/lagrangian/dsmc/macroscopicProperties/derived/combined/dsmcVolFields/dsmcVolFields.C
+src/lagrangian/dsmc/macroscopicProperties/derived/combined/dsmcVolFields/dsmcVolFields.H
+```

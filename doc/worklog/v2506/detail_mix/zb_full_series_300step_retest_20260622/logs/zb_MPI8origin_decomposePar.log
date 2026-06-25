@@ -1,0 +1,145 @@
+/*---------------------------------------------------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  v1706                                 |
+|   \\  /    A nd           | Web:      www.OpenFOAM.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+Build  : v1706
+Arch   : "LSB;label=32;scalar=64"
+Exec   : decomposePar
+Date   : Jun 22 2026
+Time   : 01:15:40
+Host   : "SuperXCX-ROG"
+PID    : 931930
+Case   : /home/superxcx/code/OpenFoam/OF-1706/hyStrath_dlb/doc/worklog/v2506/detail_mix/zb_full_series_300step_retest_20260622/cases/MPI8origin
+nProcs : 1
+sigFpe : Enabling floating point exception trapping (FOAM_SIGFPE).
+fileModificationChecking : Monitoring run-time modified files using timeStampMaster (fileModificationSkew 10)
+allowSystemOperations : Allowing user-supplied system call operations
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+Create time
+
+
+
+Decomposing mesh region0
+
+Create mesh
+
+Calculating distribution of cells
+Selecting decompositionMethod scotch
+
+Finished decomposition in 0.08 s
+
+Calculating original mesh data
+
+Distributing cells to processors
+
+Distributing faces to processors
+
+Distributing points to processors
+
+Constructing processor meshes
+
+Processor 0
+    Number of cells = 7496
+    Number of faces shared with processor 1 = 204
+    Number of faces shared with processor 2 = 20
+    Number of faces shared with processor 3 = 172
+    Number of processor patches = 3
+    Number of processor faces = 396
+    Number of boundary faces = 4104
+
+Processor 1
+    Number of cells = 7552
+    Number of faces shared with processor 0 = 204
+    Number of faces shared with processor 2 = 160
+    Number of faces shared with processor 5 = 208
+    Number of faces shared with processor 6 = 44
+    Number of processor patches = 4
+    Number of processor faces = 616
+    Number of boundary faces = 3936
+
+Processor 2
+    Number of cells = 7448
+    Number of faces shared with processor 0 = 20
+    Number of faces shared with processor 1 = 160
+    Number of faces shared with processor 3 = 236
+    Number of faces shared with processor 6 = 240
+    Number of processor patches = 4
+    Number of processor faces = 656
+    Number of boundary faces = 3852
+
+Processor 3
+    Number of cells = 7500
+    Number of faces shared with processor 0 = 172
+    Number of faces shared with processor 2 = 236
+    Number of processor patches = 2
+    Number of processor faces = 408
+    Number of boundary faces = 4094
+
+Processor 4
+    Number of cells = 7484
+    Number of faces shared with processor 5 = 236
+    Number of faces shared with processor 7 = 156
+    Number of processor patches = 2
+    Number of processor faces = 392
+    Number of boundary faces = 4110
+
+Processor 5
+    Number of cells = 7552
+    Number of faces shared with processor 1 = 208
+    Number of faces shared with processor 4 = 236
+    Number of faces shared with processor 6 = 152
+    Number of faces shared with processor 7 = 40
+    Number of processor patches = 4
+    Number of processor faces = 636
+    Number of boundary faces = 3916
+
+Processor 6
+    Number of cells = 7472
+    Number of faces shared with processor 1 = 44
+    Number of faces shared with processor 2 = 240
+    Number of faces shared with processor 5 = 152
+    Number of faces shared with processor 7 = 200
+    Number of processor patches = 4
+    Number of processor faces = 636
+    Number of boundary faces = 3908
+
+Processor 7
+    Number of cells = 7496
+    Number of faces shared with processor 4 = 156
+    Number of faces shared with processor 5 = 40
+    Number of faces shared with processor 6 = 200
+    Number of processor patches = 3
+    Number of processor faces = 396
+    Number of boundary faces = 4080
+
+Number of processor faces = 2068
+Max number of cells = 7552 (0.6933333333% above average 7500)
+Max number of processor patches = 4 (23.07692308% above average 3.25)
+Max number of faces between processors = 656 (26.88588008% above average 517)
+
+Time = 0
+Identified lagrangian data set: "dsmc"
+
+Processor 0: field transfer
+Detected additional non-decomposed files in "/home/superxcx/code/OpenFoam/OF-1706/hyStrath_dlb/doc/worklog/v2506/detail_mix/zb_full_series_300step_retest_20260622/cases/MPI8origin/0/uniform"
+Processor 1: field transfer
+Detected additional non-decomposed files in "/home/superxcx/code/OpenFoam/OF-1706/hyStrath_dlb/doc/worklog/v2506/detail_mix/zb_full_series_300step_retest_20260622/cases/MPI8origin/0/uniform"
+Processor 2: field transfer
+Detected additional non-decomposed files in "/home/superxcx/code/OpenFoam/OF-1706/hyStrath_dlb/doc/worklog/v2506/detail_mix/zb_full_series_300step_retest_20260622/cases/MPI8origin/0/uniform"
+Processor 3: field transfer
+Detected additional non-decomposed files in "/home/superxcx/code/OpenFoam/OF-1706/hyStrath_dlb/doc/worklog/v2506/detail_mix/zb_full_series_300step_retest_20260622/cases/MPI8origin/0/uniform"
+Processor 4: field transfer
+Detected additional non-decomposed files in "/home/superxcx/code/OpenFoam/OF-1706/hyStrath_dlb/doc/worklog/v2506/detail_mix/zb_full_series_300step_retest_20260622/cases/MPI8origin/0/uniform"
+Processor 5: field transfer
+Detected additional non-decomposed files in "/home/superxcx/code/OpenFoam/OF-1706/hyStrath_dlb/doc/worklog/v2506/detail_mix/zb_full_series_300step_retest_20260622/cases/MPI8origin/0/uniform"
+Processor 6: field transfer
+Detected additional non-decomposed files in "/home/superxcx/code/OpenFoam/OF-1706/hyStrath_dlb/doc/worklog/v2506/detail_mix/zb_full_series_300step_retest_20260622/cases/MPI8origin/0/uniform"
+Processor 7: field transfer
+Detected additional non-decomposed files in "/home/superxcx/code/OpenFoam/OF-1706/hyStrath_dlb/doc/worklog/v2506/detail_mix/zb_full_series_300step_retest_20260622/cases/MPI8origin/0/uniform"
+
+End
+

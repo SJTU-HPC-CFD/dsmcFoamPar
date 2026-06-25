@@ -105,6 +105,18 @@ struct FastRng
     }
 };
 
+
+inline scalar fastRngSample01Callback(void* context)
+{
+    return static_cast<FastRng*>(context)->sample01();
+}
+
+
+inline label fastRngPositionCallback(void* context, const label n)
+{
+    return static_cast<FastRng*>(context)->position(n);
+}
+
 }
 
 
@@ -510,12 +522,16 @@ void noTimeCounter::collide()
 
             auto randomIndex = [&](const label n) -> label
             {
-                return fastRng.position(n);
+                return collisionFastRng_
+                  ? fastRng.position(n)
+                  : cloud_.collisionRandomLabel(0, n - 1);
             };
 
             auto random01 = [&]() -> scalar
             {
-                return fastRng.sample01();
+                return collisionFastRng_
+                  ? fastRng.sample01()
+                  : cloud_.collisionSample01();
             };
 
             const DynamicList<dsmcParcel*>* cellParcelsPtr =
@@ -699,6 +715,21 @@ void noTimeCounter::collide()
             const label threadI = omp_get_thread_num();
             label localCandidates = 0;
             label localCollisions = 0;
+            FastRng& threadRng = threadFastRng[threadI];
+
+            if (collisionFastRng_)
+            {
+                cloud_.setCollisionRngContext
+                (
+                    &threadRng,
+                    fastRngSample01Callback,
+                    fastRngPositionCallback
+                );
+            }
+            else
+            {
+                cloud_.clearCollisionRngContext();
+            }
 
             if (cloud_.openmpCollisionSchedule() == "static")
             {
@@ -733,6 +764,7 @@ void noTimeCounter::collide()
 
             threadCandidateCounts[threadI] = localCandidates;
             threadAcceptedCounts[threadI] = localCollisions;
+            cloud_.clearCollisionRngContext();
         }
 
         for (label threadI = 0; threadI < statsThreads; ++threadI)
@@ -942,11 +974,25 @@ void noTimeCounter::collide()
       + uint64_t(mesh.time().timeIndex() + 1)
     );
 
+    if (collisionFastRng_)
+    {
+        cloud_.setCollisionRngContext
+        (
+            &fastRng,
+            fastRngSample01Callback,
+            fastRngPositionCallback
+        );
+    }
+    else
+    {
+        cloud_.clearCollisionRngContext();
+    }
+
     auto randomIndex = [&](const label n) -> label
     {
         if (!collisionFastRng_)
         {
-            return cloud_.randomLabel(0, n - 1);
+            return cloud_.collisionRandomLabel(0, n - 1);
         }
 
         return fastRng.position(n);
@@ -956,7 +1002,7 @@ void noTimeCounter::collide()
     {
         return collisionFastRng_
              ? fastRng.sample01()
-             : rndGen_.sample01<scalar>();
+             : cloud_.collisionSample01();
     };
 
     auto processCell =
@@ -1153,6 +1199,8 @@ void noTimeCounter::collide()
     {
         processCell(collisionCells[i]);
     }
+
+    cloud_.clearCollisionRngContext();
 
     const label localCollisionCandidates = collisionCandidates;
     const label localCollisions = collisions;

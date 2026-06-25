@@ -86,6 +86,9 @@ class domainDecomposition
         //- Processor mesh to write, or -1 to write all
         label processorMeshWriteProc_;
 
+        //- Keep one processor patch per non-local rank on every processor mesh
+        bool processorMeshAllProcPatches_;
+
         //- Labels of points for each processor
         labelListList procPointAddressing_;
 
@@ -211,6 +214,9 @@ public:
 
         //- Restrict writing to a single processor mesh (-1 writes all)
         void setProcessorMeshWriteProc(const label procI);
+
+        //- Keep processor patch lists stable across time-varying decompositions
+        void setProcessorMeshAllProcPatches(const bool allProcPatches);
 
         //- Decompose mesh.
         void decomposeMesh();

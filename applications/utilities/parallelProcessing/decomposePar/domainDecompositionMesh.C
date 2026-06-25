@@ -323,11 +323,32 @@ void Foam::domainDecomposition::decomposeMesh()
     );
 
 
-    // Sort inter-proc patch by neighbour
-    labelList order;
+    // Sort inter-proc patch by neighbour.  For time-varying replicated-mesh
+    // ownership, optionally keep the processor patch list stable by emitting a
+    // zero-size patch for every non-neighbour rank.
     forAll(procNbrToInterPatch, proci)
     {
-        label nInterfaces = procNbrToInterPatch[proci].size();
+        labelList nbrs;
+
+        if (processorMeshAllProcPatches_)
+        {
+            nbrs.setSize(nProcs_ - 1);
+
+            label nNbrs = 0;
+            for (label nbrProc = 0; nbrProc < nProcs_; ++nbrProc)
+            {
+                if (nbrProc != proci)
+                {
+                    nbrs[nNbrs++] = nbrProc;
+                }
+            }
+        }
+        else
+        {
+            nbrs = procNbrToInterPatch[proci].toc();
+        }
+
+        label nInterfaces = nbrs.size();
 
         procNeighbourProcessors_[proci].setSize(nInterfaces);
         procProcessorPatchSize_[proci].setSize(nInterfaces);
@@ -339,9 +360,6 @@ void Foam::domainDecomposition::decomposeMesh()
 
         // Get sorted neighbour processors
         const Map<label>& curNbrToInterPatch = procNbrToInterPatch[proci];
-        labelList nbrs = curNbrToInterPatch.toc();
-
-        sortedOrder(nbrs, order);
 
         DynamicList<DynamicList<label>>& curInterPatchFaces =
             interPatchFaces[proci];
@@ -349,13 +367,27 @@ void Foam::domainDecomposition::decomposeMesh()
         forAll(nbrs, i)
         {
             const label nbrProc = nbrs[i];
-            const label interPatch = curNbrToInterPatch[nbrProc];
 
             procNeighbourProcessors_[proci][i] = nbrProc;
-            procProcessorPatchSize_[proci][i] =
-                curInterPatchFaces[interPatch].size();
             procProcessorPatchStartIndex_[proci][i] =
                 procFaceAddressing_[proci].size();
+
+            if (!curNbrToInterPatch.found(nbrProc))
+            {
+                procProcessorPatchSize_[proci][i] = 0;
+                procProcessorPatchSubPatchIDs_[proci][i].setSize(1);
+                procProcessorPatchSubPatchIDs_[proci][i][0] = -1;
+                procProcessorPatchSubPatchStarts_[proci][i].setSize(2);
+                procProcessorPatchSubPatchStarts_[proci][i][0] = 0;
+                procProcessorPatchSubPatchStarts_[proci][i][1] = 0;
+
+                continue;
+            }
+
+            const label interPatch = curNbrToInterPatch[nbrProc];
+
+            procProcessorPatchSize_[proci][i] =
+                curInterPatchFaces[interPatch].size();
 
             // Add size as last element to substarts and transfer
             append

@@ -33,6 +33,20 @@ Description
 
 #include "fvCFD.H"
 #include "dsmcCloud.H"
+#include <chrono>
+
+namespace
+{
+    typedef std::chrono::steady_clock steadyWallClock;
+
+    scalar wallElapsed(const steadyWallClock::time_point& start)
+    {
+        return std::chrono::duration_cast<std::chrono::duration<scalar>>
+        (
+            steadyWallClock::now() - start
+        ).count();
+    }
+}
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -117,11 +131,32 @@ bool run
 
     label infoCounter = 0;
     label noRefinement = 0;
+    const bool profileSummary = dsmc.profileSummaryEnabled();
+    scalar loopWall = 0.0;
+    scalar amrWall = 0.0;
+    scalar timeBannerWall = 0.0;
+    scalar evolveWall = 0.0;
+    scalar infoWall = 0.0;
+    scalar asyncFinishWall = 0.0;
+    scalar outputOwnerAlignWall = 0.0;
+    scalar outputGatherWall = 0.0;
+    scalar outputWriteWall = 0.0;
+    scalar outputCellOwnerWall = 0.0;
+    scalar outputMigrateBackWall = 0.0;
+    scalar serialWriteWall = 0.0;
+    scalar iterationAccountingWall = 0.0;
+    scalar stagePrintWall = 0.0;
+    scalar loadBalanceCheckWall = 0.0;
 
     while (runTime.loop())
     {
+        const steadyWallClock::time_point loopWallStart =
+            steadyWallClock::now();
+
         if (activateAMR)
         {
+            const steadyWallClock::time_point amrWallStart =
+                steadyWallClock::now();
             scalar timeBeforeMeshUpdate = runTime.elapsedCpuTime();
 
             mesh.update();
@@ -134,29 +169,57 @@ bool run
                      << runTime.elapsedCpuTime() - timeBeforeMeshUpdate
                      << " s" << endl;
             }
+            if (profileSummary)
+            {
+                amrWall += wallElapsed(amrWallStart);
+            }
         }
 
         infoCounter++;
 
         if (infoCounter >= dsmc.nTerminalOutputs())
         {
+            const steadyWallClock::time_point timeBannerWallStart =
+                steadyWallClock::now();
             Info<< "Time = " << runTime.timeName() << nl << endl;
+            if (profileSummary)
+            {
+                timeBannerWall += wallElapsed(timeBannerWallStart);
+            }
         }
 
+        const steadyWallClock::time_point evolveWallStart =
+            steadyWallClock::now();
         dsmc.evolve();
+        if (profileSummary)
+        {
+            evolveWall += wallElapsed(evolveWallStart);
+        }
 
         if (infoCounter >= dsmc.nTerminalOutputs())
         {
+            const steadyWallClock::time_point infoWallStart =
+                steadyWallClock::now();
             dsmc.info();
+            if (profileSummary)
+            {
+                infoWall += wallElapsed(infoWallStart);
+            }
         }
 
         if (dsmc.replicatedMeshActive())
         {
             if (dsmc.replicatedMeshRef().asyncMigrationPending())
             {
+                const steadyWallClock::time_point asyncFinishWallStart =
+                    steadyWallClock::now();
                 dsmc.replicatedMeshRef().migrateFinish();
                 dsmc.replicatedMeshRef().updateParticleCounts();
                 dsmc.clearMoveOrderedParcels();
+                if (profileSummary)
+                {
+                    asyncFinishWall += wallElapsed(asyncFinishWallStart);
+                }
             }
 
             const bool isOutput = runTime.outputTime();
@@ -168,15 +231,26 @@ bool run
             {
                 if (isOutput)
                 {
-                    const scalar tWrite0 = runTime.elapsedCpuTime();
+                    const steadyWallClock::time_point tOwnerAlign0 =
+                        steadyWallClock::now();
+                    dsmc.replicatedMeshRef().migrateParticlesByCellOwner();
+                    dsmc.replicatedMeshRef().updateParticleCounts();
+                    gatherWall = wallElapsed(tOwnerAlign0);
+                    outputOwnerAlignWall += gatherWall;
+
+                    const steadyWallClock::time_point tWrite0 =
+                        steadyWallClock::now();
                     dsmc.replicatedMeshRef().writeProcessorOutput();
-                    writeWall = runTime.elapsedCpuTime() - tWrite0;
+                    writeWall = wallElapsed(tWrite0);
+                    outputWriteWall += writeWall;
                 }
 
                 if (isOutput && dsmc.isOutputRank())
                 {
                     Info<< "Replicated mesh processor output timing:" << nl
-                        << "    processor write [s]    = " << writeWall
+                        << "    owner-align migrate [s] = " << gatherWall << nl
+                        << "    processor fields/cloud write [s] = "
+                        << writeWall
                         << nl << endl;
                 }
             }
@@ -184,9 +258,11 @@ bool run
             {
                 if (isOutput)
                 {
-                    const scalar tGather0 = runTime.elapsedCpuTime();
+                    const steadyWallClock::time_point tGather0 =
+                        steadyWallClock::now();
                     dsmc.replicatedMeshRef().gatherParcelsToRank0();
-                    gatherWall = runTime.elapsedCpuTime() - tGather0;
+                    gatherWall = wallElapsed(tGather0);
+                    outputGatherWall += gatherWall;
                 }
 
                 if (dsmc.isOutputRank())
@@ -194,7 +270,8 @@ bool run
                     IOobject::writeOption oldCloudWriteOpt = dsmc.writeOpt();
                     dsmc.writeOpt() = IOobject::NO_WRITE;
 
-                    const scalar tWrite0 = runTime.elapsedCpuTime();
+                    const steadyWallClock::time_point tWrite0 =
+                        steadyWallClock::now();
                     runTime.write();
                     dsmc.writeOpt() = oldCloudWriteOpt;
 
@@ -203,20 +280,26 @@ bool run
                         dsmc.replicatedMeshRef().writeGatheredCloudOnRank0();
                     }
 
-                    writeWall = runTime.elapsedCpuTime() - tWrite0;
+                    writeWall = wallElapsed(tWrite0);
+                    outputWriteWall += writeWall;
 
                     if (isOutput)
                     {
+                        const steadyWallClock::time_point tCellOwner0 =
+                            steadyWallClock::now();
                         dsmc.replicatedMeshRef().writeCellOwner();
+                        outputCellOwnerWall += wallElapsed(tCellOwner0);
                     }
                 }
 
                 if (isOutput)
                 {
-                    const scalar tMigrateBack0 = runTime.elapsedCpuTime();
+                    const steadyWallClock::time_point tMigrateBack0 =
+                        steadyWallClock::now();
                     dsmc.replicatedMeshRef().migrateParticlesByCellOwner();
                     dsmc.replicatedMeshRef().updateParticleCounts();
-                    migrateBackWall = runTime.elapsedCpuTime() - tMigrateBack0;
+                    migrateBackWall = wallElapsed(tMigrateBack0);
+                    outputMigrateBackWall += migrateBackWall;
                 }
 
                 if (isOutput && dsmc.isOutputRank())
@@ -231,14 +314,28 @@ bool run
         }
         else
         {
+            const steadyWallClock::time_point serialWriteWallStart =
+                steadyWallClock::now();
             runTime.write();
+            if (profileSummary)
+            {
+                serialWriteWall += wallElapsed(serialWriteWallStart);
+            }
         }
 
+        const steadyWallClock::time_point iterationAccountingWallStart =
+            steadyWallClock::now();
         previousIterationTime =
             max(runTime.elapsedCpuTime() - currentIterationTime, 1e-3);
+        if (profileSummary)
+        {
+            iterationAccountingWall += wallElapsed(iterationAccountingWallStart);
+        }
 
         if (infoCounter >= dsmc.nTerminalOutputs())
         {
+            const steadyWallClock::time_point stagePrintWallStart =
+                steadyWallClock::now();
             Info<< nl << "Stage " << noRestart << "." << noRefinement
                 << "  ExecutionTime = " << runTime.elapsedCpuTime() << " s"
                 << "  ClockTime = " << runTime.elapsedClockTime() << " s"
@@ -247,15 +344,117 @@ bool run
                 << nl << endl;
 
             infoCounter = 0;
+            if (profileSummary)
+            {
+                stagePrintWall += wallElapsed(stagePrintWallStart);
+            }
         }
 
         currentIterationTime = runTime.elapsedCpuTime();
         noIteration += 1;
 
+        const steadyWallClock::time_point loadBalanceCheckWallStart =
+            steadyWallClock::now();
         dsmc.loadBalanceCheck();
+        if (profileSummary)
+        {
+            loadBalanceCheckWall += wallElapsed(loadBalanceCheckWallStart);
+            loopWall += wallElapsed(loopWallStart);
+        }
     }
 
     Info<< "End stage " << noRestart << "\n" << endl;
+
+    if (profileSummary)
+    {
+        const scalar localAccounted =
+            amrWall + timeBannerWall + evolveWall + infoWall
+          + asyncFinishWall + outputOwnerAlignWall + outputGatherWall
+          + outputWriteWall + outputCellOwnerWall + outputMigrateBackWall
+          + serialWriteWall + iterationAccountingWall + stagePrintWall
+          + loadBalanceCheckWall;
+
+        scalar values[] =
+        {
+            loopWall,
+            amrWall,
+            timeBannerWall,
+            evolveWall,
+            infoWall,
+            asyncFinishWall,
+            outputOwnerAlignWall,
+            outputGatherWall,
+            outputWriteWall,
+            outputCellOwnerWall,
+            outputMigrateBackWall,
+            serialWriteWall,
+            iterationAccountingWall,
+            stagePrintWall,
+            loadBalanceCheckWall,
+            localAccounted,
+            loopWall - localAccounted
+        };
+
+        if (dsmc.replicatedMeshActive() && dsmc.replicatedMeshRef().nProcs() > 1)
+        {
+            int mpiInit = 0;
+            MPI_Initialized(&mpiInit);
+            if (mpiInit)
+            {
+                MPI_Allreduce
+                (
+                    MPI_IN_PLACE,
+                    values,
+                    17,
+                    MPI_DOUBLE,
+                    MPI_MAX,
+                    MPI_COMM_WORLD
+                );
+            }
+        }
+        else if (Pstream::parRun())
+        {
+            for (label i = 0; i < 17; ++i)
+            {
+                reduce(values[i], maxOp<scalar>());
+            }
+        }
+
+        const bool printProfile =
+            (dsmc.replicatedMeshActive() && dsmc.replicatedMeshRef().myRank() == 0)
+         || (!dsmc.replicatedMeshActive() && Pstream::master());
+
+        if (printProfile)
+        {
+            const scalar componentMaxSum =
+                values[1] + values[2] + values[3] + values[4] + values[5]
+              + values[6] + values[7] + values[8] + values[9] + values[10]
+              + values[11] + values[12] + values[13] + values[14];
+
+            Info<< nl
+                << "DSMC solver loop profile summary" << nl
+                << "    loop wall max [s]             = " << values[0] << nl
+                << "    AMR max [s]                   = " << values[1] << nl
+                << "    time banner max [s]           = " << values[2] << nl
+                << "    dsmc.evolve max [s]           = " << values[3] << nl
+                << "    dsmc.info max [s]             = " << values[4] << nl
+                << "    async finish max [s]          = " << values[5] << nl
+                << "    output owner-align max [s]    = " << values[6] << nl
+                << "    output gather max [s]         = " << values[7] << nl
+                << "    output write max [s]          = " << values[8] << nl
+                << "    output cellOwner max [s]      = " << values[9] << nl
+                << "    output migrate-back max [s]   = " << values[10] << nl
+                << "    serial runTime.write max [s]  = " << values[11] << nl
+                << "    iteration accounting max [s]  = " << values[12] << nl
+                << "    stage print max [s]           = " << values[13] << nl
+                << "    loadBalanceCheck max [s]      = " << values[14] << nl
+                << "    loop accounted local max [s]  = " << values[15] << nl
+                << "    loop residual local max [s]   = " << values[16] << nl
+                << "    loop component max sum [s]    = "
+                << componentMaxSum << nl
+                << endl;
+        }
+    }
 
     dsmc.printProfileSummary();
 

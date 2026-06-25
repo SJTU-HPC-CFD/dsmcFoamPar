@@ -1,0 +1,80 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  v1706                                 |
+|   \\  /    A nd           | Web:      www.OpenFOAM.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version         2;
+    format          ascii;
+    class           dictionary;
+    location        "system";
+    object          controlDict;
+}
+
+nTerminalOutputs 10;
+
+application     dsmcFoam+;
+
+startFrom       startTime;
+
+startTime       0;
+
+stopAt          endTime;
+
+endTime         1.99201e-05;
+
+deltaT          6.64005e-08;
+
+sampleSteps     10;
+
+CTC             0.5;
+
+CAC             0.005;
+
+writeControl    runTime;
+
+writeInterval   1.99201e-05;
+
+purgeWrite      0;
+
+writeFormat     ascii;
+
+writePrecision  10;
+
+writeCompression uncompressed;
+
+timeFormat      general;
+
+timePrecision   10;
+
+runTimeModifiable no;
+
+adjustTimeStep  no;
+
+useOpenMP       true;
+
+openmpMoveSchedule dynamic;
+
+openmpMoveChunk 16;
+
+openmpThreads   8;
+
+openmpCollisionSchedule dynamic;
+
+openmpCollisionChunk 8;
+
+profileSummary  true;
+
+profileDetail   false;
+
+collisionFastRng true;
+
+functions
+{
+}
+
+
+// ************************************************************************* //

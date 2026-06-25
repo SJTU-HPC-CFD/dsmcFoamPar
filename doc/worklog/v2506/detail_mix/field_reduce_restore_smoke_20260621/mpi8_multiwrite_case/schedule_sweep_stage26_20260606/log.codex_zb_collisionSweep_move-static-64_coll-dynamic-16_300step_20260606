@@ -1,0 +1,943 @@
+/*---------------------------------------------------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  v1706                                 |
+|   \\  /    A nd           | Web:      www.OpenFOAM.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+Build  : v1706
+Arch   : "LSB;label=32;scalar=64"
+Exec   : dsmcFoam+
+Date   : Jun 06 2026
+Time   : 04:13:52
+Host   : "SuperXCX-ROG"
+PID    : 1831
+Case   : /home/superxcx/code/OpenFoam/OF-1706/hyStrath_dlb/run/hyStrath/dsmcFoam+/xcx_test/zb-cylinder-react/omp8
+nProcs : 1
+sigFpe : Enabling floating point exception trapping (FOAM_SIGFPE).
+fileModificationChecking : Monitoring run-time modified files using timeStampMaster (fileModificationSkew 10)
+allowSystemOperations : Allowing user-supplied system call operations
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+Create time
+
+Create mesh for time = 0
+
+Selecting dynamicFvMesh dynamicRefineFvMesh
+
+Constructing dsmcCloud 
+Selecting the coordinate system model:	dsmcCartesian
+
+Selecting the time-step model:	dsmcConstantTimeStepModel
+
+Constant time-step model:
+- time-step [sec]	6.64005e-08
+
+Selecting the porous measurement model:	dsmcNoPorousMediumMeasurements
+
+
+Creating dsmcControllers
+
+Creating fields: 
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+ measurement option: write
+ nSamples: 1, time interval: 6.64005e-08
+ nAverages: 300, time interval: 1.992015e-05
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+ measurement option: write
+ nSamples: 1, time interval: 6.64005e-08
+ nAverages: 300, time interval: 1.992015e-05
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+ measurement option: write
+ nSamples: 1, time interval: 6.64005e-08
+ nAverages: 300, time interval: 1.992015e-05
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+ measurement option: write
+ nSamples: 1, time interval: 6.64005e-08
+ nAverages: 300, time interval: 1.992015e-05
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+ measurement option: write
+ nSamples: 1, time interval: 6.64005e-08
+ nAverages: 300, time interval: 1.992015e-05
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+ measurement option: write
+ nSamples: 1, time interval: 6.64005e-08
+ nAverages: 300, time interval: 1.992015e-05
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Creating the boundary models: 
+
+Selecting dsmcPatchBoundaryModel dsmcDeletionPatch
+Selecting dsmcPatchBoundaryModel dsmcDeletionPatch
+Selecting dsmcPatchBoundaryModel dsmcDiffuseWallPatch
+Selecting dsmcGeneralBoundaryModel dsmcFreeStreamInflowPatch
+Selecting BinaryCollisionModel LarsenBorgnakkeVariableHardSphere
+
+Creating dsmcReactions
+
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationExchangeQK
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationExchangeQK
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationExchangeQK
+Selecting the reaction model dissociationExchangeQK
+Selecting the reaction model dissociationQK
+Number of reactions created: 12
+
+Constructing constant properties for
+	N2
+	O2
+	NO
+	N
+	O
+Selecting collisionPartnerSelectionModel noTimeCounter
+
+Initialising the measurement fields
+
+Initialising dsmcVolFields field
+Initialising dsmcVolFields field
+Initialising dsmcVolFields field
+Initialising dsmcVolFields field
+Initialising dsmcVolFields field
+Initialising dsmcVolFields field
+
+Starting time loop
+
+Time = 6.64005e-07
+
+    Collisions                      = 26312
+    Collision candidates           = 35190
+    Collision acceptance rate      = 0.7477124183
+
+    Number of DSMC particles        = 1330278
+    Number of stuck particles       = 0
+    Number of free particles        = 1330278
+    Average linear kinetic energy   = 1.893457145e-19
+    Average rotational energy       = 1.33349393e-21
+    Average vibrational energy      = 0
+    Average electronic energy       = 0
+    Total energy                    = 0.001521938136
+
+Stage 1.0  ExecutionTime = 14.04 s  ClockTime = 1 s  Iteration 10 (1.44 s)
+
+Time = 1.32801e-06
+
+    Collisions                      = 36318
+    Collision candidates           = 54970
+    Collision acceptance rate      = 0.6606876478
+
+    Number of DSMC particles        = 1353903
+    Number of stuck particles       = 0
+    Number of free particles        = 1353903
+    Average linear kinetic energy   = 1.865906481e-19
+    Average rotational energy       = 1.564824545e-21
+    Average vibrational energy      = 1.263986914e-25
+    Average electronic energy       = 0
+    Total energy                    = 0.00152846658
+
+Stage 1.0  ExecutionTime = 27.34 s  ClockTime = 3 s  Iteration 20 (1.5 s)
+
+Time = 1.992015e-06
+
+    Collisions                      = 46684
+    Collision candidates           = 76130
+    Collision acceptance rate      = 0.6132142388
+
+    Number of DSMC particles        = 1377418
+    Number of stuck particles       = 0
+    Number of free particles        = 1377418
+    Average linear kinetic energy   = 1.841330294e-19
+    Average rotational energy       = 1.891078425e-21
+    Average vibrational energy      = 9.045174087e-26
+    Average electronic energy       = 0
+    Total energy                    = 0.001537398475
+
+Stage 1.0  ExecutionTime = 40.91 s  ClockTime = 5 s  Iteration 30 (1.6 s)
+
+Time = 2.65602e-06
+
+    Collisions                      = 57007
+    Collision candidates           = 96888
+    Collision acceptance rate      = 0.588380398
+
+    Number of DSMC particles        = 1400958
+    Number of stuck particles       = 0
+    Number of free particles        = 1400958
+    Average linear kinetic energy   = 1.818943709e-19
+    Average rotational energy       = 2.293194551e-21
+    Average vibrational energy      = 1.221532462e-25
+    Average electronic energy       = 0
+    Total energy                    = 0.001548235287
+
+Stage 1.0  ExecutionTime = 55.26 s  ClockTime = 7 s  Iteration 40 (1.73 s)
+
+Time = 3.320025e-06
+
+    Collisions                      = 66749
+    Collision candidates           = 117260
+    Collision acceptance rate      = 0.5692392973
+
+    Number of DSMC particles        = 1424412
+    Number of stuck particles       = 0
+    Number of free particles        = 1424412
+    Average linear kinetic energy   = 1.798711297e-19
+    Average rotational energy       = 2.731450291e-21
+    Average vibrational energy      = 1.638756873e-25
+    Average electronic energy       = 0
+    Total energy                    = 0.001560609237
+
+Stage 1.0  ExecutionTime = 70.17 s  ClockTime = 9 s  Iteration 50 (1.79 s)
+
+Time = 3.98403e-06
+
+    Collisions                      = 76506
+    Collision candidates           = 137107
+    Collision acceptance rate      = 0.5580021443
+
+    Number of DSMC particles        = 1447706
+    Number of stuck particles       = 0
+    Number of free particles        = 1447706
+    Average linear kinetic energy   = 1.779672209e-19
+    Average rotational energy       = 3.219556505e-21
+    Average vibrational energy      = 4.837166431e-25
+    Average electronic energy       = 0
+    Total energy                    = 0.001573835311
+
+Stage 1.0  ExecutionTime = 85.61 s  ClockTime = 11 s  Iteration 60 (1.89 s)
+
+Time = 4.648035e-06
+
+    Collisions                      = 85963
+    Collision candidates           = 157486
+    Collision acceptance rate      = 0.545845345
+
+    Number of DSMC particles        = 1471343
+    Number of stuck particles       = 0
+    Number of free particles        = 1471343
+    Average linear kinetic energy   = 1.761988323e-19
+    Average rotational energy       = 3.734911655e-21
+    Average vibrational energy      = 5.817928291e-25
+    Average electronic energy       = 0
+    Total energy                    = 0.001588470664
+
+Stage 1.0  ExecutionTime = 101.31 s  ClockTime = 13 s  Iteration 70 (1.94 s)
+
+Time = 5.31204e-06
+
+    Collisions                      = 95279
+    Collision candidates           = 176629
+    Collision acceptance rate      = 0.5394301049
+
+    Number of DSMC particles        = 1494459
+    Number of stuck particles       = 0
+    Number of free particles        = 1494459
+    Average linear kinetic energy   = 1.745705774e-19
+    Average rotational energy       = 4.251736777e-21
+    Average vibrational energy      = 7.186875348e-25
+    Average electronic energy       = 0
+    Total energy                    = 0.001603462145
+
+Stage 1.0  ExecutionTime = 117.72 s  ClockTime = 15 s  Iteration 80 (2.02 s)
+
+Time = 5.976045e-06
+
+    Collisions                      = 103531
+    Collision candidates           = 194228
+    Collision acceptance rate      = 0.5330384908
+
+    Number of DSMC particles        = 1517826
+    Number of stuck particles       = 0
+    Number of free particles        = 1517826
+    Average linear kinetic energy   = 1.730525467e-19
+    Average rotational energy       = 4.769330773e-21
+    Average vibrational energy      = 8.104653257e-25
+    Average electronic energy       = 0
+    Total energy                    = 0.001619423395
+
+Stage 1.0  ExecutionTime = 134.1 s  ClockTime = 17 s  Iteration 90 (2.09 s)
+
+Time = 6.64005e-06
+
+    Collisions                      = 111689
+    Collision candidates           = 211186
+    Collision acceptance rate      = 0.5288655498
+
+    Number of DSMC particles        = 1540786
+    Number of stuck particles       = 0
+    Number of free particles        = 1540786
+    Average linear kinetic energy   = 1.715913667e-19
+    Average rotational energy       = 5.306535536e-21
+    Average vibrational energy      = 1.02075658e-24
+    Average electronic energy       = 0
+    Total energy                    = 0.001635380304
+
+Stage 1.0  ExecutionTime = 151.26 s  ClockTime = 20 s  Iteration 100 (2.22 s)
+
+Time = 7.304055e-06
+
+    Collisions                      = 121028
+    Collision candidates           = 228800
+    Collision acceptance rate      = 0.5289685315
+
+    Number of DSMC particles        = 1563822
+    Number of stuck particles       = 0
+    Number of free particles        = 1563822
+    Average linear kinetic energy   = 1.702431582e-19
+    Average rotational energy       = 5.823001206e-21
+    Average vibrational energy      = 1.383464586e-24
+    Average electronic energy       = 0
+    Total energy                    = 0.001652029782
+
+Stage 1.0  ExecutionTime = 168.53 s  ClockTime = 22 s  Iteration 110 (2.23 s)
+
+Time = 7.96806e-06
+
+    Collisions                      = 127998
+    Collision candidates           = 244842
+    Collision acceptance rate      = 0.5227779548
+
+    Number of DSMC particles        = 1586716
+    Number of stuck particles       = 0
+    Number of free particles        = 1586716
+    Average linear kinetic energy   = 1.689311007e-19
+    Average rotational energy       = 6.356952502e-21
+    Average vibrational energy      = 1.441345083e-24
+    Average electronic energy       = 0
+    Total energy                    = 0.001668807874
+
+Stage 1.0  ExecutionTime = 186.43 s  ClockTime = 25 s  Iteration 120 (2.36 s)
+
+Time = 8.632065e-06
+
+    Collisions                      = 135679
+    Collision candidates           = 260822
+    Collision acceptance rate      = 0.5201976827
+
+    Number of DSMC particles        = 1609183
+    Number of stuck particles       = 0
+    Number of free particles        = 1609183
+    Average linear kinetic energy   = 1.677259493e-19
+    Average rotational energy       = 6.860608892e-21
+    Average vibrational energy      = 2.610616059e-24
+    Average electronic energy       = 0
+    Total energy                    = 0.001685675535
+
+Stage 1.0  ExecutionTime = 204.72 s  ClockTime = 27 s  Iteration 130 (2.44 s)
+
+Time = 9.29607e-06
+
+    Collisions                      = 143269
+    Collision candidates           = 276111
+    Collision acceptance rate      = 0.5188818989
+
+    Number of DSMC particles        = 1631709
+    Number of stuck particles       = 0
+    Number of free particles        = 1631709
+    Average linear kinetic energy   = 1.665865729e-19
+    Average rotational energy       = 7.326342712e-21
+    Average vibrational energy      = 4.022909469e-24
+    Average electronic energy       = 0
+    Total energy                    = 0.001702691003
+
+Stage 1.0  ExecutionTime = 223.47 s  ClockTime = 30 s  Iteration 140 (2.53 s)
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 1
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Time = 9.960075e-06
+
+    Collisions                      = 150378
+    Collision candidates           = 290793
+    Collision acceptance rate      = 0.5171307425
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+    Number of DSMC particles        = 1653435
+    Number of stuck particles       = 0
+    Number of free particles        = 1653435
+    Average linear kinetic energy   = 1.654775095e-19
+    Average rotational energy       = 7.824219607e-21
+    Average vibrational energy      = 4.271891516e-24
+    Average electronic energy       = 0
+    Total energy                    = 0.001719301246
+
+Stage 1.0  ExecutionTime = 243.83 s  ClockTime = 30 s  Iteration 150 (2.61 s)
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Time = 1.062408e-05
+
+    Collisions                      = 157532
+    Collision candidates           = 305532
+    Collision acceptance rate      = 0.5155990207
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+    Number of DSMC particles        = 1675673
+    Number of stuck particles       = 0
+    Number of free particles        = 1675673
+    Average linear kinetic energy   = 1.644232149e-19
+    Average rotational energy       = 8.304541905e-21
+    Average vibrational energy      = 4.82710438e-24
+    Average electronic energy       = 0
+    Total energy                    = 0.001736659963
+
+Stage 1.0  ExecutionTime = 263.29 s  ClockTime = 33 s  Iteration 160 (2.58 s)
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Time = 1.1288085e-05
+
+    Collisions                      = 164579
+    Collision candidates           = 319536
+    Collision acceptance rate      = 0.5150562065
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+    Number of DSMC particles        = 1697648
+    Number of stuck particles       = 0
+    Number of free particles        = 1697648
+    Average linear kinetic energy   = 1.633909099e-19
+    Average rotational energy       = 8.789920515e-21
+    Average vibrational energy      = 5.69970467e-24
+    Average electronic energy       = 0
+    Total energy                    = 0.001753872711
+
+Stage 1.0  ExecutionTime = 283.56 s  ClockTime = 35 s  Iteration 170 (2.7 s)
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Time = 1.195209e-05
+
+    Collisions                      = 171199
+    Collision candidates           = 333335
+    Collision acceptance rate      = 0.513594432
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+    Number of DSMC particles        = 1719014
+    Number of stuck particles       = 0
+    Number of free particles        = 1719014
+    Average linear kinetic energy   = 1.62423436e-19
+    Average rotational energy       = 9.235688362e-21
+    Average vibrational energy      = 6.60605526e-24
+    Average electronic energy       = 0
+    Total energy                    = 0.001770574763
+
+Stage 1.0  ExecutionTime = 303.65 s  ClockTime = 38 s  Iteration 180 (2.73 s)
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Time = 1.2616095e-05
+
+    Collisions                      = 178066
+    Collision candidates           = 347014
+    Collision acceptance rate      = 0.5131377985
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+    Number of DSMC particles        = 1740322
+    Number of stuck particles       = 0
+    Number of free particles        = 1740322
+    Average linear kinetic energy   = 1.614883226e-19
+    Average rotational energy       = 9.694232012e-21
+    Average vibrational energy      = 6.962940164e-24
+    Average electronic energy       = 0
+    Total energy                    = 0.001787549301
+
+Stage 1.0  ExecutionTime = 324.25 s  ClockTime = 41 s  Iteration 190 (2.89 s)
+
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 1
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Time = 1.32801e-05
+
+    Collisions                      = 184254
+    Collision candidates           = 359978
+    Collision acceptance rate      = 0.5118479463
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+    Number of DSMC particles        = 1761458
+    Number of stuck particles       = 0
+    Number of free particles        = 1761458
+    Average linear kinetic energy   = 1.605736384e-19
+    Average rotational energy       = 1.015585411e-20
+    Average vibrational energy      = 7.779581951e-24
+    Average electronic energy       = 0
+    Total energy                    = 0.001804479203
+
+Stage 1.0  ExecutionTime = 347.1 s  ClockTime = 44 s  Iteration 200 (3.95 s)
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 1
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 1
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Time = 1.3944105e-05
+
+    Collisions                      = 190548
+    Collision candidates           = 373492
+    Collision acceptance rate      = 0.5101796022
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+    Number of DSMC particles        = 1782212
+    Number of stuck particles       = 0
+    Number of free particles        = 1782212
+    Average linear kinetic energy   = 1.597163434e-19
+    Average rotational energy       = 1.057125164e-20
+    Average vibrational energy      = 9.120680441e-24
+    Average electronic energy       = 0
+    Total energy                    = 0.001821029102
+
+Stage 1.0  ExecutionTime = 372.24 s  ClockTime = 47 s  Iteration 210 (3.09 s)
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 1
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Time = 1.460811e-05
+
+    Collisions                      = 196691
+    Collision candidates           = 385384
+    Collision acceptance rate      = 0.5103766633
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+    Number of DSMC particles        = 1802467
+    Number of stuck particles       = 0
+    Number of free particles        = 1802467
+    Average linear kinetic energy   = 1.588608854e-19
+    Average rotational energy       = 1.0997033e-20
+    Average vibrational energy      = 9.889158484e-24
+    Average electronic energy       = 0
+    Total energy                    = 0.001837086705
+
+Stage 1.0  ExecutionTime = 396.12 s  ClockTime = 51 s  Iteration 220 (3.19 s)
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Time = 1.5272115e-05
+
+    Collisions                      = 202726
+    Collision candidates           = 398686
+    Collision acceptance rate      = 0.5084853745
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+    Number of DSMC particles        = 1822898
+    Number of stuck particles       = 0
+    Number of free particles        = 1822898
+    Average linear kinetic energy   = 1.580668627e-19
+    Average rotational energy       = 1.140794295e-20
+    Average vibrational energy      = 1.025675096e-23
+    Average electronic energy       = 0
+    Total energy                    = 0.001853723888
+
+Stage 1.0  ExecutionTime = 418.39 s  ClockTime = 54 s  Iteration 230 (3.28 s)
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Time = 1.593612e-05
+
+    Collisions                      = 209059
+    Collision candidates           = 411017
+    Collision acceptance rate      = 0.5086383288
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+    Number of DSMC particles        = 1842650
+    Number of stuck particles       = 0
+    Number of free particles        = 1842650
+    Average linear kinetic energy   = 1.572353306e-19
+    Average rotational energy       = 1.183454656e-20
+    Average vibrational energy      = 1.092261875e-23
+    Average electronic energy       = 0
+    Total energy                    = 0.001869340414
+
+Stage 1.0  ExecutionTime = 440.82 s  ClockTime = 57 s  Iteration 240 (3.28 s)
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Time = 1.6600125e-05
+
+    Collisions                      = 214584
+    Collision candidates           = 421910
+    Collision acceptance rate      = 0.5086013605
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+    Number of DSMC particles        = 1862166
+    Number of stuck particles       = 0
+    Number of free particles        = 1862166
+    Average linear kinetic energy   = 1.564660546e-19
+    Average rotational energy       = 1.222742627e-20
+    Average vibrational energy      = 1.208569766e-23
+    Average electronic energy       = 0
+    Total energy                    = 0.00188494662
+
+Stage 1.0  ExecutionTime = 463.38 s  ClockTime = 60 s  Iteration 250 (3.32 s)
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Time = 1.726413e-05
+
+    Collisions                      = 220199
+    Collision candidates           = 433768
+    Collision acceptance rate      = 0.5076423342
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+    Number of DSMC particles        = 1881792
+    Number of stuck particles       = 0
+    Number of free particles        = 1881792
+    Average linear kinetic energy   = 1.557405782e-19
+    Average rotational energy       = 1.259734732e-20
+    Average vibrational energy      = 1.326649759e-23
+    Average electronic energy       = 0
+    Total energy                    = 0.001900811558
+
+Stage 1.0  ExecutionTime = 486.82 s  ClockTime = 60 s  Iteration 260 (3.39 s)
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 1
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 1
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Time = 1.7928135e-05
+
+    Collisions                      = 226113
+    Collision candidates           = 445746
+    Collision acceptance rate      = 0.5072687136
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+    Number of DSMC particles        = 1901402
+    Number of stuck particles       = 0
+    Number of free particles        = 1901402
+    Average linear kinetic energy   = 1.550283166e-19
+    Average rotational energy       = 1.29473388e-20
+    Average vibrational energy      = 1.477420291e-23
+    Average electronic energy       = 0
+    Total energy                    = 0.001916504033
+
+Stage 1.0  ExecutionTime = 515.06 s  ClockTime = 64 s  Iteration 270 (3.53 s)
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Time = 1.859214e-05
+
+    Collisions                      = 231586
+    Collision candidates           = 456837
+    Collision acceptance rate      = 0.5069335452
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+    Number of DSMC particles        = 1920506
+    Number of stuck particles       = 0
+    Number of free particles        = 1920506
+    Average linear kinetic energy   = 1.543212715e-19
+    Average rotational energy       = 1.329135614e-20
+    Average vibrational energy      = 1.648246524e-23
+    Average electronic energy       = 0
+    Total energy                    = 0.00193159627
+
+Stage 1.0  ExecutionTime = 538.79 s  ClockTime = 67 s  Iteration 280 (3.54 s)
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Time = 1.9256145e-05
+
+    Collisions                      = 236511
+    Collision candidates           = 467771
+    Collision acceptance rate      = 0.5056127892
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+    Number of DSMC particles        = 1938975
+    Number of stuck particles       = 0
+    Number of free particles        = 1938975
+    Average linear kinetic energy   = 1.536250629e-19
+    Average rotational energy       = 1.364261616e-20
+    Average vibrational energy      = 1.752120844e-23
+    Average electronic energy       = 0
+    Total energy                    = 0.001946170927
+
+Stage 1.0  ExecutionTime = 562.86 s  ClockTime = 71 s  Iteration 290 (3.69 s)
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+Time = 1.992015e-05
+
+    Collisions                      = 242441
+    Collision candidates           = 478130
+    Collision acceptance rate      = 0.5070608412
+
+Dissociation reaction O2 + N2 --> O + O + N2 is active, nReactions this time step = 0
+Dissociation reaction O2 + O2 --> O + O + O2 is active, nReactions this time step = 0
+    Number of DSMC particles        = 1957852
+    Number of stuck particles       = 0
+    Number of free particles        = 1957852
+    Average linear kinetic energy   = 1.529442626e-19
+    Average rotational energy       = 1.400026572e-20
+    Average vibrational energy      = 1.82898052e-23
+    Average electronic energy       = 0
+    Total energy                    = 0.001961330925
+
+Stage 1.0  ExecutionTime = 595.38 s  ClockTime = 79 s  Iteration 300 (11.64 s)
+
+End stage 1
+
+
+DSMC solver profile summary
+    solver profile steps          = 300
+    move+collide wall [s]         = 62.83395916
+    move only [s]                 = 42.60142367
+    buildCellOccupancy [s]        = 8.545208794
+    collision phase [s]           = 10.43977883
+    post fields/output [s]        = 13.88888306
+    total profiled [s]            = 75.47529436
+    full evolve wall [s]          = 76.72571503
+    move+collide cpu [s]          = 463.79
+    move only cpu [s]             = 314.64
+    buildCellOccupancy cpu [s]    = 61.96
+    collision phase cpu [s]       = 77.15
+    post fields/output cpu [s]    = 102.76
+    total profiled cpu [s]        = 556.51
+    full evolve cpu [s]           = 566.61
+    OpenMP enabled                = 1
+    OpenMP max threads            = 8
+    OpenMP move                   = 1 (static, chunk 64)
+    OpenMP collision              = dynamic, chunk 16
+
+Total Iterations = 300
+End main
+
+real 80.13
+user 591.46
+sys 4.38

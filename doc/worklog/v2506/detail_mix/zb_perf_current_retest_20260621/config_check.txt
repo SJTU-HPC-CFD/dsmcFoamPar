@@ -1,0 +1,51 @@
+### zb_OMP8 np=1 threads=8
+endTime 1.9920146682e-05;
+deltaT 6.640048894e-08;
+writeInterval 1.e-3;
+useOpenMP true;
+openmpThreads 8;
+### zb_MPI2xOMP4 np=2 threads=4
+endTime 1.9920146682e-05;
+deltaT 6.640048894e-08;
+writeInterval 1.e-3;
+useOpenMP true;
+openmpThreads 4;
+replicatedMesh true;
+replicatedMeshNoAlltoall false;
+replicatedMeshDLBAlpha 1;
+replicatedMeshSARSteps 50;
+replicatedMeshDLBMinRemainingSteps 50;
+replicatedMeshGatherCandidates false;
+replicatedMeshOverlapSizeExchange false;
+### zb_MPI4xOMP2 np=4 threads=2
+endTime 1.9920146682e-05;
+deltaT 6.640048894e-08;
+writeInterval 1.e-3;
+useOpenMP true;
+openmpThreads 2;
+replicatedMesh true;
+replicatedMeshNoAlltoall false;
+replicatedMeshDLBAlpha 1;
+replicatedMeshSARSteps 50;
+replicatedMeshDLBMinRemainingSteps 50;
+replicatedMeshGatherCandidates false;
+replicatedMeshOverlapSizeExchange false;
+### zb_MPI8 np=8 threads=1
+endTime 1.9920146682e-05;
+deltaT 6.640048894e-08;
+writeInterval 1.e-3;
+useOpenMP false;
+openmpThreads 1;
+replicatedMesh true;
+replicatedMeshNoAlltoall false;
+replicatedMeshDLBAlpha 1;
+replicatedMeshSARSteps 50;
+replicatedMeshDLBMinRemainingSteps 50;
+replicatedMeshGatherCandidates false;
+replicatedMeshOverlapSizeExchange false;
+### zb_MPI8origin np=8 threads=1
+endTime 1.9920146682e-05;
+deltaT 6.640048894e-08;
+writeInterval 1.e-3;
+useOpenMP false;
+openmpThreads 1;

@@ -269,6 +269,39 @@ inline void endMoveAppendCapture(TrackCloudType&, long)
 {}
 
 template<class TrackCloudType>
+class MoveAppendCaptureGuard
+{
+    TrackCloudType& cloud_;
+    bool active_;
+
+public:
+
+    MoveAppendCaptureGuard(TrackCloudType& cloud, const bool active)
+    :
+        cloud_(cloud),
+        active_(active)
+    {
+        if (active_)
+        {
+            beginMoveAppendCapture(cloud_, 0);
+        }
+    }
+
+    ~MoveAppendCaptureGuard()
+    {
+        if (active_)
+        {
+            endMoveAppendCapture(cloud_, 0);
+        }
+    }
+
+private:
+
+    MoveAppendCaptureGuard(const MoveAppendCaptureGuard&);
+    void operator=(const MoveAppendCaptureGuard&);
+};
+
+template<class TrackCloudType>
 inline auto hasMoveOrderedParcels(const TrackCloudType& cloud, int)
 -> decltype(cloud.hasMoveOrderedParcels(), bool())
 {
@@ -339,6 +372,17 @@ inline void appendMoveOrderedParcels
     const ParticleListType&,
     long
 )
+{}
+
+template<class TrackCloudType>
+inline auto rebuildMoveOrderedParcels(TrackCloudType& cloud, int)
+-> decltype(cloud.rebuildMoveOrderedParcels(), void())
+{
+    cloud.rebuildMoveOrderedParcels();
+}
+
+template<class TrackCloudType>
+inline void rebuildMoveOrderedParcels(TrackCloudType&, long)
 {}
 }
 }
@@ -592,7 +636,14 @@ void Foam::Cloud<ParticleType>::move(TrackData& td, const scalar trackTime)
     const bool useOpenMPMove = false;
     #endif
 
-    if (!useOpenMPMove)
+    const bool useReplicatedOrderedSingleMove =
+        !useOpenMPMove
+     && !useProcessorPatchTransfer
+     && cloudOpenMP::replicatedMeshActive(td.cloud(), 0)
+     && cloudOpenMP::moveOrderedReuseEnabled(td.cloud(), 0)
+     && this->size() > 1;
+
+    if (!useOpenMPMove && !useReplicatedOrderedSingleMove)
     {
         // Initialise the stepFraction moved for the particles
         forAllIter(typename Cloud<ParticleType>, *this, pIter)
@@ -619,10 +670,10 @@ void Foam::Cloud<ParticleType>::move(TrackData& td, const scalar trackTime)
 
         if (useProcessorPatchTransfer)
         {
-            if (moveOrderedReuse)
-            {
-                cloudOpenMP::beginMoveAppendCapture(td.cloud(), 0);
-            }
+            cloudOpenMP::MoveAppendCaptureGuard
+            <
+                typename std::remove_reference<decltype(td.cloud())>::type
+            > moveAppendCaptureGuard(td.cloud(), moveOrderedReuse);
 
             List<IDLList<ParticleType> > particleTransferLists
             (
@@ -940,10 +991,10 @@ void Foam::Cloud<ParticleType>::move(TrackData& td, const scalar trackTime)
             return;
         }
 
-        if (moveOrderedReuse)
-        {
-            cloudOpenMP::beginMoveAppendCapture(td.cloud(), 0);
-        }
+        cloudOpenMP::MoveAppendCaptureGuard
+        <
+            typename std::remove_reference<decltype(td.cloud())>::type
+        > moveAppendCaptureGuard(td.cloud(), moveOrderedReuse);
 
         List<ParticleType*> particlesStorage;
         const List<ParticleType*>* particlesPtr = nullptr;
@@ -1227,6 +1278,208 @@ void Foam::Cloud<ParticleType>::move(TrackData& td, const scalar trackTime)
             {
                 Info<< nTrackingRescues_
                     << " tracking rescue corrections" << endl;
+            }
+        }
+
+        return;
+    }
+
+    if (useReplicatedOrderedSingleMove)
+    {
+        List<ParticleType*> particlesStorage;
+        const List<ParticleType*>* particlesPtr = nullptr;
+        bool usingCloudOrdered = false;
+        labelList singleThreadOffsets(2, 0);
+
+        const auto& appendedParcels =
+            cloudOpenMP::moveAppendedParcels
+            <
+                typename std::remove_reference<decltype(td.cloud())>::type,
+                ParticleType
+            >(td.cloud(), 0);
+
+        const bool hasOrdered =
+            cloudOpenMP::hasMoveOrderedParcels(td.cloud(), 0);
+        const labelList orderedThreadOffsets =
+            cloudOpenMP::moveOrderedThreadOffsets(td.cloud(), 0);
+        const bool offsetsOk = orderedThreadOffsets.size() == 2;
+        const label priorSize =
+            hasOrdered
+          ? cloudOpenMP::moveOrderedParcels
+            <
+                typename std::remove_reference<decltype(td.cloud())>::type,
+                ParticleType
+            >(td.cloud(), 0).size()
+          : 0;
+
+        const bool canReuseMoveOrdered =
+            hasOrdered
+         && offsetsOk
+         && priorSize + appendedParcels.size() == this->size();
+
+        if (canReuseMoveOrdered)
+        {
+            if (appendedParcels.size())
+            {
+                cloudOpenMP::appendMoveOrderedParcels
+                (
+                    td.cloud(),
+                    appendedParcels,
+                    0
+                );
+            }
+
+            const auto& moveOrdered =
+                cloudOpenMP::moveOrderedParcels
+                <
+                    typename std::remove_reference<decltype(td.cloud())>::type,
+                    ParticleType
+                >(td.cloud(), 0);
+
+            particlesPtr = &moveOrdered;
+            usingCloudOrdered = true;
+        }
+        else
+        {
+            particlesStorage.setSize(this->size());
+            label particlei = 0;
+
+            forAllIter(typename Cloud<ParticleType>, *this, pIter)
+            {
+                particlesStorage[particlei++] = &pIter();
+            }
+
+            particlesStorage.setSize(particlei);
+            particlesPtr = &particlesStorage;
+        }
+
+        const List<ParticleType*>& particles = *particlesPtr;
+        singleThreadOffsets[1] = particles.size();
+
+        bool deletedAnyParticle = false;
+        DynamicList<ParticleType*> survivingParticles;
+        DynamicList<ParticleType*> deletedParticles;
+
+        forAll(particles, i)
+        {
+            particles[i]->stepFraction() = 0;
+
+            td.switchProcessor = false;
+            td.keepParticle = true;
+            const bool keepParticle = particles[i]->move(td, trackTime);
+
+            if (keepParticle)
+            {
+                if (deletedAnyParticle)
+                {
+                    survivingParticles.append(particles[i]);
+                }
+            }
+            else
+            {
+                if (!deletedAnyParticle)
+                {
+                    deletedAnyParticle = true;
+                    survivingParticles.setCapacity(particles.size() - 1);
+                    deletedParticles.setCapacity(16);
+
+                    for (label j = 0; j < i; ++j)
+                    {
+                        survivingParticles.append(particles[j]);
+                    }
+                }
+
+                deletedParticles.append(particles[i]);
+            }
+        }
+
+        if (!deletedAnyParticle)
+        {
+            if (!usingCloudOrdered)
+            {
+                if (this->size() == particles.size())
+                {
+                    cloudOpenMP::storeMoveOrderedParcels
+                    (
+                        td.cloud(),
+                        particles,
+                        singleThreadOffsets,
+                        0
+                    );
+                }
+                else
+                {
+                    cloudOpenMP::rebuildMoveOrderedParcels(td.cloud(), 0);
+                }
+            }
+            else
+            {
+                const auto& moveAppended =
+                    cloudOpenMP::moveAppendedParcels
+                    <
+                        typename std::remove_reference
+                        <
+                            decltype(td.cloud())
+                        >::type,
+                        ParticleType
+                    >(td.cloud(), 0);
+
+                if (this->size() != particles.size() + moveAppended.size())
+                {
+                    cloudOpenMP::rebuildMoveOrderedParcels(td.cloud(), 0);
+                }
+            }
+
+            if (cloud::debug)
+            {
+                reduce(nTrackingRescues_, sumOp<label>());
+
+                if (nTrackingRescues_ > 0)
+                {
+                    Info<< nTrackingRescues_
+                        << " tracking rescue corrections" << endl;
+                }
+            }
+
+            return;
+        }
+
+        forAll(deletedParticles, i)
+        {
+            deleteParticle(*deletedParticles[i]);
+        }
+
+        List<ParticleType*> survivingParticleList(survivingParticles.size());
+        forAll(survivingParticles, i)
+        {
+            survivingParticleList[i] = survivingParticles[i];
+        }
+
+        singleThreadOffsets[1] = survivingParticleList.size();
+
+        if (this->size() == survivingParticleList.size())
+        {
+            cloudOpenMP::transferMoveOrderedParcels
+            (
+                td.cloud(),
+                survivingParticleList,
+                singleThreadOffsets,
+                0
+            );
+        }
+        else
+        {
+            cloudOpenMP::rebuildMoveOrderedParcels(td.cloud(), 0);
+        }
+
+        if (cloud::debug)
+        {
+            reduce(nTrackingRescues_, sumOp<label>());
+
+            if (nTrackingRescues_ > 0)
+            {
+                Info<< nTrackingRescues_ << " tracking rescue corrections"
+                    << endl;
             }
         }
 

@@ -1,0 +1,719 @@
+date=2026-06-24T04:01:38+08:00
+Compiling enabled on 16 cores
+Making dependency list for source file dsmcFoam+.C
+icpx -std=c++11 -fp-model precise -DOPENFOAM_PLUS=1706 -Dlinux64 -DWM_ARCH_OPTION=64 -DWM_DP -DWM_LABEL_SIZE=32 -Wall -Wextra -Wnon-virtual-dtor -Wno-unused-parameter -O3  -DNoRepository -qopenmp -I/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude -I/home/superxcx/code/OpenFoam/OF-1706/hyStrath_dlb/src/lagrangian/basic/lnInclude -I/home/superxcx/code/OpenFoam/OF-1706/hyStrath_dlb/src/lagrangian/dsmc/lnInclude -I/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude -I/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude -I/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/dynamicMesh/lnInclude -I/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/dynamicFvMesh/lnInclude -I/home/superxcx/code/OpenFoam/OF-1706/hyStrath_dlb/src/lagrangian/molecularDynamics/general/lnInclude -I/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude -I/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/parallel/decompose/decompositionMethods/lnInclude -I/home/superxcx/code/DSMC/dsmcFoam++/parmetis-install/include -I/include -IlnInclude -I. -I/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude -I/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OSspecific/POSIX/lnInclude   -fPIC -c dsmcFoam+.C -o Make/linux64IccDPInt32Opt/dsmcFoam+.o
+In file included from dsmcFoam+.C:34:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/fvCFD.H:4:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/parRun.H:35:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/Pstream.H:42:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/UPstream.H:42:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/labelList.H:48:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/List.H:43:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/UList.H:467:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/UList.C:310:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/UListIO.C:28:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/token.H:49:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/runTimeSelectionTables.H:41:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/HashTable.H:851:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/HashTableI.H:378:8: warning: missing 'typename' prior to dependent type name 'Foam::HashTable<T, Key, Hash>::key_iterator_base'; implicit 'typename' is a C++20 extension [-Wc++20-extensions]
+  378 | inline Foam::HashTable<T, Key, Hash>::key_iterator_base<WrappedIterator>&
+      |        ^
+      |        typename 
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/HashTableI.H:389:8: warning: missing 'typename' prior to dependent type name 'Foam::HashTable<T, Key, Hash>::key_iterator_base'; implicit 'typename' is a C++20 extension [-Wc++20-extensions]
+  389 | inline Foam::HashTable<T, Key, Hash>::key_iterator_base<WrappedIterator>
+      |        ^
+      |        typename 
+In file included from dsmcFoam+.C:34:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/fvCFD.H:4:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/parRun.H:35:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/Pstream.H:42:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/UPstream.H:42:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/labelList.H:48:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/List.H:43:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/UList.H:467:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/UList.C:310:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/UListIO.C:28:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/token.H:460:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/Istream.H:184:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/HashTable.C:31:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/FixedList.H:397:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/FixedListI.H:27:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/SLList.H:36:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/SLListBase.H:191:25: warning: definition of implicit copy constructor for 'iterator' is deprecated because it has a user-provided copy assignment operator [-Wdeprecated-copy-with-user-provided-copy]
+  191 |             inline void operator=(const iterator& iter);
+      |                         ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/SLListBaseI.H:227:20: note: in implicit copy constructor for 'Foam::SLListBase::iterator' first required here
+  227 |     iterator tmp = *this;
+      |                    ^
+In file included from dsmcFoam+.C:34:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/fvCFD.H:4:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/parRun.H:35:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/Pstream.H:42:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/UPstream.H:42:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/labelList.H:48:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/List.H:43:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/UList.H:467:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/UList.C:310:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/UListIO.C:28:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/token.H:460:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/Istream.H:184:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/HashTable.C:31:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/FixedList.H:397:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/FixedListI.H:27:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/SLList.H:36:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/SLListBase.H:228:25: warning: definition of implicit copy constructor for 'const_iterator' is deprecated because it has a user-provided copy assignment operator [-Wdeprecated-copy-with-user-provided-copy]
+  228 |             inline void operator=(const const_iterator& iter);
+      |                         ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/SLListBaseI.H:336:26: note: in implicit copy constructor for 'Foam::SLListBase::const_iterator' first required here
+  336 |     const_iterator tmp = *this;
+      |                          ^
+In file included from dsmcFoam+.C:34:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/fvCFD.H:4:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/parRun.H:35:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/Pstream.H:42:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/UPstream.H:46:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/NamedEnum.H:193:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/NamedEnum.C:27:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/dictionary.H:84:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/entry.H:45:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/IDLList.H:36:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/DLListBase.H:209:25: warning: definition of implicit copy constructor for 'iterator' is deprecated because it has a user-provided copy assignment operator [-Wdeprecated-copy-with-user-provided-copy]
+  209 |             inline void operator=(const iterator& iter);
+      |                         ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/DLListBaseI.H:252:20: note: in implicit copy constructor for 'Foam::DLListBase::iterator' first required here
+  252 |     iterator tmp = *this;
+      |                    ^
+In file included from dsmcFoam+.C:34:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/fvCFD.H:4:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/parRun.H:35:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/Pstream.H:42:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/UPstream.H:46:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/NamedEnum.H:193:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/NamedEnum.C:27:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/dictionary.H:84:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/entry.H:45:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/IDLList.H:36:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/DLListBase.H:246:25: warning: definition of implicit copy constructor for 'const_iterator' is deprecated because it has a user-provided copy assignment operator [-Wdeprecated-copy-with-user-provided-copy]
+  246 |             inline void operator=(const const_iterator& iter);
+      |                         ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/DLListBaseI.H:360:26: note: in implicit copy constructor for 'Foam::DLListBase::const_iterator' first required here
+  360 |     const_iterator tmp = *this;
+      |                          ^
+In file included from dsmcFoam+.C:34:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/fvCFD.H:4:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/parRun.H:35:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/Pstream.H:42:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/UPstream.H:46:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/NamedEnum.H:193:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/NamedEnum.C:27:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/dictionary.H:84:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/entry.H:45:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/IDLList.H:36:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/DLListBase.H:283:25: warning: definition of implicit copy constructor for 'const_reverse_iterator' is deprecated because it has a user-provided copy assignment operator [-Wdeprecated-copy-with-user-provided-copy]
+  283 |             inline void operator=(const const_reverse_iterator& iter);
+      |                         ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/DLListBaseI.H:473:34: note: in implicit copy constructor for 'Foam::DLListBase::const_reverse_iterator' first required here
+  473 |     const_reverse_iterator tmp = *this;
+      |                                  ^
+In file included from dsmcFoam+.C:34:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/fvCFD.H:4:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/parRun.H:35:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/Pstream.H:42:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/UPstream.H:42:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/labelList.H:48:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/List.H:43:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/UList.H:467:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/UList.C:310:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/UListIO.C:28:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/token.H:460:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/Istream.H:184:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/HashTable.C:31:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/FixedList.H:148:16: warning: definition of implicit copy assignment operator for 'FixedList<int, 2>' is deprecated because it has a user-provided copy constructor [-Wdeprecated-copy-with-user-provided-copy]
+  148 |         inline FixedList(const FixedList<T, Size>& lst);
+      |                ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/edge.H:61:7: note: in implicit copy assignment operator for 'Foam::FixedList<int, 2>' first required here
+   61 | class edge
+      |       ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/cellModelI.H:73:19: note: in implicit move assignment operator for 'Foam::edge' first required here
+   73 |          e[edgeI] =
+      |                   ^
+In file included from dsmcFoam+.C:34:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/fvCFD.H:7:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/fvMesh.H:50:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/polyMesh.H:55:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/pointZoneMesh.H:32:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/ZoneMesh.H:42:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/PackedBoolList.H:118:46: warning: type 'UList' is a private member of 'Foam::UList<unsigned int>' (allowed for cfront compatibility) [-Wintel-compat]
+  118 |         explicit inline PackedBoolList(const UList<bool>& lst);
+      |                                              ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/PackedList.H:150:5: note: constrained by private inheritance here
+  150 |     private List<unsigned int>
+      |     ^~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/UList.H:75:7: note: member is declared here
+   75 | class UList
+      |       ^
+In file included from dsmcFoam+.C:34:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/fvCFD.H:7:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/fvMesh.H:50:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/polyMesh.H:55:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/pointZoneMesh.H:32:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/ZoneMesh.H:42:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/PackedBoolList.H:203:30: warning: type 'UList' is a private member of 'Foam::UList<unsigned int>' (allowed for cfront compatibility) [-Wintel-compat]
+  203 |         void operator=(const UList<bool>& lst);
+      |                              ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/PackedList.H:150:5: note: constrained by private inheritance here
+  150 |     private List<unsigned int>
+      |     ^~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/UList.H:75:7: note: member is declared here
+   75 | class UList
+      |       ^
+In file included from dsmcFoam+.C:34:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/fvCFD.H:7:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/fvMesh.H:50:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/polyMesh.H:55:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/pointZoneMesh.H:32:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/ZoneMesh.H:42:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/PackedBoolList.H:296:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/PackedBoolListI.H:76:51: warning: type 'UList' is a private member of 'Foam::UList<unsigned int>' (allowed for cfront compatibility) [-Wintel-compat]
+   76 | inline Foam::PackedBoolList::PackedBoolList(const UList<bool>& lst)
+      |                                                   ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/PackedList.H:150:5: note: constrained by private inheritance here
+  150 |     private List<unsigned int>
+      |     ^~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/UList.H:75:7: note: member is declared here
+   75 | class UList
+      |       ^
+In file included from dsmcFoam+.C:34:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/fvCFD.H:8:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/fvc.H:39:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/surfaceInterpolate.H:41:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/surfaceInterpolationScheme.H:307:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/surfaceInterpolationScheme.C:27:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/volFields.H:37:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/GeometricFields.H:34:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/GeometricScalarField.H:38:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/GeometricField.H:655:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/GeometricField.C:1336:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/GeometricBoundaryField.C:28:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/globalMeshData.H:627:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/globalMeshDataTemplates.C:28:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/mapDistribute.H:138:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/vectorTensorTransform.H:154:21: warning: definition of implicit copy constructor for 'vectorTensorTransform' is deprecated because it has a user-provided copy assignment operator [-Wdeprecated-copy-with-user-provided-copy]
+  154 |         inline void operator=(const vectorTensorTransform&);
+      |                     ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/vectorTensorTransformI.H:237:12: note: in implicit copy constructor for 'Foam::vectorTensorTransform' first required here
+  237 |     return vectorTensorTransform(-tr.t(), tr.R().T(), tr.hasR());
+      |            ^
+In file included from dsmcFoam+.C:34:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/fvCFD.H:8:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/fvc.H:39:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/surfaceInterpolate.H:41:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/surfaceInterpolationScheme.H:307:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/surfaceInterpolationScheme.C:27:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/volFields.H:37:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/GeometricFields.H:34:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/GeometricScalarField.H:38:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/GeometricField.H:655:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/GeometricField.C:1336:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/GeometricBoundaryField.C:28:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/globalMeshData.H:627:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/globalMeshDataTemplates.C:28:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/mapDistribute.H:652:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/mapDistributeTemplates.C:30:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/transformField.H:39:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/quaternion.H:216:21: warning: definition of implicit copy constructor for 'quaternion' is deprecated because it has a user-provided copy assignment operator [-Wdeprecated-copy-with-user-provided-copy]
+  216 |         inline void operator=(const quaternion&);
+      |                     ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/quaternionI.H:83:12: note: in implicit copy constructor for 'Foam::quaternion' first required here
+   83 |     return quaternion(sqrt(1 - magSqr(v)), v);
+      |            ^
+In file included from dsmcFoam+.C:34:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/fvCFD.H:8:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/fvc.H:39:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/surfaceInterpolate.H:41:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/surfaceInterpolationScheme.H:307:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/surfaceInterpolationScheme.C:27:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/volFields.H:37:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/GeometricFields.H:34:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/GeometricScalarField.H:38:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/GeometricField.H:655:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/GeometricField.C:1336:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/GeometricBoundaryField.C:28:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/globalMeshData.H:627:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/globalMeshDataTemplates.C:28:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/mapDistribute.H:652:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/mapDistributeTemplates.C:30:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/transformField.H:40:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/septernion.H:133:21: warning: definition of implicit copy constructor for 'septernion' is deprecated because it has a user-provided copy assignment operator [-Wdeprecated-copy-with-user-provided-copy]
+  133 |         inline void operator=(const septernion&);
+      |                     ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/septernionI.H:162:12: note: in implicit copy constructor for 'Foam::septernion' first required here
+  162 |     return septernion(-tr.r().transform(tr.t()), conjugate(tr.r()));
+      |            ^
+In file included from dsmcFoam+.C:34:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/fvCFD.H:8:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/fvc.H:44:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/fvcDdt.H:205:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/fvcDdt.C:28:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/ddtScheme.H:351:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/ddtScheme.C:30:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/cyclicAMIFvPatch.H:39:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude/cyclicAMILduInterface.H:39:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude/AMIPatchToPatchInterpolation.H:29:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude/AMIInterpolation.H:602:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude/AMIInterpolation.C:27:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude/AMIMethod.H:288:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude/AMIMethod.C:29:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/unitConversion.H:70:37: warning: identifier '_deg' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+   70 | inline constexpr scalar operator "" _deg(unsigned long long int deg) noexcept
+      |                         ~~~~~~~~~~~~^~~~
+      |                         operator""_deg
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/unitConversion.H:76:37: warning: identifier '_deg' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+   76 | inline constexpr scalar operator "" _deg(long double deg) noexcept
+      |                         ~~~~~~~~~~~~^~~~
+      |                         operator""_deg
+In file included from dsmcFoam+.C:35:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/hyStrath_dlb/src/lagrangian/dsmc/lnInclude/dsmcCloud.H:50:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/hyStrath_dlb/src/lagrangian/dsmc/lnInclude/dsmcBoundaries.H:50:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/hyStrath_dlb/src/lagrangian/dsmc/lnInclude/dsmcPatchBoundary.H:52:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/hyStrath_dlb/src/lagrangian/molecularDynamics/general/lnInclude/writeTimeData.H:40:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/complex.H:129:21: warning: definition of implicit copy constructor for 'complex' is deprecated because it has a user-provided copy assignment operator [-Wdeprecated-copy-with-user-provided-copy]
+  129 |         inline void operator=(const complex&);
+      |                     ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/complexI.H:72:12: note: in implicit copy constructor for 'Foam::complex' first required here
+   72 |     return complex(re, -im);
+      |            ^
+In file included from dsmcFoam+.C:34:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/fvCFD.H:8:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/fvc.H:39:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/surfaceInterpolate.H:41:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/surfaceInterpolationScheme.H:307:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/surfaceInterpolationScheme.C:27:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/volFields.H:37:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/GeometricFields.H:34:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/GeometricScalarField.H:38:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/GeometricField.H:655:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/GeometricField.C:1336:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/GeometricBoundaryField.C:28:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/globalMeshData.H:627:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/globalMeshDataTemplates.C:28:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/mapDistribute.H:138:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/vectorTensorTransform.H:248:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/vectorTensorTransformI.H:31:25: warning: instantiation of variable 'Foam::SphericalTensor<double>::I' required here, but no definition is available [-Wundefined-var-template]
+   31 |     R_(sphericalTensor::I),
+      |                         ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/SphericalTensor.H:71:38: note: forward declaration of template entity is here
+   71 |         static const SphericalTensor I;
+      |                                      ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/vectorTensorTransformI.H:31:25: note: add an explicit instantiation declaration to suppress this warning if 'Foam::SphericalTensor<double>::I' is explicitly instantiated in another translation unit
+   31 |     R_(sphericalTensor::I),
+      |                         ^
+In file included from dsmcFoam+.C:34:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/fvCFD.H:8:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/fvc.H:39:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/surfaceInterpolate.H:41:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/surfaceInterpolationScheme.H:307:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/surfaceInterpolationScheme.C:27:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/volFields.H:37:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/GeometricFields.H:34:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/GeometricScalarField.H:38:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/GeometricField.H:655:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/GeometricField.C:1336:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/GeometricBoundaryField.C:28:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/globalMeshData.H:627:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/globalMeshDataTemplates.C:28:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/mapDistribute.H:652:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/mapDistributeTemplates.C:30:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/transformField.H:40:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/septernion.H:46:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/spatialTransform.H:203:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/spatialTransformI.H:40:16: warning: instantiation of variable 'Foam::Tensor<double>::I' required here, but no definition is available [-Wundefined-var-template]
+   40 |     E_(tensor::I),
+      |                ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/Tensor.H:81:29: note: forward declaration of template entity is here
+   81 |         static const Tensor I;
+      |                             ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/spatialTransformI.H:40:16: note: add an explicit instantiation declaration to suppress this warning if 'Foam::Tensor<double>::I' is explicitly instantiated in another translation unit
+   40 |     E_(tensor::I),
+      |                ^
+In file included from dsmcFoam+.C:34:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/fvCFD.H:8:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/fvc.H:44:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/fvcDdt.H:205:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/fvcDdt.C:28:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/ddtScheme.H:351:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/ddtScheme.C:30:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/cyclicAMIFvPatch.H:39:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude/cyclicAMILduInterface.H:39:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude/AMIPatchToPatchInterpolation.H:29:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude/AMIInterpolation.H:602:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude/AMIInterpolation.C:27:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude/AMIMethod.H:42:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude/treeDataPrimitivePatch.H:270:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude/treeDataPrimitivePatch.C:29:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude/triSurfaceTools.H:60:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/triPointRef.H:35:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/triangle.H:354:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/triangleI.H:227:32: warning: instantiation of variable 'Foam::VectorSpace<Foam::Tensor<double>, double, '\t'>::one' required here, but no definition is available [-Wundefined-var-template]
+  227 |     tensor S = 1/24.0*(tensor::one + I);
+      |                                ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/triFaceI.H:268:30: note: in instantiation of member function 'Foam::triangle<Foam::Vector<double>, const Foam::Vector<double> &>::inertia' requested here
+  268 |     return this->tri(points).inertia(refPt, density);
+      |                              ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/VectorSpace.H:112:27: note: forward declaration of template entity is here
+  112 |         static const Form one;
+      |                           ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/triangleI.H:227:32: note: add an explicit instantiation declaration to suppress this warning if 'Foam::VectorSpace<Foam::Tensor<double>, double, '\t'>::one' is explicitly instantiated in another translation unit
+  227 |     tensor S = 1/24.0*(tensor::one + I);
+      |                                ^
+In file included from dsmcFoam+.C:34:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/fvCFD.H:8:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/fvc.H:44:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/fvcDdt.H:205:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/fvcDdt.C:28:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/ddtScheme.H:351:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/ddtScheme.C:30:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/cyclicAMIFvPatch.H:39:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude/cyclicAMILduInterface.H:39:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude/AMIPatchToPatchInterpolation.H:29:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude/AMIInterpolation.H:603:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude/AMIInterpolationParallelOps.C:27:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/mergePoints.H:70:73: warning: instantiation of variable 'Foam::VectorSpace<Foam::Vector<double>, double, '\x03'>::zero' required here, but no definition is available [-Wundefined-var-template]
+   70 |     typename PointList::const_reference origin = PointList::value_type::zero
+      |                                                                         ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/VectorSpace.H:111:27: note: forward declaration of template entity is here
+  111 |         static const Form zero;
+      |                           ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/mergePoints.H:70:73: note: add an explicit instantiation declaration to suppress this warning if 'Foam::VectorSpace<Foam::Vector<double>, double, '\x03'>::zero' is explicitly instantiated in another translation unit
+   70 |     typename PointList::const_reference origin = PointList::value_type::zero
+      |                                                                         ^
+In file included from dsmcFoam+.C:34:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/fvCFD.H:8:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/fvc.H:39:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/surfaceInterpolate.H:41:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/surfaceInterpolationScheme.H:307:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/surfaceInterpolationScheme.C:27:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/volFields.H:40:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/fvPatchField.H:117:5: warning: instantiation of variable 'Foam::fvPatchField<double>::typeName' required here, but no definition is available [-Wundefined-var-template]
+  117 |     TypeName("fvPatchField");
+      |     ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/typeInfo.H:72:47: note: expanded from macro 'TypeName'
+   72 |     virtual const word& type() const { return typeName; }
+      |                                               ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/fvPatchField.H:302:13: note: in instantiation of member function 'Foam::fvPatchField<double>::type' requested here
+  302 |     virtual ~fvPatchField<Type>()
+      |             ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/tmpI.H:236:13: note: in instantiation of member function 'Foam::fvPatchField<double>::~fvPatchField' requested here
+  236 |             delete ptr_;
+      |             ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/tmpI.H:139:5: note: in instantiation of member function 'Foam::tmp<Foam::fvPatchField<double>>::clear' requested here
+  139 |     clear();
+      |     ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/fixedFluxPressureFvPatchScalarField.H:118:20: note: in instantiation of member function 'Foam::tmp<Foam::fvPatchField<double>>::~tmp' requested here
+  118 |             return tmp<fvPatchScalarField>
+      |                    ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/fvPatchField.H:117:5: note: forward declaration of template entity is here
+  117 |     TypeName("fvPatchField");
+      |     ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/typeInfo.H:71:5: note: expanded from macro 'TypeName'
+   71 |     ClassName(TypeNameString);                                                 \
+      |     ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/className.H:66:5: note: expanded from macro 'ClassName'
+   66 |     ClassNameNoDebug(TypeNameString);                                          \
+      |     ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/className.H:41:31: note: expanded from macro 'ClassNameNoDebug'
+   41 |     static const ::Foam::word typeName
+      |                               ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/fvPatchField.H:117:5: note: add an explicit instantiation declaration to suppress this warning if 'Foam::fvPatchField<double>::typeName' is explicitly instantiated in another translation unit
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/typeInfo.H:72:47: note: expanded from macro 'TypeName'
+   72 |     virtual const word& type() const { return typeName; }
+      |                                               ^
+In file included from dsmcFoam+.C:34:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/fvCFD.H:19:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/constrainPressure.H:39:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/IOMRFZoneList.H:56:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/MRFZoneList.H:41:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/MRFZone.H:51:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/Function1.H:83:5: warning: instantiation of variable 'Foam::Function1<double>::typeName' required here, but no definition is available [-Wundefined-var-template]
+   83 |     TypeName("Function1")
+      |     ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/typeInfo.H:72:47: note: expanded from macro 'TypeName'
+   72 |     virtual const word& type() const { return typeName; }
+      |                                               ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/Function1.C:49:24: note: in instantiation of member function 'Foam::Function1<double>::type' requested here
+   49 | Foam::Function1<Type>::~Function1()
+      |                        ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/autoPtrI.H:118:9: note: in instantiation of member function 'Foam::Function1<double>::~Function1' requested here
+  118 |         delete ptr_;
+      |         ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/autoPtrI.H:128:5: note: in instantiation of member function 'Foam::autoPtr<Foam::Function1<double>>::reset' requested here
+  128 |     reset(0);
+      |     ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/autoPtrI.H:69:5: note: in instantiation of member function 'Foam::autoPtr<Foam::Function1<double>>::clear' requested here
+   69 |     clear();
+      |     ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/MRFZone.H:66:7: note: in instantiation of member function 'Foam::autoPtr<Foam::Function1<double>>::~autoPtr' requested here
+   66 | class MRFZone
+      |       ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/autoPtrI.H:128:5: note: in instantiation of member function 'Foam::autoPtr<Foam::MRFZone>::reset' requested here
+  128 |     reset(0);
+      |     ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/autoPtrI.H:69:5: note: in instantiation of member function 'Foam::autoPtr<Foam::MRFZone>::clear' requested here
+   69 |     clear();
+      |     ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/MRFZone.H:177:20: note: in instantiation of member function 'Foam::autoPtr<Foam::MRFZone>::~autoPtr' requested here
+  177 |             return autoPtr<MRFZone>(nullptr);
+      |                    ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/Function1.H:83:5: note: forward declaration of template entity is here
+   83 |     TypeName("Function1")
+      |     ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/typeInfo.H:71:5: note: expanded from macro 'TypeName'
+   71 |     ClassName(TypeNameString);                                                 \
+      |     ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/className.H:66:5: note: expanded from macro 'ClassName'
+   66 |     ClassNameNoDebug(TypeNameString);                                          \
+      |     ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/className.H:41:31: note: expanded from macro 'ClassNameNoDebug'
+   41 |     static const ::Foam::word typeName
+      |                               ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/Function1.H:83:5: note: add an explicit instantiation declaration to suppress this warning if 'Foam::Function1<double>::typeName' is explicitly instantiated in another translation unit
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/typeInfo.H:72:47: note: expanded from macro 'TypeName'
+   72 |     virtual const word& type() const { return typeName; }
+      |                                               ^
+In file included from dsmcFoam+.C:34:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/fvCFD.H:8:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/fvc.H:39:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/surfaceInterpolate.H:41:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/surfaceInterpolationScheme.H:307:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/surfaceInterpolationScheme.C:27:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/volFields.H:40:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/fvPatchField.H:595:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/calculatedFvPatchField.H:188:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/calculatedFvPatchField.C:34:42: warning: instantiation of variable 'Foam::calculatedFvPatchField<double>::typeName' required here, but no definition is available [-Wundefined-var-template]
+   34 |     return calculatedFvPatchField<Type>::typeName;
+      |                                          ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/GeometricField.H:323:58: note: in instantiation of member function 'Foam::fvPatchField<double>::calculatedType' requested here
+  323 |             const word& patchFieldType=PatchField<Type>::calculatedType()
+      |                                                          ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/calculatedFvPatchField.H:73:5: note: forward declaration of template entity is here
+   73 |     TypeName("calculated");
+      |     ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/typeInfo.H:71:5: note: expanded from macro 'TypeName'
+   71 |     ClassName(TypeNameString);                                                 \
+      |     ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/className.H:66:5: note: expanded from macro 'ClassName'
+   66 |     ClassNameNoDebug(TypeNameString);                                          \
+      |     ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/className.H:41:31: note: expanded from macro 'ClassNameNoDebug'
+   41 |     static const ::Foam::word typeName
+      |                               ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/calculatedFvPatchField.C:34:42: note: add an explicit instantiation declaration to suppress this warning if 'Foam::calculatedFvPatchField<double>::typeName' is explicitly instantiated in another translation unit
+   34 |     return calculatedFvPatchField<Type>::typeName;
+      |                                          ^
+In file included from dsmcFoam+.C:34:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/fvCFD.H:7:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/fvMesh.H:58:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/DimensionedField.H:402:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/DimensionedField.C:597:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/DimensionedFieldIO.C:68:41: warning: instantiation of variable 'Foam::DimensionedField<double, Foam::volMesh>::typeName' required here, but no definition is available [-Wundefined-var-template]
+   68 |         readField(dictionary(readStream(typeName)), fieldDictEntry);
+      |                                         ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/DimensionedField.C:165:9: note: in instantiation of member function 'Foam::DimensionedField<double, Foam::volMesh>::readIfPresent' requested here
+  165 |         readIfPresent();
+      |         ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/GeometricField.C:251:5: note: in instantiation of member function 'Foam::DimensionedField<double, Foam::volMesh>::DimensionedField' requested here
+  251 |     Internal(io, mesh, dt, false),
+      |     ^
+/home/superxcx/code/OpenFoam/OF-1706/hyStrath_dlb/src/lagrangian/dsmc/lnInclude/dsmcTimeStepModelI.H:47:13: note: in instantiation of member function 'Foam::GeometricField<double, Foam::fvPatchField, Foam::volMesh>::GeometricField' requested here
+   47 |         new volScalarField
+      |             ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/DimensionedField.H:118:5: note: forward declaration of template entity is here
+  118 |     TypeName("DimensionedField");
+      |     ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/typeInfo.H:71:5: note: expanded from macro 'TypeName'
+   71 |     ClassName(TypeNameString);                                                 \
+      |     ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/className.H:66:5: note: expanded from macro 'ClassName'
+   66 |     ClassNameNoDebug(TypeNameString);                                          \
+      |     ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/className.H:41:31: note: expanded from macro 'ClassNameNoDebug'
+   41 |     static const ::Foam::word typeName
+      |                               ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/DimensionedFieldIO.C:68:41: note: add an explicit instantiation declaration to suppress this warning if 'Foam::DimensionedField<double, Foam::volMesh>::typeName' is explicitly instantiated in another translation unit
+   68 |         readField(dictionary(readStream(typeName)), fieldDictEntry);
+      |                                         ^
+In file included from dsmcFoam+.C:34:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/fvCFD.H:8:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/fvc.H:39:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/surfaceInterpolate.H:41:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/surfaceInterpolationScheme.H:307:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/surfaceInterpolationScheme.C:27:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/volFields.H:37:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/GeometricFields.H:34:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/GeometricScalarField.H:38:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/GeometricField.H:655:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/GeometricField.C:257:9: warning: instantiation of variable 'Foam::GeometricField<double, Foam::fvPatchField, Foam::volMesh>::debug' required here, but no definition is available [-Wundefined-var-template]
+  257 |     if (debug)
+      |         ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/GeometricField.C:255:5: note: in instantiation of member function 'Foam::GeometricField<double, Foam::fvPatchField, Foam::volMesh>::Boundary::Boundary' requested here
+  255 |     boundaryField_(mesh.boundary(), *this, patchFieldType)
+      |     ^
+/home/superxcx/code/OpenFoam/OF-1706/hyStrath_dlb/src/lagrangian/dsmc/lnInclude/dsmcTimeStepModelI.H:47:13: note: in instantiation of member function 'Foam::GeometricField<double, Foam::fvPatchField, Foam::volMesh>::GeometricField' requested here
+   47 |         new volScalarField
+      |             ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/GeometricField.H:279:5: note: forward declaration of template entity is here
+  279 |     TypeName("GeometricField");
+      |     ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/typeInfo.H:71:5: note: expanded from macro 'TypeName'
+   71 |     ClassName(TypeNameString);                                                 \
+      |     ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/className.H:67:16: note: expanded from macro 'ClassName'
+   67 |     static int debug
+      |                ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/GeometricField.C:257:9: note: add an explicit instantiation declaration to suppress this warning if 'Foam::GeometricField<double, Foam::fvPatchField, Foam::volMesh>::debug' is explicitly instantiated in another translation unit
+  257 |     if (debug)
+      |         ^
+In file included from dsmcFoam+.C:34:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/fvCFD.H:8:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/fvc.H:39:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/surfaceInterpolate.H:41:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/surfaceInterpolationScheme.H:307:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/surfaceInterpolationScheme.C:27:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/volFields.H:40:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/fvPatchField.H:594:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/fvPatchField.C:605:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/fvPatchFieldNew.C:37:9: warning: instantiation of variable 'Foam::fvPatchField<double>::debug' required here, but no definition is available [-Wundefined-var-template]
+   37 |     if (debug)
+      |         ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/fvPatchFieldNew.C:98:12: note: in instantiation of member function 'Foam::fvPatchField<double>::New' requested here
+   98 |     return New(patchFieldType, word::null, p, iF);
+      |            ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/GeometricBoundaryField.C:235:31: note: in instantiation of member function 'Foam::fvPatchField<double>::New' requested here
+  235 |             PatchField<Type>::New
+      |                               ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/GeometricField.C:255:5: note: in instantiation of member function 'Foam::GeometricField<double, Foam::fvPatchField, Foam::volMesh>::Boundary::Boundary' requested here
+  255 |     boundaryField_(mesh.boundary(), *this, patchFieldType)
+      |     ^
+/home/superxcx/code/OpenFoam/OF-1706/hyStrath_dlb/src/lagrangian/dsmc/lnInclude/dsmcTimeStepModelI.H:47:13: note: in instantiation of member function 'Foam::GeometricField<double, Foam::fvPatchField, Foam::volMesh>::GeometricField' requested here
+   47 |         new volScalarField
+      |             ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/fvPatchField.H:117:5: note: forward declaration of template entity is here
+  117 |     TypeName("fvPatchField");
+      |     ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/typeInfo.H:71:5: note: expanded from macro 'TypeName'
+   71 |     ClassName(TypeNameString);                                                 \
+      |     ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/className.H:67:16: note: expanded from macro 'ClassName'
+   67 |     static int debug
+      |                ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/fvPatchFieldNew.C:37:9: note: add an explicit instantiation declaration to suppress this warning if 'Foam::fvPatchField<double>::debug' is explicitly instantiated in another translation unit
+   37 |     if (debug)
+      |         ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/fvPatchFieldNew.C:46:9: warning: instantiation of variable 'Foam::fvPatchField<double>::patchConstructorTablePtr_' required here, but no definition is available [-Wundefined-var-template]
+   46 |         patchConstructorTablePtr_->find(patchFieldType);
+      |         ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/fvPatchField.H:125:9: note: forward declaration of template entity is here
+  125 |         declareRunTimeSelectionTable
+      |         ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/runTimeSelectionTables.H:56:40: note: expanded from macro 'declareRunTimeSelectionTable'
+   56 |     static argNames##ConstructorTable* argNames##ConstructorTablePtr_;         \
+      |                                        ^
+<scratch space>:769:1: note: expanded from here
+  769 | patchConstructorTablePtr_
+      | ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/fvPatchFieldNew.C:46:9: note: add an explicit instantiation declaration to suppress this warning if 'Foam::fvPatchField<double>::patchConstructorTablePtr_' is explicitly instantiated in another translation unit
+   46 |         patchConstructorTablePtr_->find(patchFieldType);
+      |         ^
+In file included from dsmcFoam+.C:34:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/fvCFD.H:8:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/fvc.H:39:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/surfaceInterpolate.H:41:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/surfaceInterpolationScheme.H:307:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/surfaceInterpolationScheme.C:27:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/volFields.H:37:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/GeometricFields.H:34:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/GeometricScalarField.H:38:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/GeometricField.H:655:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/GeometricField.C:122:53: warning: instantiation of variable 'Foam::GeometricField<double, Foam::fvPatchField, Foam::volMesh>::typeName' required here, but no definition is available [-Wundefined-var-template]
+  122 |             FatalIOErrorInFunction(this->readStream(typeName))
+      |                                                     ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/GeometricField.C:111:24: note: in instantiation of function template specialization 'Foam::IOobject::typeHeaderOk<Foam::GeometricField<double, Foam::fvPatchField, Foam::volMesh>>' requested here
+  111 |      && this->template typeHeaderOk<GeometricField<Type, PatchField, GeoMesh>>
+      |                        ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/GeometricField.C:264:5: note: in instantiation of member function 'Foam::GeometricField<double, Foam::fvPatchField, Foam::volMesh>::readIfPresent' requested here
+  264 |     readIfPresent();
+      |     ^
+/home/superxcx/code/OpenFoam/OF-1706/hyStrath_dlb/src/lagrangian/dsmc/lnInclude/dsmcTimeStepModelI.H:47:13: note: in instantiation of member function 'Foam::GeometricField<double, Foam::fvPatchField, Foam::volMesh>::GeometricField' requested here
+   47 |         new volScalarField
+      |             ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/GeometricField.H:279:5: note: forward declaration of template entity is here
+  279 |     TypeName("GeometricField");
+      |     ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/typeInfo.H:71:5: note: expanded from macro 'TypeName'
+   71 |     ClassName(TypeNameString);                                                 \
+      |     ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/className.H:66:5: note: expanded from macro 'ClassName'
+   66 |     ClassNameNoDebug(TypeNameString);                                          \
+      |     ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/className.H:41:31: note: expanded from macro 'ClassNameNoDebug'
+   41 |     static const ::Foam::word typeName
+      |                               ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/GeometricField.C:122:53: note: add an explicit instantiation declaration to suppress this warning if 'Foam::GeometricField<double, Foam::fvPatchField, Foam::volMesh>::typeName' is explicitly instantiated in another translation unit
+  122 |             FatalIOErrorInFunction(this->readStream(typeName))
+      |                                                     ^
+In file included from dsmcFoam+.C:34:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/fvCFD.H:8:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/fvc.H:39:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/surfaceInterpolate.H:41:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/surfaceInterpolationScheme.H:307:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/surfaceInterpolationScheme.C:27:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/volFields.H:40:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/fvPatchField.H:594:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/fvPatchField.C:605:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/fvPatchFieldNew.C:120:11: warning: instantiation of variable 'Foam::fvPatchField<double>::dictionaryConstructorTablePtr_' required here, but no definition is available [-Wundefined-var-template]
+  120 |         = dictionaryConstructorTablePtr_->find(patchFieldType);
+      |           ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/GeometricBoundaryField.C:65:39: note: in instantiation of member function 'Foam::fvPatchField<double>::New' requested here
+   65 |                     PatchField<Type>::New
+      |                                       ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/GeometricField.C:55:20: note: in instantiation of member function 'Foam::GeometricField<double, Foam::fvPatchField, Foam::volMesh>::Boundary::readField' requested here
+   55 |     boundaryField_.readField(*this, dict.subDict("boundaryField"));
+      |                    ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/GeometricField.C:90:5: note: in instantiation of member function 'Foam::GeometricField<double, Foam::fvPatchField, Foam::volMesh>::readFields' requested here
+   90 |     readFields(dict);
+      |     ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/GeometricField.C:117:9: note: in instantiation of member function 'Foam::GeometricField<double, Foam::fvPatchField, Foam::volMesh>::readFields' requested here
+  117 |         readFields();
+      |         ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/GeometricField.C:264:5: note: in instantiation of member function 'Foam::GeometricField<double, Foam::fvPatchField, Foam::volMesh>::readIfPresent' requested here
+  264 |     readIfPresent();
+      |     ^
+/home/superxcx/code/OpenFoam/OF-1706/hyStrath_dlb/src/lagrangian/dsmc/lnInclude/dsmcTimeStepModelI.H:47:13: note: in instantiation of member function 'Foam::GeometricField<double, Foam::fvPatchField, Foam::volMesh>::GeometricField' requested here
+   47 |         new volScalarField
+      |             ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/fvPatchField.H:151:9: note: forward declaration of template entity is here
+  151 |         declareRunTimeSelectionTable
+      |         ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/runTimeSelectionTables.H:56:40: note: expanded from macro 'declareRunTimeSelectionTable'
+   56 |     static argNames##ConstructorTable* argNames##ConstructorTablePtr_;         \
+      |                                        ^
+<scratch space>:28:1: note: expanded from here
+   28 | dictionaryConstructorTablePtr_
+      | ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/fvPatchFieldNew.C:120:11: note: add an explicit instantiation declaration to suppress this warning if 'Foam::fvPatchField<double>::dictionaryConstructorTablePtr_' is explicitly instantiated in another translation unit
+  120 |         = dictionaryConstructorTablePtr_->find(patchFieldType);
+      |           ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/fvPatchFieldNew.C:124:14: warning: instantiation of variable 'Foam::fvPatchField<double>::disallowGenericFvPatchField' required here, but no definition is available [-Wundefined-var-template]
+  124 |         if (!disallowGenericFvPatchField)
+      |              ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/fvPatchField.H:120:16: note: forward declaration of template entity is here
+  120 |     static int disallowGenericFvPatchField;
+      |                ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/fvPatchFieldNew.C:124:14: note: add an explicit instantiation declaration to suppress this warning if 'Foam::fvPatchField<double>::disallowGenericFvPatchField' is explicitly instantiated in another translation unit
+  124 |         if (!disallowGenericFvPatchField)
+      |              ^
+31 warnings generated.
+icpx -std=c++11 -fp-model precise -DOPENFOAM_PLUS=1706 -Dlinux64 -DWM_ARCH_OPTION=64 -DWM_DP -DWM_LABEL_SIZE=32 -Wall -Wextra -Wnon-virtual-dtor -Wno-unused-parameter -O3  -DNoRepository -qopenmp -I/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude -I/home/superxcx/code/OpenFoam/OF-1706/hyStrath_dlb/src/lagrangian/basic/lnInclude -I/home/superxcx/code/OpenFoam/OF-1706/hyStrath_dlb/src/lagrangian/dsmc/lnInclude -I/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude -I/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude -I/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/dynamicMesh/lnInclude -I/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/dynamicFvMesh/lnInclude -I/home/superxcx/code/OpenFoam/OF-1706/hyStrath_dlb/src/lagrangian/molecularDynamics/general/lnInclude -I/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude -I/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/parallel/decompose/decompositionMethods/lnInclude -I/home/superxcx/code/DSMC/dsmcFoam++/parmetis-install/include -I/include -IlnInclude -I. -I/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude -I/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OSspecific/POSIX/lnInclude   -fPIC -Xlinker --add-needed -Xlinker --no-as-needed Make/linux64IccDPInt32Opt/dsmcFoam+.o -L/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/platforms/linux64IccDPInt32Opt/lib \
+    -qopenmp -L/home/superxcx/code/OpenFoam/OF-1706/hyStrath_dlb/platforms/linux64IccDPInt32Opt/lib -lmeshTools -lfiniteVolume -ldecompositionMethods -llagrangian+ -ldsmcFoam+ -ldynamicMesh -ldynamicFvMesh -ltopoChangerFvMesh -lgeneralMolecule -L/home/superxcx/code/DSMC/dsmcFoam++/parmetis-install/lib -lparmetis -lmetis -lGKlib -lOpenFOAM -ldl  \
+     -lm -o /home/superxcx/code/OpenFoam/OF-1706/hyStrath_dlb/platforms/linux64IccDPInt32Opt/bin/dsmcFoam+
+build_done=2026-06-24T04:01:41+08:00

@@ -41,6 +41,12 @@ namespace
 {
     typedef std::chrono::steady_clock steadyWallClock;
 
+    thread_local void* collisionRngContext = nullptr;
+    thread_local Foam::dsmcCloud::CollisionSample01Function
+        collisionSample01Function = nullptr;
+    thread_local Foam::dsmcCloud::CollisionPositionFunction
+        collisionPositionFunction = nullptr;
+
     Foam::scalar elapsedWallSeconds
     (
         const steadyWallClock::time_point& start
@@ -1128,7 +1134,7 @@ Foam::scalar Foam::dsmcCloud::energyRatio
 
     if (ChiAMinusOne < SMALL && ChiBMinusOne < SMALL)
     {
-        return rndGen_.sample01<scalar>();
+        return collisionSample01();
     }
 
     scalar energyRatio;
@@ -1139,7 +1145,7 @@ Foam::scalar Foam::dsmcCloud::energyRatio
     {
         P = 0;
 
-        energyRatio = rndGen_.sample01<scalar>();
+        energyRatio = collisionSample01();
 
         if (ChiAMinusOne < SMALL)
         {
@@ -1164,7 +1170,7 @@ Foam::scalar Foam::dsmcCloud::energyRatio
                     ChiBMinusOne
                 );
         }
-    } while (P < rndGen_.sample01<scalar>());
+    } while (P < collisionSample01());
 
     return energyRatio;
 }
@@ -1182,7 +1188,7 @@ Foam::scalar Foam::dsmcCloud::PSIm
 
     if (DOFm == 2.0 && DOFtot == 4.0)
     {
-        return rndGen_.sample01<scalar>();
+        return collisionSample01();
     }
 
     if (DOFtot < 4.0)
@@ -1199,9 +1205,9 @@ Foam::scalar Foam::dsmcCloud::PSIm
 
     do
     {
-        rPSIm = rndGen_.sample01<scalar>();
+        rPSIm = collisionSample01();
         prob = pow(h1,h1)/(pow(h2,h2)*pow(h3,h3))*pow(rPSIm,h2)*pow(1.0-rPSIm,h3);
-    } while (prob < rndGen_.sample01<scalar>());
+    } while (prob < collisionSample01());
 
     return rPSIm;
 }
@@ -1296,6 +1302,7 @@ Foam::dsmcCloud::dsmcCloud
     moveOrderedThreadOffsets_(),
     moveOrderedParcelsValid_(false),
     moveAppendCaptureActive_(false),
+    moveAppendCaptureDepth_(0),
     moveAppendedParcels_(),
     profileFullEvolveWall_(0.0),
     profileMoveAndCollideWall_(0.0),
@@ -1303,12 +1310,26 @@ Foam::dsmcCloud::dsmcCloud
     profileBuildCellOccupancyWall_(0.0),
     profileCollisionWall_(0.0),
     profilePostFieldsWall_(0.0),
+    profilePostReactionsWall_(0.0),
+    profilePostFieldCalcWall_(0.0),
+    profilePostFieldWriteWall_(0.0),
+    profilePostControllersWall_(0.0),
+    profilePostBoundariesWall_(0.0),
+    profilePostBoundaryMeasWall_(0.0),
+    profilePostCleanWall_(0.0),
     profileFullEvolveCpu_(0.0),
     profileMoveAndCollideCpu_(0.0),
     profileMoveCpu_(0.0),
     profileBuildCellOccupancyCpu_(0.0),
     profileCollisionCpu_(0.0),
     profilePostFieldsCpu_(0.0),
+    profilePostReactionsCpu_(0.0),
+    profilePostFieldCalcCpu_(0.0),
+    profilePostFieldWriteCpu_(0.0),
+    profilePostControllersCpu_(0.0),
+    profilePostBoundariesCpu_(0.0),
+    profilePostBoundaryMeasCpu_(0.0),
+    profilePostCleanCpu_(0.0),
     occupancyOrderedParcels_(),
     occupancyCellOffsets_(),
     occupancyActiveCells_(),
@@ -1521,6 +1542,7 @@ Foam::dsmcCloud::dsmcCloud
     moveOrderedThreadOffsets_(),
     moveOrderedParcelsValid_(false),
     moveAppendCaptureActive_(false),
+    moveAppendCaptureDepth_(0),
     moveAppendedParcels_(),
     profileFullEvolveWall_(0.0),
     profileMoveAndCollideWall_(0.0),
@@ -1528,12 +1550,26 @@ Foam::dsmcCloud::dsmcCloud
     profileBuildCellOccupancyWall_(0.0),
     profileCollisionWall_(0.0),
     profilePostFieldsWall_(0.0),
+    profilePostReactionsWall_(0.0),
+    profilePostFieldCalcWall_(0.0),
+    profilePostFieldWriteWall_(0.0),
+    profilePostControllersWall_(0.0),
+    profilePostBoundariesWall_(0.0),
+    profilePostBoundaryMeasWall_(0.0),
+    profilePostCleanWall_(0.0),
     profileFullEvolveCpu_(0.0),
     profileMoveAndCollideCpu_(0.0),
     profileMoveCpu_(0.0),
     profileBuildCellOccupancyCpu_(0.0),
     profileCollisionCpu_(0.0),
     profilePostFieldsCpu_(0.0),
+    profilePostReactionsCpu_(0.0),
+    profilePostFieldCalcCpu_(0.0),
+    profilePostFieldWriteCpu_(0.0),
+    profilePostControllersCpu_(0.0),
+    profilePostBoundariesCpu_(0.0),
+    profilePostBoundaryMeasCpu_(0.0),
+    profilePostCleanCpu_(0.0),
     occupancyOrderedParcels_(),
     occupancyCellOffsets_(),
     occupancyActiveCells_(),
@@ -2059,8 +2095,31 @@ void Foam::dsmcCloud::evolve_fields()
 {
     const steadyWallClock::time_point wallStart = steadyWallClock::now();
     const scalar cpu0 = profileSummary_ ? mesh_.time().elapsedCpuTime() : 0.0;
+    const bool detailTiming = profileSummary_ && profileDetail_;
+    steadyWallClock::time_point detailWallStart = wallStart;
+    scalar detailCpu0 = cpu0;
+
+    auto resetDetailTimer = [&]()
+    {
+        if (detailTiming)
+        {
+            detailWallStart = steadyWallClock::now();
+            detailCpu0 = mesh_.time().elapsedCpuTime();
+        }
+    };
+
+    auto addDetailTimer = [&](scalar& wallTime, scalar& cpuTime)
+    {
+        if (detailTiming)
+        {
+            wallTime += elapsedWallSeconds(detailWallStart);
+            cpuTime += mesh_.time().elapsedCpuTime() - detailCpu0;
+            resetDetailTimer();
+        }
+    };
 
     reactions_.outputData();
+    addDetailTimer(profilePostReactionsWall_, profilePostReactionsCpu_);
 
     if
     (
@@ -2069,23 +2128,27 @@ void Foam::dsmcCloud::evolve_fields()
     )
     {
         fields_.calculateFields();
+        addDetailTimer(profilePostFieldCalcWall_, profilePostFieldCalcCpu_);
 
-        //timer = mesh_.time().elapsedCpuTime();
         fields_.writeFields();
-        //Info<< "fields W" << tab << mesh_.time().elapsedCpuTime() - timer << " s" << endl;
+        addDetailTimer(profilePostFieldWriteWall_, profilePostFieldWriteCpu_);
     }
 
     controllers_.calculateProps();
     controllers_.outputResults();
+    addDetailTimer(profilePostControllersWall_, profilePostControllersCpu_);
 
     boundaries_.calculateProps();
     boundaries_.outputResults();
+    addDetailTimer(profilePostBoundariesWall_, profilePostBoundariesCpu_);
 
     boundaryMeas_.outputResults();
+    addDetailTimer(profilePostBoundaryMeasWall_, profilePostBoundaryMeasCpu_);
 
     trackingInfo_.clean();
     boundaryMeas_.clean();
     cellMeas_.clean();
+    addDetailTimer(profilePostCleanWall_, profilePostCleanCpu_);
 
     if (profileSummary_)
     {
@@ -2194,13 +2257,19 @@ void Foam::dsmcCloud::transferMoveOrderedParcels
 
 void Foam::dsmcCloud::beginMoveAppendCapture()
 {
+    ++moveAppendCaptureDepth_;
     moveAppendCaptureActive_ = true;
 }
 
 
 void Foam::dsmcCloud::endMoveAppendCapture()
 {
-    moveAppendCaptureActive_ = false;
+    if (moveAppendCaptureDepth_ > 0)
+    {
+        --moveAppendCaptureDepth_;
+    }
+
+    moveAppendCaptureActive_ = moveAppendCaptureDepth_ > 0;
 }
 
 
@@ -2311,12 +2380,26 @@ void Foam::dsmcCloud::printProfileSummary() const
     scalar buildCellOccupancyWall = profileBuildCellOccupancyWall_;
     scalar collisionWall = profileCollisionWall_;
     scalar postFieldsWall = profilePostFieldsWall_;
+    scalar postReactionsWall = profilePostReactionsWall_;
+    scalar postFieldCalcWall = profilePostFieldCalcWall_;
+    scalar postFieldWriteWall = profilePostFieldWriteWall_;
+    scalar postControllersWall = profilePostControllersWall_;
+    scalar postBoundariesWall = profilePostBoundariesWall_;
+    scalar postBoundaryMeasWall = profilePostBoundaryMeasWall_;
+    scalar postCleanWall = profilePostCleanWall_;
     scalar fullEvolveCpu = profileFullEvolveCpu_;
     scalar moveAndCollideCpu = profileMoveAndCollideCpu_;
     scalar moveCpu = profileMoveCpu_;
     scalar buildCellOccupancyCpu = profileBuildCellOccupancyCpu_;
     scalar collisionCpu = profileCollisionCpu_;
     scalar postFieldsCpu = profilePostFieldsCpu_;
+    scalar postReactionsCpu = profilePostReactionsCpu_;
+    scalar postFieldCalcCpu = profilePostFieldCalcCpu_;
+    scalar postFieldWriteCpu = profilePostFieldWriteCpu_;
+    scalar postControllersCpu = profilePostControllersCpu_;
+    scalar postBoundariesCpu = profilePostBoundariesCpu_;
+    scalar postBoundaryMeasCpu = profilePostBoundaryMeasCpu_;
+    scalar postCleanCpu = profilePostCleanCpu_;
     label moveDetailParcels = moveDetailParcels_;
     label moveDetailTrackCalls = moveDetailTrackCalls_;
     label moveDetailSameTetNoFaceHits = moveDetailSameTetNoFaceHits_;
@@ -2406,7 +2489,8 @@ void Foam::dsmcCloud::printProfileSummary() const
                 MPI_COMM_WORLD
             );
 
-            scalar profileValues[] =
+            const int nProfileValues = 26;
+            scalar profileValues[nProfileValues] =
             {
                 fullEvolveWall,
                 moveAndCollideWall,
@@ -2414,19 +2498,33 @@ void Foam::dsmcCloud::printProfileSummary() const
                 buildCellOccupancyWall,
                 collisionWall,
                 postFieldsWall,
+                postReactionsWall,
+                postFieldCalcWall,
+                postFieldWriteWall,
+                postControllersWall,
+                postBoundariesWall,
+                postBoundaryMeasWall,
+                postCleanWall,
                 fullEvolveCpu,
                 moveAndCollideCpu,
                 moveCpu,
                 buildCellOccupancyCpu,
                 collisionCpu,
-                postFieldsCpu
+                postFieldsCpu,
+                postReactionsCpu,
+                postFieldCalcCpu,
+                postFieldWriteCpu,
+                postControllersCpu,
+                postBoundariesCpu,
+                postBoundaryMeasCpu,
+                postCleanCpu
             };
 
             MPI_Allreduce
             (
                 MPI_IN_PLACE,
                 profileValues,
-                12,
+                nProfileValues,
                 MPI_DOUBLE,
                 MPI_MAX,
                 MPI_COMM_WORLD
@@ -2438,12 +2536,26 @@ void Foam::dsmcCloud::printProfileSummary() const
             buildCellOccupancyWall = profileValues[3];
             collisionWall = profileValues[4];
             postFieldsWall = profileValues[5];
-            fullEvolveCpu = profileValues[6];
-            moveAndCollideCpu = profileValues[7];
-            moveCpu = profileValues[8];
-            buildCellOccupancyCpu = profileValues[9];
-            collisionCpu = profileValues[10];
-            postFieldsCpu = profileValues[11];
+            postReactionsWall = profileValues[6];
+            postFieldCalcWall = profileValues[7];
+            postFieldWriteWall = profileValues[8];
+            postControllersWall = profileValues[9];
+            postBoundariesWall = profileValues[10];
+            postBoundaryMeasWall = profileValues[11];
+            postCleanWall = profileValues[12];
+            fullEvolveCpu = profileValues[13];
+            moveAndCollideCpu = profileValues[14];
+            moveCpu = profileValues[15];
+            buildCellOccupancyCpu = profileValues[16];
+            collisionCpu = profileValues[17];
+            postFieldsCpu = profileValues[18];
+            postReactionsCpu = profileValues[19];
+            postFieldCalcCpu = profileValues[20];
+            postFieldWriteCpu = profileValues[21];
+            postControllersCpu = profileValues[22];
+            postBoundariesCpu = profileValues[23];
+            postBoundaryMeasCpu = profileValues[24];
+            postCleanCpu = profileValues[25];
 
             label moveDetailCounts[] =
             {
@@ -2555,12 +2667,26 @@ void Foam::dsmcCloud::printProfileSummary() const
         reduce(buildCellOccupancyWall, maxOp<scalar>());
         reduce(collisionWall, maxOp<scalar>());
         reduce(postFieldsWall, maxOp<scalar>());
+        reduce(postReactionsWall, maxOp<scalar>());
+        reduce(postFieldCalcWall, maxOp<scalar>());
+        reduce(postFieldWriteWall, maxOp<scalar>());
+        reduce(postControllersWall, maxOp<scalar>());
+        reduce(postBoundariesWall, maxOp<scalar>());
+        reduce(postBoundaryMeasWall, maxOp<scalar>());
+        reduce(postCleanWall, maxOp<scalar>());
         reduce(fullEvolveCpu, maxOp<scalar>());
         reduce(moveAndCollideCpu, maxOp<scalar>());
         reduce(moveCpu, maxOp<scalar>());
         reduce(buildCellOccupancyCpu, maxOp<scalar>());
         reduce(collisionCpu, maxOp<scalar>());
         reduce(postFieldsCpu, maxOp<scalar>());
+        reduce(postReactionsCpu, maxOp<scalar>());
+        reduce(postFieldCalcCpu, maxOp<scalar>());
+        reduce(postFieldWriteCpu, maxOp<scalar>());
+        reduce(postControllersCpu, maxOp<scalar>());
+        reduce(postBoundariesCpu, maxOp<scalar>());
+        reduce(postBoundaryMeasCpu, maxOp<scalar>());
+        reduce(postCleanCpu, maxOp<scalar>());
         reduce(moveDetailParcels, sumOp<label>());
         reduce(moveDetailTrackCalls, sumOp<label>());
         reduce(moveDetailSameTetNoFaceHits, sumOp<label>());
@@ -2708,21 +2834,75 @@ void Foam::dsmcCloud::printProfileSummary() const
             << "    move only [s]                 = " << moveWall << nl
             << "    buildCellOccupancy [s]        = " << buildCellOccupancyWall << nl
             << "    collision phase [s]           = " << collisionWall << nl
-            << "    post fields/output [s]        = " << postFieldsWall << nl
+            << "    evolve fields/post-step [s]   = " << postFieldsWall << nl
             << "    total profiled [s]            = " << accountedWall << nl
             << "    full evolve wall [s]          = " << fullEvolveWall << nl
             << "    move+collide cpu [s]          = " << moveAndCollideCpu << nl
             << "    move only cpu [s]             = " << moveCpu << nl
             << "    buildCellOccupancy cpu [s]    = " << buildCellOccupancyCpu << nl
             << "    collision phase cpu [s]       = " << collisionCpu << nl
-            << "    post fields/output cpu [s]    = " << postFieldsCpu << nl
+            << "    evolve fields/post-step cpu [s]= " << postFieldsCpu << nl
             << "    total profiled cpu [s]        = " << accountedCpu << nl
             << "    full evolve cpu [s]           = " << fullEvolveCpu;
 
         if (profileDetail_)
         {
+            const scalar postDetailWall =
+                postReactionsWall
+              + postFieldCalcWall
+              + postFieldWriteWall
+              + postControllersWall
+              + postBoundariesWall
+              + postBoundaryMeasWall
+              + postCleanWall;
+            const scalar postDetailCpu =
+                postReactionsCpu
+              + postFieldCalcCpu
+              + postFieldWriteCpu
+              + postControllersCpu
+              + postBoundariesCpu
+              + postBoundaryMeasCpu
+              + postCleanCpu;
+
             Info<< nl
-                << "    profile detail                = basic-stage timers only";
+                << "    profile detail                = evolve fields/post-step substages"
+                << nl
+                << "    post reactions [s]            = "
+                << postReactionsWall << nl
+                << "    post field calculate [s]      = "
+                << postFieldCalcWall << nl
+                << "    post field write [s]          = "
+                << postFieldWriteWall << nl
+                << "    post controllers [s]          = "
+                << postControllersWall << nl
+                << "    post boundaries [s]           = "
+                << postBoundariesWall << nl
+                << "    post boundary meas [s]        = "
+                << postBoundaryMeasWall << nl
+                << "    post clean [s]                = "
+                << postCleanWall << nl
+                << "    post detail sum [s]           = "
+                << postDetailWall << nl
+                << "    post detail residual [s]      = "
+                << postFieldsWall - postDetailWall << nl
+                << "    post reactions cpu [s]        = "
+                << postReactionsCpu << nl
+                << "    post field calculate cpu [s]  = "
+                << postFieldCalcCpu << nl
+                << "    post field write cpu [s]      = "
+                << postFieldWriteCpu << nl
+                << "    post controllers cpu [s]      = "
+                << postControllersCpu << nl
+                << "    post boundaries cpu [s]       = "
+                << postBoundariesCpu << nl
+                << "    post boundary meas cpu [s]    = "
+                << postBoundaryMeasCpu << nl
+                << "    post clean cpu [s]            = "
+                << postCleanCpu << nl
+                << "    post detail sum cpu [s]       = "
+                << postDetailCpu << nl
+                << "    post detail residual cpu [s]  = "
+                << postFieldsCpu - postDetailCpu;
         }
 
         if (moveDetailParcels > 0 || moveDetailTrackCalls > 0)
@@ -2914,6 +3094,80 @@ Foam::label Foam::dsmcCloud::randomLabel
         }
         return val;
     }
+}
+
+
+void Foam::dsmcCloud::setCollisionRngContext
+(
+    void* context,
+    CollisionSample01Function sample01,
+    CollisionPositionFunction position
+)
+{
+    collisionRngContext = context;
+    collisionSample01Function = sample01;
+    collisionPositionFunction = position;
+}
+
+
+void Foam::dsmcCloud::clearCollisionRngContext()
+{
+    collisionRngContext = nullptr;
+    collisionSample01Function = nullptr;
+    collisionPositionFunction = nullptr;
+}
+
+
+Foam::scalar Foam::dsmcCloud::collisionSample01()
+{
+    if (collisionRngContext && collisionSample01Function)
+    {
+        return collisionSample01Function(collisionRngContext);
+    }
+
+    #ifdef _OPENMP
+    if (omp_in_parallel())
+    {
+        scalar value = 0.0;
+        #pragma omp critical(dsmcCollisionRndGen)
+        {
+            value = rndGen_.sample01<scalar>();
+        }
+        return value;
+    }
+    #endif
+
+    return rndGen_.sample01<scalar>();
+}
+
+
+Foam::label Foam::dsmcCloud::collisionRandomLabel
+(
+    const label valOne,
+    const label valTwo
+)
+{
+    if (valOne == valTwo)
+    {
+        return valOne;
+    }
+
+    const label start = Foam::min(valOne, valTwo);
+    const label end = Foam::max(valOne, valTwo);
+    const label n = end - start + 1;
+
+    if (collisionRngContext && collisionPositionFunction)
+    {
+        return start + collisionPositionFunction(collisionRngContext, n);
+    }
+
+    label val = start + label(collisionSample01()*n);
+    if (val > end)
+    {
+        val = end;
+    }
+
+    return val;
 }
 
 
@@ -3211,7 +3465,7 @@ Foam::scalar Foam::dsmcCloud::postCollisionRotationalEnergy
 
     if (rotationalDof == 2.0)
     {
-        energyRatio = 1.0 - pow(rndGen_.sample01<scalar>(), 1.0/ChiB);
+        energyRatio = 1.0 - pow(collisionSample01(), 1.0/ChiB);
     }
     else
     {
@@ -3223,7 +3477,7 @@ Foam::scalar Foam::dsmcCloud::postCollisionRotationalEnergy
 
         if (ChiAMinusOne < SMALL && ChiBMinusOne < SMALL)
         {
-            return rndGen_.sample01<scalar>();
+            return collisionSample01();
         }
 
         scalar P = 0.0;
@@ -3232,7 +3486,7 @@ Foam::scalar Foam::dsmcCloud::postCollisionRotationalEnergy
         {
             P = 0;
 
-            energyRatio = rndGen_.sample01<scalar>();
+            energyRatio = collisionSample01();
 
             if (ChiAMinusOne < SMALL)
             {
@@ -3257,7 +3511,7 @@ Foam::scalar Foam::dsmcCloud::postCollisionRotationalEnergy
                         ChiBMinusOne
                     );
             }
-        } while (P < rndGen_.sample01<scalar>());
+        } while (P < collisionSample01());
     }
 
     return energyRatio;
@@ -3290,14 +3544,13 @@ Foam::label Foam::dsmcCloud::postCollisionVibrationalEnergyLevel
 
         do // acceptance - rejection
         {
-            //iDash = rndGen_.position<label>(0, iMax); OLD
-            iDash = randomLabel(0, iMax);
+            iDash = collisionRandomLabel(0, iMax);
             EVib = iDash*physicoChemical::k.value()*thetaV;
 
             // - equation 5.61, Bird
             func = pow(1.0 - EVib/Ec, 1.5 - omega);
 
-        } while(func < rndGen_.sample01<scalar>());
+        } while(func < collisionSample01());
     }
     else
     {
@@ -3384,7 +3637,7 @@ Foam::label Foam::dsmcCloud::postCollisionVibrationalEnergyLevel
             inverseVibrationalCollisionNumber = 1.0/fixedZv;
         }
 
-        if (inverseVibrationalCollisionNumber > rndGen_.sample01<scalar>())
+        if (inverseVibrationalCollisionNumber > collisionSample01())
         {
             // post-collision quantum number
             scalar func = 0.0;
@@ -3392,15 +3645,14 @@ Foam::label Foam::dsmcCloud::postCollisionVibrationalEnergyLevel
 
             do // acceptance - rejection
             {
-                //iDash = rndGen_.position<label>(0, iMax); OLD
-                iDash = randomLabel(0, iMax);
+                iDash = collisionRandomLabel(0, iMax);
 
                 EVib = iDash*physicoChemical::k.value()*thetaV;
 
                 // - equation 5.61, Bird
                 func = pow(1.0 - EVib/Ec, 1.5 - omega);
 
-            } while(func < rndGen_.sample01<scalar>());
+            } while(func < collisionSample01());
         }
     }
 
@@ -3445,7 +3697,7 @@ Foam::label Foam::dsmcCloud::postCollisionElectronicEnergyLevel
 
     do
     {
-        const label nState = randomLabel(1, nPossibleStates);
+        const label nState = collisionRandomLabel(1, nPossibleStates);
         label nAvailableStates = 0;
         label nLevel = -1;
 
@@ -3465,7 +3717,7 @@ Foam::label Foam::dsmcCloud::postCollisionElectronicEnergyLevel
         {
             scalar prob = pow(1.0 - EElist[nLevel]/Ec, 1.5 - omega);
 
-            if (prob > rndGen_.sample01<scalar>())
+            if (prob > collisionSample01())
             {
                 II = 1;
                 jDash = nLevel;
@@ -3523,10 +3775,10 @@ Foam::label Foam::dsmcCloud::postCollisionElectronicEnergyLevel
     do
     {
      //jDash = rndGen_.position<label>(0,jSelectA); OLD
-       jDash = randomLabel(0, jSelectA);
+       jDash = collisionRandomLabel(0, jSelectA);
        prob = gList[jDash]*pow(Ec - EElist[jDash], 1.5 - omega)/denomMax;
 
-    } while(prob < rndGen_.sample01<scalar>());
+    } while(prob < collisionSample01());
 
     return jDash;
 

@@ -173,7 +173,7 @@ void Foam::LarsenBorgnakkeVariableHardSphere::redistribute
     label& ELevelP = p.ELevel();
 
     //- Electronic energy mode for P
-    if (inverseElectronicCollisionNumber > cloud_.rndGen().sample01<scalar>())
+    if (inverseElectronicCollisionNumber > cloud_.collisionSample01())
     {
         const label jMaxP = cP.nElectronicLevels();
         const scalarList& EElistP = cP.electronicEnergyList();
@@ -259,11 +259,11 @@ void Foam::LarsenBorgnakkeVariableHardSphere::redistribute
               );
 
          Info << "particleProbabilityP = " << particleProbabilityP << endl;*/
-       //if (particleProbabilityP > cloud_.rndGen().sample01<scalar>())
+       //if (particleProbabilityP > cloud_.collisionSample01())
 
         const scalar preCollisionERotP = ERotP;
 
-        if (inverseRotationalCollisionNumber > cloud_.rndGen().sample01<scalar>())
+        if (inverseRotationalCollisionNumber > cloud_.collisionSample01())
         {
             const scalar EcP = translationalEnergy + preCollisionERotP;
             const scalar ChiB = 2.5 - omegaPQ;

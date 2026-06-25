@@ -1,0 +1,125 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  1.7.1                                 |
+|   \\  /    A nd           | Web:      www.OpenFOAM.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    location    "constant";
+    object      dsmcProperties;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+
+// General Properties
+// ~~~~~~~~~~~~~~~~~~
+
+//- Number of real atoms/molecules represented by a parcel
+//- XCX: mole density = 4e20/m^3, max cell vol = 7e-4, make sure max vol cell has 20 dsmc particles
+nEquivalentParticles            6e9;
+
+
+// Binary Collision Model
+// ~~~~~~~~~~~~~~~~~~~~~~
+
+BinaryCollisionModel        LarsenBorgnakkeVariableHardSphere;
+
+LarsenBorgnakkeVariableHardSphereCoeffs
+{
+    rotationalRelaxationCollisionNumber   5.0;
+}
+
+// Collision Partner Selection Model
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+collisionPartnerSelectionModel        noTimeCounter;
+
+// Time Step Model - constant or variable by cell volume(same as ours)
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+//timeStepModel   variable;
+
+// Molecular species
+// ~~~~~~~~~~~~~~~~~
+
+typeIdList           (N2 O2 NO N O);
+
+moleculeProperties
+{
+    N2
+    {
+        mass                                  46.5e-27;
+        diameter                              4.17e-10;
+        omega                                     0.74;
+        alpha                                     1.36;
+        rotationalDegreesOfFreedom                   2;
+        nVibrationalModes                            1;
+        characteristicVibrationalTemperature    (3371);
+        dissociationTemperature                 113500;
+        Zref                                   (52560);
+        referenceTempForZref                    (3371);
+        ionisationTemperature                 180798.3;
+        charge                                       0;
+    }
+    
+    O2
+    {
+        mass                                 53.12e-27;
+        diameter                              4.07e-10;
+        omega                                     0.77;
+        alpha                                      1.4;
+        rotationalDegreesOfFreedom                   2;
+        nVibrationalModes                            1;
+        characteristicVibrationalTemperature    (2256);
+        dissociationTemperature                  59500;
+        Zref                                   (17900);
+        referenceTempForZref                    (2256);
+        ionisationTemperature                 140066.5;
+        charge                                       0;
+    }
+    
+    NO
+    {
+        mass                                 49.81e-27;
+        diameter                               4.2e-10;
+        omega                                     0.79;
+        alpha                                      1.0;
+        rotationalDegreesOfFreedom                   2;
+        nVibrationalModes                            1;
+        characteristicVibrationalTemperature    (2719);
+        dissociationTemperature                  75500;
+        Zref                                    (1400);
+        referenceTempForZref                    (2719);
+        ionisationTemperature                 107457.8;
+        charge                                       0;
+    }
+
+    N
+    {
+        mass                                 23.25e-27;
+        diameter                              3.00e-10;
+        omega                                      0.8;
+        alpha                                      1.0;
+        ionisationTemperature                 168613.6;
+        charge                                       0;
+    }
+
+    O
+    {
+        mass                                 26.56e-27;
+        diameter                              3.00e-10;
+        omega                                      0.8;
+        alpha                                      1.0;
+        ionisationTemperature                 158053.5;
+        charge                                       0;
+    }
+}
+
+
+
+// ************************************************************************* //

@@ -120,6 +120,13 @@ namespace
         }
     }
 
+    template<class GeoField>
+    void setProcessorWriteOpt(GeoField& field, const bool enabled)
+    {
+        field.writeOpt() =
+            enabled ? Foam::IOobject::AUTO_WRITE : Foam::IOobject::NO_WRITE;
+    }
+
     template<class Type>
     void snapshotField
     (
@@ -280,10 +287,6 @@ namespace
         List<scalarField> dsmcNElecLvl;
         List<scalarField> nGrndElecLvl;
         List<scalarField> n1stElecLvl;
-        List<scalarField> nReal;
-        List<scalarField> mReal;
-        List<vectorField> momentumReal;
-        List<scalarField> linearKEReal;
         List<scalarField> dsmcMuu;
         List<scalarField> dsmcMuv;
         List<scalarField> dsmcMuw;
@@ -302,6 +305,12 @@ namespace
         List<scalarField> dsmcNClassII;
         List<scalarField> dsmcNClassIII;
         List<List<scalarField>> dsmcSpeciesEvibMod;
+        scalarField totalDsmcN;
+        scalarField totalDsmcM;
+        scalarField totalDsmcLinearKE;
+        vectorField totalDsmcMomentum;
+        scalarField totalDsmcErot;
+        scalarField totalDsmcZetaRot;
         labelList touchedCells;
 
         dsmcVolSharedSampleCache()
@@ -388,11 +397,12 @@ namespace
             initVectorFields(dsmcMomentum);
             initScalarFields(dsmcErot);
             initScalarFields(dsmcZetaRot);
-            initScalarFields(nReal);
-            initScalarFields(mReal);
-            initVectorFields(momentumReal);
-            initScalarFields(linearKEReal);
-
+            totalDsmcN.setSize(nCells, 0.0);
+            totalDsmcM.setSize(nCells, 0.0);
+            totalDsmcLinearKE.setSize(nCells, 0.0);
+            totalDsmcMomentum.setSize(nCells, vector::zero);
+            totalDsmcErot.setSize(nCells, 0.0);
+            totalDsmcZetaRot.setSize(nCells, 0.0);
             if (supportsElectronic)
             {
                 initScalarFields(dsmcSpeciesEelec);
@@ -488,10 +498,16 @@ namespace
                     dsmcMomentum[typei] = vector::zero;
                     dsmcErot[typei] = 0.0;
                     dsmcZetaRot[typei] = 0.0;
-                    nReal[typei] = 0.0;
-                    mReal[typei] = 0.0;
-                    momentumReal[typei] = vector::zero;
-                    linearKEReal[typei] = 0.0;
+
+                    if (typei == 0)
+                    {
+                        totalDsmcN = 0.0;
+                        totalDsmcM = 0.0;
+                        totalDsmcLinearKE = 0.0;
+                        totalDsmcMomentum = vector::zero;
+                        totalDsmcErot = 0.0;
+                        totalDsmcZetaRot = 0.0;
+                    }
                 }
                 else
                 {
@@ -504,10 +520,16 @@ namespace
                         dsmcMomentum[typei][celli] = vector::zero;
                         dsmcErot[typei][celli] = 0.0;
                         dsmcZetaRot[typei][celli] = 0.0;
-                        nReal[typei][celli] = 0.0;
-                        mReal[typei][celli] = 0.0;
-                        momentumReal[typei][celli] = vector::zero;
-                        linearKEReal[typei][celli] = 0.0;
+
+                        if (typei == 0)
+                        {
+                            totalDsmcN[celli] = 0.0;
+                            totalDsmcM[celli] = 0.0;
+                            totalDsmcLinearKE[celli] = 0.0;
+                            totalDsmcMomentum[celli] = vector::zero;
+                            totalDsmcErot[celli] = 0.0;
+                            totalDsmcZetaRot[celli] = 0.0;
+                        }
                     }
                 }
 
@@ -734,6 +756,37 @@ namespace
                 }
             }
 
+	            scalarField typeMass(nTypes, 0.0);
+	            scalarField typeZetaRot(nTypes, 0.0);
+	            labelList typeNVibModes(nTypes, 0);
+	            List<scalarField> typeVibEnergyQuantum;
+
+            if (needVibrational)
+            {
+                typeVibEnergyQuantum.setSize(nTypes);
+            }
+
+            const scalar kB = physicoChemical::k.value();
+            for (label typei = 0; typei < nTypes; ++typei)
+            {
+                const dsmcParcel::constantProperties& cP =
+                    cloud.constProps(typei);
+
+                typeMass[typei] = cP.mass();
+                typeZetaRot[typei] = cP.rotationalDegreesOfFreedom();
+
+	                if (needVibrational)
+	                {
+	                    const scalarList& thetaV = cP.thetaV();
+	                    typeNVibModes[typei] = thetaV.size();
+	                    typeVibEnergyQuantum[typei].setSize(thetaV.size(), 0.0);
+	                    forAll(thetaV, mod)
+                    {
+                        typeVibEnergyQuantum[typei][mod] = kB*thetaV[mod];
+                    }
+                }
+            }
+
             const auto parcelAccumStart =
                 doProfile ? wallClockNow() : std::chrono::steady_clock::time_point();
 
@@ -742,17 +795,12 @@ namespace
                 (
                     const label celli,
                     const dsmcParcel& p,
-                    const scalar nParticles,
                     scalarField& localDsmcN,
                     scalarField& localDsmcM,
                     scalarField& localDsmcLinearKE,
                     vectorField& localDsmcMomentum,
                     scalarField& localDsmcErot,
                     scalarField& localDsmcZetaRot,
-                    scalarField& localNReal,
-                    scalarField& localMReal,
-                    vectorField& localMomentumReal,
-                    scalarField& localLinearKEReal,
                     scalarField& localSpeciesEelec,
                     scalarField& localNElecLvl,
                     scalarField& localNGrndElecLvl,
@@ -789,51 +837,44 @@ namespace
                     return;
                 }
 
-                const dsmcParcel::constantProperties& cP =
-                    cloud.constProps(typeId);
-
                 if (localDsmcN[typeId] == 0.0)
                 {
                     activeTypes.append(typeId);
                 }
 
-                const scalar mp = cP.mass();
+                const scalar mp = typeMass[typeId];
                 const vector& Up = p.U();
                 const scalar Upx = Up.x();
                 const scalar Upy = Up.y();
                 const scalar Upz = Up.z();
                 const vector mpUp = mp*Up;
-                const scalar mpNParticles = mp*nParticles;
-                const vector mpUpNParticles = mpUp*nParticles;
                 const scalar linearKE = mp*(Up & Up);
                 const scalar Erotp = p.ERot();
-                const scalar zetaRotp = cP.rotationalDegreesOfFreedom();
 
                 scalar Evibp = 0.0;
-                if (needVibrational)
-                {
-                    const labelList& vibLevels = p.vibLevel();
-                    const scalarList& thetaV = cP.thetaV();
+	                if (needVibrational && typeNVibModes[typeId])
+	                {
+	                    const labelList& vibLevels = p.vibLevel();
+	                    const scalarField& vibEnergyQuantum =
+                        typeVibEnergyQuantum[typeId];
                     scalarField& localEvibMods = localSpeciesEvibMod[typeId];
 
-                    forAll(thetaV, mod)
+                    forAll(vibEnergyQuantum, mod)
                     {
-                        const scalar EvibMod = cP.eVib_m(mod, vibLevels[mod]);
+                        const scalar EvibMod =
+                            vibLevels[mod]*vibEnergyQuantum[mod];
                         localEvibMods[mod] += EvibMod;
-                        Evibp += EvibMod;
+                        if (needHeatFluxShearStress)
+                        {
+                            Evibp += EvibMod;
+                        }
                     }
                 }
 
                 localDsmcN[typeId] += 1.0;
-                localDsmcM[typeId] += mp;
                 localDsmcLinearKE[typeId] += linearKE;
                 localDsmcMomentum[typeId] += mpUp;
-        localDsmcErot[typeId] += Erotp;
-        localDsmcZetaRot[typeId] += zetaRotp;
-        localNReal[typeId] += nParticles;
-        localMReal[typeId] += mpNParticles;
-        localMomentumReal[typeId] += mpUpNParticles;
-        localLinearKEReal[typeId] += linearKE*nParticles;
+                localDsmcErot[typeId] += Erotp;
 
                 if (needHeatFluxShearStress)
                 {
@@ -858,6 +899,8 @@ namespace
 
                 if (needElectronic)
                 {
+                    const dsmcParcel::constantProperties& cP =
+                        cloud.constProps(typeId);
                     const label eLevel = p.ELevel();
                     localSpeciesEelec[typeId] += cP.electronicEnergyList()[eLevel];
 
@@ -904,10 +947,6 @@ namespace
                     vectorField& localDsmcMomentum,
                     scalarField& localDsmcErot,
                     scalarField& localDsmcZetaRot,
-                    scalarField& localNReal,
-                    scalarField& localMReal,
-                    vectorField& localMomentumReal,
-                    scalarField& localLinearKEReal,
                     scalarField& localSpeciesEelec,
                     scalarField& localNElecLvl,
                     scalarField& localNGrndElecLvl,
@@ -936,16 +975,26 @@ namespace
                 forAll(activeTypes, activeI)
                 {
                     const label typeId = activeTypes[activeI];
-                    dsmcN[typeId][celli] = localDsmcN[typeId];
-                    dsmcM[typeId][celli] = localDsmcM[typeId];
-                    dsmcLinearKE[typeId][celli] = localDsmcLinearKE[typeId];
-                    dsmcMomentum[typeId][celli] = localDsmcMomentum[typeId];
-                    dsmcErot[typeId][celli] = localDsmcErot[typeId];
-                    dsmcZetaRot[typeId][celli] = localDsmcZetaRot[typeId];
-                    nReal[typeId][celli] = localNReal[typeId];
-                    mReal[typeId][celli] = localMReal[typeId];
-                    momentumReal[typeId][celli] = localMomentumReal[typeId];
-                    linearKEReal[typeId][celli] = localLinearKEReal[typeId];
+                    const scalar localN = localDsmcN[typeId];
+                    const scalar localM = localN*typeMass[typeId];
+                    const scalar localLinearKE = localDsmcLinearKE[typeId];
+                    const vector localMomentum = localDsmcMomentum[typeId];
+                    const scalar localErot = localDsmcErot[typeId];
+                    const scalar localZetaRot = localN*typeZetaRot[typeId];
+
+                    dsmcN[typeId][celli] = localN;
+                    dsmcM[typeId][celli] = localM;
+                    dsmcLinearKE[typeId][celli] = localLinearKE;
+                    dsmcMomentum[typeId][celli] = localMomentum;
+                    dsmcErot[typeId][celli] = localErot;
+                    dsmcZetaRot[typeId][celli] = localZetaRot;
+
+                    totalDsmcN[celli] += localN;
+                    totalDsmcM[celli] += localM;
+                    totalDsmcLinearKE[celli] += localLinearKE;
+                    totalDsmcMomentum[celli] += localMomentum;
+                    totalDsmcErot[celli] += localErot;
+                    totalDsmcZetaRot[celli] += localZetaRot;
 
                     if (needElectronic)
                     {
@@ -1004,10 +1053,6 @@ namespace
                     localDsmcMomentum[typeId] = vector::zero;
                     localDsmcErot[typeId] = 0.0;
                     localDsmcZetaRot[typeId] = 0.0;
-                    localNReal[typeId] = 0.0;
-                    localMReal[typeId] = 0.0;
-                    localMomentumReal[typeId] = vector::zero;
-                    localLinearKEReal[typeId] = 0.0;
 
                     if (needElectronic)
                     {
@@ -1049,6 +1094,186 @@ namespace
             #ifdef _OPENMP
             if (cloud.openmpEnabled())
             {
+                const bool baseVibFastPath =
+                    needVibrational
+                 && !needElectronic
+                 && !needClassification
+                 && !needHeatFluxShearStress;
+
+                if (baseVibFastPath)
+                {
+                    #pragma omp parallel
+                    {
+                        scalarField localDsmcN(nTypes, 0.0);
+                        scalarField localUSqr(nTypes, 0.0);
+                        vectorField localU(nTypes, vector::zero);
+                        scalarField localDsmcErot(nTypes, 0.0);
+                        List<scalarField> localSpeciesEvibMod(nTypes);
+	                        labelList activeTypes(nTypes, -1);
+	                        label nActiveTypes = 0;
+	                        label localDetailSampleCells = 0;
+                        label localDetailSampleParcels = 0;
+
+                        for (label typei = 0; typei < nTypes; ++typei)
+                        {
+                            localSpeciesEvibMod[typei].setSize
+                            (
+                                typeVibEnergyQuantum[typei].size(),
+                                0.0
+                            );
+                        }
+
+                        const label loopSize =
+                            activeCellsPtr ? activeCellsPtr->size() : nCells;
+
+                        #pragma omp for schedule(static)
+                        for (label activeI = 0; activeI < loopSize; ++activeI)
+                        {
+                            const label celli =
+                                activeCellsPtr ? (*activeCellsPtr)[activeI] : activeI;
+                            const DynamicList<dsmcParcel*>* parcelsPtr =
+                                useFlatOccupancy ? nullptr : &(*cellOccupancyPtr)[celli];
+                            const label parcelBegin =
+                                useFlatOccupancy ? (*occupancyCellOffsetsPtr)[celli] : 0;
+                            const label parcelEnd =
+                                useFlatOccupancy
+                              ? (*occupancyCellOffsetsPtr)[celli + 1]
+                              : parcelsPtr->size();
+                            const label parcelCount =
+                                useFlatOccupancy ? parcelEnd - parcelBegin : parcelsPtr->size();
+
+                            if
+                            (
+                                doDetailedProfile
+                             && parcelCount > 0
+                             && (celli % 32 == 0)
+                            )
+                            {
+                                ++localDetailSampleCells;
+                                localDetailSampleParcels += parcelCount;
+                            }
+
+                            for (label pi = 0; pi < parcelCount; ++pi)
+                            {
+                                const dsmcParcel& p =
+                                    useFlatOccupancy
+                                  ? *(*occupancyOrderedParcelsPtr)[parcelBegin + pi]
+                                  : *(*parcelsPtr)[pi];
+
+                                if (useFlatOccupancy && pi + 1 < parcelCount)
+                                {
+                                    __builtin_prefetch
+                                    (
+                                        (*occupancyOrderedParcelsPtr)[parcelBegin + pi + 1],
+                                        0,
+                                        1
+                                    );
+                                }
+
+                                if (!p.isFree())
+                                {
+                                    continue;
+                                }
+
+                                const label typeId = p.typeId();
+                                if (typeId < 0 || typeId >= nTypes)
+                                {
+                                    continue;
+                                }
+
+	                                if (localDsmcN[typeId] == 0.0)
+	                                {
+	                                    activeTypes[nActiveTypes++] = typeId;
+	                                }
+
+                                const vector& Up = p.U();
+                                const scalar Erotp = p.ERot();
+
+	                                if (typeNVibModes[typeId])
+	                                {
+	                                    const labelList& vibLevels = p.vibLevel();
+	                                    const scalarField& vibEnergyQuantum =
+	                                        typeVibEnergyQuantum[typeId];
+	                                    scalarField& localEvibMods =
+	                                        localSpeciesEvibMod[typeId];
+
+	                                    for (label mod = 0; mod < typeNVibModes[typeId]; ++mod)
+	                                    {
+	                                        const scalar EvibMod =
+	                                            vibLevels[mod]*vibEnergyQuantum[mod];
+	                                        localEvibMods[mod] += EvibMod;
+	                                    }
+	                                }
+
+	                                localDsmcN[typeId] += 1.0;
+	                                localUSqr[typeId] += (Up & Up);
+	                                localU[typeId] += Up;
+	                                localDsmcErot[typeId] += Erotp;
+                            }
+
+		                            for (label activeI = 0; activeI < nActiveTypes; ++activeI)
+		                            {
+		                                const label typeId = activeTypes[activeI];
+		                                const scalar localN = localDsmcN[typeId];
+		                                const scalar typeM =
+		                                    typeMass[typeId];
+		                                const scalar localM =
+		                                    localN*typeM;
+		                                const scalar localLinearKE =
+		                                    typeM*localUSqr[typeId];
+		                                const vector localMomentum =
+		                                    typeM*localU[typeId];
+		                                const scalar localErot =
+		                                    localDsmcErot[typeId];
+		                                const scalar localZetaRot =
+		                                    localN*typeZetaRot[typeId];
+
+	                                dsmcN[typeId][celli] = localN;
+	                                dsmcM[typeId][celli] = localM;
+	                                dsmcLinearKE[typeId][celli] =
+	                                    localLinearKE;
+	                                dsmcMomentum[typeId][celli] =
+	                                    localMomentum;
+	                                dsmcErot[typeId][celli] = localErot;
+	                                dsmcZetaRot[typeId][celli] =
+	                                    localZetaRot;
+
+	                                totalDsmcN[celli] += localN;
+	                                totalDsmcM[celli] += localM;
+	                                totalDsmcLinearKE[celli] += localLinearKE;
+	                                totalDsmcMomentum[celli] += localMomentum;
+	                                totalDsmcErot[celli] += localErot;
+	                                totalDsmcZetaRot[celli] += localZetaRot;
+
+                                scalarField& localEvibMods =
+                                    localSpeciesEvibMod[typeId];
+                                forAll(localEvibMods, mod)
+                                {
+                                    dsmcSpeciesEvibMod[typeId][mod][celli] =
+                                        localEvibMods[mod];
+                                    localEvibMods[mod] = 0.0;
+                                }
+
+	                                localDsmcN[typeId] = 0.0;
+	                                localUSqr[typeId] = 0.0;
+	                                localU[typeId] = vector::zero;
+	                                localDsmcErot[typeId] = 0.0;
+                            }
+
+	                            nActiveTypes = 0;
+	                        }
+
+	                        if (doDetailedProfile)
+	                        {
+	                            #pragma omp atomic
+	                            buildProfile->detailSampleCells += localDetailSampleCells;
+	                            #pragma omp atomic
+	                            buildProfile->detailSampleParcels += localDetailSampleParcels;
+	                        }
+                    }
+                }
+                else
+                {
                 #pragma omp parallel
                 {
                     scalarField localDsmcN(nTypes, 0.0);
@@ -1057,10 +1282,6 @@ namespace
                     vectorField localDsmcMomentum(nTypes, vector::zero);
                     scalarField localDsmcErot(nTypes, 0.0);
                     scalarField localDsmcZetaRot(nTypes, 0.0);
-                    scalarField localNReal(nTypes, 0.0);
-                    scalarField localMReal(nTypes, 0.0);
-                    vectorField localMomentumReal(nTypes, vector::zero);
-                    scalarField localLinearKEReal(nTypes, 0.0);
                     scalarField localSpeciesEelec;
                     scalarField localNElecLvl;
                     scalarField localNGrndElecLvl;
@@ -1084,6 +1305,8 @@ namespace
                     scalarField localDsmcNClassIII;
                     List<scalarField> localSpeciesEvibMod;
                     DynamicList<label> activeTypes;
+                    label localDetailSampleCells = 0;
+                    label localDetailSampleParcels = 0;
 
                     if (needElectronic)
                     {
@@ -1151,14 +1374,11 @@ namespace
                           : parcelsPtr->size();
                         const label parcelCount =
                             useFlatOccupancy ? parcelEnd - parcelBegin : parcelsPtr->size();
-                        const scalar nParticles = cloud.nParticles(celli);
 
                         if (doDetailedProfile && parcelCount > 0 && (celli % 32 == 0))
                         {
-                            #pragma omp atomic
-                            buildProfile->detailSampleCells++;
-                            #pragma omp atomic
-                            buildProfile->detailSampleParcels += parcelCount;
+                            ++localDetailSampleCells;
+                            localDetailSampleParcels += parcelCount;
                         }
 
                         for (label pi = 0; pi < parcelCount; ++pi)
@@ -1182,17 +1402,12 @@ namespace
                             (
                                 celli,
                                 p,
-                                nParticles,
                                 localDsmcN,
                                 localDsmcM,
                                 localDsmcLinearKE,
                                 localDsmcMomentum,
                                 localDsmcErot,
                                 localDsmcZetaRot,
-                                localNReal,
-                                localMReal,
-                                localMomentumReal,
-                                localLinearKEReal,
                                 localSpeciesEelec,
                                 localNElecLvl,
                                 localNGrndElecLvl,
@@ -1228,10 +1443,6 @@ namespace
                             localDsmcMomentum,
                             localDsmcErot,
                             localDsmcZetaRot,
-                            localNReal,
-                            localMReal,
-                            localMomentumReal,
-                            localLinearKEReal,
                             localSpeciesEelec,
                             localNElecLvl,
                             localNGrndElecLvl,
@@ -1257,6 +1468,15 @@ namespace
                             activeTypes
                         );
                     }
+
+                    if (doDetailedProfile)
+                    {
+                        #pragma omp atomic
+                        buildProfile->detailSampleCells += localDetailSampleCells;
+                        #pragma omp atomic
+                        buildProfile->detailSampleParcels += localDetailSampleParcels;
+                    }
+                }
                 }
             }
             else
@@ -1277,24 +1497,27 @@ namespace
                         continue;
                     }
 
-                    const dsmcParcel::constantProperties& cP =
-                        cloud.constProps(typeId);
-                    const scalar nParticles = cloud.nParticles(celli);
-                    const scalar mp = cP.mass();
+                    const scalar mp = typeMass[typeId];
                     const vector& Up = p.U();
                     const scalar linearKE = mp*(Up & Up);
                     const scalar Erotp = p.ERot();
-                    const scalar zetaRotp = cP.rotationalDegreesOfFreedom();
+                    const scalar zetaRotp = typeZetaRot[typeId];
 
                     scalar Evibp = 0.0;
-                    if (needVibrational)
-                    {
-                        const labelList& vibLevels = p.vibLevel();
-                        forAll(cP.thetaV(), mod)
+	                    if (needVibrational && typeNVibModes[typeId])
+	                    {
+	                        const labelList& vibLevels = p.vibLevel();
+	                        const scalarField& vibEnergyQuantum =
+                            typeVibEnergyQuantum[typeId];
+                        forAll(vibEnergyQuantum, mod)
                         {
-                            const scalar EvibMod = cP.eVib_m(mod, vibLevels[mod]);
+                            const scalar EvibMod =
+                                vibLevels[mod]*vibEnergyQuantum[mod];
                             dsmcSpeciesEvibMod[typeId][mod][celli] += EvibMod;
-                            Evibp += EvibMod;
+                            if (needHeatFluxShearStress)
+                            {
+                                Evibp += EvibMod;
+                            }
                         }
                     }
 
@@ -1304,10 +1527,6 @@ namespace
                     dsmcMomentum[typeId][celli] += mp*Up;
                     dsmcErot[typeId][celli] += Erotp;
                     dsmcZetaRot[typeId][celli] += zetaRotp;
-                    nReal[typeId][celli] += nParticles;
-                    mReal[typeId][celli] += mp*nParticles;
-                    momentumReal[typeId][celli] += mp*Up*nParticles;
-                    linearKEReal[typeId][celli] += linearKE*nParticles;
 
                     if (needHeatFluxShearStress)
                     {
@@ -1330,6 +1549,8 @@ namespace
 
                     if (needElectronic)
                     {
+                        const dsmcParcel::constantProperties& cP =
+                            cloud.constProps(typeId);
                         const label eLevel = p.ELevel();
                         dsmcSpeciesEelec[typeId][celli] +=
                             cP.electronicEnergyList()[eLevel];
@@ -1410,6 +1631,138 @@ void dsmcVolFields::calculateWallUnitVectors()
             }
         }
     }
+}
+
+
+bool dsmcVolFields::outputFieldEnabled
+(
+    const word& fieldKey,
+    const word& objectName,
+    const bool defaultEnabled
+) const
+{
+    if (!defaultEnabled)
+    {
+        return false;
+    }
+
+    if (!restrictOutputFields_)
+    {
+        return true;
+    }
+
+    if
+    (
+        outputFieldNames_.found("all")
+     || outputFieldNames_.found(fieldKey)
+     || outputFieldNames_.found(objectName)
+    )
+    {
+        return true;
+    }
+
+    if
+    (
+        outputFieldNames_.found("basic")
+     && (
+            fieldKey == "dsmcN"
+         || fieldKey == "dsmcNMean"
+         || fieldKey == "rhoN"
+         || fieldKey == "rhoM"
+         || fieldKey == "p"
+         || fieldKey == "Ttra"
+         || fieldKey == "U"
+         || fieldKey == "Ma"
+        )
+    )
+    {
+        return true;
+    }
+
+    if
+    (
+        outputFieldNames_.found("thermal")
+     && (
+            fieldKey == "Ttra"
+         || fieldKey == "Trot"
+         || fieldKey == "Tvib"
+         || fieldKey == "Telec"
+         || fieldKey == "Tov"
+        )
+    )
+    {
+        return true;
+    }
+
+    if
+    (
+        outputFieldNames_.found("wall")
+     && (
+            fieldKey == "wallHeatFlux"
+         || fieldKey == "wallShearStress"
+         || fieldKey == "fD"
+        )
+    )
+    {
+        return true;
+    }
+
+    if
+    (
+        outputFieldNames_.found("transport")
+     && (
+            fieldKey == "mfp"
+         || fieldKey == "mfpToDx"
+         || fieldKey == "mct"
+         || fieldKey == "mctToDt"
+         || fieldKey == "SOFP"
+        )
+    )
+    {
+        return true;
+    }
+
+    if
+    (
+        outputFieldNames_.found("errors")
+     && (
+            fieldKey == "rhoMError"
+         || fieldKey == "UError"
+         || fieldKey == "TError"
+         || fieldKey == "pError"
+        )
+    )
+    {
+        return true;
+    }
+
+    if
+    (
+        outputFieldNames_.found("heatFluxShearStress")
+     && (
+            fieldKey == "heatFluxVector"
+         || fieldKey == "pressureTensor"
+         || fieldKey == "shearStressTensor"
+        )
+    )
+    {
+        return true;
+    }
+
+    if
+    (
+        outputFieldNames_.found("classifications")
+     && (
+            fieldKey == "classIDistribution"
+         || fieldKey == "classIIDistribution"
+         || fieldKey == "classIIIDistribution"
+        )
+    )
+    {
+        return true;
+    }
+
+    return false;
 }
 
 
@@ -1940,6 +2293,7 @@ dsmcVolFields::dsmcVolFields
     dsmcN1stElecLvlSpeciesCum_(),
     speciesMfp_(),
     speciesMcr_(),
+    dsmcNResetCells_(),
     rhoNBF_(),
     rhoMBF_(),
     linearKEBF_(),
@@ -1971,6 +2325,8 @@ dsmcVolFields::dsmcVolFields
     writeRotationalTemperature_(false),
     writeVibrationalTemperature_(false),
     writeElectronicTemperature_(false),
+    restrictOutputFields_(false),
+    outputFieldNames_(),
     profileSummaryEnabled_(false),
     profileDetailEnabled_(false),
     profileSampleAccumWallTime_(0.0),
@@ -1987,9 +2343,12 @@ dsmcVolFields::dsmcVolFields
     profileFieldCombineWallTime_(0.0),
     profileCellReduceWallTime_(0.0),
     profileBoundaryAccumWallTime_(0.0),
+    profileOutputSnapshotWallTime_(0.0),
+    profileOutputReduceWallTime_(0.0),
     profileOutputComputeWallTime_(0.0),
     profileFieldWriteWallTime_(0.0),
     profileOutputResetWallTime_(0.0),
+    profileOutputRestoreWallTime_(0.0),
     profileOutputTimeWallTime_(0.0),
     profileCalls_(0),
     finalProfilePrinted_(false)
@@ -2445,6 +2804,22 @@ void dsmcVolFields::createField()
 
     sampleInterval_ = propsDict_.lookupOrDefault("sampleInterval", 1);
 
+    restrictOutputFields_ = false;
+    outputFieldNames_.clear();
+    if (propsDict_.found("writeFields"))
+    {
+        wordList requestedOutputFields(propsDict_.lookup("writeFields"));
+        restrictOutputFields_ = true;
+        forAll(requestedOutputFields, i)
+        {
+            outputFieldNames_.insert(requestedOutputFields[i]);
+        }
+
+        Info<< "dsmcVolFields [" << fieldName_
+            << "]: restricting output fields to "
+            << requestedOutputFields << endl;
+    }
+
     openmpFieldSampling_ =
         mesh_.time().controlDict().lookupOrDefault<bool>
         (
@@ -2547,8 +2922,19 @@ void dsmcVolFields::calculateField()
 
     ++profileCalls_;
     
-    //- Reset instantaneous number of DSMC parcels
-    dsmcN_ = 0.0;
+	    //- Reset instantaneous number of DSMC parcels.
+	    if (cloud_.hasOccupancyOrderedParcels())
+	    {
+	        forAll(dsmcNResetCells_, i)
+	        {
+	            dsmcN_[dsmcNResetCells_[i]] = 0.0;
+	        }
+	        dsmcNResetCells_.clear();
+	    }
+	    else
+	    {
+	        dsmcN_ = 0.0;
+	    }
 
     if (sampleInterval_ <= sampleCounter_)
     {
@@ -2716,16 +3102,38 @@ void dsmcVolFields::calculateField()
                     sharedCacheBuildProfile.detailSampleParcels;
             }
 
-            const auto fieldCombineStart =
-                doProfile ? wallClockNow() : std::chrono::steady_clock::time_point();
-            const bool singleSpeciesField = (speciesIds_.size() == 1);
-            const label onlyTypeId = singleSpeciesField ? speciesIds_[0] : -1;
-            const UList<label>* combineCellsPtr =
-                cloud_.hasOccupancyOrderedParcels()
-              ? static_cast<const UList<label>*>(&cloud_.occupancyActiveCells())
-              : nullptr;
-            const label combineLoopSize =
-                combineCellsPtr ? combineCellsPtr->size() : dsmcNCum_.size();
+	            const auto fieldCombineStart =
+	                doProfile ? wallClockNow() : std::chrono::steady_clock::time_point();
+	            const bool singleSpeciesField = (speciesIds_.size() == 1);
+	            const label onlyTypeId = singleSpeciesField ? speciesIds_[0] : -1;
+	            bool allSpeciesField =
+	                !singleSpeciesField
+	             && speciesIds_.size() == cloud_.constProps().size();
+	            if (allSpeciesField)
+	            {
+	                for (label typeId = 0; typeId < typeIdToSpeciesIndex_.size(); ++typeId)
+	                {
+	                    if (typeIdToSpeciesIndex_[typeId] < 0)
+	                    {
+	                        allSpeciesField = false;
+	                        break;
+	                    }
+	                }
+	            }
+	            const UList<label>* combineCellsPtr =
+	                cloud_.hasOccupancyOrderedParcels()
+	              ? static_cast<const UList<label>*>(&cloud_.occupancyActiveCells())
+	              : nullptr;
+	            const label combineLoopSize =
+	                combineCellsPtr ? combineCellsPtr->size() : dsmcNCum_.size();
+	            if (combineCellsPtr)
+	            {
+	                dsmcNResetCells_.setSize(combineLoopSize);
+	                for (label i = 0; i < combineLoopSize; ++i)
+	                {
+	                    dsmcNResetCells_[i] = (*combineCellsPtr)[i];
+	                }
+	            }
 
             #ifdef _OPENMP
             #pragma omp parallel for schedule(static) if (useOpenMPSampling)
@@ -2734,6 +3142,7 @@ void dsmcVolFields::calculateField()
             {
                 const label cell =
                     combineCellsPtr ? (*combineCellsPtr)[combineI] : combineI;
+                const scalar cellNParticles = cloud_.nParticles(cell);
                 scalar dsmcNLocal = 0.0;
                 scalar dsmcMLocal = 0.0;
                 scalar dsmcLinearKELocal = 0.0;
@@ -2763,9 +3172,9 @@ void dsmcVolFields::calculateField()
                 scalar dsmcNClassIILocal = 0.0;
                 scalar dsmcNClassIIILocal = 0.0;
 
-                if (singleSpeciesField)
-                {
-                    dsmcNLocal = sharedSampleCache_.dsmcN[onlyTypeId][cell];
+		                if (singleSpeciesField)
+		                {
+		                    dsmcNLocal = sharedSampleCache_.dsmcN[onlyTypeId][cell];
                     dsmcMLocal = sharedSampleCache_.dsmcM[onlyTypeId][cell];
                     dsmcLinearKELocal =
                         sharedSampleCache_.dsmcLinearKE[onlyTypeId][cell];
@@ -2774,12 +3183,10 @@ void dsmcVolFields::calculateField()
                     dsmcErotLocal = sharedSampleCache_.dsmcErot[onlyTypeId][cell];
                     dsmcZetaRotLocal =
                         sharedSampleCache_.dsmcZetaRot[onlyTypeId][cell];
-                    nLocal = sharedSampleCache_.nReal[onlyTypeId][cell];
-                    mLocal = sharedSampleCache_.mReal[onlyTypeId][cell];
-                    momentumLocal =
-                        sharedSampleCache_.momentumReal[onlyTypeId][cell];
-                    linearKELocal =
-                        sharedSampleCache_.linearKEReal[onlyTypeId][cell];
+                    nLocal = dsmcNLocal*cellNParticles;
+                    mLocal = dsmcMLocal*cellNParticles;
+                    momentumLocal = dsmcMomentumLocal*cellNParticles;
+                    linearKELocal = dsmcLinearKELocal*cellNParticles;
 
                     dsmcNSpeciesCum_[0][cell] += dsmcNLocal;
                     dsmcMccSpeciesCum_[0][cell] += dsmcLinearKELocal;
@@ -2820,35 +3227,60 @@ void dsmcVolFields::calculateField()
                             sharedSampleCache_.dsmcNClassII[onlyTypeId][cell];
                         dsmcNClassIIILocal =
                             sharedSampleCache_.dsmcNClassIII[onlyTypeId][cell];
-                    }
-                }
-                else
-                {
-                    forAll(speciesIds_, i)
-                    {
-                        const label typeId = speciesIds_[i];
+	                    }
+	                }
+	                else
+	                {
+	                    if (allSpeciesField)
+	                    {
+	                        dsmcNLocal = sharedSampleCache_.totalDsmcN[cell];
+	                        dsmcMLocal = sharedSampleCache_.totalDsmcM[cell];
+	                        dsmcLinearKELocal =
+	                            sharedSampleCache_.totalDsmcLinearKE[cell];
+	                        dsmcMomentumLocal =
+	                            sharedSampleCache_.totalDsmcMomentum[cell];
+	                        dsmcErotLocal = sharedSampleCache_.totalDsmcErot[cell];
+	                        dsmcZetaRotLocal =
+	                            sharedSampleCache_.totalDsmcZetaRot[cell];
+	                        nLocal = dsmcNLocal*cellNParticles;
+	                        mLocal = dsmcMLocal*cellNParticles;
+	                        momentumLocal = dsmcMomentumLocal*cellNParticles;
+	                        linearKELocal = dsmcLinearKELocal*cellNParticles;
+	                    }
 
-                        const scalar speciesDsmcN =
-                            sharedSampleCache_.dsmcN[typeId][cell];
-                        const scalar speciesDsmcLinearKE =
-                            sharedSampleCache_.dsmcLinearKE[typeId][cell];
-                        const scalar speciesNReal =
-                            sharedSampleCache_.nReal[typeId][cell];
+	                    forAll(speciesIds_, i)
+	                    {
+	                        const label typeId = speciesIds_[i];
 
-                        dsmcNLocal += speciesDsmcN;
-                        dsmcMLocal += sharedSampleCache_.dsmcM[typeId][cell];
-                        dsmcLinearKELocal += speciesDsmcLinearKE;
-                        dsmcMomentumLocal +=
-                            sharedSampleCache_.dsmcMomentum[typeId][cell];
-                        dsmcErotLocal += sharedSampleCache_.dsmcErot[typeId][cell];
-                        dsmcZetaRotLocal +=
-                            sharedSampleCache_.dsmcZetaRot[typeId][cell];
-                        nLocal += speciesNReal;
-                        mLocal += sharedSampleCache_.mReal[typeId][cell];
-                        momentumLocal +=
-                            sharedSampleCache_.momentumReal[typeId][cell];
-                        linearKELocal +=
-                            sharedSampleCache_.linearKEReal[typeId][cell];
+	                        const scalar speciesDsmcN =
+	                            sharedSampleCache_.dsmcN[typeId][cell];
+	                        const scalar speciesDsmcLinearKE =
+	                            sharedSampleCache_.dsmcLinearKE[typeId][cell];
+	                        const scalar speciesNReal =
+	                            speciesDsmcN*cellNParticles;
+
+	                        if (!allSpeciesField)
+	                        {
+	                            dsmcNLocal += speciesDsmcN;
+	                            dsmcMLocal +=
+	                                sharedSampleCache_.dsmcM[typeId][cell];
+	                            dsmcLinearKELocal += speciesDsmcLinearKE;
+	                            dsmcMomentumLocal +=
+	                                sharedSampleCache_.dsmcMomentum[typeId][cell];
+	                            dsmcErotLocal +=
+	                                sharedSampleCache_.dsmcErot[typeId][cell];
+	                            dsmcZetaRotLocal +=
+	                                sharedSampleCache_.dsmcZetaRot[typeId][cell];
+	                            nLocal += speciesNReal;
+	                            mLocal +=
+	                                sharedSampleCache_.dsmcM[typeId][cell]
+	                               *cellNParticles;
+	                            momentumLocal +=
+	                                sharedSampleCache_.dsmcMomentum[typeId][cell]
+	                               *cellNParticles;
+	                            linearKELocal +=
+	                                speciesDsmcLinearKE*cellNParticles;
+	                        }
 
                         dsmcNSpeciesCum_[i][cell] += speciesDsmcN;
                         dsmcMccSpeciesCum_[i][cell] += speciesDsmcLinearKE;
@@ -3015,7 +3447,9 @@ void dsmcVolFields::calculateField()
                 doProfile ? wallClockNow() : std::chrono::steady_clock::time_point();
             const boundaryMeasurements& boundaryFlux =
                 cloud_.boundaryFluxMeasurements();
-            const bool useOwnedBoundaryFaces = false;
+            const bool useOwnedBoundaryFaces =
+                cloud_.replicatedMeshActive()
+             && ownedBoundaryFaces_.size() == mesh_.boundaryMesh().size();
             forAll(speciesIds_, i)
             {
                 const label spId = speciesIds_[i];
@@ -3099,11 +3533,32 @@ void dsmcVolFields::calculateField()
 
     if (time_.time().outputTime())
     {
+        const auto outputTimeStart =
+            doProfile ? wallClockNow() : std::chrono::steady_clock::time_point();
         const scalar nAvTimeSteps = nTimeSteps_;
+        const bool processorWrite =
+            cloud_.replicatedMeshActive()
+         && cloud_.replicatedMesh().processorWriteEnabled();
         const bool computeOutputFields =
-            !cloud_.replicatedMeshActive() || cloud_.isOutputRank();
+            !cloud_.replicatedMeshActive()
+         || cloud_.isOutputRank()
+         || processorWrite;
         const bool restoreLocalAfterOutput =
-            cloud_.replicatedMeshActive() && !time_.resetFieldsAtOutput();
+            cloud_.replicatedMeshActive()
+         && !processorWrite
+         && !time_.resetFieldsAtOutput();
+        const bool reduceForRootOutput =
+            cloud_.replicatedMeshActive()
+         && !processorWrite;
+        const UList<label>* outputCellsPtr =
+            (
+                cloud_.replicatedMeshActive()
+             && processorWrite
+            )
+          ? static_cast<const UList<label>*>(&cloud_.replicatedMesh().myCells())
+          : nullptr;
+        const label outputLoopSize =
+            outputCellsPtr ? outputCellsPtr->size() : dsmcNCum_.size();
 
         scalarField localDsmcNCum;
         scalarField localNCum;
@@ -3165,6 +3620,8 @@ void dsmcVolFields::calculateField()
 
         if (restoreLocalAfterOutput)
         {
+            const auto outputSnapshotStart =
+                doProfile ? wallClockNow() : std::chrono::steady_clock::time_point();
             snapshotField(dsmcNCum_, localDsmcNCum);
             snapshotField(nCum_, localNCum);
             snapshotField(dsmcNElecLvlCum_, localDsmcNElecLvlCum);
@@ -3238,10 +3695,18 @@ void dsmcVolFields::calculateField()
                 speciesEvibModBF_,
                 localSpeciesEvibModBF
             );
+
+            if (doProfile)
+            {
+                profileOutputSnapshotWallTime_ +=
+                    wallSeconds(outputSnapshotStart, wallClockNow());
+            }
         }
 
-        if (cloud_.replicatedMeshActive())
+        if (reduceForRootOutput)
         {
+            const auto outputReduceStart =
+                doProfile ? wallClockNow() : std::chrono::steady_clock::time_point();
             sumReduceField(dsmcN_.primitiveFieldRef());
             sumReduceField(dsmcNCum_);
             sumReduceField(nCum_);
@@ -3300,7 +3765,16 @@ void dsmcVolFields::calculateField()
             sumReduceFieldListList(speciesRhoNBF_);
             sumReduceFieldListList(speciesMccBF_);
             sumReduceFieldListListList(speciesEvibModBF_);
+
+            if (doProfile)
+            {
+                profileOutputReduceWallTime_ +=
+                    wallSeconds(outputReduceStart, wallClockNow());
+            }
         }
+
+        const auto outputComputeStart =
+            doProfile ? wallClockNow() : std::chrono::steady_clock::time_point();
 
         if
         (
@@ -3311,8 +3785,10 @@ void dsmcVolFields::calculateField()
         {
             const scalar kBLocal = physicoChemical::k.value();
 
-            forAll(dsmcNCum_, celli)
+            for (label outputI = 0; outputI < outputLoopSize; ++outputI)
             {
+                const label celli =
+                    outputCellsPtr ? (*outputCellsPtr)[outputI] : outputI;
                 if (dsmcNCum_[celli] > 1e-3)
                 {
                     const scalar cellVolume = mesh_.cellVolumes()[celli];
@@ -3356,8 +3832,10 @@ void dsmcVolFields::calculateField()
         {
             if (densityOnly_)
             {
-                forAll(dsmcNCum_, celli)
+                for (label outputI = 0; outputI < outputLoopSize; ++outputI)
                 {
+                    const label celli =
+                        outputCellsPtr ? (*outputCellsPtr)[outputI] : outputI;
                     if (dsmcNCum_[celli] > SMALL)
                     {
                         const scalar cellVolume = mesh_.cellVolumes()[celli];
@@ -3386,8 +3864,10 @@ void dsmcVolFields::calculateField()
             {
                 const label nSpecies = speciesIds_.size();
 
-            forAll(dsmcNCum_, celli)
+            for (label outputI = 0; outputI < outputLoopSize; ++outputI)
             {
+                const label celli =
+                    outputCellsPtr ? (*outputCellsPtr)[outputI] : outputI;
                 //- Fields initialisation 
                 scalar moleculesRhoN = 0.0;
                 Tvib_[celli] = 0.0;
@@ -3873,6 +4353,10 @@ void dsmcVolFields::calculateField()
             {
                 //- Determine of the type of patch: patch, wall, cyclic, ...
                 const polyPatch& patch = mesh_.boundaryMesh()[j];
+                const bool useOwnedOutputBoundaryFaces =
+                    processorWrite
+                 && cloud_.replicatedMeshActive()
+                 && ownedBoundaryFaces_.size() == mesh_.boundaryMesh().size();
                 
                 const bool isWall = isA<wallPolyPatch>(patch);
                 
@@ -3883,8 +4367,17 @@ void dsmcVolFields::calculateField()
                 if (isWall)
                 {
                     //- Loop over all wall boundary faces
-                    forAll(patch, k)
+                    const label nFaces =
+                        useOwnedOutputBoundaryFaces
+                      ? ownedBoundaryFaces_[j].size()
+                      : patch.size();
+
+                    for (label facei = 0; facei < nFaces; ++facei)
                     {
+                        const label k =
+                            useOwnedOutputBoundaryFaces
+                          ? ownedBoundaryFaces_[j][facei]
+                          : facei;
                         const label celli = boundaryCells_[j][k];
                         
                         //- Initialise face fields
@@ -4153,8 +4646,17 @@ void dsmcVolFields::calculateField()
                 {
                     //- Loop over all boundary faces and set zeroGradient
                     //  conditions
-                    forAll(boundaryCells_[j], k)
+                    const label nFaces =
+                        useOwnedOutputBoundaryFaces
+                      ? ownedBoundaryFaces_[j].size()
+                      : boundaryCells_[j].size();
+
+                    for (label facei = 0; facei < nFaces; ++facei)
                     {
+                        const label k =
+                            useOwnedOutputBoundaryFaces
+                          ? ownedBoundaryFaces_[j][facei]
+                          : facei;
                         const label celli = boundaryCells_[j][k];
 
                         //- Instantaneous and sampled numbers of DSMC parcels
@@ -4213,73 +4715,243 @@ void dsmcVolFields::calculateField()
                     }
                 }
             }
-            
-            //- Write solution fields
-            p_.write();
-            Ttra_.write();
-            UMean_.write();
-            Ma_.write();
-            q_.write();
-            fD_.write();
-            tau_.write();
-            
-            if (writeRotationalTemperature_)
+
+            if (doProfile)
             {
-                Trot_.write();
-            }
-            if (writeVibrationalTemperature_)
-            {
-                Tvib_.write();
-            }
-            if (writeElectronicTemperature_)
-            {
-                Telec_.write();
-            }
-            if
-            (
-                  writeRotationalTemperature_ or writeVibrationalTemperature_
-                or writeElectronicTemperature_
-            )
-            {
-                Tov_.write();
-            }
-            
-            if (measureMeanFreePath_)
-            {
-                mfp_.write();
-                mfpToDx_.write();
-                meanCollisionTime_.write();
-                mctToDt_.write();
-                SOF_.write();
+                profileOutputComputeWallTime_ +=
+                    wallSeconds(outputComputeStart, wallClockNow());
             }
 
-            if (measureClassifications_)
+            const auto fieldWriteStart =
+                doProfile ? wallClockNow() : std::chrono::steady_clock::time_point();
+            const bool writeDsmcN =
+                outputFieldEnabled("dsmcN", dsmcN_.name());
+            const bool writeDsmcNMean =
+                outputFieldEnabled("dsmcNMean", dsmcNMean_.name());
+            const bool writeRhoN =
+                outputFieldEnabled("rhoN", rhoN_.name());
+            const bool writeRhoM =
+                outputFieldEnabled("rhoM", rhoM_.name());
+            const bool writeP =
+                outputFieldEnabled("p", p_.name());
+            const bool writeTtra =
+                outputFieldEnabled("Ttra", Ttra_.name());
+            const bool writeU =
+                outputFieldEnabled("U", UMean_.name());
+            const bool writeMa =
+                outputFieldEnabled("Ma", Ma_.name());
+            const bool writeQ =
+                outputFieldEnabled("wallHeatFlux", q_.name());
+            const bool writeFD =
+                outputFieldEnabled("fD", fD_.name());
+            const bool writeTau =
+                outputFieldEnabled("wallShearStress", tau_.name());
+            const bool writeTrot =
+                outputFieldEnabled
+                (
+                    "Trot",
+                    Trot_.name(),
+                    writeRotationalTemperature_
+                );
+            const bool writeTvib =
+                outputFieldEnabled
+                (
+                    "Tvib",
+                    Tvib_.name(),
+                    writeVibrationalTemperature_
+                );
+            const bool writeTelec =
+                outputFieldEnabled
+                (
+                    "Telec",
+                    Telec_.name(),
+                    writeElectronicTemperature_
+                );
+            const bool writeTov =
+                outputFieldEnabled
+                (
+                    "Tov",
+                    Tov_.name(),
+                    writeRotationalTemperature_
+                 || writeVibrationalTemperature_
+                 || writeElectronicTemperature_
+                );
+            const bool writeMfp =
+                outputFieldEnabled("mfp", mfp_.name(), measureMeanFreePath_);
+            const bool writeMfpToDx =
+                outputFieldEnabled
+                (
+                    "mfpToDx",
+                    mfpToDx_.name(),
+                    measureMeanFreePath_
+                );
+            const bool writeMct =
+                outputFieldEnabled
+                (
+                    "mct",
+                    meanCollisionTime_.name(),
+                    measureMeanFreePath_
+                );
+            const bool writeMctToDt =
+                outputFieldEnabled
+                (
+                    "mctToDt",
+                    mctToDt_.name(),
+                    measureMeanFreePath_
+                );
+            const bool writeSOF =
+                outputFieldEnabled("SOFP", SOF_.name(), measureMeanFreePath_);
+            const bool writeClassI =
+                outputFieldEnabled
+                (
+                    "classIDistribution",
+                    classIDistribution_.name(),
+                    measureClassifications_
+                );
+            const bool writeClassII =
+                outputFieldEnabled
+                (
+                    "classIIDistribution",
+                    classIIDistribution_.name(),
+                    measureClassifications_
+                );
+            const bool writeClassIII =
+                outputFieldEnabled
+                (
+                    "classIIIDistribution",
+                    classIIIDistribution_.name(),
+                    measureClassifications_
+                );
+            const bool writeDensityError =
+                outputFieldEnabled
+                (
+                    "rhoMError",
+                    densityError_.name(),
+                    measureErrors_
+                );
+            const bool writeVelocityError =
+                outputFieldEnabled
+                (
+                    "UError",
+                    velocityError_.name(),
+                    measureErrors_
+                );
+            const bool writeTemperatureError =
+                outputFieldEnabled
+                (
+                    "TError",
+                    temperatureError_.name(),
+                    measureErrors_
+                );
+            const bool writePressureError =
+                outputFieldEnabled
+                (
+                    "pError",
+                    pressureError_.name(),
+                    measureErrors_
+                );
+            const bool writeHeatFluxVector =
+                outputFieldEnabled
+                (
+                    "heatFluxVector",
+                    heatFluxVector_.name(),
+                    measureHeatFluxShearStress_
+                );
+            const bool writePressureTensor =
+                outputFieldEnabled
+                (
+                    "pressureTensor",
+                    pressureTensor_.name(),
+                    measureHeatFluxShearStress_
+                );
+            const bool writeShearStressTensor =
+                outputFieldEnabled
+                (
+                    "shearStressTensor",
+                    shearStressTensor_.name(),
+                    measureHeatFluxShearStress_
+                );
+
+            setProcessorWriteOpt(dsmcN_, writeDsmcN);
+            setProcessorWriteOpt(dsmcNMean_, writeDsmcNMean);
+            setProcessorWriteOpt(rhoN_, writeRhoN);
+            setProcessorWriteOpt(rhoM_, writeRhoM);
+            setProcessorWriteOpt(p_, writeP);
+            setProcessorWriteOpt(Ttra_, writeTtra);
+            setProcessorWriteOpt(UMean_, writeU);
+            setProcessorWriteOpt(Ma_, writeMa);
+            setProcessorWriteOpt(q_, writeQ);
+            setProcessorWriteOpt(fD_, writeFD);
+            setProcessorWriteOpt(tau_, writeTau);
+            setProcessorWriteOpt(Trot_, writeTrot);
+            setProcessorWriteOpt(Tvib_, writeTvib);
+            setProcessorWriteOpt(Telec_, writeTelec);
+            setProcessorWriteOpt(Tov_, writeTov);
+            setProcessorWriteOpt(mfp_, writeMfp);
+            setProcessorWriteOpt(mfpToDx_, writeMfpToDx);
+            setProcessorWriteOpt(meanCollisionTime_, writeMct);
+            setProcessorWriteOpt(mctToDt_, writeMctToDt);
+            setProcessorWriteOpt(SOF_, writeSOF);
+            setProcessorWriteOpt(classIDistribution_, writeClassI);
+            setProcessorWriteOpt(classIIDistribution_, writeClassII);
+            setProcessorWriteOpt(classIIIDistribution_, writeClassIII);
+            setProcessorWriteOpt(densityError_, writeDensityError);
+            setProcessorWriteOpt(velocityError_, writeVelocityError);
+            setProcessorWriteOpt(temperatureError_, writeTemperatureError);
+            setProcessorWriteOpt(pressureError_, writePressureError);
+            setProcessorWriteOpt(heatFluxVector_, writeHeatFluxVector);
+            setProcessorWriteOpt(pressureTensor_, writePressureTensor);
+            setProcessorWriteOpt(shearStressTensor_, writeShearStressTensor);
+
+            if (processorWrite)
             {
-                classIDistribution_.write();
-                classIIDistribution_.write();
-                classIIIDistribution_.write();
+                // Processor output consumes writeOpt as a decompose/write filter.
+            }
+            else
+            {
+                //- Write solution fields
+                if (writeP) p_.write();
+                if (writeTtra) Ttra_.write();
+                if (writeU) UMean_.write();
+                if (writeMa) Ma_.write();
+                if (writeQ) q_.write();
+                if (writeFD) fD_.write();
+                if (writeTau) tau_.write();
+                if (writeTrot) Trot_.write();
+                if (writeTvib) Tvib_.write();
+                if (writeTelec) Telec_.write();
+                if (writeTov) Tov_.write();
+                if (writeMfp) mfp_.write();
+                if (writeMfpToDx) mfpToDx_.write();
+                if (writeMct) meanCollisionTime_.write();
+                if (writeMctToDt) mctToDt_.write();
+                if (writeSOF) SOF_.write();
+                if (writeClassI) classIDistribution_.write();
+                if (writeClassII) classIIDistribution_.write();
+                if (writeClassIII) classIIIDistribution_.write();
+                if (writeDensityError) densityError_.write();
+                if (writeVelocityError) velocityError_.write();
+                if (writeTemperatureError) temperatureError_.write();
+                if (writePressureError) pressureError_.write();
+                if (writeHeatFluxVector) heatFluxVector_.write();
+                if (writePressureTensor) pressureTensor_.write();
+                if (writeShearStressTensor) shearStressTensor_.write();
             }
 
-            if (measureErrors_)
+            if (doProfile)
             {
-                densityError_.write();
-                velocityError_.write();
-                temperatureError_.write();
-                pressureError_.write();
-            }
-
-            if (measureHeatFluxShearStress_)
-            {
-                heatFluxVector_.write();
-                pressureTensor_.write();
-                shearStressTensor_.write();
+                profileFieldWriteWallTime_ +=
+                    wallSeconds(fieldWriteStart, wallClockNow());
             }
         }
         }
         
         //- Reset fields after printing the instantaneous solution ... or
         //  continue sampling
-        if (time_.resetFieldsAtOutput())
+        const bool resetAtOutput = time_.resetFieldsAtOutput();
+        const auto outputResetStart =
+            doProfile ? wallClockNow() : std::chrono::steady_clock::time_point();
+        if (resetAtOutput)
         {
             nTimeSteps_ = 0.0;
             
@@ -4383,6 +5055,12 @@ void dsmcVolFields::calculateField()
             }
         }
 
+        if (doProfile && resetAtOutput)
+        {
+            profileOutputResetWallTime_ +=
+                wallSeconds(outputResetStart, wallClockNow());
+        }
+
         if (averagingAcrossManyRuns_ && !time_.resetFieldsAtOutput())
         {
             writeOut();
@@ -4390,6 +5068,8 @@ void dsmcVolFields::calculateField()
 
         if (restoreLocalAfterOutput)
         {
+            const auto outputRestoreStart =
+                doProfile ? wallClockNow() : std::chrono::steady_clock::time_point();
             restoreField(dsmcNCum_, localDsmcNCum);
             restoreField(nCum_, localNCum);
             restoreField(dsmcNElecLvlCum_, localDsmcNElecLvlCum);
@@ -4463,17 +5143,28 @@ void dsmcVolFields::calculateField()
                 speciesEvibModBF_,
                 localSpeciesEvibModBF
             );
+
+            if (doProfile)
+            {
+                profileOutputRestoreWallTime_ +=
+                    wallSeconds(outputRestoreStart, wallClockNow());
+            }
+        }
+
+        if (doProfile)
+        {
+            profileOutputTimeWallTime_ +=
+                wallSeconds(outputTimeStart, wallClockNow());
         }
     }
 
     if
     (
         profileDetailEnabled_
-     && cloud_.isOutputRank()
-     && !finalProfilePrinted_
-     && time_.time().value() + time_.time().deltaT().value()
-        >= time_.time().endTime().value() - SMALL
-    )
+	     && cloud_.isOutputRank()
+	     && !finalProfilePrinted_
+	     && time_.time().value() >= time_.time().endTime().value() - SMALL
+	    )
     {
         finalProfilePrinted_ = true;
         Info<< "dsmcVolFields final profiling [" << fieldName_ << "]" << nl
@@ -4486,9 +5177,12 @@ void dsmcVolFields::calculateField()
             << "    field combine         = " << profileFieldCombineWallTime_ << " s" << nl
             << "    cell reduction        = " << profileCellReduceWallTime_ << " s" << nl
             << "    boundary accumulation = " << profileBoundaryAccumWallTime_ << " s" << nl
+            << "    output snapshot       = " << profileOutputSnapshotWallTime_ << " s" << nl
+            << "    output reduce         = " << profileOutputReduceWallTime_ << " s" << nl
             << "    output compute        = " << profileOutputComputeWallTime_ << " s" << nl
             << "    field writes          = " << profileFieldWriteWallTime_ << " s" << nl
             << "    output reset          = " << profileOutputResetWallTime_ << " s" << nl
+            << "    output restore        = " << profileOutputRestoreWallTime_ << " s" << nl
             << "    output-time block     = " << profileOutputTimeWallTime_ << " s" << nl
             << "      detail sample cells = " << profileSharedCacheDetailSampleCells_ << nl
             << "      detail sample parcels = " << profileSharedCacheDetailSampleParcels_ << nl

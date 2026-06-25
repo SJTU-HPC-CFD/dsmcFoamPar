@@ -113,6 +113,7 @@ Foam::domainDecomposition::domainDecomposition
     processorMeshInstance_(word::null),
     processorMeshSyncPar_(true),
     processorMeshWriteProc_(-1),
+    processorMeshAllProcPatches_(false),
     procPointAddressing_(nProcs_),
     procFaceAddressing_(nProcs_),
     procCellAddressing_(nProcs_),
@@ -190,6 +191,15 @@ void Foam::domainDecomposition::setProcessorMeshWriteProc(const label procI)
     }
 
     processorMeshWriteProc_ = procI;
+}
+
+
+void Foam::domainDecomposition::setProcessorMeshAllProcPatches
+(
+    const bool allProcPatches
+)
+{
+    processorMeshAllProcPatches_ = allProcPatches;
 }
 
 

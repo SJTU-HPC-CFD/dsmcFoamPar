@@ -129,6 +129,8 @@ class dsmcReplicatedMesh
     bool gatherCandidates_;               // gather per-rank collision candidates
     bool overlapSizeExchange_;            // overlap Alltoall sizes with local prep
     word writeMode_;                      // gathered or processor
+    mutable label processorWriteDecompVersion_;
+    mutable word processorWriteMeshInstance_;
 
     // (Phase B) construct myCells_ from cellOwner_
     void rebuildMyCells();

@@ -274,9 +274,9 @@ void Foam::VariableHardSphere::postCollisionVelocities
     //- Pre-collision center of mass velocity
     const vector& Ucm = (mP*UP + mQ*UQ)/(mP + mQ);
 
-    const scalar cosTheta = 2.0*cloud_.rndGen().sample01<scalar>() - 1.0;
+    const scalar cosTheta = 2.0*cloud_.collisionSample01() - 1.0;
     const scalar sinTheta = sqrt(1.0 - sqr(cosTheta));
-    const scalar phi = twoPi*cloud_.rndGen().sample01<scalar>();
+    const scalar phi = twoPi*cloud_.collisionSample01();
 
     const vector& postCollisionRelativeU =
         cR
@@ -306,9 +306,9 @@ void Foam::VariableHardSphere::postReactionVelocities
     const scalar mP = cloud_.constProps(typeIdP).mass();
     const scalar mQ = cloud_.constProps(typeIdQ).mass();
 
-    const scalar cosTheta = 2.0*cloud_.rndGen().sample01<scalar>() - 1.0;
+    const scalar cosTheta = 2.0*cloud_.collisionSample01() - 1.0;
     const scalar sinTheta = sqrt(1.0 - sqr(cosTheta));
-    const scalar phi = twoPi*cloud_.rndGen().sample01<scalar>();
+    const scalar phi = twoPi*cloud_.collisionSample01();
 
     const vector& postCollisionRelativeU =
         cR

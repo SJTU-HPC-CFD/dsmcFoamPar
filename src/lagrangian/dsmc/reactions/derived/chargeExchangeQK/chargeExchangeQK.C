@@ -266,7 +266,7 @@ void chargeExchangeQK::testChargeExchange
                 }
             }
 
-            label nState = cloud_.randomLabel(1, nPossStates);
+            label nState = cloud_.collisionRandomLabel(1, nPossStates);
 
             label nAvailableStates = 0;
             label nLevel = -1;
@@ -296,7 +296,7 @@ void chargeExchangeQK::testChargeExchange
                 )
                /summation;
 
-            if (probChEx > cloud_.rndGen().sample01<scalar>())
+            if (probChEx > cloud_.collisionSample01())
             {
                 //- Charge exchange can occur
                 reactionProbability = probChEx;
@@ -358,9 +358,9 @@ void chargeExchangeQK::chargeExchange
         const scalar relVelChExMol = sqrt(2.0*translationalEnergy/mRChEx);
 
         //- Variable Hard Sphere collision part for collision of molecules
-        const scalar cosTheta = 2.0*cloud_.rndGen().sample01<scalar>() - 1.0;
+        const scalar cosTheta = 2.0*cloud_.collisionSample01() - 1.0;
         const scalar sinTheta = sqrt(1.0 - cosTheta*cosTheta);
-        const scalar phi = twoPi*cloud_.rndGen().sample01<scalar>();
+        const scalar phi = twoPi*cloud_.collisionSample01();
 
         const vector postCollisionRelU =
             relVelChExMol
@@ -539,7 +539,7 @@ void chargeExchangeQK::reaction(dsmcParcel& p, dsmcParcel& q)
         );
 
         //- Decide if a charge exchange reaction is to occur
-        if (totalReactionProbability > cloud_.rndGen().sample01<scalar>())
+        if (totalReactionProbability > cloud_.collisionSample01())
         {
             chargeExchange(p, q, collisionEnergies[0]);
         }

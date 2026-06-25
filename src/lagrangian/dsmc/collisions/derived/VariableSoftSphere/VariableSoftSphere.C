@@ -217,10 +217,10 @@ void Foam::VariableSoftSphere::postCollisionVelocities
     const scalar cosTheta =
         2.0
        *(
-            pow(cloud_.rndGen().sample01<scalar>(), 1.0/alphaPQ)
+            pow(cloud_.collisionSample01(), 1.0/alphaPQ)
         ) - 1.0;
     const scalar sinTheta = sqrt(1.0 - sqr(cosTheta));
-    const scalar phi = twoPi*cloud_.rndGen().sample01<scalar>();
+    const scalar phi = twoPi*cloud_.collisionSample01();
 
     const scalar D =
         sqrt
@@ -271,10 +271,10 @@ void Foam::VariableSoftSphere::postReactionVelocities
     const scalar cosTheta =
         2.0
        *(
-            pow(cloud_.rndGen().sample01<scalar>(), 1.0/alphaPQ)
+            pow(cloud_.collisionSample01(), 1.0/alphaPQ)
         ) - 1.0;
     const scalar sinTheta = sqrt(1.0 - sqr(cosTheta));
-    const scalar phi = twoPi*cloud_.rndGen().sample01<scalar>();
+    const scalar phi = twoPi*cloud_.collisionSample01();
 
     const scalar D =
         sqrt

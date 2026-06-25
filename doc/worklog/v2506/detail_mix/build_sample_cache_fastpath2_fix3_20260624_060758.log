@@ -1,0 +1,373 @@
+Compiling enabled on 16 cores
+wmake libso (dsmc)
+Making dependency list for source file dsmcVolFields.C
+icpx -std=c++11 -fp-model precise -DOPENFOAM_PLUS=1706 -Dlinux64 -DWM_ARCH_OPTION=64 -DWM_DP -DWM_LABEL_SIZE=32 -Wall -Wextra -Wnon-virtual-dtor -Wno-unused-parameter -O3  -DNoRepository -qopenmp -I/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude -I/home/superxcx/code/OpenFoam/OF-1706/hyStrath_dlb/src/lagrangian/basic/lnInclude -I/home/superxcx/code/OpenFoam/OF-1706/hyStrath_dlb/src/parallel/decompose/decompose -I/home/superxcx/code/OpenFoam/OF-1706/hyStrath_dlb/src/parallel/decompose/decompose/lnInclude -I/home/superxcx/code/OpenFoam/OF-1706/hyStrath_dlb/applications/utilities/parallelProcessing/decomposePar -I/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude -I/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/dynamicMesh/lnInclude -I/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/dynamicFvMesh/lnInclude -I/home/superxcx/code/OpenFoam/OF-1706/hyStrath_dlb/src/lagrangian/molecularDynamics/general/lnInclude -I/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/parallel/decompose/decompositionMethods/lnInclude -I/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/parallel/decompose/scotchDecomp/lnInclude -I/home/superxcx/code/DSMC/dsmcFoam++/parmetis-install/include -I/include -IlnInclude -I. -I/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude -I/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OSspecific/POSIX/lnInclude   -fPIC -c macroscopicProperties/derived/combined/dsmcVolFields/dsmcVolFields.C -o Make/linux64IccDPInt32Opt/macroscopicProperties/derived/combined/dsmcVolFields/dsmcVolFields.o
+In file included from macroscopicProperties/derived/combined/dsmcVolFields/dsmcVolFields.C:37:
+In file included from macroscopicProperties/derived/combined/dsmcVolFields/dsmcVolFields.H:38:
+In file included from lnInclude/dsmcField.H:39:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/IOdictionary.H:42:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/baseIOdictionary.H:43:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/dictionary.H:84:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/entry.H:45:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/IDLList.H:35:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/ILList.H:39:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/UILList.H:383:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/UILList.C:91:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/UILListIO.C:28:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/token.H:49:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/runTimeSelectionTables.H:41:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/HashTable.H:851:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/HashTableI.H:378:8: warning: missing 'typename' prior to dependent type name 'Foam::HashTable<T, Key, Hash>::key_iterator_base'; implicit 'typename' is a C++20 extension [-Wc++20-extensions]
+  378 | inline Foam::HashTable<T, Key, Hash>::key_iterator_base<WrappedIterator>&
+      |        ^
+      |        typename 
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/HashTableI.H:389:8: warning: missing 'typename' prior to dependent type name 'Foam::HashTable<T, Key, Hash>::key_iterator_base'; implicit 'typename' is a C++20 extension [-Wc++20-extensions]
+  389 | inline Foam::HashTable<T, Key, Hash>::key_iterator_base<WrappedIterator>
+      |        ^
+      |        typename 
+In file included from macroscopicProperties/derived/combined/dsmcVolFields/dsmcVolFields.C:37:
+In file included from macroscopicProperties/derived/combined/dsmcVolFields/dsmcVolFields.H:38:
+In file included from lnInclude/dsmcField.H:39:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/IOdictionary.H:42:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/baseIOdictionary.H:43:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/dictionary.H:84:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/entry.H:45:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/IDLList.H:35:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/ILList.H:39:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/UILList.H:383:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/UILList.C:91:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/UILListIO.C:28:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/token.H:460:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/Istream.H:184:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/HashTable.C:30:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/List.H:43:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/UList.H:467:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/UList.C:310:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/UListIO.C:29:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/SLList.H:36:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/SLListBase.H:191:25: warning: definition of implicit copy constructor for 'iterator' is deprecated because it has a user-provided copy assignment operator [-Wdeprecated-copy-with-user-provided-copy]
+  191 |             inline void operator=(const iterator& iter);
+      |                         ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/SLListBaseI.H:227:20: note: in implicit copy constructor for 'Foam::SLListBase::iterator' first required here
+  227 |     iterator tmp = *this;
+      |                    ^
+In file included from macroscopicProperties/derived/combined/dsmcVolFields/dsmcVolFields.C:37:
+In file included from macroscopicProperties/derived/combined/dsmcVolFields/dsmcVolFields.H:38:
+In file included from lnInclude/dsmcField.H:39:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/IOdictionary.H:42:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/baseIOdictionary.H:43:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/dictionary.H:84:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/entry.H:45:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/IDLList.H:35:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/ILList.H:39:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/UILList.H:383:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/UILList.C:91:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/UILListIO.C:28:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/token.H:460:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/Istream.H:184:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/HashTable.C:30:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/List.H:43:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/UList.H:467:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/UList.C:310:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/UListIO.C:29:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/SLList.H:36:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/SLListBase.H:228:25: warning: definition of implicit copy constructor for 'const_iterator' is deprecated because it has a user-provided copy assignment operator [-Wdeprecated-copy-with-user-provided-copy]
+  228 |             inline void operator=(const const_iterator& iter);
+      |                         ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/SLListBaseI.H:336:26: note: in implicit copy constructor for 'Foam::SLListBase::const_iterator' first required here
+  336 |     const_iterator tmp = *this;
+      |                          ^
+In file included from macroscopicProperties/derived/combined/dsmcVolFields/dsmcVolFields.C:37:
+In file included from macroscopicProperties/derived/combined/dsmcVolFields/dsmcVolFields.H:38:
+In file included from lnInclude/dsmcField.H:39:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/IOdictionary.H:42:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/baseIOdictionary.H:43:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/dictionary.H:84:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/entry.H:45:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/IDLList.H:36:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/DLListBase.H:209:25: warning: definition of implicit copy constructor for 'iterator' is deprecated because it has a user-provided copy assignment operator [-Wdeprecated-copy-with-user-provided-copy]
+  209 |             inline void operator=(const iterator& iter);
+      |                         ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/DLListBaseI.H:252:20: note: in implicit copy constructor for 'Foam::DLListBase::iterator' first required here
+  252 |     iterator tmp = *this;
+      |                    ^
+In file included from macroscopicProperties/derived/combined/dsmcVolFields/dsmcVolFields.C:37:
+In file included from macroscopicProperties/derived/combined/dsmcVolFields/dsmcVolFields.H:38:
+In file included from lnInclude/dsmcField.H:39:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/IOdictionary.H:42:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/baseIOdictionary.H:43:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/dictionary.H:84:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/entry.H:45:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/IDLList.H:36:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/DLListBase.H:246:25: warning: definition of implicit copy constructor for 'const_iterator' is deprecated because it has a user-provided copy assignment operator [-Wdeprecated-copy-with-user-provided-copy]
+  246 |             inline void operator=(const const_iterator& iter);
+      |                         ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/DLListBaseI.H:360:26: note: in implicit copy constructor for 'Foam::DLListBase::const_iterator' first required here
+  360 |     const_iterator tmp = *this;
+      |                          ^
+In file included from macroscopicProperties/derived/combined/dsmcVolFields/dsmcVolFields.C:37:
+In file included from macroscopicProperties/derived/combined/dsmcVolFields/dsmcVolFields.H:38:
+In file included from lnInclude/dsmcField.H:39:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/IOdictionary.H:42:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/baseIOdictionary.H:43:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/dictionary.H:84:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/entry.H:45:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/IDLList.H:36:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/DLListBase.H:283:25: warning: definition of implicit copy constructor for 'const_reverse_iterator' is deprecated because it has a user-provided copy assignment operator [-Wdeprecated-copy-with-user-provided-copy]
+  283 |             inline void operator=(const const_reverse_iterator& iter);
+      |                         ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/DLListBaseI.H:473:34: note: in implicit copy constructor for 'Foam::DLListBase::const_reverse_iterator' first required here
+  473 |     const_reverse_iterator tmp = *this;
+      |                                  ^
+In file included from macroscopicProperties/derived/combined/dsmcVolFields/dsmcVolFields.C:37:
+In file included from macroscopicProperties/derived/combined/dsmcVolFields/dsmcVolFields.H:38:
+In file included from lnInclude/dsmcField.H:39:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/IOdictionary.H:42:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/baseIOdictionary.H:43:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/dictionary.H:84:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/entry.H:45:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/IDLList.H:35:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/ILList.H:39:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/UILList.H:383:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/UILList.C:91:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/UILListIO.C:28:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/token.H:460:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/Istream.H:184:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/HashTable.C:30:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/List.H:315:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/List.C:28:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/FixedList.H:148:16: warning: definition of implicit copy assignment operator for 'FixedList<int, 2>' is deprecated because it has a user-provided copy constructor [-Wdeprecated-copy-with-user-provided-copy]
+  148 |         inline FixedList(const FixedList<T, Size>& lst);
+      |                ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/edge.H:61:7: note: in implicit copy assignment operator for 'Foam::FixedList<int, 2>' first required here
+   61 | class edge
+      |       ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/cellModelI.H:73:19: note: in implicit move assignment operator for 'Foam::edge' first required here
+   73 |          e[edgeI] =
+      |                   ^
+In file included from macroscopicProperties/derived/combined/dsmcVolFields/dsmcVolFields.C:37:
+In file included from macroscopicProperties/derived/combined/dsmcVolFields/dsmcVolFields.H:38:
+In file included from lnInclude/dsmcField.H:43:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/volFields.H:37:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/GeometricFields.H:34:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/GeometricScalarField.H:38:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/GeometricField.H:655:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/GeometricField.C:1336:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/GeometricBoundaryField.C:28:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/globalMeshData.H:84:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/processorTopology.H:30:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/processorPolyPatch.H:45:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/polyMesh.H:55:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/pointZoneMesh.H:32:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/ZoneMesh.H:42:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/PackedBoolList.H:118:46: warning: type 'UList' is a private member of 'Foam::UList<unsigned int>' (allowed for cfront compatibility) [-Wintel-compat]
+  118 |         explicit inline PackedBoolList(const UList<bool>& lst);
+      |                                              ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/PackedList.H:150:5: note: constrained by private inheritance here
+  150 |     private List<unsigned int>
+      |     ^~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/UList.H:75:7: note: member is declared here
+   75 | class UList
+      |       ^
+In file included from macroscopicProperties/derived/combined/dsmcVolFields/dsmcVolFields.C:37:
+In file included from macroscopicProperties/derived/combined/dsmcVolFields/dsmcVolFields.H:38:
+In file included from lnInclude/dsmcField.H:43:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/volFields.H:37:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/GeometricFields.H:34:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/GeometricScalarField.H:38:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/GeometricField.H:655:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/GeometricField.C:1336:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/GeometricBoundaryField.C:28:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/globalMeshData.H:84:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/processorTopology.H:30:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/processorPolyPatch.H:45:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/polyMesh.H:55:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/pointZoneMesh.H:32:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/ZoneMesh.H:42:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/PackedBoolList.H:203:30: warning: type 'UList' is a private member of 'Foam::UList<unsigned int>' (allowed for cfront compatibility) [-Wintel-compat]
+  203 |         void operator=(const UList<bool>& lst);
+      |                              ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/PackedList.H:150:5: note: constrained by private inheritance here
+  150 |     private List<unsigned int>
+      |     ^~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/UList.H:75:7: note: member is declared here
+   75 | class UList
+      |       ^
+In file included from macroscopicProperties/derived/combined/dsmcVolFields/dsmcVolFields.C:37:
+In file included from macroscopicProperties/derived/combined/dsmcVolFields/dsmcVolFields.H:38:
+In file included from lnInclude/dsmcField.H:43:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/volFields.H:37:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/GeometricFields.H:34:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/GeometricScalarField.H:38:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/GeometricField.H:655:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/GeometricField.C:1336:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/GeometricBoundaryField.C:28:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/globalMeshData.H:84:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/processorTopology.H:30:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/processorPolyPatch.H:45:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/polyMesh.H:55:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/pointZoneMesh.H:32:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/ZoneMesh.H:42:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/PackedBoolList.H:296:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/PackedBoolListI.H:76:51: warning: type 'UList' is a private member of 'Foam::UList<unsigned int>' (allowed for cfront compatibility) [-Wintel-compat]
+   76 | inline Foam::PackedBoolList::PackedBoolList(const UList<bool>& lst)
+      |                                                   ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/PackedList.H:150:5: note: constrained by private inheritance here
+  150 |     private List<unsigned int>
+      |     ^~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/UList.H:75:7: note: member is declared here
+   75 | class UList
+      |       ^
+In file included from macroscopicProperties/derived/combined/dsmcVolFields/dsmcVolFields.C:37:
+In file included from macroscopicProperties/derived/combined/dsmcVolFields/dsmcVolFields.H:38:
+In file included from lnInclude/dsmcField.H:43:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/volFields.H:37:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/GeometricFields.H:34:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/GeometricScalarField.H:38:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/GeometricField.H:655:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/GeometricField.C:1336:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/GeometricBoundaryField.C:28:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/globalMeshData.H:627:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/globalMeshDataTemplates.C:28:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/mapDistribute.H:138:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/vectorTensorTransform.H:154:21: warning: definition of implicit copy constructor for 'vectorTensorTransform' is deprecated because it has a user-provided copy assignment operator [-Wdeprecated-copy-with-user-provided-copy]
+  154 |         inline void operator=(const vectorTensorTransform&);
+      |                     ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/vectorTensorTransformI.H:237:12: note: in implicit copy constructor for 'Foam::vectorTensorTransform' first required here
+  237 |     return vectorTensorTransform(-tr.t(), tr.R().T(), tr.hasR());
+      |            ^
+In file included from macroscopicProperties/derived/combined/dsmcVolFields/dsmcVolFields.C:37:
+In file included from macroscopicProperties/derived/combined/dsmcVolFields/dsmcVolFields.H:38:
+In file included from lnInclude/dsmcField.H:43:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/volFields.H:37:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/GeometricFields.H:34:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/GeometricScalarField.H:38:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/GeometricField.H:655:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/GeometricField.C:1336:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/GeometricBoundaryField.C:28:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/globalMeshData.H:627:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/globalMeshDataTemplates.C:28:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/mapDistribute.H:652:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/mapDistributeTemplates.C:30:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/transformField.H:39:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/quaternion.H:216:21: warning: definition of implicit copy constructor for 'quaternion' is deprecated because it has a user-provided copy assignment operator [-Wdeprecated-copy-with-user-provided-copy]
+  216 |         inline void operator=(const quaternion&);
+      |                     ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/quaternionI.H:83:12: note: in implicit copy constructor for 'Foam::quaternion' first required here
+   83 |     return quaternion(sqrt(1 - magSqr(v)), v);
+      |            ^
+In file included from macroscopicProperties/derived/combined/dsmcVolFields/dsmcVolFields.C:37:
+In file included from macroscopicProperties/derived/combined/dsmcVolFields/dsmcVolFields.H:38:
+In file included from lnInclude/dsmcField.H:43:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/finiteVolume/lnInclude/volFields.H:37:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/GeometricFields.H:34:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/GeometricScalarField.H:38:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/GeometricField.H:655:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/GeometricField.C:1336:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/GeometricBoundaryField.C:28:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/globalMeshData.H:627:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/globalMeshDataTemplates.C:28:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/mapDistribute.H:652:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/mapDistributeTemplates.C:30:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/transformField.H:40:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/septernion.H:133:21: warning: definition of implicit copy constructor for 'septernion' is deprecated because it has a user-provided copy assignment operator [-Wdeprecated-copy-with-user-provided-copy]
+  133 |         inline void operator=(const septernion&);
+      |                     ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/septernionI.H:162:12: note: in implicit copy constructor for 'Foam::septernion' first required here
+  162 |     return septernion(-tr.r().transform(tr.t()), conjugate(tr.r()));
+      |            ^
+In file included from macroscopicProperties/derived/combined/dsmcVolFields/dsmcVolFields.C:37:
+In file included from macroscopicProperties/derived/combined/dsmcVolFields/dsmcVolFields.H:38:
+In file included from lnInclude/dsmcField.H:46:
+In file included from lnInclude/dsmcParcel.H:40:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/hyStrath_dlb/src/lagrangian/basic/lnInclude/particle.H:36:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/hyStrath_dlb/src/lagrangian/basic/lnInclude/Cloud.H:354:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/hyStrath_dlb/src/lagrangian/basic/lnInclude/Cloud.C:34:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude/cyclicAMIPolyPatch.H:39:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude/AMIPatchToPatchInterpolation.H:29:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude/AMIInterpolation.H:602:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude/AMIInterpolation.C:27:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude/AMIMethod.H:288:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/meshTools/lnInclude/AMIMethod.C:29:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/unitConversion.H:70:37: warning: identifier '_deg' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+   70 | inline constexpr scalar operator "" _deg(unsigned long long int deg) noexcept
+      |                         ~~~~~~~~~~~~^~~~
+      |                         operator""_deg
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/unitConversion.H:76:37: warning: identifier '_deg' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+   76 | inline constexpr scalar operator "" _deg(long double deg) noexcept
+      |                         ~~~~~~~~~~~~^~~~
+      |                         operator""_deg
+In file included from macroscopicProperties/derived/combined/dsmcVolFields/dsmcVolFields.C:37:
+In file included from macroscopicProperties/derived/combined/dsmcVolFields/dsmcVolFields.H:38:
+In file included from lnInclude/dsmcField.H:48:
+In file included from /home/superxcx/code/OpenFoam/OF-1706/hyStrath_dlb/src/lagrangian/molecularDynamics/general/lnInclude/writeTimeData.H:40:
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/complex.H:129:21: warning: definition of implicit copy constructor for 'complex' is deprecated because it has a user-provided copy assignment operator [-Wdeprecated-copy-with-user-provided-copy]
+  129 |         inline void operator=(const complex&);
+      |                     ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/complexI.H:72:12: note: in implicit copy constructor for 'Foam::complex' first required here
+   72 |     return complex(re, -im);
+      |            ^
+macroscopicProperties/derived/combined/dsmcVolFields/dsmcVolFields.C:1494:13: error: expected expression
+ 1494 |             else
+      |             ^
+macroscopicProperties/derived/combined/dsmcVolFields/dsmcVolFields.C:1618:2: error: expected ';' after struct
+ 1618 | }
+      |  ^
+      |  ;
+macroscopicProperties/derived/combined/dsmcVolFields/dsmcVolFields.C:1623:21: error: cannot define or redeclare 'calculateWallUnitVectors' here because namespace '' does not enclose namespace 'dsmcVolFields'
+ 1623 | void dsmcVolFields::calculateWallUnitVectors()
+      |      ~~~~~~~~~~~~~~~^
+macroscopicProperties/derived/combined/dsmcVolFields/dsmcVolFields.C:1625:12: error: use of undeclared identifier 'n_'
+ 1625 |     forAll(n_, patchi)
+      |            ^
+macroscopicProperties/derived/combined/dsmcVolFields/dsmcVolFields.C:1627:35: error: use of undeclared identifier 'mesh_'
+ 1627 |         const polyPatch& pPatch = mesh_.boundaryMesh()[patchi];
+      |                                   ^
+macroscopicProperties/derived/combined/dsmcVolFields/dsmcVolFields.C:1633:20: error: use of undeclared identifier 'n_'
+ 1633 |             forAll(n_[patchi], facei)
+      |                    ^
+macroscopicProperties/derived/combined/dsmcVolFields/dsmcVolFields.C:1635:17: error: use of undeclared identifier 'n_'
+ 1635 |                 n_[patchi][facei] = pPatch.faceAreas()[facei]
+      |                 ^
+macroscopicProperties/derived/combined/dsmcVolFields/dsmcVolFields.C:1640:17: error: use of undeclared identifier 't1_'
+ 1640 |                 t1_[patchi][facei] = fC[facei]
+      |                 ^
+macroscopicProperties/derived/combined/dsmcVolFields/dsmcVolFields.C:1641:38: error: use of undeclared identifier 'mesh_'
+ 1641 |                     - mesh_.points()[mesh_.faces()[pPatch.start() + facei][0]];
+      |                                      ^
+macroscopicProperties/derived/combined/dsmcVolFields/dsmcVolFields.C:1641:23: error: use of undeclared identifier 'mesh_'
+ 1641 |                     - mesh_.points()[mesh_.faces()[pPatch.start() + facei][0]];
+      |                       ^
+macroscopicProperties/derived/combined/dsmcVolFields/dsmcVolFields.C:1642:17: error: use of undeclared identifier 't1_'
+ 1642 |                 t1_[patchi][facei] /= mag(t1_[patchi][facei]);
+      |                 ^
+macroscopicProperties/derived/combined/dsmcVolFields/dsmcVolFields.C:1642:43: error: use of undeclared identifier 't1_'
+ 1642 |                 t1_[patchi][facei] /= mag(t1_[patchi][facei]);
+      |                                           ^
+macroscopicProperties/derived/combined/dsmcVolFields/dsmcVolFields.C:1646:17: error: use of undeclared identifier 't2_'
+ 1646 |                 t2_[patchi][facei] = n_[patchi][facei]^t1_[patchi][facei];
+      |                 ^
+macroscopicProperties/derived/combined/dsmcVolFields/dsmcVolFields.C:1646:38: error: use of undeclared identifier 'n_'
+ 1646 |                 t2_[patchi][facei] = n_[patchi][facei]^t1_[patchi][facei];
+      |                                      ^
+macroscopicProperties/derived/combined/dsmcVolFields/dsmcVolFields.C:1646:56: error: use of undeclared identifier 't1_'
+ 1646 |                 t2_[patchi][facei] = n_[patchi][facei]^t1_[patchi][facei];
+      |                                                        ^
+macroscopicProperties/derived/combined/dsmcVolFields/dsmcVolFields.C:1647:17: error: use of undeclared identifier 't2_'
+ 1647 |                 t2_[patchi][facei] /= mag(t2_[patchi][facei]);
+      |                 ^
+macroscopicProperties/derived/combined/dsmcVolFields/dsmcVolFields.C:1647:43: error: use of undeclared identifier 't2_'
+ 1647 |                 t2_[patchi][facei] /= mag(t2_[patchi][facei]);
+      |                                           ^
+macroscopicProperties/derived/combined/dsmcVolFields/dsmcVolFields.C:1657:16: error: cannot define or redeclare 'dsmcVolFields' here because namespace '' does not enclose namespace 'dsmcVolFields'
+ 1657 | dsmcVolFields::dsmcVolFields
+      | ~~~~~~~~~~~~~~~^
+macroscopicProperties/derived/combined/dsmcVolFields/dsmcVolFields.C:1665:24: error: 'cloud' does not refer to a value
+ 1665 |     dsmcField(t, mesh, cloud, dict),
+      |                        ^
+/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/src/OpenFOAM/lnInclude/cloud.H:53:7: note: declared here
+   53 | class cloud
+      |       ^
+fatal error: too many errors emitted, stopping now [-ferror-limit=]
+17 warnings and 20 errors generated.
+make: *** [/home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/wmake/rules/General/transform:29: Make/linux64IccDPInt32Opt/macroscopicProperties/derived/combined/dsmcVolFields/dsmcVolFields.o] Error 1

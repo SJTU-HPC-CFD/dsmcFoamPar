@@ -503,7 +503,7 @@ void exchangeQK::reaction(dsmcParcel& p, dsmcParcel& q)
         );
 
         //- Decide if an exchange reaction is to occur
-        if (totalReactionProbability > cloud_.rndGen().sample01<scalar>())
+        if (totalReactionProbability > cloud_.collisionSample01())
         {
             exchange(p, q, collisionEnergies[0]);
         }

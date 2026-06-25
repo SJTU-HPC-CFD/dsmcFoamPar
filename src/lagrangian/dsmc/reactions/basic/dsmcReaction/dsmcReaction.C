@@ -182,7 +182,7 @@ labelList dsmcReaction::decreasing_sort_indices(const scalarList &v)
     scalarList rnd(v.size(), 0.0);
     forAll(rnd, i)
     {
-        rnd[i] = cloud_.rndGen().sample01<scalar>();
+        rnd[i] = cloud_.collisionSample01();
     }
 
     //- sort indices in decreasing order based on comparing values in v

@@ -533,7 +533,7 @@ void dissociationQK::reaction(dsmcParcel& p, dsmcParcel& q)
         }
 
         //- Decide if a reaction is to occur
-        if (totalReactionProbability > cloud_.rndGen().sample01<scalar>())
+        if (totalReactionProbability > cloud_.collisionSample01())
         {
             //- A chemical reaction is to occur, normalise probabilities
             const scalarList normalisedProbabilities =
@@ -554,7 +554,7 @@ void dissociationQK::reaction(dsmcParcel& p, dsmcParcel& q)
                 {
                     cumulativeProbability += normalisedProbabilities[i];
 
-                    if (cumulativeProbability > cloud_.rndGen().sample01<scalar>())
+                    if (cumulativeProbability > cloud_.collisionSample01())
                     {
                         //- Current reaction is to occur
                         if (i == 0)

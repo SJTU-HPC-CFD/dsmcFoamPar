@@ -1,0 +1,219 @@
+/*---------------------------------------------------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  v1706                                 |
+|   \\  /    A nd           | Web:      www.OpenFOAM.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+Build  : v1706
+Arch   : "LSB;label=32;scalar=64"
+Exec   : dsmcFoam+
+Date   : Jun 22 2026
+Time   : 23:35:56
+Host   : "SuperXCX-ROG"
+PID    : 67522
+Case   : /home/superxcx/code/OpenFoam/OF-1706/hyStrath_dlb/doc/worklog/v2506/detail_mix/fastrng_smoke_20260622/case_omp8_20
+nProcs : 1
+sigFpe : Enabling floating point exception trapping (FOAM_SIGFPE).
+fileModificationChecking : Monitoring run-time modified files using timeStampMaster (fileModificationSkew 10)
+allowSystemOperations : Allowing user-supplied system call operations
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+Create time
+
+Create mesh for time = 0
+
+Selecting dynamicFvMesh dynamicRefineFvMesh
+
+Constructing dsmcCloud 
+Selecting the coordinate system model:	dsmcCartesian
+
+Selecting the time-step model:	dsmcConstantTimeStepModel
+
+Constant time-step model:
+- time-step [sec]	6.640048894e-08
+
+Selecting the porous measurement model:	dsmcNoPorousMediumMeasurements
+
+
+Creating dsmcControllers
+
+Creating fields: 
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+ measurement option: write
+ nSamples: 1, time interval: 6.640048894e-08
+ nAverages: 15060, time interval: 0.0009999913634
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+ measurement option: write
+ nSamples: 1, time interval: 6.640048894e-08
+ nAverages: 15060, time interval: 0.0009999913634
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+ measurement option: write
+ nSamples: 1, time interval: 6.640048894e-08
+ nAverages: 15060, time interval: 0.0009999913634
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+ measurement option: write
+ nSamples: 1, time interval: 6.640048894e-08
+ nAverages: 15060, time interval: 0.0009999913634
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+ measurement option: write
+ nSamples: 1, time interval: 6.640048894e-08
+ nAverages: 15060, time interval: 0.0009999913634
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Selecting field: dsmcVolFields
+
+TimeData Statistics: 
+ measurement option: write
+ nSamples: 1, time interval: 6.640048894e-08
+ nAverages: 15060, time interval: 0.0009999913634
+ total no. of sampling steps: 0
+ total no. of averaging Steps: 0
+
+
+Creating the boundary models: 
+
+Selecting dsmcPatchBoundaryModel dsmcDeletionPatch
+Selecting dsmcPatchBoundaryModel dsmcDeletionPatch
+Selecting dsmcPatchBoundaryModel dsmcDiffuseWallPatch
+Selecting dsmcGeneralBoundaryModel dsmcFreeStreamInflowPatch
+Selecting BinaryCollisionModel LarsenBorgnakkeVariableHardSphere
+
+Creating dsmcReactions
+
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationExchangeQK
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationExchangeQK
+Selecting the reaction model dissociationQK
+Selecting the reaction model dissociationExchangeQK
+Selecting the reaction model dissociationExchangeQK
+Selecting the reaction model dissociationQK
+Number of reactions created: 12
+
+Constructing constant properties for
+	N2
+	O2
+	NO
+	N
+	O
+Selecting collisionPartnerSelectionModel noTimeCounter
+
+Initialising the measurement fields
+
+Initialising dsmcVolFields field
+Initialising dsmcVolFields field
+Initialising dsmcVolFields field
+Initialising dsmcVolFields field
+Initialising dsmcVolFields field
+Initialising dsmcVolFields field
+
+Starting time loop
+
+Time = 6.640048894e-07
+
+    Collisions                      = 25994
+    Collision candidates           = 34874
+    Collision acceptance rate      = 0.7453690428
+
+    Number of DSMC particles        = 1330285
+    Number of stuck particles       = 0
+    Number of free particles        = 1330285
+    Average linear kinetic energy   = 1.893428084e-19
+    Average rotational energy       = 1.330801356e-21
+    Average vibrational energy      = 5.840039954e-26
+    Average electronic energy       = 0
+    Total energy                    = 0.001521901924
+
+Stage 1.0  ExecutionTime = 12.12 s  ClockTime = 5 s  Iteration 10 (1.02 s)
+
+Time = 1.328009779e-06
+
+    Collisions                      = 36125
+    Collision candidates           = 54877
+    Collision acceptance rate      = 0.6582903584
+
+    Number of DSMC particles        = 1353929
+    Number of stuck particles       = 0
+    Number of free particles        = 1353929
+    Average linear kinetic energy   = 1.865939315e-19
+    Average rotational energy       = 1.55909273e-21
+    Average vibrational energy      = 1.263962641e-25
+    Average electronic energy       = 0
+    Total energy                    = 0.001528476042
+
+Stage 1.0  ExecutionTime = 22.4 s  ClockTime = 6 s  Iteration 20 (1.18 s)
+
+End stage 1
+
+
+DSMC solver profile summary
+    solver profile steps          = 20
+    move+collide wall [s]         = 2.508140077
+    move only [s]                 = 2.115968641
+    buildCellOccupancy [s]        = 0.164476987
+    collision phase [s]           = 0.159748132
+    post fields/output [s]        = 0.011733745
+    total profiled [s]            = 2.451927505
+    full evolve wall [s]          = 2.520012643
+    move+collide cpu [s]          = 18.75
+    move only cpu [s]             = 15.81
+    buildCellOccupancy cpu [s]    = 1.23
+    collision phase cpu [s]       = 1.18
+    post fields/output cpu [s]    = 0.11
+    total profiled cpu [s]        = 18.33
+    full evolve cpu [s]           = 18.87
+    collision localLoop max [s] = 0.156539187
+    collision reduce max [s]    = 3.5512e-05
+    collision sigmaBC max [s]   = 0.002718299
+    collision total max [s]     = 0.159332528
+    collision accounted max [s] = 0.159292998
+    collision residual max [s]  = 3.953e-05
+    collision subphase max sum [s] = 0.159292998
+    collision cumulative global collisions = 510191
+    collision cumulative global candidates  = 692343
+    collision cumulative acceptance        = 0.7369049734
+    OpenMP enabled                = 1
+    OpenMP max threads            = 8
+    OpenMP move                   = 1 (static, chunk 64)
+    OpenMP collision              = dynamic, chunk 8
+
+Total Iterations = 20
+End main
+
+real 6.26
+user 22.38
+sys 1.11

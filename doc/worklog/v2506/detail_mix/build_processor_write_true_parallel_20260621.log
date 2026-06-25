@@ -1,0 +1,60 @@
+ 
+:: initializing oneAPI environment ...
+   bash: BASH_VERSION = 5.1.16(1)-release
+   args: Using "$@" for setvars.sh arguments: --force
+:: advisor -- latest
+:: ccl -- latest
+:: compiler -- latest
+:: dal -- latest
+:: debugger -- latest
+:: dev-utilities -- latest
+:: dnnl -- latest
+:: dpcpp-ct -- latest
+:: dpl -- latest
+:: ipp -- latest
+:: ippcp -- latest
+:: ishmem -- latest
+:: mkl -- latest
+:: mpi -- latest
+:: pti -- latest
+:: tbb -- latest
+:: umf -- latest
+:: vtune -- latest
+:: oneAPI environment initialized ::
+ 
+=== Build targets ===
+  LIBBIN: /home/superxcx/code/OpenFoam/OF-1706/hyStrath_dlb/platforms/linux64IccDPInt32Opt/lib
+  APPBIN: /home/superxcx/code/OpenFoam/OF-1706/hyStrath_dlb/platforms/linux64IccDPInt32Opt/bin
+  USER_DIR: /home/superxcx/code/OpenFoam/OF-1706/hyStrath_dlb
+  BASEBIN: /home/superxcx/code/OpenFoam/OF-1706/OpenFOAM-v1706/platforms/linux64IccDPInt32Opt/bin
+
+=== Building liblagrangian+ ===
+Compiling enabled on 16 cores
+wmake lnInclude
+Compiling enabled on 16 cores
+wmake libso (basic)
+=== Building libdecompose ===
+Compiling enabled on 16 cores
+wmake lnInclude
+Compiling enabled on 16 cores
+wmake libso (decompose)
+=== Building libgeneralMolecule ===
+Compiling enabled on 16 cores
+wmake lnInclude
+Compiling enabled on 16 cores
+wmake libso (general)
+=== Building libdsmcFoam+ ===
+Compiling enabled on 16 cores
+wmake lnInclude
+Compiling enabled on 16 cores
+wmake libso (dsmc)
+=== Building dsmcFoam+ ===
+Compiling enabled on 16 cores
+=== Building dsmcInitialise+ ===
+Compiling enabled on 16 cores
+
+=== Done ===
+dsmcFoam+ binary: /home/superxcx/code/OpenFoam/OF-1706/hyStrath_dlb/platforms/linux64IccDPInt32Opt/bin/dsmcFoam+
+dsmcInitialise+ binary: /home/superxcx/code/OpenFoam/OF-1706/hyStrath_dlb/platforms/linux64IccDPInt32Opt/bin/dsmcInitialise+
+-rwxr-xr-x 1 superxcx superxcx 982296 Jun 21 09:25 /home/superxcx/code/OpenFoam/OF-1706/hyStrath_dlb/platforms/linux64IccDPInt32Opt/bin/dsmcFoam+
+-rwxr-xr-x 1 superxcx superxcx 859784 Jun 21 09:25 /home/superxcx/code/OpenFoam/OF-1706/hyStrath_dlb/platforms/linux64IccDPInt32Opt/bin/dsmcInitialise+

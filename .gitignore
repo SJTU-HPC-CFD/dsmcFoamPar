@@ -3,3 +3,23 @@ logInstall-*
 **/lnInclude/
 **/platforms/
 **/Make/linux64*/
+**/processor*/
+
+# OpenFOAM time-output directories copied under local worklogs
+doc/worklog/v2506/**/*e-[0-9]*/
+doc/worklog/v2506/**/*e+[0-9]*/
+doc/worklog/v2506/**/0/
+
+# OpenFOAM write/result snapshots copied under results/
+results/**/0/
+results/**/*e-[0-9]*/
+results/**/*e+[0-9]*/
+results/**/[0-9]*.[0-9]*/
+results/**/processor*/
+results/**/constant/
+results/**/system/
+results/**/postProcessing/
+results/**/VTK/
+results/**/Ensight*/
+results/**/*.foam
+results/**/*.case
