@@ -233,6 +233,22 @@ inline bool Foam::dsmcCloud::replicatedMeshActive() const
 }
 
 
+inline bool Foam::dsmcCloud::ownsCellForInjection(const label cellI) const
+{
+    if
+    (
+        replicatedMeshActive()
+     && cellI >= 0
+     && cellI < replicatedMesh_->cellOwner().size()
+    )
+    {
+        return replicatedMesh_->cellOwner()[cellI] == replicatedMesh_->myRank();
+    }
+
+    return true;
+}
+
+
 inline bool Foam::dsmcCloud::isOutputRank() const
 {
     if (Pstream::parRun())

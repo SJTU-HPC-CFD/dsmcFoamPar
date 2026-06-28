@@ -403,6 +403,12 @@ namespace
             totalDsmcMomentum.setSize(nCells, vector::zero);
             totalDsmcErot.setSize(nCells, 0.0);
             totalDsmcZetaRot.setSize(nCells, 0.0);
+            totalDsmcN = 0.0;
+            totalDsmcM = 0.0;
+            totalDsmcLinearKE = 0.0;
+            totalDsmcMomentum = vector::zero;
+            totalDsmcErot = 0.0;
+            totalDsmcZetaRot = 0.0;
             if (supportsElectronic)
             {
                 initScalarFields(dsmcSpeciesEelec);

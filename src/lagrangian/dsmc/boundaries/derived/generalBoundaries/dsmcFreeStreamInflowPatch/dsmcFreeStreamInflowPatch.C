@@ -146,12 +146,38 @@ void dsmcFreeStreamInflowPatch::controlParcelsBeforeMove()
     const scalar faceRotationalTemperature = rotationalTemperature_;
     const scalar faceVibrationalTemperature = vibrationalTemperature_;
     const scalar faceElectronicTemperature = electronicTemperature_;
+    const bool ownerGatedInflow = cloud_.controlDict().lookupOrDefault<bool>
+    (
+        "replicatedMeshOwnerGatedInflow",
+        false
+    );
 
     // insert parcels
     forAll(faces_, f)
     {
         const label faceI = faces_[f];
         const label cellI = cells_[f];
+        const bool ownerFace =
+            !ownerGatedInflow || cloud_.ownsCellForInjection(cellI);
+
+        if (!ownerFace)
+        {
+            forAll(typeIds_, m)
+            {
+                scalar& faceAccumulator = accumulatedParcelsToInsert_[m][f];
+                label nI = max(label(faceAccumulator), 0);
+
+                if ((faceAccumulator - nI) > rndGen.sample01<scalar>())
+                {
+                    ++nI;
+                }
+
+                faceAccumulator -= nI;
+            }
+
+            continue;
+        }
+
         const vector fC = mesh_.faceCentres()[faceI];
         const vector sF = mesh_.faceAreas()[faces_[f]];
 

@@ -315,6 +315,13 @@ private:
         //- Build the constant properties for all of the species
         void buildConstProps();
 
+        //- Print dsmcInitialise+ time-step parameters for control-file update
+        void printInitialiseTimeStepCalculation
+        (
+            Time& runTime,
+            const IOdictionary& dsmcInitialiseDict
+        ) const;
+
         //- Record which particles are in which cell
         void buildCellOccupancy();
 
@@ -695,6 +702,7 @@ public:
             inline dsmcDynamicLoadBalancing& dynamicLoadBalancing();
 
             inline bool replicatedMeshActive() const;
+            inline bool ownsCellForInjection(const label cellI) const;
             inline bool isOutputRank() const;
             inline const dsmcReplicatedMesh& replicatedMesh() const;
             inline dsmcReplicatedMesh& replicatedMeshRef();

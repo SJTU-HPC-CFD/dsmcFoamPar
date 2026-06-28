@@ -35,6 +35,7 @@ License
 #include <chrono>
 #include <cstring>
 #include <limits>
+#include <string>
 
 namespace Foam
 {
@@ -768,6 +769,155 @@ label dsmcReplicatedMesh::reassignByParMetisAdaptiveRepart()
             << endl;
     }
 
+    const bool remapEnabled = mesh_.time().controlDict().lookupOrDefault<bool>
+    (
+        "replicatedMeshDLBRemap",
+        false
+    );
+    const word remapMode = mesh_.time().controlDict().lookupOrDefault<word>
+    (
+        "replicatedMeshDLBRemapMode",
+        "greedyOverlap"
+    );
+
+    label changedBeforeRemap = 0;
+    forAll(cellOwner_, i)
+    {
+        if (label(fullPart[i]) != cellOwner_[i])
+        {
+            ++changedBeforeRemap;
+        }
+    }
+
+    label remapSavedCells = 0;
+
+    if (remapEnabled && remapMode == "greedyOverlap")
+    {
+        List<labelList> overlap(nProcs_);
+        for (label newPart = 0; newPart < nProcs_; ++newPart)
+        {
+            overlap[newPart].setSize(nProcs_, 0);
+        }
+
+        forAll(cellOwner_, i)
+        {
+            const label newPart = label(fullPart[i]);
+            const label oldRank = cellOwner_[i];
+            if
+            (
+                newPart >= 0 && newPart < nProcs_
+             && oldRank >= 0 && oldRank < nProcs_
+            )
+            {
+                ++overlap[newPart][oldRank];
+            }
+        }
+
+        labelList remap(nProcs_, -1);
+        labelList newPartUsed(nProcs_, 0);
+        labelList oldRankUsed(nProcs_, 0);
+
+        for (label matchI = 0; matchI < nProcs_; ++matchI)
+        {
+            label bestNewPart = -1;
+            label bestOldRank = -1;
+            label bestOverlap = -1;
+
+            for (label newPart = 0; newPart < nProcs_; ++newPart)
+            {
+                if (newPartUsed[newPart]) continue;
+
+                for (label oldRank = 0; oldRank < nProcs_; ++oldRank)
+                {
+                    if (oldRankUsed[oldRank]) continue;
+
+                    const label value = overlap[newPart][oldRank];
+                    if
+                    (
+                        value > bestOverlap
+                     || (
+                            value == bestOverlap
+                         && (
+                                bestNewPart < 0
+                             || newPart < bestNewPart
+                             || (
+                                    newPart == bestNewPart
+                                 && oldRank < bestOldRank
+                                )
+                            )
+                        )
+                    )
+                    {
+                        bestOverlap = value;
+                        bestNewPart = newPart;
+                        bestOldRank = oldRank;
+                    }
+                }
+            }
+
+            if (bestNewPart >= 0 && bestOldRank >= 0)
+            {
+                remap[bestNewPart] = bestOldRank;
+                newPartUsed[bestNewPart] = 1;
+                oldRankUsed[bestOldRank] = 1;
+            }
+        }
+
+        for (label newPart = 0; newPart < nProcs_; ++newPart)
+        {
+            if (remap[newPart] >= 0) continue;
+
+            for (label oldRank = 0; oldRank < nProcs_; ++oldRank)
+            {
+                if (!oldRankUsed[oldRank])
+                {
+                    remap[newPart] = oldRank;
+                    oldRankUsed[oldRank] = 1;
+                    break;
+                }
+            }
+        }
+
+        label changedAfterRemap = 0;
+        forAll(fullPart, i)
+        {
+            const label newPart = label(fullPart[i]);
+            if (newPart < 0 || newPart >= nProcs_ || remap[newPart] < 0)
+            {
+                FatalErrorInFunction
+                    << "Invalid replicated mesh DLB remap: newPart="
+                    << newPart << " nProcs=" << nProcs_
+                    << abort(FatalError);
+            }
+
+            const label newOwner = remap[newPart];
+            fullPart[i] = idx_t(newOwner);
+            if (newOwner != cellOwner_[i])
+            {
+                ++changedAfterRemap;
+            }
+        }
+
+        remapSavedCells = changedBeforeRemap - changedAfterRemap;
+
+        Info<< "Phase C ParMETIS remap: mode=" << remapMode
+            << " changedBefore=" << changedBeforeRemap
+            << " changedAfter=" << changedAfterRemap
+            << " saved=" << remapSavedCells
+            << " remap=(";
+        forAll(remap, i)
+        {
+            Info<< (i ? " " : "") << i << "->" << remap[i];
+        }
+        Info<< ")" << endl;
+    }
+    else if (remapEnabled)
+    {
+        WarningInFunction
+            << "Unsupported replicatedMeshDLBRemapMode '" << remapMode
+            << "'. Falling back to ParMETIS part labels." << endl;
+    }
+
     // ---- Update cellOwner_ ------------------------------------------------
     label nChanged = 0;
     forAll(cellOwner_, i)
@@ -788,7 +938,13 @@ label dsmcReplicatedMesh::reassignByParMetisAdaptiveRepart()
 
     Info<< "Phase C ParMETIS AdaptiveRepart: " << nChanged
         << " / " << nCells << " cells changed ("
-        << scalar(nChanged) / scalar(nCells) << ")" << nl;
+        << scalar(nChanged) / scalar(nCells) << ")";
+    if (remapEnabled)
+    {
+        Info<< " remapBefore=" << changedBeforeRemap
+            << " remapSaved=" << remapSavedCells;
+    }
+    Info<< nl;
 
     return nChanged;
 }

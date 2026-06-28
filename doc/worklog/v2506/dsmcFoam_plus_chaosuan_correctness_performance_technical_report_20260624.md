@@ -24,6 +24,8 @@
 - FastRNG scope 修正；
 - post/output 热点定位、`dsmcVolFields` 共享 cache、输出字段白名单和 processor cloud
   可选字段懒分配；
+- 2026-06-27/28 补充：`dsmcVolFields` 全组分 `mixture` 共享 cache 总量残留
+  正确性修复；
 - 最新超算 64 核完整 8750 步性能结果。
 
 本报告是以下报告之后的超算阶段 follow-up：
@@ -69,7 +71,12 @@ replicatedMeshMigrateInterval 1;
 6. post/output 的主要开销不是文件写入，而是 `dsmcVolFields::calculateField()` 的
    宏观场计算。本轮已加入共享 sample cache、输出字段白名单和 processor cloud
    可选字段懒分配，降低重复遍历和不必要输出。
-7. 最新超算 64 核 8750 步完整系列中，当前最优配置是：
+7. 2026-06-27/28 补充修复了 `dsmcVolFields` 全组分 `mixture` 共享 cache
+   总量数组在重新 allocate 时未清零的问题。该问题会使 `dsmcN_mixture`、
+   `rhoN_mixture`、`p_mixture`、`Ma_mixture` 等读取残留总量，而逐组分场仍然正常。
+   修复后，`mixture` 单独输出与完整组分加 `mixture` 输出在本地 `MPI4xOMP2`
+   短测试中保持一致。
+8. 最新超算 64 核 8750 步完整系列中，当前最优配置是：
 
 ```text
 MPI32 x OMP2
@@ -79,7 +86,7 @@ ClockTime = 1680 s
    次优是 `MPI16 x OMP4`，`ClockTime = 1759 s`。`MPI64` 可以正常跑完，但
    `ClockTime = 2291 s`，不是性能最优；`OMP64` 为 `3140 s`，在该超算 case
    也不是最优。
-8. 后续优化不应再回到 `migrate=10`，而应在 `migrate=1` 正确性基线下继续优化
+9. 后续优化不应再回到 `migrate=10`，而应在 `migrate=1` 正确性基线下继续优化
    每步 migration、occupancy 构建、collision rank imbalance 和 post 字段输出量。
 
 ## 2. 环境、算例和复现实验规则
@@ -567,6 +574,157 @@ run/hyStrath/dsmcFoam+/xcx_test/zb-cylinder-react/mpi4omp2/log.codex_mpi4omp2_30
 
 该结果证明 no-write compute 口径没有引入 post/output 开销。
 
+### 7.6 `mixture` 全组分共享 cache 总量残留修复 - 2026-06-27/28 补充
+
+#### 问题现象
+
+在只输出或重点检查 `mixture` 宏观场时，曾观察到：
+
+- 逐组分场如 `dsmcN_N2`、`dsmcN_O2`、`dsmcN_Ar` 数值正常；
+- `dsmcN_mixture`、`rhoN_mixture`、`p_mixture`、`Ma_mixture` 出现异常大值；
+- 使用 `BinaryCollisionModel VariableHardSphere` 时问题不明显；
+- 使用 `BinaryCollisionModel LarsenBorgnakkeVariableHardSphere` 后，由于转动/
+  振动/电子能量通道参与，`Tov/Ttra/p/Ma` 对残留总量更敏感，问题更容易暴露。
+
+该问题不是 Larsen-Borgnakke 模型本身的物理错误。两种碰撞模型最终都进入同一套
+`dsmcVolFields` 输出路径；差别只是 `LarsenBorgnakkeVariableHardSphere` 会在
+碰撞中改写 `ERot()`、`vibLevel()`、`ELevel()`，从而放大宏观场派生量对错误总量的
+敏感性。
+
+#### 触发条件
+
+`dsmcVolFields::calculateField()` 中存在一个全组分快速路径：
+
+```text
+allSpeciesField =
+    !singleSpeciesField
+ && speciesIds_.size() == cloud_.constProps().size()
+```
+
+当 `fieldPropertiesDict` 中某个 field 的 `typeIds` 覆盖全部 species，例如：
+
+```text
+fieldName mixture;
+typeIds (N2 O2 NO N O Ar);
+```
+
+该 field 会直接读取共享 cache 的总量数组：
+
+```text
+sharedSampleCache_.totalDsmcN
+sharedSampleCache_.totalDsmcM
+sharedSampleCache_.totalDsmcLinearKE
+sharedSampleCache_.totalDsmcMomentum
+sharedSampleCache_.totalDsmcErot
+sharedSampleCache_.totalDsmcZetaRot
+```
+
+非全组分 field 则逐 species 从 `sharedSampleCache_.dsmcN[typeId]` 等数组求和。
+因此旧代码中会出现“逐组分正常，但 `mixture` 异常”的分裂现象。
+
+#### 根因
+
+共享 cache 重新构建时，per-species 数组在 allocate 阶段会显式清零，但 total
+数组只调用了 `setSize(...)`。在 OpenFOAM `List::setSize(size, value)` 对已有且
+尺寸不变的列表不保证重新填充值的情况下，total 数组可能保留上一轮内容。
+
+当 `validFor()` 因时间步变化失效后，`build()` 会重新进入 allocate/build 过程。
+若 cell 数不变，total 数组尺寸不变且未显式清零，随后本轮累加会叠加旧值，导致
+全组分 `mixture` 读到残留总量。
+
+#### 修复
+
+修复文件：
+
+```text
+src/lagrangian/dsmc/macroscopicProperties/derived/combined/dsmcVolFields/dsmcVolFields.C
+```
+
+在共享 cache 的 `allocateAllFields()` 中，对 total 数组 `setSize(...)` 后立即
+显式清零：
+
+```cpp
+totalDsmcN = 0.0;
+totalDsmcM = 0.0;
+totalDsmcLinearKE = 0.0;
+totalDsmcMomentum = vector::zero;
+totalDsmcErot = 0.0;
+totalDsmcZetaRot = 0.0;
+```
+
+该修改只影响共享 cache allocate/rebuild 阶段，不改变碰撞、迁移、采样公式，也不
+改变逐组分场的物理定义。性能影响可以忽略：cache 在同一时间步内通过 `validFor`
+复用，不会因每个 field 重复清零；清零代价相对于 parcel sampling、move/collision
+和 processor write 很小。
+
+#### 本地验证
+
+验证 case：
+
+```text
+run/hyStrath/dsmcFoam+/xcx_test/zb-cylinder-react/mpi4omp2
+```
+
+运行口径：
+
+```text
+4 MPI x 2 OpenMP
+```
+
+验证 1：50 step、一次 write。
+
+- `mixture_plus_species`：完整逐组分 field 加 `mixture`；
+- `mixture_only`：只保留一个覆盖全部 species 的 `mixture` field；
+- `mixture_plus_species` 中 `dsmcN_mixture` 与
+  `dsmcN_N2 + dsmcN_O2 + dsmcN_NO + dsmcN_N + dsmcN_O` 对 60000 cells
+  逐 cell 相等，最大绝对误差为 0；
+- `mixture_only` 与 `mixture_plus_species` 的 `dsmcN/rhoN/p/Ma` 均保持同一数量级，
+  未再出现 `dsmcN_mixture` 跳到异常大值的现象。
+
+验证 2：25/50 step 两次 write，覆盖一次 `resetAtOutput` 后再输出。
+
+- 第一次输出触发 reset；
+- 第二次输出在 reset 后继续采样；
+- 两个输出时刻下，`mixture_plus_species` 均满足
+  `dsmcN_mixture == sum(species dsmcN)` 的逐 cell 检查；
+- `mixture_only` 与 `mixture_plus_species` 的 `Ma_mixture`、`dsmcN_mixture`
+  保持一致量级，未复现残留总量问题。
+
+构建检查：
+
+```text
+source doc/scripts/env.sh && wmake src/lagrangian/dsmc
+git diff --check
+```
+
+结果：库编译通过，格式检查通过。
+
+#### EnSight 结果目录排查
+
+Windows 侧结果目录：
+
+```text
+D:\CFD数据\DSMC\dsmcFoamPar\x37b\validate\Ensightmixturelarsen\EnSight
+```
+
+排查结论：
+
+- `EnSight/fieldPropertiesDict` 确实只包含一个 `mixture` field；
+- 对应日志 `3666096.out` 中，replicated processor-write 每次只写出
+  `scalar=13, vector=2`，符合单个 `mixture` field 的输出规模；
+- 旧日志 `3658420.out` 的完整组分版本每次写出 `scalar=76, vector=14`；
+- `EnSight/mpi12omp16_nomixture_larsen.case` 中仍列出 `Ma_N2`、`dsmcN_N2`、
+  `rhoN_N2` 等全组分变量，是 EnSight 转换目录或 OpenFOAM 输出时间目录中旧字段
+  残留造成的，不代表当前 `fieldPropertiesDict` 又写出了完整组分。
+
+因此后处理对比必须区分：
+
+- solver 当前写出的 processor volFields 数量；
+- `foamToEnsight` 或其他转换工具扫描到的已有历史字段；
+- `EnSight/data/00000000` 中是否残留旧变量文件。
+
+干净对比时应先清理旧时间目录和旧 EnSight 目录，再重新转换。
+
 ## 8. 最新超算 64 核性能结果
 
 ### 8.1 结果表
@@ -760,6 +918,16 @@ doc/worklog/v2506/detail_mix/build_output_filter_cloudskip_solver_20260624_15411
 ```text
 run/hyStrath/dsmcFoam+/xcx_test/zb-cylinder-react/mpi4omp2/log.codex_mpi4omp2_300step_outputfilter_nowrite_np4_omp2_foreground_20260624_154408
 run/hyStrath/dsmcFoam+/xcx_test/zb-cylinder-react/mpi4omp2/log.codex_mpi4omp2_10step_outputfilter_cloudskip_np4_omp2_foreground_20260624_155259
+```
+
+`mixture` cache 正确性修复和 EnSight 残留排查：
+
+```text
+src/lagrangian/dsmc/macroscopicProperties/derived/combined/dsmcVolFields/dsmcVolFields.C
+run/hyStrath/dsmcFoam+/xcx_test/zb-cylinder-react/mpi4omp2
+D:\CFD数据\DSMC\dsmcFoamPar\x37b\validate\Ensightmixturelarsen\EnSight\3666096.out
+D:\CFD数据\DSMC\dsmcFoamPar\x37b\validate\Ensightmixturelarsen\3658420.out
+D:\CFD数据\DSMC\dsmcFoamPar\x37b\validate\Ensightmixturelarsen\EnSight\mpi12omp16_nomixture_larsen.case
 ```
 
 核心源码：

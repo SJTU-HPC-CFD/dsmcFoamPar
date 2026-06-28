@@ -85,6 +85,257 @@ void Foam::dsmcCloud::buildConstProps()
 }
 
 
+void Foam::dsmcCloud::printInitialiseTimeStepCalculation
+(
+    Time& runTime,
+    const IOdictionary& dsmcInitialiseDict
+) const
+{
+    if (!dsmcInitialiseDict.found("configurations"))
+    {
+        WarningIn("Foam::dsmcCloud::printInitialiseTimeStepCalculation")
+            << "No configurations entry found in dsmcInitialiseDict. "
+            << "Time step calculation skipped." << endl;
+        return;
+    }
+
+    const PtrList<entry> configurations
+    (
+        dsmcInitialiseDict.lookup("configurations")
+    );
+
+    if (configurations.size() == 0)
+    {
+        WarningIn("Foam::dsmcCloud::printInitialiseTimeStepCalculation")
+            << "No configurations found in dsmcInitialiseDict. "
+            << "Time step calculation skipped." << endl;
+        return;
+    }
+
+    const dictionary& configurationDict = configurations[0].dict();
+
+    if
+    (
+       !configurationDict.found("translationalTemperature")
+     || !configurationDict.found("velocity")
+     || !configurationDict.found("numberDensities")
+    )
+    {
+        WarningIn("Foam::dsmcCloud::printInitialiseTimeStepCalculation")
+            << "The first dsmcInitialiseDict configuration must contain "
+            << "translationalTemperature, velocity and numberDensities. "
+            << "Time step calculation skipped." << endl;
+        return;
+    }
+
+    const scalar temperature =
+        readScalar(configurationDict.lookup("translationalTemperature"));
+    const vector flowVelocity(configurationDict.lookup("velocity"));
+    const scalar flowSpeed = mag(flowVelocity);
+    const dictionary& numberDensitiesDict =
+        configurationDict.subDict("numberDensities");
+    const dictionary& moleculePropertiesDict =
+        particleProperties_.subDict("moleculeProperties");
+
+    scalar totalNumberDensity = 0.0;
+    scalar totalMassDensity = 0.0;
+
+    forAllConstIter(dictionary, numberDensitiesDict, iter)
+    {
+        const word& speciesName = iter().keyword();
+        const scalar numberDensity =
+            readScalar(numberDensitiesDict.lookup(speciesName));
+
+        totalNumberDensity += numberDensity;
+
+        if (moleculePropertiesDict.found(speciesName))
+        {
+            const dictionary& speciesDict =
+                moleculePropertiesDict.subDict(speciesName);
+            const scalar molecularMass =
+                readScalar(speciesDict.lookup("mass"));
+
+            totalMassDensity += numberDensity*molecularMass;
+
+            if (Pstream::master())
+            {
+                Info<< "  Species " << speciesName
+                    << ": mass = " << molecularMass
+                    << " kg, numberDensity = " << numberDensity
+                    << " m^-3" << endl;
+            }
+        }
+        else if (Pstream::master())
+        {
+            WarningIn("Foam::dsmcCloud::printInitialiseTimeStepCalculation")
+                << "Species '" << speciesName
+                << "' not found in moleculeProperties. "
+                << "Skipping this species in time step calculation." << endl;
+        }
+    }
+
+    if (totalNumberDensity <= VSMALL || totalMassDensity <= VSMALL)
+    {
+        WarningIn("Foam::dsmcCloud::printInitialiseTimeStepCalculation")
+            << "Invalid mixture density for time-step calculation. "
+            << "totalNumberDensity = " << totalNumberDensity
+            << ", totalMassDensity = " << totalMassDensity
+            << ". Time step calculation skipped." << endl;
+        return;
+    }
+
+    const scalar averageMolecularMass =
+        totalMassDensity/totalNumberDensity;
+    const scalar vThermal =
+        maxwellianMostProbableSpeed(temperature, averageMolecularMass);
+    const scalar characteristicSpeed = flowSpeed + vThermal;
+
+    if (vThermal <= VSMALL || characteristicSpeed <= VSMALL)
+    {
+        WarningIn("Foam::dsmcCloud::printInitialiseTimeStepCalculation")
+            << "Invalid molecular speed for time-step calculation. "
+            << "vThermal = " << vThermal
+            << ", characteristicSpeed = " << characteristicSpeed
+            << ". Time step calculation skipped." << endl;
+        return;
+    }
+
+    const boundBox localBounds(mesh_.bounds());
+    scalar minX = localBounds.min().x();
+    scalar minY = localBounds.min().y();
+    scalar minZ = localBounds.min().z();
+    scalar maxX = localBounds.max().x();
+    scalar maxY = localBounds.max().y();
+    scalar maxZ = localBounds.max().z();
+
+    const scalarField& cellVolumes = mesh_.cellVolumes();
+    scalar totalVolume = 0.0;
+    scalar minVolume = GREAT;
+    scalar maxVolume = -GREAT;
+
+    forAll(cellVolumes, cellI)
+    {
+        const scalar volume = cellVolumes[cellI];
+        totalVolume += volume;
+        minVolume = min(minVolume, volume);
+        maxVolume = max(maxVolume, volume);
+    }
+
+    label totalCells = mesh_.nCells();
+
+    if (Pstream::parRun())
+    {
+        reduce(minX, minOp<scalar>());
+        reduce(minY, minOp<scalar>());
+        reduce(minZ, minOp<scalar>());
+        reduce(maxX, maxOp<scalar>());
+        reduce(maxY, maxOp<scalar>());
+        reduce(maxZ, maxOp<scalar>());
+        reduce(totalVolume, sumOp<scalar>());
+        reduce(minVolume, minOp<scalar>());
+        reduce(maxVolume, maxOp<scalar>());
+        reduce(totalCells, sumOp<label>());
+    }
+
+    if (totalCells <= 0 || minVolume <= VSMALL || maxVolume <= VSMALL)
+    {
+        WarningIn("Foam::dsmcCloud::printInitialiseTimeStepCalculation")
+            << "Invalid mesh statistics for time-step calculation. "
+            << "totalCells = " << totalCells
+            << ", minVolume = " << minVolume
+            << ", maxVolume = " << maxVolume
+            << ". Time step calculation skipped." << endl;
+        return;
+    }
+
+    const scalar xLen = maxX - minX;
+    const scalar yLen = maxY - minY;
+    const scalar zLen = maxZ - minZ;
+    const scalar maxDomainLength = max(xLen, max(yLen, zLen));
+    const scalar meanCellVolume = totalVolume/scalar(totalCells);
+    const scalar characteristicLength = pow(meanCellVolume, 1.0/3.0);
+
+    const scalar CAC =
+        controlDict_.lookupOrDefault<scalar>("CAC", 1.0);
+    const scalar CTC =
+        controlDict_.lookupOrDefault<scalar>("CTC", 1.0);
+    const label sampleSteps =
+        controlDict_.lookupOrDefault<label>("sampleSteps", 500);
+
+    if (CTC <= VSMALL)
+    {
+        WarningIn("Foam::dsmcCloud::printInitialiseTimeStepCalculation")
+            << "Invalid CTC = " << CTC
+            << ". Time step calculation skipped." << endl;
+        return;
+    }
+
+    const scalar preCtcDeltaT = characteristicLength/characteristicSpeed;
+    const scalar newDeltaT = preCtcDeltaT*CTC;
+
+    if (newDeltaT <= VSMALL)
+    {
+        WarningIn("Foam::dsmcCloud::printInitialiseTimeStepCalculation")
+            << "Calculated invalid time step: " << newDeltaT
+            << ". Time step calculation skipped." << endl;
+        return;
+    }
+
+    const label naver =
+        label(CAC*maxDomainLength/vThermal/newDeltaT + 1.0);
+    const scalar steadyStateTime = naver*newDeltaT;
+    const scalar totalTime = steadyStateTime + sampleSteps*newDeltaT;
+
+    if (Pstream::master())
+    {
+        Info<< nl << "========== DSMC Time Step Calculation =========="
+            << endl;
+        Info<< "Input parameters:" << endl;
+        Info<< "  Translational temperature: " << temperature << " K"
+            << endl;
+        Info<< "  Flow velocity: " << flowSpeed << " m/s" << endl;
+        Info<< "  Total number density: " << totalNumberDensity
+            << " m^-3" << endl;
+        Info<< "Domain dimensions:" << endl;
+        Info<< "  x-length: " << xLen << " m" << endl;
+        Info<< "  y-length: " << yLen << " m" << endl;
+        Info<< "  z-length: " << zLen << " m" << endl;
+        Info<< "  Max domain length: " << maxDomainLength << " m"
+            << endl;
+        Info<< "  Total number of cells: " << totalCells << endl;
+        Info<< "Calculated values:" << endl;
+        Info<< "  Average molecular mass: " << averageMolecularMass
+            << " kg" << endl;
+        Info<< "  Thermal velocity: " << vThermal << " m/s" << endl;
+        Info<< "  Characteristic speed: " << characteristicSpeed
+            << " m/s" << endl;
+        Info<< "  Mean cell volume: " << meanCellVolume << " m^3"
+            << endl;
+        Info<< "  Max cell volume: " << maxVolume << " m^3" << endl;
+        Info<< "  Min cell volume: " << minVolume << " m^3" << endl;
+        Info<< "  Max/Min: " << maxVolume/minVolume << endl;
+        Info<< "  Characteristic length: " << characteristicLength
+            << " m" << endl;
+        Info<< "Time step adjustment:" << endl;
+        Info<< "  Original time step: " << runTime.deltaTValue()
+            << " s" << endl;
+        Info<< "  New time step: " << newDeltaT
+            << " s before CTC-" << CTC
+            << " modification is " << preCtcDeltaT << endl;
+        Info<< "  Steady state steps (naver): " << naver << endl;
+        Info<< "  Sample steps: " << sampleSteps << endl;
+        Info<< "  Total steps: " << naver + sampleSteps << endl;
+        Info<< "------------------------------------------------" << endl;
+        Info<< "For control file parameter replace:" << endl;
+        Info<< "  deltaT             " << newDeltaT << endl;
+        Info<< "  steadyStateTime    " << steadyStateTime << endl;
+        Info<< "  totalTime          " << totalTime << endl;
+        Info<< "================================================"
+            << nl << endl;
+    }
+}
+
+
 void Foam::dsmcCloud::buildCellOccupancy()
 {
     const steadyWallClock::time_point wallStart = steadyWallClock::now();
@@ -1643,6 +1894,8 @@ Foam::dsmcCloud::dsmcCloud
         clear();
 
         initialParcels = 0;
+
+        printInitialiseTimeStepCalculation(t, dsmcInitialiseDict);
     }
 
     buildConstProps();
