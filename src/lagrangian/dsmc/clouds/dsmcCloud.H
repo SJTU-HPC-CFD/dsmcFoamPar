@@ -884,6 +884,76 @@ public:
                 return profileCollisionWall_;
             }
 
+            inline scalar profileMoveWallTime() const
+            {
+                return profileMoveWall_;
+            }
+
+            inline scalar profileCollisionWallTime() const
+            {
+                return profileCollisionWall_;
+            }
+
+            inline label profileSteps() const
+            {
+                return profileSteps_;
+            }
+
+            inline scalar profileFullEvolveWallTime() const
+            {
+                return profileFullEvolveWall_;
+            }
+
+            inline scalar profileMoveAndCollideWallTime() const
+            {
+                return profileMoveAndCollideWall_;
+            }
+
+            inline scalar profileBuildCellOccupancyWallTime() const
+            {
+                return profileBuildCellOccupancyWall_;
+            }
+
+            inline scalar profilePostWallTime() const
+            {
+                return profilePostFieldsWall_;
+            }
+
+            inline scalar profilePostReactionsWallTime() const
+            {
+                return profilePostReactionsWall_;
+            }
+
+            inline scalar profilePostFieldCalcWallTime() const
+            {
+                return profilePostFieldCalcWall_;
+            }
+
+            inline scalar profilePostFieldWriteWallTime() const
+            {
+                return profilePostFieldWriteWall_;
+            }
+
+            inline scalar profilePostControllersWallTime() const
+            {
+                return profilePostControllersWall_;
+            }
+
+            inline scalar profilePostBoundariesWallTime() const
+            {
+                return profilePostBoundariesWall_;
+            }
+
+            inline scalar profilePostBoundaryMeasWallTime() const
+            {
+                return profilePostBoundaryMeasWall_;
+            }
+
+            inline scalar profilePostCleanWallTime() const
+            {
+                return profilePostCleanWall_;
+            }
+
             inline const labelList& nCandidatesPerCell() const
             {
                 return nCandidatesPerCell_;

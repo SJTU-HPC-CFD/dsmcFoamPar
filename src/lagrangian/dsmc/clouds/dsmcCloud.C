@@ -2097,6 +2097,12 @@ void Foam::dsmcCloud::evolve_moveAndCollide()
     if (replicatedMeshActive() && replicatedMesh_->migrationCalls() == 0)
     {
         Info<< "Replicated mesh: initial particle distribution" << nl << endl;
+        const label oldMigrationContext =
+            replicatedMesh_->migrationProfileContext();
+        replicatedMesh_->setMigrationProfileContext
+        (
+            dsmcReplicatedMesh::migrationProfileInitial
+        );
         if (Pstream::parRun())
         {
             replicatedMesh_->distributeInitialParticles();
@@ -2106,6 +2112,7 @@ void Foam::dsmcCloud::evolve_moveAndCollide()
             replicatedMesh_->migrateParticlesByCellOwner();
         }
         replicatedMesh_->updateParticleCounts();
+        replicatedMesh_->setMigrationProfileContext(oldMigrationContext);
         if (!hasMoveOrderedParcels())
         {
             clearMoveOrderedParcels();
@@ -2128,8 +2135,15 @@ void Foam::dsmcCloud::evolve_moveAndCollide()
      && replicatedMesh_->asyncMigrationPending()
     )
     {
+        const label oldMigrationContext =
+            replicatedMesh_->migrationProfileContext();
+        replicatedMesh_->setMigrationProfileContext
+        (
+            dsmcReplicatedMesh::migrationProfileRegular
+        );
         replicatedMesh_->migrateFinish();
         replicatedMesh_->updateParticleCounts();
+        replicatedMesh_->setMigrationProfileContext(oldMigrationContext);
         if (!hasMoveOrderedParcels())
         {
             clearMoveOrderedParcels();
@@ -2206,6 +2220,12 @@ void Foam::dsmcCloud::evolve_moveAndCollide()
             )
         )
         {
+            const label oldMigrationContext =
+                replicatedMesh_->migrationProfileContext();
+            replicatedMesh_->setMigrationProfileContext
+            (
+                dsmcReplicatedMesh::migrationProfileRegular
+            );
             if (replicatedMeshDelayedReceive)
             {
                 replicatedMesh_->migrateBegin();
@@ -2216,6 +2236,7 @@ void Foam::dsmcCloud::evolve_moveAndCollide()
                 replicatedMesh_->migrateParticlesByCellOwner();
             }
             replicatedMesh_->updateParticleCounts();
+            replicatedMesh_->setMigrationProfileContext(oldMigrationContext);
             if (!hasMoveOrderedParcels())
             {
                 clearMoveOrderedParcels();
@@ -2236,8 +2257,18 @@ void Foam::dsmcCloud::evolve_moveAndCollide()
             {
                 if (replicatedMesh_->asyncMigrationPending())
                 {
+                    const label oldMigrationContext =
+                        replicatedMesh_->migrationProfileContext();
+                    replicatedMesh_->setMigrationProfileContext
+                    (
+                        dsmcReplicatedMesh::migrationProfileRegular
+                    );
                     replicatedMesh_->migrateFinish();
                     replicatedMesh_->updateParticleCounts();
+                    replicatedMesh_->setMigrationProfileContext
+                    (
+                        oldMigrationContext
+                    );
                     if (!hasMoveOrderedParcels())
                     {
                         clearMoveOrderedParcels();
@@ -2248,8 +2279,15 @@ void Foam::dsmcCloud::evolve_moveAndCollide()
                     << "Replicated mesh: manual cell owner reassignment at step "
                     << currentStep << nl << endl;
                 replicatedMesh_->reassignCellOwner();
+                const label oldMigrationContext =
+                    replicatedMesh_->migrationProfileContext();
+                replicatedMesh_->setMigrationProfileContext
+                (
+                    dsmcReplicatedMesh::migrationProfileManual
+                );
                 replicatedMesh_->migrateParticlesByCellOwner();
                 replicatedMesh_->updateParticleCounts();
+                replicatedMesh_->setMigrationProfileContext(oldMigrationContext);
                 if (!hasMoveOrderedParcels())
                 {
                     clearMoveOrderedParcels();
@@ -2308,8 +2346,15 @@ void Foam::dsmcCloud::evolve_moveAndCollide()
     {
         if (replicatedMesh_->asyncMigrationPending())
         {
+            const label oldMigrationContext =
+                replicatedMesh_->migrationProfileContext();
+            replicatedMesh_->setMigrationProfileContext
+            (
+                dsmcReplicatedMesh::migrationProfileRegular
+            );
             replicatedMesh_->migrateFinish();
             replicatedMesh_->updateParticleCounts();
+            replicatedMesh_->setMigrationProfileContext(oldMigrationContext);
             if (!hasMoveOrderedParcels())
             {
                 clearMoveOrderedParcels();
@@ -2640,65 +2685,6 @@ void Foam::dsmcCloud::printProfileSummary() const
     scalar postBoundariesWall = profilePostBoundariesWall_;
     scalar postBoundaryMeasWall = profilePostBoundaryMeasWall_;
     scalar postCleanWall = profilePostCleanWall_;
-    scalar fullEvolveCpu = profileFullEvolveCpu_;
-    scalar moveAndCollideCpu = profileMoveAndCollideCpu_;
-    scalar moveCpu = profileMoveCpu_;
-    scalar buildCellOccupancyCpu = profileBuildCellOccupancyCpu_;
-    scalar collisionCpu = profileCollisionCpu_;
-    scalar postFieldsCpu = profilePostFieldsCpu_;
-    scalar postReactionsCpu = profilePostReactionsCpu_;
-    scalar postFieldCalcCpu = profilePostFieldCalcCpu_;
-    scalar postFieldWriteCpu = profilePostFieldWriteCpu_;
-    scalar postControllersCpu = profilePostControllersCpu_;
-    scalar postBoundariesCpu = profilePostBoundariesCpu_;
-    scalar postBoundaryMeasCpu = profilePostBoundaryMeasCpu_;
-    scalar postCleanCpu = profilePostCleanCpu_;
-    label moveDetailParcels = moveDetailParcels_;
-    label moveDetailTrackCalls = moveDetailTrackCalls_;
-    label moveDetailSameTetNoFaceHits = moveDetailSameTetNoFaceHits_;
-    label moveDetailInternalTetNoFaceHits = moveDetailInternalTetNoFaceHits_;
-    label moveDetailFaceHits = moveDetailFaceHits_;
-    label moveDetailProcessorHits = moveDetailProcessorHits_;
-    label moveDetailCyclicHits = moveDetailCyclicHits_;
-    label moveDetailPatchHits = moveDetailPatchHits_;
-    label moveDetailStuckHits = moveDetailStuckHits_;
-    scalar moveDetailTrackWallTime = moveDetailTrackWallTime_;
-    scalar moveDetailTrackerWallTime = moveDetailTrackerWallTime_;
-    scalar moveDetailBoundaryWallTime = moveDetailBoundaryWallTime_;
-    scalar collisionSubphaseLocalLoopWall = 0.0;
-    scalar collisionSubphaseReduceWall = 0.0;
-    scalar collisionSubphaseSigmaWall = 0.0;
-    scalar collisionSubphaseTotalWall = 0.0;
-    scalar collisionSubphaseAccountedWall = 0.0;
-    scalar collisionSubphaseResidualWall = 0.0;
-    label collisionCumulativeCollisions = 0;
-    label collisionCumulativeCandidates = 0;
-
-    if
-    (
-        collisionPartnerSelectionModel_.valid()
-     && collisionPartnerSelectionModel_->hasCollisionSubphaseProfile()
-    )
-    {
-        collisionSubphaseLocalLoopWall =
-            collisionPartnerSelectionModel_->collisionLocalLoopWallTime();
-        collisionSubphaseReduceWall =
-            collisionPartnerSelectionModel_->collisionReduceWallTime();
-        collisionSubphaseSigmaWall =
-            collisionPartnerSelectionModel_->collisionSigmaWallTime();
-        collisionSubphaseTotalWall =
-            collisionPartnerSelectionModel_->collisionTotalWallTime();
-        collisionCumulativeCollisions =
-            collisionPartnerSelectionModel_->collisionLocalAcceptedCount();
-        collisionCumulativeCandidates =
-            collisionPartnerSelectionModel_->collisionLocalCandidateCount();
-    }
-    collisionSubphaseAccountedWall =
-        collisionSubphaseLocalLoopWall
-      + collisionSubphaseReduceWall
-      + collisionSubphaseSigmaWall;
-    collisionSubphaseResidualWall =
-        collisionSubphaseTotalWall - collisionSubphaseAccountedWall;
 
     const bool replicatedRawMpi =
         replicatedMeshActive() && replicatedMesh_->nProcs() > 1;
@@ -2709,7 +2695,6 @@ void Foam::dsmcCloud::printProfileSummary() const
 
     const label localProfileSteps = profileSteps_;
     const scalar localFullEvolveWall = profileFullEvolveWall_;
-    const scalar localMoveAndCollideWall = profileMoveAndCollideWall_;
     const scalar localMoveWall = profileMoveWall_;
     const scalar localBuildCellOccupancyWall = profileBuildCellOccupancyWall_;
     const scalar localCollisionWall = profileCollisionWall_;
@@ -2742,7 +2727,7 @@ void Foam::dsmcCloud::printProfileSummary() const
                 MPI_COMM_WORLD
             );
 
-            const int nProfileValues = 26;
+            const int nProfileValues = 13;
             scalar profileValues[nProfileValues] =
             {
                 fullEvolveWall,
@@ -2757,20 +2742,7 @@ void Foam::dsmcCloud::printProfileSummary() const
                 postControllersWall,
                 postBoundariesWall,
                 postBoundaryMeasWall,
-                postCleanWall,
-                fullEvolveCpu,
-                moveAndCollideCpu,
-                moveCpu,
-                buildCellOccupancyCpu,
-                collisionCpu,
-                postFieldsCpu,
-                postReactionsCpu,
-                postFieldCalcCpu,
-                postFieldWriteCpu,
-                postControllersCpu,
-                postBoundariesCpu,
-                postBoundaryMeasCpu,
-                postCleanCpu
+                postCleanWall
             };
 
             MPI_Allreduce
@@ -2796,119 +2768,6 @@ void Foam::dsmcCloud::printProfileSummary() const
             postBoundariesWall = profileValues[10];
             postBoundaryMeasWall = profileValues[11];
             postCleanWall = profileValues[12];
-            fullEvolveCpu = profileValues[13];
-            moveAndCollideCpu = profileValues[14];
-            moveCpu = profileValues[15];
-            buildCellOccupancyCpu = profileValues[16];
-            collisionCpu = profileValues[17];
-            postFieldsCpu = profileValues[18];
-            postReactionsCpu = profileValues[19];
-            postFieldCalcCpu = profileValues[20];
-            postFieldWriteCpu = profileValues[21];
-            postControllersCpu = profileValues[22];
-            postBoundariesCpu = profileValues[23];
-            postBoundaryMeasCpu = profileValues[24];
-            postCleanCpu = profileValues[25];
-
-            label moveDetailCounts[] =
-            {
-                moveDetailParcels,
-                moveDetailTrackCalls,
-                moveDetailSameTetNoFaceHits,
-                moveDetailInternalTetNoFaceHits,
-                moveDetailFaceHits,
-                moveDetailProcessorHits,
-                moveDetailCyclicHits,
-                moveDetailPatchHits,
-                moveDetailStuckHits
-            };
-
-            MPI_Allreduce
-            (
-                MPI_IN_PLACE,
-                moveDetailCounts,
-                9,
-                MPI_INT,
-                MPI_SUM,
-                MPI_COMM_WORLD
-            );
-
-            moveDetailParcels = moveDetailCounts[0];
-            moveDetailTrackCalls = moveDetailCounts[1];
-            moveDetailSameTetNoFaceHits = moveDetailCounts[2];
-            moveDetailInternalTetNoFaceHits = moveDetailCounts[3];
-            moveDetailFaceHits = moveDetailCounts[4];
-            moveDetailProcessorHits = moveDetailCounts[5];
-            moveDetailCyclicHits = moveDetailCounts[6];
-            moveDetailPatchHits = moveDetailCounts[7];
-            moveDetailStuckHits = moveDetailCounts[8];
-
-            scalar moveDetailTimes[] =
-            {
-                moveDetailTrackWallTime,
-                moveDetailTrackerWallTime,
-                moveDetailBoundaryWallTime
-            };
-
-            MPI_Allreduce
-            (
-                MPI_IN_PLACE,
-                moveDetailTimes,
-                3,
-                MPI_DOUBLE,
-                MPI_MAX,
-                MPI_COMM_WORLD
-            );
-
-            moveDetailTrackWallTime = moveDetailTimes[0];
-            moveDetailTrackerWallTime = moveDetailTimes[1];
-            moveDetailBoundaryWallTime = moveDetailTimes[2];
-
-            scalar collisionSubphaseTimes[] =
-            {
-                collisionSubphaseLocalLoopWall,
-                collisionSubphaseReduceWall,
-                collisionSubphaseSigmaWall,
-                collisionSubphaseTotalWall,
-                collisionSubphaseAccountedWall,
-                collisionSubphaseResidualWall
-            };
-
-            MPI_Allreduce
-            (
-                MPI_IN_PLACE,
-                collisionSubphaseTimes,
-                6,
-                MPI_DOUBLE,
-                MPI_MAX,
-                MPI_COMM_WORLD
-            );
-
-            collisionSubphaseLocalLoopWall = collisionSubphaseTimes[0];
-            collisionSubphaseReduceWall = collisionSubphaseTimes[1];
-            collisionSubphaseSigmaWall = collisionSubphaseTimes[2];
-            collisionSubphaseTotalWall = collisionSubphaseTimes[3];
-            collisionSubphaseAccountedWall = collisionSubphaseTimes[4];
-            collisionSubphaseResidualWall = collisionSubphaseTimes[5];
-
-            label collisionCumulativeCounts[] =
-            {
-                collisionCumulativeCollisions,
-                collisionCumulativeCandidates
-            };
-
-            MPI_Allreduce
-            (
-                MPI_IN_PLACE,
-                collisionCumulativeCounts,
-                2,
-                MPI_INT,
-                MPI_SUM,
-                MPI_COMM_WORLD
-            );
-
-            collisionCumulativeCollisions = collisionCumulativeCounts[0];
-            collisionCumulativeCandidates = collisionCumulativeCounts[1];
         }
     }
     else if (Pstream::parRun())
@@ -2927,50 +2786,16 @@ void Foam::dsmcCloud::printProfileSummary() const
         reduce(postBoundariesWall, maxOp<scalar>());
         reduce(postBoundaryMeasWall, maxOp<scalar>());
         reduce(postCleanWall, maxOp<scalar>());
-        reduce(fullEvolveCpu, maxOp<scalar>());
-        reduce(moveAndCollideCpu, maxOp<scalar>());
-        reduce(moveCpu, maxOp<scalar>());
-        reduce(buildCellOccupancyCpu, maxOp<scalar>());
-        reduce(collisionCpu, maxOp<scalar>());
-        reduce(postFieldsCpu, maxOp<scalar>());
-        reduce(postReactionsCpu, maxOp<scalar>());
-        reduce(postFieldCalcCpu, maxOp<scalar>());
-        reduce(postFieldWriteCpu, maxOp<scalar>());
-        reduce(postControllersCpu, maxOp<scalar>());
-        reduce(postBoundariesCpu, maxOp<scalar>());
-        reduce(postBoundaryMeasCpu, maxOp<scalar>());
-        reduce(postCleanCpu, maxOp<scalar>());
-        reduce(moveDetailParcels, sumOp<label>());
-        reduce(moveDetailTrackCalls, sumOp<label>());
-        reduce(moveDetailSameTetNoFaceHits, sumOp<label>());
-        reduce(moveDetailInternalTetNoFaceHits, sumOp<label>());
-        reduce(moveDetailFaceHits, sumOp<label>());
-        reduce(moveDetailProcessorHits, sumOp<label>());
-        reduce(moveDetailCyclicHits, sumOp<label>());
-        reduce(moveDetailPatchHits, sumOp<label>());
-        reduce(moveDetailStuckHits, sumOp<label>());
-        reduce(moveDetailTrackWallTime, maxOp<scalar>());
-        reduce(moveDetailTrackerWallTime, maxOp<scalar>());
-        reduce(moveDetailBoundaryWallTime, maxOp<scalar>());
-        reduce(collisionSubphaseLocalLoopWall, maxOp<scalar>());
-        reduce(collisionSubphaseReduceWall, maxOp<scalar>());
-        reduce(collisionSubphaseSigmaWall, maxOp<scalar>());
-        reduce(collisionSubphaseTotalWall, maxOp<scalar>());
-        reduce(collisionSubphaseAccountedWall, maxOp<scalar>());
-        reduce(collisionSubphaseResidualWall, maxOp<scalar>());
-        reduce(collisionCumulativeCollisions, sumOp<label>());
-        reduce(collisionCumulativeCandidates, sumOp<label>());
     }
 
     if (profileDetail_ && replicatedRawMpi && replicatedRawMpiInitialized)
     {
-        const int nScalarDetail = 6;
+        const int nScalarDetail = 5;
         const int nLabelDetail = 4;
 
         scalar localScalarDetail[nScalarDetail] =
         {
             localFullEvolveWall,
-            localMoveAndCollideWall,
             localMoveWall,
             localBuildCellOccupancyWall,
             localCollisionWall,
@@ -3028,14 +2853,14 @@ void Foam::dsmcCloud::printProfileSummary() const
             Info<< nl
                 << "Replicated mesh profile detail by rank:" << nl
                 << "    rank steps parcels ownedCollCells finalCandidates"
-                << " full move+collide move build collision post" << nl;
+                << " full move build_occupancy coll post" << nl;
 
             for (int rankI = 0; rankI < replicatedRawMpiSize; ++rankI)
             {
                 const label labelBase = rankI*nLabelDetail;
                 const label scalarBase = rankI*nScalarDetail;
                 const scalar rankFull = allScalarDetail[scalarBase + 0];
-                const scalar rankCollision = allScalarDetail[scalarBase + 4];
+                const scalar rankCollision = allScalarDetail[scalarBase + 3];
 
                 minRankFull = min(minRankFull, rankFull);
                 maxRankFull = max(maxRankFull, rankFull);
@@ -3050,9 +2875,8 @@ void Foam::dsmcCloud::printProfileSummary() const
                     << " " << rankFull
                     << " " << allScalarDetail[scalarBase + 1]
                     << " " << allScalarDetail[scalarBase + 2]
-                    << " " << allScalarDetail[scalarBase + 3]
                     << " " << rankCollision
-                    << " " << allScalarDetail[scalarBase + 5]
+                    << " " << allScalarDetail[scalarBase + 4]
                     << nl;
             }
 
@@ -3069,154 +2893,52 @@ void Foam::dsmcCloud::printProfileSummary() const
      || (!replicatedRawMpi && Pstream::master())
     )
     {
-        const scalar accountedWall =
+        const scalar coreAccountedWall =
             moveWall
           + buildCellOccupancyWall
           + collisionWall
           + postFieldsWall;
-        const scalar accountedCpu =
-            moveCpu
-          + buildCellOccupancyCpu
-          + collisionCpu
-          + postFieldsCpu;
+        const scalar postDetailWall =
+            postReactionsWall
+          + postFieldCalcWall
+          + postFieldWriteWall
+          + postControllersWall
+          + postBoundariesWall
+          + postBoundaryMeasWall
+          + postCleanWall;
 
         Info<< nl
-            << "DSMC solver profile summary" << nl
-            << "    solver profile steps          = " << steps << nl
-            << "    move+collide wall [s]         = " << moveAndCollideWall << nl
-            << "    move only [s]                 = " << moveWall << nl
-            << "    buildCellOccupancy [s]        = " << buildCellOccupancyWall << nl
-            << "    collision phase [s]           = " << collisionWall << nl
-            << "    evolve fields/post-step [s]   = " << postFieldsWall << nl
-            << "    total profiled [s]            = " << accountedWall << nl
-            << "    full evolve wall [s]          = " << fullEvolveWall << nl
-            << "    move+collide cpu [s]          = " << moveAndCollideCpu << nl
-            << "    move only cpu [s]             = " << moveCpu << nl
-            << "    buildCellOccupancy cpu [s]    = " << buildCellOccupancyCpu << nl
-            << "    collision phase cpu [s]       = " << collisionCpu << nl
-            << "    evolve fields/post-step cpu [s]= " << postFieldsCpu << nl
-            << "    total profiled cpu [s]        = " << accountedCpu << nl
-            << "    full evolve cpu [s]           = " << fullEvolveCpu;
-
-        if (profileDetail_)
-        {
-            const scalar postDetailWall =
-                postReactionsWall
-              + postFieldCalcWall
-              + postFieldWriteWall
-              + postControllersWall
-              + postBoundariesWall
-              + postBoundaryMeasWall
-              + postCleanWall;
-            const scalar postDetailCpu =
-                postReactionsCpu
-              + postFieldCalcCpu
-              + postFieldWriteCpu
-              + postControllersCpu
-              + postBoundariesCpu
-              + postBoundaryMeasCpu
-              + postCleanCpu;
-
-            Info<< nl
-                << "    profile detail                = evolve fields/post-step substages"
-                << nl
-                << "    post reactions [s]            = "
-                << postReactionsWall << nl
-                << "    post field calculate [s]      = "
-                << postFieldCalcWall << nl
-                << "    post field write [s]          = "
-                << postFieldWriteWall << nl
-                << "    post controllers [s]          = "
-                << postControllersWall << nl
-                << "    post boundaries [s]           = "
-                << postBoundariesWall << nl
-                << "    post boundary meas [s]        = "
-                << postBoundaryMeasWall << nl
-                << "    post clean [s]                = "
-                << postCleanWall << nl
-                << "    post detail sum [s]           = "
-                << postDetailWall << nl
-                << "    post detail residual [s]      = "
-                << postFieldsWall - postDetailWall << nl
-                << "    post reactions cpu [s]        = "
-                << postReactionsCpu << nl
-                << "    post field calculate cpu [s]  = "
-                << postFieldCalcCpu << nl
-                << "    post field write cpu [s]      = "
-                << postFieldWriteCpu << nl
-                << "    post controllers cpu [s]      = "
-                << postControllersCpu << nl
-                << "    post boundaries cpu [s]       = "
-                << postBoundariesCpu << nl
-                << "    post boundary meas cpu [s]    = "
-                << postBoundaryMeasCpu << nl
-                << "    post clean cpu [s]            = "
-                << postCleanCpu << nl
-                << "    post detail sum cpu [s]       = "
-                << postDetailCpu << nl
-                << "    post detail residual cpu [s]  = "
-                << postFieldsCpu - postDetailCpu;
-        }
-
-        if (moveDetailParcels > 0 || moveDetailTrackCalls > 0)
-        {
-            Info<< nl
-                << "    move detail parcels          = " << moveDetailParcels << nl
-                << "    move detail track calls      = " << moveDetailTrackCalls << nl
-                << "    move detail same-tet no-face = "
-                << moveDetailSameTetNoFaceHits << nl
-                << "    move detail internal tet only= "
-                << moveDetailInternalTetNoFaceHits << nl
-                << "    move detail face hits        = " << moveDetailFaceHits << nl
-                << "    move detail processor hits   = " << moveDetailProcessorHits << nl
-                << "    move detail cyclic hits      = " << moveDetailCyclicHits << nl
-                << "    move detail patch hits       = " << moveDetailPatchHits << nl
-                << "    move detail stuck hits       = " << moveDetailStuckHits << nl
-                << "    move detail track max [s]    = "
-                << moveDetailTrackWallTime << nl
-                << "    move detail tracker max [s]  = "
-                << moveDetailTrackerWallTime << nl
-                << "    move detail boundary max [s] = "
-                << moveDetailBoundaryWallTime;
-        }
-
-        if (collisionSubphaseTotalWall > SMALL)
-        {
-            const scalar collisionSubphaseMaxSum =
-                collisionSubphaseLocalLoopWall
-              + collisionSubphaseReduceWall
-              + collisionSubphaseSigmaWall;
-
-            Info<< nl
-                << "    collision localLoop max [s] = "
-                << collisionSubphaseLocalLoopWall << nl
-                << "    collision reduce max [s]    = "
-                << collisionSubphaseReduceWall << nl
-                << "    collision sigmaBC max [s]   = "
-                << collisionSubphaseSigmaWall << nl
-                << "    collision total max [s]     = "
-                << collisionSubphaseTotalWall << nl
-                << "    collision accounted max [s] = "
-                << collisionSubphaseAccountedWall << nl
-                << "    collision residual max [s]  = "
-                << collisionSubphaseResidualWall << nl
-                << "    collision subphase max sum [s] = "
-                << collisionSubphaseMaxSum;
-        }
-
-        if (collisionCumulativeCandidates > 0)
-        {
-            Info<< nl
-                << "    collision cumulative global collisions = "
-                << collisionCumulativeCollisions << nl
-                << "    collision cumulative global candidates  = "
-                << collisionCumulativeCandidates << nl
-                << "    collision cumulative acceptance        = "
-                << scalar(collisionCumulativeCollisions)
-                    /max(scalar(collisionCumulativeCandidates), SMALL);
-        }
-
-        Info<< nl
+            << "DSMC cloud profile v2" << nl
+            << "    profile steps                 = " << steps << nl
+            << "    full evolve max [s]           = " << fullEvolveWall << nl
+            << "    move+collide max [s]          = " << moveAndCollideWall << nl
+            << "    move max [s]                  = " << moveWall << nl
+            << "    build_occupancy max [s]       = "
+            << buildCellOccupancyWall << nl
+            << "    coll max [s]                  = " << collisionWall << nl
+            << "    post max [s]                  = " << postFieldsWall << nl
+            << "    core phase sum [s]            = " << coreAccountedWall << nl
+            << "    evolve residual [s]           = "
+            << fullEvolveWall - coreAccountedWall << nl
+            << "    post definition               = dsmcCloud::evolve_fields()" << nl
+            << "    post reactions [s]            = "
+            << postReactionsWall << nl
+            << "    post field calculate [s]      = "
+            << postFieldCalcWall << nl
+            << "    post field write [s]          = "
+            << postFieldWriteWall << nl
+            << "    post controllers [s]          = "
+            << postControllersWall << nl
+            << "    post boundaries [s]           = "
+            << postBoundariesWall << nl
+            << "    post boundary meas [s]        = "
+            << postBoundaryMeasWall << nl
+            << "    post clean [s]                = "
+            << postCleanWall << nl
+            << "    post subphase sum [s]         = "
+            << postDetailWall << nl
+            << "    post residual [s]             = "
+            << postFieldsWall - postDetailWall << nl
             << "    OpenMP enabled                = " << openmpEnabled_ << nl
             << "    OpenMP max threads            = " << ompNumThreads_ << nl
             << "    OpenMP move                   = " << openmpMoveEnabled_
@@ -3224,15 +2946,16 @@ void Foam::dsmcCloud::printProfileSummary() const
             << openmpMoveChunk_ << ")" << nl
             << "    OpenMP collision              = "
             << openmpCollisionSchedule_ << ", chunk "
-            << openmpCollisionChunk_;
-
-        Info<< nl << endl;
+            << openmpCollisionChunk_ << nl
+            << endl;
     }
 
     if (replicatedMeshActive())
     {
         replicatedMesh_->report();
     }
+
+    return;
 }
 
 

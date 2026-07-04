@@ -91,6 +91,50 @@ label writeProcessorVolumeFields
 // Constructor / Destructor
 // ============================================================================
 
+void dsmcReplicatedMesh::addMigrationProfileSample
+(
+    const scalar wallTime,
+    const scalar commTime
+)
+{
+    migrationCommWallTime_ += commTime;
+
+    switch (migrationProfileContext_)
+    {
+        case migrationProfileRegular:
+            regularMigrationWallTime_ += wallTime;
+            regularMigrationCommWallTime_ += commTime;
+            break;
+        case migrationProfileDLB:
+            dlbMigrationWallTime_ += wallTime;
+            dlbMigrationCommWallTime_ += commTime;
+            break;
+        case migrationProfileOutput:
+            outputMigrationWallTime_ += wallTime;
+            outputMigrationCommWallTime_ += commTime;
+            break;
+        case migrationProfileManual:
+            manualMigrationWallTime_ += wallTime;
+            manualMigrationCommWallTime_ += commTime;
+            break;
+        case migrationProfileInitial:
+            initialMigrationWallTime_ += wallTime;
+            initialMigrationCommWallTime_ += commTime;
+            break;
+        default:
+            otherMigrationWallTime_ += wallTime;
+            otherMigrationCommWallTime_ += commTime;
+            break;
+    }
+}
+
+
+void dsmcReplicatedMesh::addAutoRebalanceCommTime(const scalar commTime)
+{
+    autoRebalanceExplicitCommWallTime_ += commTime;
+}
+
+
 dsmcReplicatedMesh::dsmcReplicatedMesh(dsmcCloud& cloud, const fvMesh& mesh)
 :
     cloud_(cloud), mesh_(mesh),
@@ -108,6 +152,21 @@ dsmcReplicatedMesh::dsmcReplicatedMesh(dsmcCloud& cloud, const fvMesh& mesh)
     updateParticleCountsWallTime_(0.0),
     migrationCalls_(0),
     evolveStepTime_(0.0), evolveTimeSteps_(0),
+    migrationProfileContext_(migrationProfileOther),
+    migrationCommWallTime_(0.0),
+    regularMigrationWallTime_(0.0),
+    regularMigrationCommWallTime_(0.0),
+    dlbMigrationWallTime_(0.0),
+    dlbMigrationCommWallTime_(0.0),
+    outputMigrationWallTime_(0.0),
+    outputMigrationCommWallTime_(0.0),
+    outputGatherCommWallTime_(0.0),
+    manualMigrationWallTime_(0.0),
+    manualMigrationCommWallTime_(0.0),
+    initialMigrationWallTime_(0.0),
+    initialMigrationCommWallTime_(0.0),
+    otherMigrationWallTime_(0.0),
+    otherMigrationCommWallTime_(0.0),
     active_(false), nProcs_(1), myRank_(0),
     migrateInterval_(1), stepCounter_(0),
     rebalanceCount_(0), totalCellsChanged_(0), totalParcelsMigrated_(0),
@@ -140,6 +199,7 @@ dsmcReplicatedMesh::dsmcReplicatedMesh(dsmcCloud& cloud, const fvMesh& mesh)
     autoRebalanceMigrationWallTime_(0.0),
     autoRebalanceWriteWallTime_(0.0),
     autoRebalancePostDiagWallTime_(0.0),
+    autoRebalanceExplicitCommWallTime_(0.0),
     dlbAlpha_(1.0),
     adaptiveAlpha_(false),
     adaptiveAlphaMin_(0.5),
@@ -556,6 +616,7 @@ label dsmcReplicatedMesh::reassignByParMetisAdaptiveRepart()
         Info<< "Phase C ParMETIS profile: entering particle-count allreduce"
             << endl;
     }
+    const auto tParticleAllreduce0 = std::chrono::steady_clock::now();
     MPI_Allreduce
     (
         localCellParticles.data(),
@@ -564,6 +625,13 @@ label dsmcReplicatedMesh::reassignByParMetisAdaptiveRepart()
         MPI_INT,
         MPI_SUM,
         MPI_COMM_WORLD
+    );
+    addAutoRebalanceCommTime
+    (
+        std::chrono::duration<scalar>
+        (
+            std::chrono::steady_clock::now() - tParticleAllreduce0
+        ).count()
     );
     if (dlbProfile && myRank_ == 0)
     {
@@ -760,9 +828,17 @@ label dsmcReplicatedMesh::reassignByParMetisAdaptiveRepart()
         Info<< "Phase C ParMETIS profile: entering partition allgatherv"
             << endl;
     }
+    const auto tPartitionAllgather0 = std::chrono::steady_clock::now();
     MPI_Allgatherv(part.data(), myN, MPI_INT,
                    fullPart.data(), recvCounts.data(), displs.data(),
                    MPI_INT, MPI_COMM_WORLD);
+    addAutoRebalanceCommTime
+    (
+        std::chrono::duration<scalar>
+        (
+            std::chrono::steady_clock::now() - tPartitionAllgather0
+        ).count()
+    );
     if (dlbProfile && myRank_ == 0)
     {
         Info<< "Phase C ParMETIS profile: partition allgatherv complete"
@@ -983,6 +1059,7 @@ void dsmcReplicatedMesh::autoRebalance()
     auto gatherLoadExtrema =
         [&](const scalar localT, scalar& maxT, scalar& minT)
         {
+            const auto tComm0 = std::chrono::steady_clock::now();
             if (useAllreduceCheck)
             {
                 MPI_Allreduce
@@ -1020,6 +1097,13 @@ void dsmcReplicatedMesh::autoRebalance()
                 maxT = max(allT);
                 minT = min(allT);
             }
+            addAutoRebalanceCommTime
+            (
+                std::chrono::duration<scalar>
+                (
+                    std::chrono::steady_clock::now() - tComm0
+                ).count()
+            );
         };
 
     // Post-DLB snapshot: per-rank load for 5 steps after DLB
@@ -1028,10 +1112,18 @@ void dsmcReplicatedMesh::autoRebalance()
         const scalar myMoveT = cloud_.evolveMoveWallTime();
         const scalar myCollT = cloud_.evolveCollisionWallTime();
         scalarList snapMove(nProcs_, 0.0), snapColl(nProcs_, 0.0);
+        const auto tPostSnapshotComm0 = std::chrono::steady_clock::now();
         MPI_Allgather(&myMoveT, 1, MPI_DOUBLE,
                       snapMove.data(), 1, MPI_DOUBLE, MPI_COMM_WORLD);
         MPI_Allgather(&myCollT, 1, MPI_DOUBLE,
                       snapColl.data(), 1, MPI_DOUBLE, MPI_COMM_WORLD);
+        addAutoRebalanceCommTime
+        (
+            std::chrono::duration<scalar>
+            (
+                std::chrono::steady_clock::now() - tPostSnapshotComm0
+            ).count()
+        );
         if (lastDLBMoveT_.size() == nProcs_)
         {
             const label nSnap = mesh_.time().controlDict().lookupOrDefault<label>
@@ -1119,7 +1211,15 @@ void dsmcReplicatedMesh::autoRebalance()
     {
         if (sarEvalSteps_ >= sarSteps_)
         {
+            const auto tForcedBarrier0 = std::chrono::steady_clock::now();
             MPI_Barrier(MPI_COMM_WORLD);
+            addAutoRebalanceCommTime
+            (
+                std::chrono::duration<scalar>
+                (
+                    std::chrono::steady_clock::now() - tForcedBarrier0
+                ).count()
+            );
             sarEvalSteps_ = 0;
         }
 
@@ -1318,6 +1418,7 @@ void dsmcReplicatedMesh::autoRebalance()
     {
         const int localTriggered = triggered ? 1 : 0;
         int triggeredSum = 0;
+        const auto tTriggerComm0 = std::chrono::steady_clock::now();
         MPI_Allreduce
         (
             &localTriggered,
@@ -1326,6 +1427,13 @@ void dsmcReplicatedMesh::autoRebalance()
             MPI_INT,
             MPI_SUM,
             MPI_COMM_WORLD
+        );
+        addAutoRebalanceCommTime
+        (
+            std::chrono::duration<scalar>
+            (
+                std::chrono::steady_clock::now() - tTriggerComm0
+            ).count()
         );
 
         if
@@ -1370,8 +1478,11 @@ void dsmcReplicatedMesh::autoRebalance()
     if (nChanged > 0)
     {
         const auto tMigrate0 = std::chrono::steady_clock::now();
+        const label oldMigrationContext = migrationProfileContext_;
+        setMigrationProfileContext(migrationProfileDLB);
         migrateParticlesByCellOwner();
         updateParticleCounts();
+        setMigrationProfileContext(oldMigrationContext);
         const auto tMigrate1 = std::chrono::steady_clock::now();
         autoRebalanceMigrationWallTime_ +=
             std::chrono::duration<scalar>(tMigrate1 - tMigrate0).count();
@@ -1381,6 +1492,7 @@ void dsmcReplicatedMesh::autoRebalance()
     const scalar localDecWall =
         std::chrono::duration<scalar>(tDecEnd - tDecStart).count();
     scalar globalDecWall = localDecWall;
+    const auto tDecWallComm0 = std::chrono::steady_clock::now();
     MPI_Allreduce
     (
         &localDecWall,
@@ -1389,6 +1501,13 @@ void dsmcReplicatedMesh::autoRebalance()
         MPI_DOUBLE,
         MPI_MAX,
         MPI_COMM_WORLD
+    );
+    addAutoRebalanceCommTime
+    (
+        std::chrono::duration<scalar>
+        (
+            std::chrono::steady_clock::now() - tDecWallComm0
+        ).count()
     );
     tdecps_ += globalDecWall;
 
@@ -1427,10 +1546,18 @@ void dsmcReplicatedMesh::autoRebalance()
             const scalar myCollT = cloud_.evolveCollisionWallTime();
             allMoveT.setSize(nProcs_, 0.0);
             allCollT.setSize(nProcs_, 0.0);
+            const auto tPostDiagComm0 = std::chrono::steady_clock::now();
             MPI_Allgather(&myMoveT, 1, MPI_DOUBLE,
                           allMoveT.data(), 1, MPI_DOUBLE, MPI_COMM_WORLD);
             MPI_Allgather(&myCollT, 1, MPI_DOUBLE,
                           allCollT.data(), 1, MPI_DOUBLE, MPI_COMM_WORLD);
+            addAutoRebalanceCommTime
+            (
+                std::chrono::duration<scalar>
+                (
+                    std::chrono::steady_clock::now() - tPostDiagComm0
+                ).count()
+            );
         }
         if (dlbProfile && lastDLBMoveT_.size() == nProcs_)
         {
@@ -2848,6 +2975,23 @@ void dsmcReplicatedMesh::migrateParticlesByCellOwner()
             std::chrono::duration<scalar>(tPostEnd - tDeserializeEnd).count();
         migrationCandidateGatherWallTime_ +=
             std::chrono::duration<scalar>(tEnd - tPostEnd).count();
+        const scalar migrationWall =
+            std::chrono::duration<scalar>(tEnd - tStart).count();
+        const scalar migrationComm =
+            std::chrono::duration<scalar>
+            (
+                tSizeExchangeEnd - tLocalPrepEnd
+            ).count()
+          + std::chrono::duration<scalar>
+            (
+                tRequestPostEnd - tSizeExchangeEnd
+            ).count()
+          + std::chrono::duration<scalar>
+            (
+                tWaitEnd - tRequestPostEnd
+            ).count()
+          + std::chrono::duration<scalar>(tEnd - tPostEnd).count();
+        addMigrationProfileSample(migrationWall, migrationComm);
         ++migrationCalls_;
         totalParcelsMigrated_ += nMigratedOut;
 
@@ -3154,7 +3298,12 @@ void dsmcReplicatedMesh::migrateParticlesByCellOwner()
     const auto tEnd = std::chrono::steady_clock::now();
 
     // ---- Timing -----------------------------------------------------------------
-    migrationWallTime_ += std::chrono::duration<scalar>(tEnd - tStart).count();
+    const scalar migrationWall =
+        std::chrono::duration<scalar>(tEnd - tStart).count();
+    const scalar migrationComm =
+        std::chrono::duration<scalar>(t3 - t2).count();
+    migrationWallTime_ += migrationWall;
+    addMigrationProfileSample(migrationWall, migrationComm);
     ++migrationCalls_;
 
     totalParcelsMigrated_ += nMigratedOut;
@@ -3432,8 +3581,12 @@ void dsmcReplicatedMesh::migrateBegin()
     totalParcelsMigrated_ += nMigratedOut;
     ++migrationCalls_;
 
-    migrationWallTime_ += std::chrono::duration<scalar>(
-        std::chrono::steady_clock::now() - tStart).count();
+    const scalar migrationWall = std::chrono::duration<scalar>
+    (
+        std::chrono::steady_clock::now() - tStart
+    ).count();
+    migrationWallTime_ += migrationWall;
+    addMigrationProfileSample(migrationWall, migrationWall);
 }
 
 
@@ -3449,6 +3602,7 @@ void dsmcReplicatedMesh::migrateFinish()
         cloud_.openmpEnabled()
      && cloud_.openmpMoveEnabled()
      && cloud_.ompNumThreads() > 1;
+    const auto tFinish0 = std::chrono::steady_clock::now();
 
     if (useNoAlltoall_ && asyncReqs_.size() > 0)
     {
@@ -3528,6 +3682,14 @@ void dsmcReplicatedMesh::migrateFinish()
     asyncSendBuf_.clear();
     asyncRecvBuf_.clear();
     asyncMigrationPending_ = false;
+    addMigrationProfileSample
+    (
+        0.0,
+        std::chrono::duration<scalar>
+        (
+            std::chrono::steady_clock::now() - tFinish0
+        ).count()
+    );
 }
 
 
@@ -3546,6 +3708,14 @@ void dsmcReplicatedMesh::updateParticleCounts()
     (
         std::chrono::steady_clock::now() - tStart
     ).count();
+    addMigrationProfileSample
+    (
+        0.0,
+        std::chrono::duration<scalar>
+        (
+            std::chrono::steady_clock::now() - tStart
+        ).count()
+    );
 }
 
 
@@ -3718,157 +3888,103 @@ void dsmcReplicatedMesh::report() const
 {
     if (!active_) return;
 
+    const auto tReport0 = std::chrono::steady_clock::now();
     scalarList allTimes(nProcs_, 0.0);
     allTimes[myRank_] = evolveStepTime_;
     MPI_Allreduce(MPI_IN_PLACE, allTimes.data(), nProcs_, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
 
-    scalar autoRebalanceWallMax = autoRebalanceWallTime_;
-    scalar autoRebalanceCheckWallMax = autoRebalanceCheckWallTime_;
-    scalar autoRebalanceRepartWallMax = autoRebalanceRepartWallTime_;
-    scalar autoRebalanceMigrationWallMax = autoRebalanceMigrationWallTime_;
-    scalar autoRebalanceWriteWallMax = autoRebalanceWriteWallTime_;
-    scalar autoRebalancePostDiagWallMax = autoRebalancePostDiagWallTime_;
-    const scalar migrationAccountedLocal =
-        migrationPackWallTime_
-      + migrationLocalPrepWallTime_
-      + migrationSizeExchangeWallTime_
-      + migrationRequestPostWallTime_
-      + migrationWaitWallTime_
-      + migrationDeserializeWallTime_
-      + migrationPostWallTime_
-      + migrationCandidateGatherWallTime_;
-    const scalar migrationResidualLocal =
-        migrationWallTime_ - migrationAccountedLocal;
-    const int nMigrationTimingValues = 12;
-    scalar migrationTimingMax[nMigrationTimingValues] =
+    const scalar commDLBLocal =
+        dlbMigrationCommWallTime_
+      + autoRebalanceExplicitCommWallTime_;
+    const scalar commOutputLocal =
+        outputMigrationCommWallTime_
+      + outputGatherCommWallTime_;
+    const scalar commTotalLocal =
+        regularMigrationCommWallTime_
+      + commDLBLocal
+      + commOutputLocal
+      + manualMigrationCommWallTime_
+      + initialMigrationCommWallTime_
+      + otherMigrationCommWallTime_;
+    const scalar dlbNonCommLocal = max
+    (
+        autoRebalanceWallTime_
+      - autoRebalanceExplicitCommWallTime_
+      - dlbMigrationCommWallTime_,
+        scalar(0.0)
+    );
+
+    const int nProfileValues = 27;
+    scalar profileValues[nProfileValues] =
     {
         migrationWallTime_,
-        migrationPackWallTime_,
-        migrationLocalPrepWallTime_,
-        migrationSizeExchangeWallTime_,
-        migrationRequestPostWallTime_,
-        migrationWaitWallTime_,
-        migrationDeserializeWallTime_,
-        migrationPostWallTime_,
-        migrationCandidateGatherWallTime_,
+        migrationCommWallTime_,
+        regularMigrationWallTime_,
+        regularMigrationCommWallTime_,
+        dlbMigrationWallTime_,
+        dlbMigrationCommWallTime_,
+        outputMigrationWallTime_,
+        outputMigrationCommWallTime_,
+        outputGatherCommWallTime_,
+        manualMigrationWallTime_,
+        manualMigrationCommWallTime_,
+        initialMigrationWallTime_,
+        initialMigrationCommWallTime_,
+        otherMigrationWallTime_,
+        otherMigrationCommWallTime_,
         updateParticleCountsWallTime_,
-        migrationAccountedLocal,
-        migrationResidualLocal
+        autoRebalanceWallTime_,
+        autoRebalanceCheckWallTime_,
+        autoRebalanceRepartWallTime_,
+        autoRebalanceMigrationWallTime_,
+        autoRebalanceWriteWallTime_,
+        autoRebalancePostDiagWallTime_,
+        autoRebalanceExplicitCommWallTime_,
+        commTotalLocal,
+        commDLBLocal,
+        commOutputLocal,
+        dlbNonCommLocal
     };
 
     MPI_Allreduce
     (
         MPI_IN_PLACE,
-        migrationTimingMax,
-        nMigrationTimingValues,
+        profileValues,
+        nProfileValues,
         MPI_DOUBLE,
         MPI_MAX,
         MPI_COMM_WORLD
     );
-    MPI_Allreduce
-    (
-        MPI_IN_PLACE,
-        &autoRebalanceWallMax,
-        1,
-        MPI_DOUBLE,
-        MPI_MAX,
-        MPI_COMM_WORLD
-    );
-    MPI_Allreduce
-    (
-        MPI_IN_PLACE,
-        &autoRebalanceCheckWallMax,
-        1,
-        MPI_DOUBLE,
-        MPI_MAX,
-        MPI_COMM_WORLD
-    );
-    MPI_Allreduce
-    (
-        MPI_IN_PLACE,
-        &autoRebalanceRepartWallMax,
-        1,
-        MPI_DOUBLE,
-        MPI_MAX,
-        MPI_COMM_WORLD
-    );
-    MPI_Allreduce
-    (
-        MPI_IN_PLACE,
-        &autoRebalanceMigrationWallMax,
-        1,
-        MPI_DOUBLE,
-        MPI_MAX,
-        MPI_COMM_WORLD
-    );
-    MPI_Allreduce
-    (
-        MPI_IN_PLACE,
-        &autoRebalanceWriteWallMax,
-        1,
-        MPI_DOUBLE,
-        MPI_MAX,
-        MPI_COMM_WORLD
-    );
-    MPI_Allreduce
-    (
-        MPI_IN_PLACE,
-        &autoRebalancePostDiagWallMax,
-        1,
-        MPI_DOUBLE,
-        MPI_MAX,
-        MPI_COMM_WORLD
-    );
+    const scalar profileReportComm =
+        std::chrono::duration<scalar>
+        (
+            std::chrono::steady_clock::now() - tReport0
+        ).count();
 
     if (myRank_ != 0) return;
 
-    Info<< nl << "Replicated mesh profiling summary:" << nl
-        << "    migration calls             = " << migrationCalls_ << nl
-        << "    migration wall time [s]     = " << migrationWallTime_ << nl
-        << "    local particles (final)     = " << localParticleCount_ << nl;
-    {
-        const scalar migrationAccounted =
-            migrationTimingMax[1]
-          + migrationTimingMax[2]
-          + migrationTimingMax[3]
-          + migrationTimingMax[4]
-          + migrationTimingMax[5]
-          + migrationTimingMax[6]
-          + migrationTimingMax[7]
-          + migrationTimingMax[8];
-
-        Info<< "    migration wall max [s]      = "
-            << migrationTimingMax[0] << nl
-            << "    migration pack max [s]      = "
-            << migrationTimingMax[1] << nl
-            << "    migration local prep max [s]= "
-            << migrationTimingMax[2] << nl
-            << "    migration size exchange max [s] = "
-            << migrationTimingMax[3] << nl
-            << "    migration request post max [s] = "
-            << migrationTimingMax[4] << nl
-            << "    migration wait max [s]      = "
-            << migrationTimingMax[5] << nl
-            << "    migration deserialize max [s] = "
-            << migrationTimingMax[6] << nl
-            << "    migration post max [s]      = "
-            << migrationTimingMax[7] << nl
-            << "    migration candidate gather max [s] = "
-            << migrationTimingMax[8] << nl
-            << "    migration accounted max [s] = "
-            << migrationTimingMax[10] << nl
-            << "    migration residual max [s]  = "
-            << migrationTimingMax[11] << nl
-            << "    updateParticleCounts max [s]= "
-            << migrationTimingMax[9] << nl
-            << "    migration subphase max sum [s] = "
-            << migrationAccounted << nl;
-    }
+    Info<< nl << "Replicated mesh comm/DLB profile v2:" << nl
+        << "    migration calls              = " << migrationCalls_ << nl
+        << "    local particles (final)      = " << localParticleCount_ << nl
+        << "    comm total max [s]           = " << profileValues[23] << nl
+        << "    comm_regular_migration [s]   = " << profileValues[3] << nl
+        << "    comm_dlb [s]                 = " << profileValues[24] << nl
+        << "    comm_output [s]              = " << profileValues[25] << nl
+        << "    comm_manual_rebalance [s]    = " << profileValues[10] << nl
+        << "    comm_initial_distribution [s]= " << profileValues[12] << nl
+        << "    comm_other [s]               = " << profileValues[14] << nl
+        << "    comm_profile_report local [s]= " << profileReportComm << nl
+        << "    migration wall max [s]       = " << profileValues[0] << nl
+        << "    migration comm max [s]       = " << profileValues[1] << nl
+        << "    updateParticleCounts max [s] = " << profileValues[15] << nl
+        << "    regular migration wall [s]   = " << profileValues[2] << nl
+        << "    DLB migration wall [s]       = " << profileValues[4] << nl
+        << "    output migration wall [s]    = " << profileValues[6] << nl;
     if (allParticleCounts_.size() > 0)
     {
         const label minP = min(allParticleCounts_);
         const label maxP = max(allParticleCounts_);
-        Info<< "    particles per rank          = min " << minP
+        Info<< "    particles per rank           = min " << minP
             << " max " << maxP
             << " max/min " << (minP > 0 ? scalar(maxP)/scalar(minP) : 0) << nl;
     }
@@ -3878,46 +3994,39 @@ void dsmcReplicatedMesh::report() const
     if (rebalanceCount_ > 0)
     {
         const label nCells = mesh_.nCells();
-        Info<< "    Phase B rebalances          = " << rebalanceCount_ << nl
-            << "    R_changed (total)           = " << totalCellsChanged_
+        Info<< "    manual rebalances            = " << rebalanceCount_ << nl
+            << "    R_changed (total)            = " << totalCellsChanged_
             << " / " << nCells << " (" << scalar(totalCellsChanged_)/scalar(nCells*nProcs_) << " per rank)" << nl
-            << "    R_mig (total)              = " << totalParcelsMigrated_ << nl;
+            << "    R_mig (total)                = " << totalParcelsMigrated_ << nl;
     }
     if (autoDLBEnabled_)
     {
-        const scalar autoRebalanceAccounted =
-            autoRebalanceCheckWallMax
-          + autoRebalanceRepartWallMax
-          + autoRebalanceMigrationWallMax
-          + autoRebalanceWriteWallMax
-          + autoRebalancePostDiagWallMax;
-
-        Info<< "    Phase C auto DLB checks      = " << autoRebalanceChecks_ << nl
-            << "    Phase C auto DLB rebalances = " << autoRebalanceCount_ << nl
-            << "    Phase C auto DLB triggered checks = "
+        Info<< "    DLB checks                   = " << autoRebalanceChecks_ << nl
+            << "    DLB rebalances               = " << autoRebalanceCount_ << nl
+            << "    DLB triggered checks         = "
             << autoRebalanceTriggeredChecks_ << nl
-            << "    Phase C auto DLB wall max [s]= "
-            << autoRebalanceWallMax << nl
-            << "    Phase C auto DLB check max [s]= "
-            << autoRebalanceCheckWallMax << nl
-            << "    Phase C ParMETIS max [s]     = "
-            << autoRebalanceRepartWallMax << nl
-            << "    Phase C migration max [s]    = "
-            << autoRebalanceMigrationWallMax << nl
-            << "    Phase C cellOwner write max [s] = "
-            << autoRebalanceWriteWallMax << nl
-            << "    Phase C post-diagnostic max [s] = "
-            << autoRebalancePostDiagWallMax << nl
-            << "    Phase C auto DLB accounted max [s] = "
-            << autoRebalanceAccounted << nl
-            << "    Phase C auto DLB residual max [s] = "
-            << autoRebalanceWallMax - autoRebalanceAccounted << nl;
+            << "    DLB wall max [s]             = "
+            << profileValues[16] << nl
+            << "    DLB noncomm max [s]          = "
+            << profileValues[26] << nl
+            << "    DLB explicit comm max [s]    = "
+            << profileValues[22] << nl
+            << "    DLB check max [s]            = "
+            << profileValues[17] << nl
+            << "    DLB ParMETIS/repart max [s]  = "
+            << profileValues[18] << nl
+            << "    DLB migration total max [s]  = "
+            << profileValues[19] << nl
+            << "    DLB cellOwner write max [s]  = "
+            << profileValues[20] << nl
+            << "    DLB post-diagnostic max [s]  = "
+            << profileValues[21] << nl;
         if (adaptiveAlpha_)
         {
-            Info<< "    Phase C adaptive alpha final = " << dlbAlpha_ << nl
-                << "    Phase C adaptive alpha last imbalance = "
+            Info<< "    DLB adaptive alpha final     = " << dlbAlpha_ << nl
+                << "    DLB adaptive alpha last imbalance = "
                 << adaptiveAlphaLastImbalance_ << nl
-                << "    Phase C adaptive alpha last step = "
+                << "    DLB adaptive alpha last step = "
                 << adaptiveAlphaLastStep_ << nl;
         }
     }

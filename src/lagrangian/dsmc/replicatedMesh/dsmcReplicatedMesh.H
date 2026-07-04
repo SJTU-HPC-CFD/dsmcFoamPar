@@ -32,6 +32,18 @@ class dsmcCloud;
 
 class dsmcReplicatedMesh
 {
+public:
+    enum MigrationProfileContext
+    {
+        migrationProfileOther = 0,
+        migrationProfileRegular = 1,
+        migrationProfileDLB = 2,
+        migrationProfileOutput = 3,
+        migrationProfileManual = 4,
+        migrationProfileInitial = 5
+    };
+
+private:
     dsmcCloud& cloud_;
     const fvMesh& mesh_;
     dsmcLocalMesh localMesh_;
@@ -53,6 +65,22 @@ class dsmcReplicatedMesh
     label migrationCalls_;
     scalar evolveStepTime_;
     label evolveTimeSteps_;
+
+    label migrationProfileContext_;
+    scalar migrationCommWallTime_;
+    scalar regularMigrationWallTime_;
+    scalar regularMigrationCommWallTime_;
+    scalar dlbMigrationWallTime_;
+    scalar dlbMigrationCommWallTime_;
+    scalar outputMigrationWallTime_;
+    scalar outputMigrationCommWallTime_;
+    scalar outputGatherCommWallTime_;
+    scalar manualMigrationWallTime_;
+    scalar manualMigrationCommWallTime_;
+    scalar initialMigrationWallTime_;
+    scalar initialMigrationCommWallTime_;
+    scalar otherMigrationWallTime_;
+    scalar otherMigrationCommWallTime_;
 
     bool active_;
     label nProcs_;
@@ -98,6 +126,7 @@ class dsmcReplicatedMesh
     scalar autoRebalanceMigrationWallTime_;
     scalar autoRebalanceWriteWallTime_;
     scalar autoRebalancePostDiagWallTime_;
+    scalar autoRebalanceExplicitCommWallTime_;
 
     // Particle-count exponent for the DLB proxy: w = N^alpha
     scalar dlbAlpha_;
@@ -134,6 +163,9 @@ class dsmcReplicatedMesh
 
     // (Phase B) construct myCells_ from cellOwner_
     void rebuildMyCells();
+
+    void addMigrationProfileSample(const scalar wallTime, const scalar commTime);
+    void addAutoRebalanceCommTime(const scalar commTime);
 
     // Phase C: ParMETIS AdaptiveRepart — parallel incremental repartitioning
     // that minimises data movement while rebalancing vertex weights.
@@ -192,6 +224,40 @@ public:
     inline void addEvolveTime(scalar dt) { evolveStepTime_ += dt; ++evolveTimeSteps_; }
     inline bool autoDLBEnabled() const { return autoDLBEnabled_; }
     inline label autoRebalanceCount() const { return autoRebalanceCount_; }
+    inline scalar commDLBWallTime() const
+    {
+        return dlbMigrationCommWallTime_ + autoRebalanceExplicitCommWallTime_;
+    }
+    inline scalar commOutputWallTime() const
+    {
+        return outputMigrationCommWallTime_ + outputGatherCommWallTime_;
+    }
+    inline scalar commTotalWallTime() const
+    {
+        return regularMigrationCommWallTime_
+             + commDLBWallTime()
+             + commOutputWallTime()
+             + manualMigrationCommWallTime_
+             + initialMigrationCommWallTime_
+             + otherMigrationCommWallTime_;
+    }
+    inline scalar dlbNonCommWallTime() const
+    {
+        const scalar nonComm =
+            autoRebalanceWallTime_
+          - autoRebalanceExplicitCommWallTime_
+          - dlbMigrationCommWallTime_;
+        return nonComm > scalar(0.0) ? nonComm : scalar(0.0);
+    }
+    inline label migrationProfileContext() const { return migrationProfileContext_; }
+    inline void setMigrationProfileContext(const label context)
+    {
+        migrationProfileContext_ = context;
+    }
+    inline void addOutputGatherCommTime(const scalar dt)
+    {
+        outputGatherCommWallTime_ += dt;
+    }
 
     void gatherParcelsToRank0();
 
