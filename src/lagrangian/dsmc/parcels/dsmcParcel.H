@@ -41,7 +41,7 @@ SourceFiles
 #include "IOstream.H"
 #include "autoPtr.H"
 #include "contiguous.H"
-#include <cstdint>
+#include "../dsmcFastRng.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -1001,39 +1001,6 @@ public:
 
 
     //- Class used to pass kinematic tracking data to the trackToFace function
-    struct MoveFastRng
-    {
-        uint64_t s0, s1;
-
-        MoveFastRng(uint64_t seed = 1)
-        {
-            uint64_t z = seed + 0x9e3779b97f4a7c15ULL;
-            z = (z ^ (z >> 30)) * 0xbf58476d1ce4e5b9ULL;
-            z = (z ^ (z >> 27)) * 0x94d049bb133111ebULL;
-            s0 = z ^ (z >> 31);
-
-            z = seed + 0x9e3779b97f4a7c15ULL + 1;
-            z = (z ^ (z >> 30)) * 0xbf58476d1ce4e5b9ULL;
-            z = (z ^ (z >> 27)) * 0x94d049bb133111ebULL;
-            s1 = z ^ (z >> 31);
-        }
-
-        inline uint64_t next()
-        {
-            const uint64_t oldS0 = s0;
-            uint64_t oldS1 = s1;
-            oldS1 ^= oldS1 << 23;
-            s1 = oldS1 ^ oldS0 ^ (oldS1 >> 18) ^ (oldS0 >> 5);
-            s0 = oldS1;
-            return s1 + oldS0;
-        }
-
-        inline scalar sample01()
-        {
-            return scalar((next() >> 11)*0x1.0p-53);
-        }
-    };
-
     class trackingData
     :
         public particle::TrackingData<dsmcCloud>
@@ -1044,7 +1011,8 @@ public:
 
     public:
 
-        MoveFastRng moveRng;
+        dsmcFastRng moveRng;
+        bool fastRng;
         bool moveDetailProfile;
         label moveParcels;
         label moveTrackCalls;
@@ -1066,6 +1034,7 @@ public:
             :
                 particle::TrackingData<dsmcCloud>(cloud),
                 moveRng(1),
+                fastRng(false),
                 moveDetailProfile(false),
                 moveParcels(0),
                 moveTrackCalls(0),

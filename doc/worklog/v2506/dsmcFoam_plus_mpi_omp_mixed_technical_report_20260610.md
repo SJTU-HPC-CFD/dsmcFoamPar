@@ -319,6 +319,106 @@ doc/worklog/v2506/detail_mix/mpi8_parmetis_fix_20260610/ourmesh_MPI8_500step_par
 该修复是 replicated-mesh + ParMETIS DLB 的通用修复。OMP-only 不走这条路径；
 纯 MPI 和 mixed 只要启用 replicated-mesh auto DLB，都应使用修复后的全局权重。
 
+### 3.8 统一 FastRng 控制项补充
+
+2026-07-09 对此前 move/collision 分散的 FastRng 控制进行了收敛，目标是避免
+`controlDict` 中长期保留多个含义接近但作用范围不同的 RNG 开关，降低后续测试
+配置歧义。
+
+控制项统一为：
+
+```text
+fastRng true;
+```
+
+旧控制项已经从当前源码控制路径中移除：
+
+```text
+collisionFastRng
+moveFastRng
+```
+
+实现范围：
+
+- 新增公共 `dsmcFastRng`，同时供 OpenMP move 和 collision 采样使用；
+- collision 侧不再维护局部 `FastRng` 结构，`noTimeCounter` 使用统一的
+  `dsmcPaddedFastRng` per-thread RNG 缓存；
+- move 侧 `dsmcParcel::trackingData` 使用统一 `dsmcFastRng moveRng`，并通过
+  `Cloud::move()` 从 `controlDict` 读取同一个 `fastRng` 开关；
+- `fastRng false` 时，OpenMP move 回退到受保护的 OpenFOAM `rndGen()` 路径，
+  保持正确性优先；
+- `dsmcCloud` 增加 collision RNG context，使 collision 内部随机采样可在
+  FastRng 打开时避免共享 RNG critical。
+
+涉及的核心文件：
+
+| file | change |
+|---|---|
+| `src/lagrangian/dsmc/dsmcFastRng.H` | 公共 FastRng 实现、move/collision seed、cache-line padded wrapper |
+| `src/lagrangian/basic/Cloud/Cloud.C` | OpenMP move trackingData 初始化时读取统一 `fastRng` |
+| `src/lagrangian/dsmc/parcels/dsmcParcel.H/C` | move 侧移除独立 RNG 类型，改用公共 `dsmcFastRng` |
+| `src/lagrangian/dsmc/clouds/dsmcCloud.H/C` | collision RNG context 和统一采样入口 |
+| `src/lagrangian/dsmc/collisionPartnerSelection/derived/noTimeCounter/noTimeCounter.H/C` | collision 侧改用统一 `fastRng` 控制项和公共 RNG 缓存 |
+
+编译验证：
+
+```bash
+bash doc/scripts/build-dsmcFoam.sh
+```
+
+编译通过，生成的主要可执行文件为：
+
+```text
+platforms/linux64IccDPInt32Opt/bin/dsmcFoam+
+platforms/linux64IccDPInt32Opt/bin/dsmcInitialise+
+```
+
+功能与性能烟测使用当前 mixed 典型 case：
+
+```text
+run/hyStrath/dsmcFoam+/xcx_test/zb-cylinder-react/mpi4omp2
+```
+
+运行方式保持 replicated mesh raw-MPI，不加 `-parallel`：
+
+```bash
+source /home/superxcx/code/OpenFoam/OF-1706/hyStrath_dlb/doc/scripts/env.sh
+export OMP_NUM_THREADS=2
+export OMP_DYNAMIC=false
+mpirun -np 4 dsmcFoam+
+```
+
+测试配置要点：
+
+```text
+profileDetail false;
+fastRng true;
+replicatedMesh true;
+replicatedMeshMigrateInterval 1;
+```
+
+300-step 重测结果：
+
+| log | real | full evolve | move | buildOcc | collision | comm total | migration wall | DLB rebalances | particles | stuck |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| `run/hyStrath/dsmcFoam+/xcx_test/zb-cylinder-react/mpi4omp2/log.codex_unifiedFastRngSwitch_rerun_profileDetailFalse_np4_omp2_20260709_033602` | 70.52 | 68.5528 | 42.5504 | 3.6294 | 14.1017 | 17.5133 | 20.5284 | 2 | 1957736 | 0 |
+
+对照统一控制项前最近一次 `profileDetail false` 的 FastRng 优化日志：
+
+| log | real | full evolve | move | buildOcc | collision | comm total | migration wall | DLB rebalances |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| `run/hyStrath/dsmcFoam+/xcx_test/zb-cylinder-react/mpi4omp2/log.codex_fastRngOpt125_profileDetailFalse_replicatedMesh_np4_omp2_20260709_025826` | 70.56 | 68.2270 | 45.0536 | 3.7725 | 9.8786 | 15.2081 | 18.0493 | 2 |
+
+结论：
+
+- 统一 `fastRng` 开关后，`mpi4omp2` 300-step case 可正常完成，`Total Iterations = 300`、
+  `End main`、`stuck particles = 0`；
+- 重测 `real 70.52 s` 与统一前最近一次 `70.56 s` 基本一致，说明控制项收敛本身
+  没有引入稳定的端到端性能退化；
+- 单次分项中 collision/comm 有波动，不能据此单独判断 collision RNG 更快或更慢；
+  后续若要量化统一 FastRng 的真实收益，应采用 `fastRng true/false` 多重复 A/B，
+  并固定 `replicatedMeshMigrateInterval`、绑核策略和 profile 开关。
+
 ## 4. Bring-up 和诊断结果
 
 ### 4.1 `ourmesh/mix-mpi4omp2` formal baseline

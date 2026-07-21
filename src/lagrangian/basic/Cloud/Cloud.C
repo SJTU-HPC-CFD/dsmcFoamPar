@@ -120,6 +120,42 @@ inline bool moveOrderedReuseEnabled(const TrackCloudType&, long)
     return false;
 }
 
+template<class TrackCloudType>
+inline auto fastRngEnabled(const TrackCloudType& cloud, int)
+-> decltype
+(
+    cloud.controlDict().template lookupOrDefault<bool>
+    (
+        "fastRng",
+        false
+    ),
+    bool()
+)
+{
+    return cloud.controlDict().template lookupOrDefault<bool>
+    (
+        "fastRng",
+        false
+    );
+}
+
+template<class TrackCloudType>
+inline bool fastRngEnabled(const TrackCloudType&, long)
+{
+    return false;
+}
+
+template<class TrackData>
+inline auto setFastRng(TrackData& td, const bool enabled, int)
+-> decltype(td.fastRng = enabled, void())
+{
+    td.fastRng = enabled;
+}
+
+template<class TrackData>
+inline void setFastRng(TrackData&, const bool, ...)
+{}
+
 template<class TrackData>
 inline auto setMoveSeed(TrackData& td, const label threadI, int)
 -> decltype(td.moveRng = td.moveRng, void())
@@ -131,7 +167,12 @@ inline auto setMoveSeed(TrackData& td, const label threadI, int)
 
     td.moveRng = RngType
     (
-        uint64_t(threadI)*10000ULL + 42ULL
+        RngType::moveSeed
+        (
+            Pstream::myProcNo(),
+            threadI,
+            td.cloud().mesh().time().timeIndex()
+        )
     );
 }
 
@@ -725,6 +766,8 @@ void Foam::Cloud<ParticleType>::move(TrackData& td, const scalar trackTime)
                     static_cast<unsigned char>(0)
                 );
                 const bool inlineReset = resetPending;
+                const bool fastRng =
+                    cloudOpenMP::fastRngEnabled(td.cloud(), 0);
                 resetPending = false;
 
                 omp_sched_t sched = omp_sched_static;
@@ -742,6 +785,7 @@ void Foam::Cloud<ParticleType>::move(TrackData& td, const scalar trackTime)
                 {
                     TrackData localTd(td.cloud());
                     cloudOpenMP::copyMoveDetailProfile(localTd, td, 0);
+                    cloudOpenMP::setFastRng(localTd, fastRng, 0);
                     cloudOpenMP::setMoveSeed
                     (
                         localTd,
@@ -1089,6 +1133,7 @@ void Foam::Cloud<ParticleType>::move(TrackData& td, const scalar trackTime)
             static_cast<unsigned char>(1)
         );
         const bool inlineReset = true;
+        const bool fastRng = cloudOpenMP::fastRngEnabled(td.cloud(), 0);
         label deletedParticleCount = 0;
 
         omp_sched_t sched = omp_sched_static;
@@ -1106,6 +1151,7 @@ void Foam::Cloud<ParticleType>::move(TrackData& td, const scalar trackTime)
         {
             TrackData localTd(td.cloud());
             cloudOpenMP::copyMoveDetailProfile(localTd, td, 0);
+            cloudOpenMP::setFastRng(localTd, fastRng, 0);
             cloudOpenMP::setMoveSeed(localTd, omp_get_thread_num(), 0);
 
             #pragma omp for schedule(runtime)

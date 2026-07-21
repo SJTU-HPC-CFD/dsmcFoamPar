@@ -41,11 +41,7 @@ namespace
 {
     typedef std::chrono::steady_clock steadyWallClock;
 
-    thread_local void* collisionRngContext = nullptr;
-    thread_local Foam::dsmcCloud::CollisionSample01Function
-        collisionSample01Function = nullptr;
-    thread_local Foam::dsmcCloud::CollisionPositionFunction
-        collisionPositionFunction = nullptr;
+    thread_local Foam::dsmcFastRng* collisionRngContext = nullptr;
 
     Foam::scalar elapsedWallSeconds
     (
@@ -3073,32 +3069,23 @@ Foam::label Foam::dsmcCloud::randomLabel
 }
 
 
-void Foam::dsmcCloud::setCollisionRngContext
-(
-    void* context,
-    CollisionSample01Function sample01,
-    CollisionPositionFunction position
-)
+void Foam::dsmcCloud::setCollisionRngContext(dsmcFastRng* rng)
 {
-    collisionRngContext = context;
-    collisionSample01Function = sample01;
-    collisionPositionFunction = position;
+    collisionRngContext = rng;
 }
 
 
 void Foam::dsmcCloud::clearCollisionRngContext()
 {
     collisionRngContext = nullptr;
-    collisionSample01Function = nullptr;
-    collisionPositionFunction = nullptr;
 }
 
 
 Foam::scalar Foam::dsmcCloud::collisionSample01()
 {
-    if (collisionRngContext && collisionSample01Function)
+    if (collisionRngContext)
     {
-        return collisionSample01Function(collisionRngContext);
+        return collisionRngContext->sample01();
     }
 
     #ifdef _OPENMP
@@ -3132,9 +3119,9 @@ Foam::label Foam::dsmcCloud::collisionRandomLabel
     const label end = Foam::max(valOne, valTwo);
     const label n = end - start + 1;
 
-    if (collisionRngContext && collisionPositionFunction)
+    if (collisionRngContext)
     {
-        return start + collisionPositionFunction(collisionRngContext, n);
+        return start + collisionRngContext->position(n);
     }
 
     label val = start + label(collisionSample01()*n);

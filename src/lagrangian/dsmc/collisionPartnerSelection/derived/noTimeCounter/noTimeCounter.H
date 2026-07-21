@@ -41,6 +41,7 @@ SourceFiles
 
 #include "collisionPartnerSelection.H"
 #include "dsmcCloud.H"
+#include "../../../dsmcFastRng.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -68,6 +69,7 @@ private:
     List<DynamicList<label>> threadTypeIds_;
     List<DynamicList<label>> threadCharges_;
     List<DynamicList<label>> threadCandidateCells_;
+    List<dsmcPaddedFastRng*> collisionThreadFastRng_;
     DynamicList<label> candidateCellsToClear_;
     label profileLocalCollisions_;
     label profileLocalCollisionCandidates_;
@@ -76,11 +78,13 @@ private:
     scalar profileCollisionSigmaWall_;
     scalar profileCollisionPreOutputWall_;
 
-    bool collisionFastRng_;
+    bool fastRng_;
     bool collisionReduceOnlyOnOutput_;
     bool collisionOutputGlobalReduce_;
 
     void readControlDictParams();
+
+    void ensureCollisionThreadFastRngs(const label nThreads);
 
     void clearCandidateCounts(labelList& nCandidatesPerCell, const label nCells);
 

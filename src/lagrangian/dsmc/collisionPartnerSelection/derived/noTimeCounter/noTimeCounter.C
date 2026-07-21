@@ -30,8 +30,8 @@ Description
 
 #include "noTimeCounter.H"
 #include "addToRunTimeSelectionTable.H"
+#include "../../../dsmcFastRng.H"
 #include <chrono>
-#include <cstdint>
 
 #ifdef _OPENMP
     #include <omp.h>
@@ -66,57 +66,6 @@ inline scalar elapsedCollisionSeconds
     );
 }
 
-struct FastRng
-{
-    uint64_t s0;
-    uint64_t s1;
-
-    FastRng(uint64_t seed = 1)
-    {
-        uint64_t z = seed + 0x9e3779b97f4a7c15ULL;
-        z = (z ^ (z >> 30))*0xbf58476d1ce4e5b9ULL;
-        z = (z ^ (z >> 27))*0x94d049bb133111ebULL;
-        s0 = z ^ (z >> 31);
-
-        z = seed + 0x9e3779b97f4a7c15ULL + 1;
-        z = (z ^ (z >> 30))*0xbf58476d1ce4e5b9ULL;
-        z = (z ^ (z >> 27))*0x94d049bb133111ebULL;
-        s1 = z ^ (z >> 31);
-    }
-
-    inline uint64_t next()
-    {
-        const uint64_t oldS0 = s0;
-        uint64_t oldS1 = s1;
-        oldS1 ^= oldS1 << 23;
-        s1 = oldS1 ^ oldS0 ^ (oldS1 >> 18) ^ (oldS0 >> 5);
-        s0 = oldS1;
-        return s1 + oldS0;
-    }
-
-    inline scalar sample01()
-    {
-        return scalar((next() >> 11)*0x1.0p-53);
-    }
-
-    inline label position(const label n)
-    {
-        return label(next()%uint64_t(n));
-    }
-};
-
-
-inline scalar fastRngSample01Callback(void* context)
-{
-    return static_cast<FastRng*>(context)->sample01();
-}
-
-
-inline label fastRngPositionCallback(void* context, const label n)
-{
-    return static_cast<FastRng*>(context)->position(n);
-}
-
 }
 
 
@@ -124,8 +73,7 @@ void noTimeCounter::readControlDictParams()
 {
     const dictionary& controlDict = cloud_.mesh().time().controlDict();
 
-    collisionFastRng_ =
-        controlDict.lookupOrDefault<bool>("collisionFastRng", false);
+    fastRng_ = controlDict.lookupOrDefault<bool>("fastRng", false);
 
     const bool replicatedMpiDefault =
         controlDict.lookupOrDefault<bool>("replicatedMesh", false);
@@ -184,6 +132,7 @@ noTimeCounter::noTimeCounter
     threadTypeIds_(),
     threadCharges_(),
     threadCandidateCells_(),
+    collisionThreadFastRng_(),
     candidateCellsToClear_(),
     profileLocalCollisions_(0),
     profileLocalCollisionCandidates_(0),
@@ -191,7 +140,7 @@ noTimeCounter::noTimeCounter
     profileCollisionReduceWall_(0.0),
     profileCollisionSigmaWall_(0.0),
     profileCollisionPreOutputWall_(0.0),
-    collisionFastRng_(false),
+    fastRng_(false),
     collisionReduceOnlyOnOutput_(false),
     collisionOutputGlobalReduce_(true)
 //     propsDict_(dict.subDict(typeName + "Properties"))
@@ -223,6 +172,23 @@ void noTimeCounter::clearCandidateCounts
     }
 
     candidateCellsToClear_.clear();
+}
+
+
+void noTimeCounter::ensureCollisionThreadFastRngs(const label nThreads)
+{
+    if (collisionThreadFastRng_.size() >= nThreads)
+    {
+        return;
+    }
+
+    const label oldSize = collisionThreadFastRng_.size();
+    collisionThreadFastRng_.setSize(nThreads, nullptr);
+
+    for (label threadI = oldSize; threadI < nThreads; ++threadI)
+    {
+        collisionThreadFastRng_[threadI] = new dsmcPaddedFastRng();
+    }
 }
 
 
@@ -400,7 +366,13 @@ void noTimeCounter::printReplicatedRankCollisionDetail
 // * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
 
 noTimeCounter::~noTimeCounter()
-{}
+{
+    forAll(collisionThreadFastRng_, threadI)
+    {
+        delete collisionThreadFastRng_[threadI];
+        collisionThreadFastRng_[threadI] = nullptr;
+    }
+}
 
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
@@ -496,14 +468,18 @@ void noTimeCounter::collide()
             threadCandidateCells_[threadI].clear();
         }
 
-        List<FastRng> threadFastRng(statsThreads);
+        ensureCollisionThreadFastRngs(statsThreads);
+
         for (label threadI = 0; threadI < statsThreads; ++threadI)
         {
-            threadFastRng[threadI] = FastRng
+            collisionThreadFastRng_[threadI]->reset
             (
-                uint64_t(Pstream::myProcNo())*1000000ULL
-              + uint64_t(threadI)*10000ULL
-              + uint64_t(mesh.time().timeIndex() + 1)
+                dsmcFastRng::collisionSeed
+                (
+                    Pstream::myProcNo(),
+                    threadI,
+                    mesh.time().timeIndex()
+                )
             );
         }
 
@@ -518,18 +494,18 @@ void noTimeCounter::collide()
         )
         -> label
         {
-            FastRng& fastRng = threadFastRng[threadI];
+            dsmcFastRng& fastRng = collisionThreadFastRng_[threadI]->rng();
 
             auto randomIndex = [&](const label n) -> label
             {
-                return collisionFastRng_
+                return fastRng_
                   ? fastRng.position(n)
                   : cloud_.collisionRandomLabel(0, n - 1);
             };
 
             auto random01 = [&]() -> scalar
             {
-                return collisionFastRng_
+                return fastRng_
                   ? fastRng.sample01()
                   : cloud_.collisionSample01();
             };
@@ -715,16 +691,11 @@ void noTimeCounter::collide()
             const label threadI = omp_get_thread_num();
             label localCandidates = 0;
             label localCollisions = 0;
-            FastRng& threadRng = threadFastRng[threadI];
+            dsmcFastRng& threadRng = collisionThreadFastRng_[threadI]->rng();
 
-            if (collisionFastRng_)
+            if (fastRng_)
             {
-                cloud_.setCollisionRngContext
-                (
-                    &threadRng,
-                    fastRngSample01Callback,
-                    fastRngPositionCallback
-                );
+                cloud_.setCollisionRngContext(&threadRng);
             }
             else
             {
@@ -968,20 +939,22 @@ void noTimeCounter::collide()
         threadSubCells_[0].setSize(8);
     }
 
-    FastRng fastRng
-    (
-        uint64_t(Pstream::myProcNo())*1000000ULL
-      + uint64_t(mesh.time().timeIndex() + 1)
-    );
+    ensureCollisionThreadFastRngs(1);
 
-    if (collisionFastRng_)
-    {
-        cloud_.setCollisionRngContext
+    collisionThreadFastRng_[0]->reset
+    (
+        dsmcFastRng::collisionSeed
         (
-            &fastRng,
-            fastRngSample01Callback,
-            fastRngPositionCallback
-        );
+            Pstream::myProcNo(),
+            0,
+            mesh.time().timeIndex()
+        )
+    );
+    dsmcFastRng& fastRng = collisionThreadFastRng_[0]->rng();
+
+    if (fastRng_)
+    {
+        cloud_.setCollisionRngContext(&fastRng);
     }
     else
     {
@@ -990,7 +963,7 @@ void noTimeCounter::collide()
 
     auto randomIndex = [&](const label n) -> label
     {
-        if (!collisionFastRng_)
+        if (!fastRng_)
         {
             return cloud_.collisionRandomLabel(0, n - 1);
         }
@@ -1000,7 +973,7 @@ void noTimeCounter::collide()
 
     auto random01 = [&]() -> scalar
     {
-        return collisionFastRng_
+        return fastRng_
              ? fastRng.sample01()
              : cloud_.collisionSample01();
     };

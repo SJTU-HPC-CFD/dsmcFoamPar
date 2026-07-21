@@ -498,16 +498,8 @@ public:
         //- Return refernce to the random object
         inline Random& rndGen();
 
-        typedef scalar (*CollisionSample01Function)(void*);
-        typedef label (*CollisionPositionFunction)(void*, label);
-
         //- Install a thread-local collision RNG while inside collision kernels
-        void setCollisionRngContext
-        (
-            void* context,
-            CollisionSample01Function sample01,
-            CollisionPositionFunction position
-        );
+        void setCollisionRngContext(dsmcFastRng* rng);
 
         //- Clear the thread-local collision RNG context
         void clearCollisionRngContext();

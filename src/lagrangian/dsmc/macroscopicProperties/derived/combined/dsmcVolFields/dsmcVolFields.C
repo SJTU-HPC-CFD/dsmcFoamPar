@@ -3542,6 +3542,21 @@ void dsmcVolFields::calculateField()
         const auto outputTimeStart =
             doProfile ? wallClockNow() : std::chrono::steady_clock::time_point();
         const scalar nAvTimeSteps = nTimeSteps_;
+
+        if (nAvTimeSteps <= SMALL)
+        {
+            if (cloud_.isOutputRank())
+            {
+                WarningInFunction
+                    << "No valid DSMC samples are available at output time "
+                    << time_.time().value()
+                    << ". Skipping dsmcVolFields output calculation for field "
+                    << fieldName_ << '.' << endl;
+            }
+
+            return;
+        }
+
         const bool processorWrite =
             cloud_.replicatedMeshActive()
          && cloud_.replicatedMesh().processorWriteEnabled();

@@ -63,10 +63,22 @@ inline Foam::scalar moveSample01
     Foam::dsmcParcel::trackingData& td
 )
 {
-    if (useOpenMPMoveCriticals(cloud))
+    if (useOpenMPMoveCriticals(cloud) && td.fastRng)
     {
         return td.moveRng.sample01();
     }
+
+    #ifdef _OPENMP
+    if (useOpenMPMoveCriticals(cloud))
+    {
+        Foam::scalar value = 0;
+        #pragma omp critical(dsmcMoveRandom)
+        {
+            value = cloud.rndGen().sample01<Foam::scalar>();
+        }
+        return value;
+    }
+    #endif
 
     return cloud.rndGen().sample01<Foam::scalar>();
 }
