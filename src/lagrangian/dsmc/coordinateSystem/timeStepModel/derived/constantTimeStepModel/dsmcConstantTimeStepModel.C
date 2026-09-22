@@ -29,6 +29,7 @@ Description
 \*----------------------------------------------------------------------------*/
 
 #include "addToRunTimeSelectionTable.H"
+#include "dsmcMasterInfo.H"
 #include "dsmcConstantTimeStepModel.H"
 #include "dsmcCloud.H"
 
@@ -82,9 +83,12 @@ void dsmcConstantTimeStepModel::update()
 
 void dsmcConstantTimeStepModel::writeTimeStepModelInfo() const
 {
-    Info<< "Constant time-step model:" << nl
-        << "- time-step [sec]" << tab << deltaTValue() << nl
-        << endl;
+    if (Foam::dsmcIsPrintingRank())
+    {
+        Info<< "Constant time-step model:" << nl
+            << "- time-step [sec]" << tab << deltaTValue() << nl
+            << endl;
+    }
 }
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

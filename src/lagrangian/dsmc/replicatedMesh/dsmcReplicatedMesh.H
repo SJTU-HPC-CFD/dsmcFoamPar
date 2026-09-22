@@ -155,14 +155,46 @@ private:
     List<List<char>> perPeerRecvBuf_;     // per-peer receive buffers
     bool useNoAlltoall_;                  // controlDict flag
     bool useFlatTransfer_;                // flat POD buffer serialization
+    label transferChunkBytes_;            // maximum bytes per MPI transfer chunk
     bool gatherCandidates_;               // gather per-rank collision candidates
     bool overlapSizeExchange_;            // overlap Alltoall sizes with local prep
     word writeMode_;                      // gathered or processor
     mutable label processorWriteDecompVersion_;
     mutable word processorWriteMeshInstance_;
 
+    // ---- Wall-time trigger metric (worklog dlb_further_opt.md §5.6) ----
+    bool triggerWallTime_;                // replicatedMeshDLBTriggerWallTime
+    scalar lastStepWallTime_;             // full wall of the previous iteration
+                                          // (set by the solver main loop)
+    scalar stepFullWallCum_;              // cumulative per-rank full iteration wall
+    scalar lastStepWait_;                 // collective-wait delta of the previous
+                                          // accounted step (paired with
+                                          // lastStepWallTime_)
+    scalar lastSizeExchangeWall_;         // wait-accumulator snapshots
+    scalar lastWaitWall_;
+    scalar lastUpcWall_;
+
+    // ---- Futile-rebalance back-off (worklog dlb_further_opt.md §5.3) ----
+    bool backOffEnabled_;                 // replicatedMeshDLBBackOff
+    scalar backOffChangedRatio_;          // eps: ownership-change ratio floor
+    scalar backOffTol_;                   // imbalance improvement tolerance
+    label backOffFutileRuns_;             // consecutive futile rebalances
+    label backOffSkipChecks_;             // checks to skip once in back-off
+    scalar backOffEscalate_;              // safety valve (x threshold)
+    label backOffRemaining_;              // checks remaining in back-off
+    label futileCount_;
+    scalar lastExecChangedRatio_;         // nChanged/nCells of last executed DLB
+    scalar lastExecImbalance_;            // imbalance that triggered last DLB
+
     // (Phase B) construct myCells_ from cellOwner_
     void rebuildMyCells();
+
+    // Per-rank step-wall diagnostic at check time (§5.6)
+    void printPerRankStepWall() const;
+
+    // Verify that the replicated owner map and this rank's local view agree.
+    // This is intentionally called only after an executed DLB repartition.
+    void validateCellOwnerMap(const char* context) const;
 
     void addMigrationProfileSample(const scalar wallTime, const scalar commTime);
     void addAutoRebalanceCommTime(const scalar commTime);
@@ -170,6 +202,9 @@ private:
     // Phase C: ParMETIS AdaptiveRepart — parallel incremental repartitioning
     // that minimises data movement while rebalancing vertex weights.
     label reassignByParMetisAdaptiveRepart();
+
+    // Restore a processor-write checkpoint selected by dsmcFoam+ at startup.
+    bool restoreProcessorCheckpoint();
 
 public:
     dsmcReplicatedMesh(dsmcCloud& cloud, const fvMesh& mesh);
@@ -253,6 +288,10 @@ public:
     inline void setMigrationProfileContext(const label context)
     {
         migrationProfileContext_ = context;
+    }
+    inline void setLastStepWallTime(const scalar t)
+    {
+        lastStepWallTime_ = t;
     }
     inline void addOutputGatherCommTime(const scalar dt)
     {

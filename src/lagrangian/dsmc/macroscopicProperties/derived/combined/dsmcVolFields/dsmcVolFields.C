@@ -35,7 +35,9 @@ and are also written.
 \*---------------------------------------------------------------------------*/
 
 #include "dsmcVolFields.H"
+#include "dsmcMasterInfo.H"
 #include "addToRunTimeSelectionTable.H"
+#include "OFstream.H"
 #include <chrono>
 #include <mpi.h>
 
@@ -85,6 +87,388 @@ namespace
             MPI_SUM,
             MPI_COMM_WORLD
         );
+    }
+
+    bool readMixtureFreestream
+    (
+        const Foam::dictionary& properties,
+        const Foam::dictionary& moleculeProperties,
+        Foam::scalar& rhoInf,
+        Foam::vector& UInf,
+        Foam::scalar& pInf
+    )
+    {
+        if
+        (
+           !properties.found("velocity")
+         || !properties.found("numberDensities")
+         || !properties.found("translationalTemperature")
+        )
+        {
+            return false;
+        }
+
+        UInf = Foam::vector(properties.lookup("velocity"));
+        rhoInf = 0.0;
+        pInf = 0.0;
+        const Foam::scalar translationalTemperature = Foam::readScalar
+        (
+            properties.lookup("translationalTemperature")
+        );
+
+        if (translationalTemperature <= Foam::VSMALL)
+        {
+            return false;
+        }
+
+        const Foam::dictionary& numberDensities =
+            properties.subDict("numberDensities");
+
+        forAllConstIter(Foam::dictionary, numberDensities, iter)
+        {
+            const Foam::word& speciesName = iter().keyword();
+
+            if (!moleculeProperties.found(speciesName))
+            {
+                return false;
+            }
+
+            const Foam::scalar numberDensity = Foam::readScalar
+            (
+                numberDensities.lookup(speciesName)
+            );
+            const Foam::scalar mass = Foam::readScalar
+            (
+                moleculeProperties.subDict(speciesName).lookup("mass")
+            );
+
+            if (numberDensity < 0.0 || mass <= Foam::VSMALL)
+            {
+                return false;
+            }
+
+            rhoInf += numberDensity*mass;
+            pInf +=
+                numberDensity
+               *physicoChemical::k.value()
+               *translationalTemperature;
+        }
+
+        return
+            rhoInf > Foam::VSMALL
+         && Foam::mag(UInf) > Foam::VSMALL
+         && pInf > Foam::VSMALL;
+    }
+
+
+    bool readAutomaticFreestream
+    (
+        const Foam::fvMesh& mesh,
+        const Foam::dsmcCloud& cloud,
+        Foam::scalar& rhoInf,
+        Foam::vector& UInf,
+        Foam::scalar& pInf,
+        Foam::word& source
+    )
+    {
+        const Foam::dictionary& moleculeProperties =
+            cloud.particleProperties().subDict("moleculeProperties");
+
+        Foam::IOdictionary boundariesDict
+        (
+            Foam::IOobject
+            (
+                "boundariesDict",
+                mesh.time().system(),
+                mesh,
+                Foam::IOobject::READ_IF_PRESENT,
+                Foam::IOobject::NO_WRITE
+            )
+        );
+
+        if (boundariesDict.found("dsmcGeneralBoundaries"))
+        {
+            const Foam::PtrList<Foam::entry> generalBoundaries
+            (
+                boundariesDict.lookup("dsmcGeneralBoundaries")
+            );
+
+            forAll(generalBoundaries, boundaryI)
+            {
+                const Foam::dictionary& boundary =
+                    generalBoundaries[boundaryI].dict();
+                const Foam::word boundaryModel =
+                    boundary.lookupOrDefault<Foam::word>
+                    (
+                        "boundaryModel",
+                        Foam::word::null
+                    );
+
+                if
+                (
+                    boundaryModel != "dsmcFreeStreamInflowPatch"
+                 && boundaryModel != "dsmcChapmanEnskogFreeStreamInflowPatch"
+                )
+                {
+                    continue;
+                }
+
+                const Foam::word propertiesName =
+                    boundaryModel + "Properties";
+
+                if
+                (
+                    boundary.found(propertiesName)
+                 && readMixtureFreestream
+                    (
+                        boundary.subDict(propertiesName),
+                        moleculeProperties,
+                        rhoInf,
+                        UInf,
+                        pInf
+                    )
+                )
+                {
+                    Foam::word patchName("unknownPatch");
+                    if (boundary.found("generalBoundaryProperties"))
+                    {
+                        patchName = boundary.subDict
+                        (
+                            "generalBoundaryProperties"
+                        ).lookupOrDefault<Foam::word>("patchName", patchName);
+                    }
+
+                    source = boundaryModel + "_" + patchName;
+                    return true;
+                }
+            }
+        }
+
+        Foam::IOdictionary dsmcInitialiseDict
+        (
+            Foam::IOobject
+            (
+                "dsmcInitialiseDict",
+                mesh.time().system(),
+                mesh,
+                Foam::IOobject::READ_IF_PRESENT,
+                Foam::IOobject::NO_WRITE
+            )
+        );
+
+        if (!dsmcInitialiseDict.found("configurations"))
+        {
+            return false;
+        }
+
+        const Foam::PtrList<Foam::entry> configurations
+        (
+            dsmcInitialiseDict.lookup("configurations")
+        );
+
+        if (!configurations.size())
+        {
+            return false;
+        }
+
+        if
+        (
+            readMixtureFreestream
+            (
+                configurations[0].dict(),
+                moleculeProperties,
+                rhoInf,
+                UInf,
+                pInf
+            )
+        )
+        {
+            source = "dsmcInitialiseDict_configuration0";
+            return true;
+        }
+
+        return false;
+    }
+
+
+    void calculateAutomaticReferenceGeometry
+    (
+        const Foam::fvMesh& mesh,
+        const Foam::labelList& wallPatchIds,
+        const Foam::vector& dragDirection,
+        const bool replicatedMesh,
+        Foam::scalar& referenceArea,
+        Foam::scalar& referenceLength,
+        Foam::vector& referencePoint,
+        Foam::word& areaDefinition,
+        Foam::word& lengthDefinition
+    )
+    {
+        int mpiInitialised = 0;
+        MPI_Initialized(&mpiInitialised);
+
+        int rank = 0;
+        if (mpiInitialised)
+        {
+            MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+        }
+
+        const bool contributes = !replicatedMesh || rank == 0;
+        Foam::scalar projectedAreaSum = 0.0;
+        Foam::scalar wettedAreaSum = 0.0;
+        Foam::vector surfaceAreaSum(Foam::vector::zero);
+        Foam::vector weightedCentreSum(Foam::vector::zero);
+        Foam::scalar minProjection = Foam::GREAT;
+        Foam::scalar maxProjection = -Foam::GREAT;
+
+        if (contributes)
+        {
+            forAll(wallPatchIds, wallPatchI)
+            {
+                const Foam::polyPatch& patch =
+                    mesh.boundaryMesh()[wallPatchIds[wallPatchI]];
+
+                forAll(patch, faceI)
+                {
+                    const Foam::label meshFaceI = patch.start() + faceI;
+                    const Foam::vector& faceArea =
+                        mesh.faceAreas()[meshFaceI];
+                    const Foam::scalar faceAreaMagnitude = Foam::mag(faceArea);
+
+                    projectedAreaSum +=
+                        Foam::mag(faceArea & dragDirection);
+                    wettedAreaSum += faceAreaMagnitude;
+                    surfaceAreaSum += faceArea;
+                    weightedCentreSum +=
+                        faceAreaMagnitude*mesh.faceCentres()[meshFaceI];
+
+                    const Foam::face& face = mesh.faces()[meshFaceI];
+                    forAll(face, pointI)
+                    {
+                        const Foam::scalar projection =
+                            mesh.points()[face[pointI]] & dragDirection;
+                        minProjection = Foam::min(minProjection, projection);
+                        maxProjection = Foam::max(maxProjection, projection);
+                    }
+                }
+            }
+        }
+
+        if (mpiInitialised)
+        {
+            Foam::scalar scalarSums[2] =
+            {
+                projectedAreaSum,
+                wettedAreaSum
+            };
+            Foam::scalar vectorSums[6] =
+            {
+                surfaceAreaSum.x(),
+                surfaceAreaSum.y(),
+                surfaceAreaSum.z(),
+                weightedCentreSum.x(),
+                weightedCentreSum.y(),
+                weightedCentreSum.z()
+            };
+            Foam::scalar projectionBounds[2] =
+            {
+                minProjection,
+                maxProjection
+            };
+
+            MPI_Allreduce
+            (
+                MPI_IN_PLACE,
+                scalarSums,
+                2,
+                MPI_DOUBLE,
+                MPI_SUM,
+                MPI_COMM_WORLD
+            );
+            MPI_Allreduce
+            (
+                MPI_IN_PLACE,
+                vectorSums,
+                6,
+                MPI_DOUBLE,
+                MPI_SUM,
+                MPI_COMM_WORLD
+            );
+            MPI_Allreduce
+            (
+                MPI_IN_PLACE,
+                projectionBounds,
+                1,
+                MPI_DOUBLE,
+                MPI_MIN,
+                MPI_COMM_WORLD
+            );
+            MPI_Allreduce
+            (
+                MPI_IN_PLACE,
+                projectionBounds + 1,
+                1,
+                MPI_DOUBLE,
+                MPI_MAX,
+                MPI_COMM_WORLD
+            );
+
+            projectedAreaSum = scalarSums[0];
+            wettedAreaSum = scalarSums[1];
+            surfaceAreaSum = Foam::vector
+            (
+                vectorSums[0],
+                vectorSums[1],
+                vectorSums[2]
+            );
+            weightedCentreSum = Foam::vector
+            (
+                vectorSums[3],
+                vectorSums[4],
+                vectorSums[5]
+            );
+            minProjection = projectionBounds[0];
+            maxProjection = projectionBounds[1];
+        }
+
+        if (wettedAreaSum <= Foam::VSMALL)
+        {
+            FatalErrorInFunction
+                << "No wall-face area is available for automatic force-moment "
+                << "reference geometry." << exit(FatalError);
+        }
+
+        const bool closedSurface =
+            Foam::mag(surfaceAreaSum) <= 1.0e-8*wettedAreaSum;
+
+        referenceArea =
+            (closedSurface ? 0.5 : 1.0)*projectedAreaSum;
+        areaDefinition =
+            closedSurface
+          ? "closedWallProjectedArea"
+          : "wallProjectedArea";
+
+        if (referenceArea <= Foam::VSMALL)
+        {
+            FatalErrorInFunction
+                << "Automatic reference area is zero in the free-stream "
+                << "direction " << dragDirection << "."
+                << exit(FatalError);
+        }
+
+        const Foam::scalar streamwiseLength = maxProjection - minProjection;
+        if (streamwiseLength > Foam::VSMALL)
+        {
+            referenceLength = streamwiseLength;
+            lengthDefinition = "wallPointStreamwiseSpan";
+        }
+        else
+        {
+            referenceLength = Foam::sqrt(referenceArea);
+            lengthDefinition = "sqrtProjectedAreaFallback";
+        }
+
+        referencePoint = weightedCentreSum/wettedAreaSum;
     }
 
     template<class Type>
@@ -369,23 +753,38 @@ namespace
             allocateAllFields(cloud);
         }
 
+        // Capacity-retained initialisation: the arrays persist across steps
+        // and are cleared by resetFields() (sparse over touchedCells) before
+        // each accumulate pass.  Fresh allocations are zeroed by setSize;
+        // the previous full-operator= zeroing pass per step is removed
+        // (worklog dlb_further_opt.md §8.4, cache allocate 25.7 s/200 steps).
         void initScalarFields(List<scalarField>& fields)
         {
-            fields.setSize(nTypes);
+            if (fields.size() != nTypes)
+            {
+                fields.setSize(nTypes);
+            }
             for (label typei = 0; typei < nTypes; ++typei)
             {
-                fields[typei].setSize(nCells, 0.0);
-                fields[typei] = 0.0;
+                if (fields[typei].size() != nCells)
+                {
+                    fields[typei].setSize(nCells, 0.0);
+                }
             }
         }
 
         void initVectorFields(List<vectorField>& fields)
         {
-            fields.setSize(nTypes);
+            if (fields.size() != nTypes)
+            {
+                fields.setSize(nTypes);
+            }
             for (label typei = 0; typei < nTypes; ++typei)
             {
-                fields[typei].setSize(nCells, vector::zero);
-                fields[typei] = vector::zero;
+                if (fields[typei].size() != nCells)
+                {
+                    fields[typei].setSize(nCells, vector::zero);
+                }
             }
         }
 
@@ -397,18 +796,14 @@ namespace
             initVectorFields(dsmcMomentum);
             initScalarFields(dsmcErot);
             initScalarFields(dsmcZetaRot);
-            totalDsmcN.setSize(nCells, 0.0);
-            totalDsmcM.setSize(nCells, 0.0);
-            totalDsmcLinearKE.setSize(nCells, 0.0);
-            totalDsmcMomentum.setSize(nCells, vector::zero);
-            totalDsmcErot.setSize(nCells, 0.0);
-            totalDsmcZetaRot.setSize(nCells, 0.0);
-            totalDsmcN = 0.0;
-            totalDsmcM = 0.0;
-            totalDsmcLinearKE = 0.0;
-            totalDsmcMomentum = vector::zero;
-            totalDsmcErot = 0.0;
-            totalDsmcZetaRot = 0.0;
+            // Totals persist as well; resetFields() zeroes them sparsely via
+            // touchedCells before each accumulate pass.
+            if (totalDsmcN.size() != nCells) totalDsmcN.setSize(nCells, 0.0);
+            if (totalDsmcM.size() != nCells) totalDsmcM.setSize(nCells, 0.0);
+            if (totalDsmcLinearKE.size() != nCells) totalDsmcLinearKE.setSize(nCells, 0.0);
+            if (totalDsmcMomentum.size() != nCells) totalDsmcMomentum.setSize(nCells, vector::zero);
+            if (totalDsmcErot.size() != nCells) totalDsmcErot.setSize(nCells, 0.0);
+            if (totalDsmcZetaRot.size() != nCells) totalDsmcZetaRot.setSize(nCells, 0.0);
             if (supportsElectronic)
             {
                 initScalarFields(dsmcSpeciesEelec);
@@ -481,8 +876,10 @@ namespace
                     dsmcSpeciesEvibMod[typei].setSize(nMods);
                     for (label mod = 0; mod < nMods; ++mod)
                     {
-                        dsmcSpeciesEvibMod[typei][mod].setSize(nCells, 0.0);
-                        dsmcSpeciesEvibMod[typei][mod] = 0.0;
+                        if (dsmcSpeciesEvibMod[typei][mod].size() != nCells)
+                        {
+                            dsmcSpeciesEvibMod[typei][mod].setSize(nCells, 0.0);
+                        }
                     }
                 }
             }
@@ -729,6 +1126,36 @@ namespace
                 {
                     buildProfile->allocateWallTime +=
                         wallSeconds(allocateStart, wallClockNow());
+                }
+
+                // The arrays persist across steps: clear only the cells this
+                // build will write (the current occupancy active set — every
+                // parcel accumulates into its cell) — the same set the field
+                // derivation reads.  Sparse reset via touchedCells.
+                if (activeCellsPtr)
+                {
+                    touchedCells.setSize(activeCellsPtr->size());
+                    forAll(touchedCells, i)
+                    {
+                        touchedCells[i] = (*activeCellsPtr)[i];
+                    }
+                }
+                else
+                {
+                    touchedCells.setSize(nCells);
+                    for (label celli = 0; celli < nCells; ++celli)
+                    {
+                        touchedCells[celli] = celli;
+                    }
+                }
+
+                const auto resetStart =
+                    doProfile ? wallClockNow() : std::chrono::steady_clock::time_point();
+                resetFields();
+                if (doProfile)
+                {
+                    buildProfile->resetWallTime +=
+                        wallSeconds(resetStart, wallClockNow());
                 }
             }
             else
@@ -1707,6 +2134,8 @@ bool dsmcVolFields::outputFieldEnabled
             fieldKey == "wallHeatFlux"
          || fieldKey == "wallShearStress"
          || fieldKey == "fD"
+         || fieldKey == "wallPressureCoefficient"
+         || fieldKey == "wallHeatFluxCoefficient"
         )
     )
     {
@@ -1794,468 +2223,8 @@ dsmcVolFields::dsmcVolFields
     fieldName_(propsDict_.lookup("fieldName")),
     speciesIds_(),
     typeIdToSpeciesIndex_(),
-    dsmcN_
-    (
-        IOobject
-        (
-            "dsmcN_"+ fieldName_,
-            time_.time().timeName(),
-            mesh_,
-            IOobject::NO_READ,
-            IOobject::AUTO_WRITE
-        ),
-        mesh_,
-        dimensionedScalar("0.0", dimless, 0.0)
-    ),
-    dsmcNMean_
-    (
-        IOobject
-        (
-            "dsmcNMean_"+ fieldName_,
-            time_.time().timeName(),
-            mesh_,
-            IOobject::NO_READ,
-            IOobject::AUTO_WRITE
-        ),
-        mesh_,
-        dimensionedScalar("0.0", dimless, 0.0)
-    ),
-    rhoN_
-    (
-        IOobject
-        (
-            "rhoN_"+ fieldName_,
-            time_.time().timeName(),
-            mesh_,
-            IOobject::NO_READ,
-            IOobject::AUTO_WRITE
-        ),
-        mesh_,
-        dimensionedScalar("0.0", dimless/dimVolume, 0.0)
-    ),
-    rhoM_
-    (
-        IOobject
-        (
-            "rhoM_"+ fieldName_,
-            time_.time().timeName(),
-            mesh_,
-            IOobject::NO_READ,
-            IOobject::AUTO_WRITE
-        ),
-        mesh_,
-        dimensionedScalar("0.0", dimMass/dimVolume, 0.0)
-    ),
-    p_
-    (
-        IOobject
-        (
-            "p_"+ fieldName_,
-            time_.time().timeName(),
-            mesh_,
-            IOobject::NO_READ,
-            IOobject::NO_WRITE
-        ),
-        mesh_,
-        dimensionedScalar("0.0", dimPressure, 0.0)
-    ),
-    Ttra_
-    (
-        IOobject
-        (
-            "Ttra_"+ fieldName_,
-            time_.time().timeName(),
-            mesh_,
-            IOobject::NO_READ,
-            IOobject::NO_WRITE
-        ),
-        mesh_,
-        dimensionedScalar("0.0", dimTemperature, 0.0)
-    ),
-    Trot_
-    (
-        IOobject
-        (
-            "Trot_"+ fieldName_,
-            time_.time().timeName(),
-            mesh_,
-            IOobject::NO_READ,
-            IOobject::NO_WRITE
-        ),
-        mesh_,
-        dimensionedScalar("0.0", dimTemperature, 0.0)
-    ),
-    Tvib_
-    (
-        IOobject
-        (
-            "Tvib_"+ fieldName_,
-            time_.time().timeName(),
-            mesh_,
-            IOobject::NO_READ,
-            IOobject::NO_WRITE
-        ),
-        mesh_,
-        dimensionedScalar("0.0", dimTemperature, 0.0)
-    ),
-    Telec_
-    (
-        IOobject
-        (
-            "Telec_"+ fieldName_,
-            time_.time().timeName(),
-            mesh_,
-            IOobject::NO_READ,
-            IOobject::NO_WRITE
-        ),
-        mesh_,
-        dimensionedScalar("0.0", dimTemperature, 0.0)
-    ),
-    Tov_
-    (
-        IOobject
-        (
-            "Tov_"+ fieldName_,
-            time_.time().timeName(),
-            mesh_,
-            IOobject::NO_READ,
-            IOobject::NO_WRITE
-        ),
-        mesh_,
-        dimensionedScalar("0.0", dimTemperature, 0.0)
-    ),
-    q_
-    (
-        IOobject
-        (
-            "wallHeatFlux_"+ fieldName_,
-            time_.time().timeName(),
-            mesh_,
-            IOobject::NO_READ,
-            IOobject::NO_WRITE
-        ),
-        mesh_,
-        dimensionedScalar("zero",  dimensionSet(1, 0, -3, 0, 0), 0.0)
-    ),
-    tau_
-    (
-        IOobject
-        (
-            "wallShearStress_"+ fieldName_,
-            time_.time().timeName(),
-            mesh_,
-            IOobject::NO_READ,
-            IOobject::NO_WRITE
-        ),
-        mesh_,
-        dimensionedScalar("zero",  dimPressure, 0.0)
-    ),
-    mfp_
-    (
-        IOobject
-        (
-            "mfp_"+ fieldName_,
-            mesh_.time().timeName(),
-            mesh_,
-            IOobject::NO_READ,
-            IOobject::NO_WRITE
-        ),
-        mesh_,
-        dimensionedScalar("zero", dimLength, 0.0)
-    ),
-    mfpToDx_
-    (
-        IOobject
-        (
-            "mfpToDx_"+ fieldName_,
-            mesh_.time().timeName(),
-            mesh_,
-            IOobject::NO_READ,
-            IOobject::NO_WRITE
-        ),
-        mesh_,
-        dimensionedScalar("zero", dimless, 0.0)
-    ),
-    DxToMfp_
-    (
-        IOobject
-        (
-            "DxToMfp_"+ fieldName_,
-            mesh_.time().timeName(),
-            mesh_,
-            IOobject::NO_READ,
-            IOobject::NO_WRITE
-        ),
-        mesh_,
-        dimensionedScalar("zero", dimless, 0.0)
-    ),
-    meanCollisionRate_
-    (
-        IOobject
-        (
-            "meanCollisionRate_"+ fieldName_,
-            mesh_.time().timeName(),
-            mesh_,
-            IOobject::NO_READ,
-            IOobject::NO_WRITE
-        ),
-        mesh_,
-        dimensionedScalar("zero",  dimensionSet(0, 0, -1, 0, 0), 0.0)
-    ),
-    measuredCollisionRate_
-    (
-        IOobject
-        (
-            "measuredCollisionRate",
-            mesh_.time().timeName(),
-            mesh_,
-            IOobject::NO_READ,
-            IOobject::NO_WRITE
-        ),
-        mesh_,
-        dimensionedScalar("zero",  dimensionSet(0, 0, -1, 0, 0), 0.0)
-    ),
-    meanCollisionTime_
-    (
-        IOobject
-        (
-            "mct_"+ fieldName_,
-            mesh_.time().timeName(),
-            mesh_,
-            IOobject::NO_READ,
-            IOobject::NO_WRITE
-        ),
-        mesh_,
-        dimensionedScalar("zero",  dimensionSet(0, 0, 1, 0, 0), 0.0)
-    ),
-    mctToDt_
-    (
-        IOobject
-        (
-            "mctToDt_"+ fieldName_,
-            mesh_.time().timeName(),
-            mesh_,
-            IOobject::NO_READ,
-            IOobject::NO_WRITE
-        ),
-        mesh_,
-        dimensionedScalar("zero",  dimless, 0.0)
-    ),
-    meanCollisionSeparation_
-    (
-        IOobject
-        (
-            "mcs_"+ fieldName_,
-            mesh_.time().timeName(),
-            mesh_,
-            IOobject::NO_READ,
-            IOobject::NO_WRITE
-        ),
-        mesh_,
-        dimensionedScalar("zero", dimLength, 0.0)
-    ),
-    SOF_
-    (
-        IOobject
-        (
-            "SOFP_"+ fieldName_,
-            mesh_.time().timeName(),
-            mesh_,
-            IOobject::NO_READ,
-            IOobject::NO_WRITE
-        ),
-        mesh_,
-        dimensionedScalar("zero", dimless, 0.0)
-    ),
-    Ma_
-    (
-        IOobject
-        (
-            "Ma_"+ fieldName_,
-            mesh_.time().timeName(),
-            mesh_,
-            IOobject::NO_READ,
-            IOobject::NO_WRITE
-        ),
-        mesh_,
-        dimensionedScalar("zero", dimless, 0.0)
-    ),
-    classIDistribution_
-    (
-        IOobject
-        (
-            "classIDistribution_"+ fieldName_,
-            mesh_.time().timeName(),
-            mesh_,
-            IOobject::NO_READ,
-            IOobject::NO_WRITE
-        ),
-        mesh_,
-        dimensionedScalar("zero", dimless, 0.0)
-    ),
-    classIIDistribution_
-    (
-        IOobject
-        (
-            "classIIDistribution_"+ fieldName_,
-            mesh_.time().timeName(),
-            mesh_,
-            IOobject::NO_READ,
-            IOobject::NO_WRITE
-        ),
-        mesh_,
-        dimensionedScalar("zero", dimless, 0.0)
-    ),
-    classIIIDistribution_
-    (
-        IOobject
-        (
-            "classIIIDistribution_"+ fieldName_,
-            mesh_.time().timeName(),
-            mesh_,
-            IOobject::NO_READ,
-            IOobject::NO_WRITE
-        ),
-        mesh_,
-        dimensionedScalar("zero", dimless, 0.0)
-    ),
-    densityError_
-    (
-        IOobject
-        (
-            "rhoMError_"+ fieldName_,
-            mesh_.time().timeName(),
-            mesh_,
-            IOobject::NO_READ,
-            IOobject::NO_WRITE
-        ),
-        mesh_,
-        dimensionedScalar("zero", dimless, 0.0)
-    ),
-    velocityError_
-    (
-        IOobject
-        (
-            "UError_"+ fieldName_,
-            mesh_.time().timeName(),
-            mesh_,
-            IOobject::NO_READ,
-            IOobject::NO_WRITE
-        ),
-        mesh_,
-        dimensionedScalar("zero", dimless, 0.0)
-    ),
-    temperatureError_
-    (
-        IOobject
-        (
-            "TError_"+ fieldName_,
-            mesh_.time().timeName(),
-            mesh_,
-            IOobject::NO_READ,
-            IOobject::NO_WRITE
-        ),
-        mesh_,
-        dimensionedScalar("zero", dimless, 0.0)
-    ),
-    pressureError_
-    (
-        IOobject
-        (
-            "pError_"+ fieldName_,
-            mesh_.time().timeName(),
-            mesh_,
-            IOobject::NO_READ,
-            IOobject::NO_WRITE
-        ),
-        mesh_,
-        dimensionedScalar("zero", dimless, 0.0)
-    ),
-    UMean_
-    (
-        IOobject
-        (
-            "U_"+ fieldName_,
-            time_.time().timeName(),
-            mesh_,
-            IOobject::NO_READ,
-            IOobject::NO_WRITE
-        ),
-        mesh_,
-        dimensionedVector("0.0", dimLength/dimTime, vector::zero)
-    ),
-    fD_
-    (
-        IOobject
-        (
-            "fD_"+ fieldName_,
-            mesh_.time().timeName(),
-            mesh_,
-            IOobject::NO_READ,
-            IOobject::NO_WRITE
-        ),
-        mesh_,
-        dimensionedVector
-        (
-            "zero",
-            dimensionSet(1, -1, -2, 0, 0),
-            vector::zero
-        )
-    ),
-    heatFluxVector_
-    (
-        IOobject
-        (
-            "heatFluxVector_"+ fieldName_,
-            mesh_.time().timeName(),
-            mesh_,
-            IOobject::NO_READ,
-            IOobject::NO_WRITE
-        ),
-        mesh_,
-        dimensionedVector
-        (
-            "zero",
-            dimensionSet(1, 0, -3, 0, 0),
-            vector::zero
-        )
-    ),
-    pressureTensor_
-    (
-        IOobject
-        (
-            "pressureTensor_"+ fieldName_,
-            mesh_.time().timeName(),
-            mesh_,
-            IOobject::NO_READ,
-            IOobject::NO_WRITE
-        ),
-        mesh_,
-        dimensionedTensor
-        (
-            "zero",
-            dimPressure,
-            tensor::zero
-        )
-    ),
-    shearStressTensor_
-    (
-        IOobject
-        (
-            "shearStressTensor_"+ fieldName_,
-            mesh_.time().timeName(),
-            mesh_,
-            IOobject::NO_READ,
-            IOobject::NO_WRITE
-        ),
-        mesh_,
-        dimensionedTensor
-        (
-            "zero",
-            dimPressure,
-            tensor::zero
-        )
-    ),
+    Cp_(),
+    Ch_(),
     dsmcNCum_(mesh_.nCells(), 0.0),
     nCum_(mesh_.nCells(), 0.0),
     dsmcNElecLvlCum_(mesh_.nCells(), 0.0),
@@ -2299,7 +2268,6 @@ dsmcVolFields::dsmcVolFields
     dsmcN1stElecLvlSpeciesCum_(),
     speciesMfp_(),
     speciesMcr_(),
-    dsmcNResetCells_(),
     rhoNBF_(),
     rhoMBF_(),
     linearKEBF_(),
@@ -2333,6 +2301,27 @@ dsmcVolFields::dsmcVolFields
     writeElectronicTemperature_(false),
     restrictOutputFields_(false),
     outputFieldNames_(),
+    writeForceMoment_(false),
+    forceMomentReferencePoint_(vector::zero),
+    forceMomentWallPatchIds_(),
+    forceMomentWallPatchIndices_(),
+    writeForceMomentCoefficients_(false),
+    writeWallPressureCoefficient_(false),
+    forceMomentQInf_(0.0),
+    forceMomentPInf_(0.0),
+    forceMomentHeatFluxInf_(0.0),
+    forceMomentReferenceArea_(0.0),
+    forceMomentReferenceLength_(0.0),
+    forceMomentDragDirection_(vector::zero),
+    forceMomentLiftDirection_(vector::zero),
+    forceMomentSideDirection_(vector::zero),
+    forceMomentFreestreamSource_(word::null),
+    forceMomentReferenceAreaDefinition_(word::null),
+    forceMomentReferenceLengthDefinition_(word::null),
+    forceMomentReferencePointAutomatic_(false),
+    forceMomentAutomaticReferencePoint_(vector::zero),
+    forceMomentReferenceGeometryDirection_(vector::zero),
+    forceMomentReferenceGeometryCached_(false),
     profileSummaryEnabled_(false),
     profileDetailEnabled_(false),
     profileSampleAccumWallTime_(0.0),
@@ -2357,7 +2346,13 @@ dsmcVolFields::dsmcVolFields
     profileOutputRestoreWallTime_(0.0),
     profileOutputTimeWallTime_(0.0),
     profileCalls_(0),
-    finalProfilePrinted_(false)
+    finalProfilePrinted_(false),
+    ownedBoundaryFaces_(),
+    ownedBoundaryFacesOwnerVersion_(-1),
+    ownedStorageActive_(false),
+    ownedStorageOwnerVersion_(-1),
+    toOwnedCell_(),
+    pendingResumeReadIn_(false)
 {
     const dictionary& controlDict = mesh_.time().controlDict();
     const bool globalProfileSummary =
@@ -2387,6 +2382,268 @@ dsmcVolFields::~dsmcVolFields()
 
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
+
+// M4: copy the owned entries (positions 0..nOwned-1 in the current storage)
+// into a full-mesh field at the global cell positions.  Used when the
+// resume-sampling file must keep its full-mesh layout in owned mode.
+template<class Type>
+static void scatterOwnedToFull
+(
+    const Field<Type>& owned,
+    Field<Type>& full,
+    const UList<label>& myCells
+)
+{
+    full.setSize(myCells.size(), pTraits<Type>::zero);
+    full = pTraits<Type>::zero;
+    forAll(myCells, i)
+    {
+        full[myCells[i]] = owned[i];
+    }
+}
+
+
+// M4: keep only the owned entries of a field whose size reflects another
+// layout (full mesh, or a pre-rebalance owned set).
+template<class Type>
+static void gatherOwnedEntries
+(
+    Field<Type>& f,
+    const UList<label>& myCells
+)
+{
+    if (f.size() == myCells.size())
+    {
+        return;
+    }
+
+    Field<Type> owned(myCells.size(), pTraits<Type>::zero);
+    forAll(myCells, i)
+    {
+        const label globalCell = myCells[i];
+        if (globalCell >= 0 && globalCell < f.size())
+        {
+            owned[i] = f[globalCell];
+        }
+    }
+    f.transfer(owned);
+}
+
+
+// M4: temporarily expand an owned-size cumulative array to the full-mesh
+// layout in place; the owned values are kept in `backup` for the restore.
+template<class Type>
+static void expandOwnedToFull
+(
+    Field<Type>& f,
+    Field<Type>& backup,
+    const UList<label>& myCells
+)
+{
+    backup = f;
+    Field<Type> full(myCells.size(), pTraits<Type>::zero);
+    forAll(myCells, i)
+    {
+        full[myCells[i]] = backup[i];
+    }
+    f.transfer(full);
+}
+
+
+template<class Type>
+static void expandOwnedListToFull
+(
+    List<Field<Type>>& fs,
+    List<Field<Type>>& backups,
+    const UList<label>& myCells
+)
+{
+    backups.setSize(fs.size());
+    forAll(fs, i)
+    {
+        expandOwnedToFull(fs[i], backups[i], myCells);
+    }
+}
+
+
+template<class Type>
+static void restoreOwnedList
+(
+    List<Field<Type>>& fs,
+    const List<Field<Type>>& backups
+)
+{
+    forAll(backups, i)
+    {
+        restoreField(fs[i], backups[i]);
+    }
+}
+
+
+void dsmcVolFields::initOwnedStorage()
+{
+    const bool ownedMode =
+        cloud_.replicatedMeshActive()
+     && cloud_.replicatedMesh().processorWriteEnabled();
+
+    if (!ownedMode)
+    {
+        if (pendingResumeReadIn_)
+        {
+            pendingResumeReadIn_ = false;
+            readIn();
+        }
+        return;
+    }
+
+    const dsmcReplicatedMesh& replMesh = cloud_.replicatedMesh();
+    const UList<label>& myCells = replMesh.myCells();
+    const label ownerVersion =
+        replMesh.rebalanceCount() + replMesh.autoRebalanceCount();
+
+    if
+    (
+        ownedStorageOwnerVersion_ == ownerVersion
+     && dsmcNCum_.size() == myCells.size()
+     && !pendingResumeReadIn_
+    )
+    {
+        return;
+    }
+
+    ownedStorageActive_ = true;
+    ownedStorageOwnerVersion_ = ownerVersion;
+
+    // Rebuild the global-cell -> owned-index mapping.
+    toOwnedCell_.setSize(mesh_.nCells(), -1);
+    forAll(myCells, i)
+    {
+        toOwnedCell_[myCells[i]] = i;
+    }
+
+    // First owned allocation (ctor storage is full-size and zeroed) or
+    // re-allocation after a DLB owner reassignment: per-cell history cannot
+    // be remapped onto the new owned layout, so the averaging window
+    // restarts here (memory_opt.md M4 step 1, accepted cost).
+    nTimeSteps_ = 0.0;
+
+    dsmcNCum_ = scalarField(myCells.size(), 0.0);
+    nCum_ = scalarField(myCells.size(), 0.0);
+    dsmcNElecLvlCum_ = scalarField(myCells.size(), 0.0);
+    dsmcMCum_ = scalarField(myCells.size(), 0.0);
+    mCum_ = scalarField(myCells.size(), 0.0);
+    dsmcLinearKECum_ = scalarField(myCells.size(), 0.0);
+    linearKECum_ = scalarField(myCells.size(), 0.0);
+    dsmcErotCum_ = scalarField(myCells.size(), 0.0);
+    dsmcZetaRotCum_ = scalarField(myCells.size(), 0.0);
+    dsmcMuuCum_ = scalarField(myCells.size(), 0.0);
+    dsmcMuvCum_ = scalarField(myCells.size(), 0.0);
+    dsmcMuwCum_ = scalarField(myCells.size(), 0.0);
+    dsmcMvvCum_ = scalarField(myCells.size(), 0.0);
+    dsmcMvwCum_ = scalarField(myCells.size(), 0.0);
+    dsmcMwwCum_ = scalarField(myCells.size(), 0.0);
+    dsmcMccCum_ = scalarField(myCells.size(), 0.0);
+    dsmcMccuCum_ = scalarField(myCells.size(), 0.0);
+    dsmcMccvCum_ = scalarField(myCells.size(), 0.0);
+    dsmcMccwCum_ = scalarField(myCells.size(), 0.0);
+    dsmcEuCum_ = scalarField(myCells.size(), 0.0);
+    dsmcEvCum_ = scalarField(myCells.size(), 0.0);
+    dsmcEwCum_ = scalarField(myCells.size(), 0.0);
+    dsmcECum_ = scalarField(myCells.size(), 0.0);
+    zetaVib_ = scalarField(myCells.size(), 0.0);
+    dsmcNClassICum_ = scalarField(myCells.size(), 0.0);
+    dsmcNClassIICum_ = scalarField(myCells.size(), 0.0);
+    dsmcNClassIIICum_ = scalarField(myCells.size(), 0.0);
+    collisionSeparation_ = scalarField(myCells.size(), 0.0);
+    dsmcNCollsCum_ = scalarField(myCells.size(), 0.0);
+    dsmcMomentumCum_ = vectorField(myCells.size(), vector::zero);
+    momentumCum_ = vectorField(myCells.size(), vector::zero);
+
+    forAll(dsmcNSpeciesCum_, i)
+    {
+        dsmcNSpeciesCum_[i] = scalarField(myCells.size(), 0.0);
+        nSpeciesCum_[i] = scalarField(myCells.size(), 0.0);
+        dsmcMccSpeciesCum_[i] = scalarField(myCells.size(), 0.0);
+        speciesMfp_[i] = scalarField(myCells.size(), 0.0);
+        speciesMcr_[i] = scalarField(myCells.size(), 0.0);
+        speciesTvib_[i] = scalarField(myCells.size(), 0.0);
+        dsmcSpeciesEelecCum_[i] = scalarField(myCells.size(), 0.0);
+        dsmcNGrndElecLvlSpeciesCum_[i] = scalarField(myCells.size(), 0.0);
+        dsmcN1stElecLvlSpeciesCum_[i] = scalarField(myCells.size(), 0.0);
+
+        forAll(dsmcSpeciesEvibModCum_[i], mod)
+        {
+            dsmcSpeciesEvibModCum_[i][mod] =
+                scalarField(myCells.size(), 0.0);
+        }
+    }
+
+    if (pendingResumeReadIn_)
+    {
+        pendingResumeReadIn_ = false;
+        readIn();
+
+        // A resume file written by an earlier full-size layout holds
+        // full-mesh lists: keep only the owned entries.
+        if (dsmcNCum_.size() != myCells.size())
+        {
+            gatherOwnedEntries(dsmcNCum_, myCells);
+            gatherOwnedEntries(nCum_, myCells);
+            gatherOwnedEntries(dsmcNElecLvlCum_, myCells);
+            gatherOwnedEntries(dsmcMCum_, myCells);
+            gatherOwnedEntries(mCum_, myCells);
+            gatherOwnedEntries(dsmcLinearKECum_, myCells);
+            gatherOwnedEntries(linearKECum_, myCells);
+            gatherOwnedEntries(dsmcErotCum_, myCells);
+            gatherOwnedEntries(dsmcZetaRotCum_, myCells);
+            gatherOwnedEntries(dsmcMuuCum_, myCells);
+            gatherOwnedEntries(dsmcMuvCum_, myCells);
+            gatherOwnedEntries(dsmcMuwCum_, myCells);
+            gatherOwnedEntries(dsmcMvvCum_, myCells);
+            gatherOwnedEntries(dsmcMvwCum_, myCells);
+            gatherOwnedEntries(dsmcMwwCum_, myCells);
+            gatherOwnedEntries(dsmcMccCum_, myCells);
+            gatherOwnedEntries(dsmcMccuCum_, myCells);
+            gatherOwnedEntries(dsmcMccvCum_, myCells);
+            gatherOwnedEntries(dsmcMccwCum_, myCells);
+            gatherOwnedEntries(dsmcEuCum_, myCells);
+            gatherOwnedEntries(dsmcEvCum_, myCells);
+            gatherOwnedEntries(dsmcEwCum_, myCells);
+            gatherOwnedEntries(dsmcECum_, myCells);
+            gatherOwnedEntries(zetaVib_, myCells);
+            gatherOwnedEntries(dsmcNClassICum_, myCells);
+            gatherOwnedEntries(dsmcNClassIICum_, myCells);
+            gatherOwnedEntries(dsmcNClassIIICum_, myCells);
+            gatherOwnedEntries(collisionSeparation_, myCells);
+            gatherOwnedEntries(dsmcNCollsCum_, myCells);
+            gatherOwnedEntries(dsmcMomentumCum_, myCells);
+            gatherOwnedEntries(momentumCum_, myCells);
+
+            forAll(dsmcNSpeciesCum_, i)
+            {
+                gatherOwnedEntries(dsmcNSpeciesCum_[i], myCells);
+                gatherOwnedEntries(nSpeciesCum_[i], myCells);
+                gatherOwnedEntries(dsmcMccSpeciesCum_[i], myCells);
+                gatherOwnedEntries(speciesMfp_[i], myCells);
+                gatherOwnedEntries(speciesMcr_[i], myCells);
+                gatherOwnedEntries(speciesTvib_[i], myCells);
+                gatherOwnedEntries(dsmcSpeciesEelecCum_[i], myCells);
+                gatherOwnedEntries(dsmcNGrndElecLvlSpeciesCum_[i], myCells);
+                gatherOwnedEntries(dsmcN1stElecLvlSpeciesCum_[i], myCells);
+
+                forAll(dsmcSpeciesEvibModCum_[i], mod)
+                {
+                    gatherOwnedEntries
+                    (
+                        dsmcSpeciesEvibModCum_[i][mod],
+                        myCells
+                    );
+                }
+            }
+        }
+    }
+}
+
 
 void dsmcVolFields::readIn()
 {
@@ -2504,6 +2761,88 @@ void dsmcVolFields::writeOut()
             )
         );
 
+        // M4: the resume file keeps the full-mesh layout regardless of the
+        // storage mode.  In owned mode, temporarily expand the cumulative
+        // arrays in place, write, then restore.
+        bool expandedOwned = false;
+        const UList<label>* writeCellsPtr = nullptr;
+        Field<scalar> bDsmcNCum, bNCum, bDsmcNElecLvlCum, bDsmcMCum, bMCum,
+            bDsmcLinearKECum, bLinearKECum, bDsmcErotCum, bDsmcZetaRotCum,
+            bDsmcMuuCum, bDsmcMuvCum, bDsmcMuwCum, bDsmcMvvCum, bDsmcMvwCum,
+            bDsmcMwwCum, bDsmcMccCum, bDsmcMccuCum, bDsmcMccvCum, bDsmcMccwCum,
+            bDsmcEuCum, bDsmcEvCum, bDsmcEwCum, bDsmcECum, bZetaVib,
+            bDsmcNClassICum, bDsmcNClassIICum, bDsmcNClassIIICum,
+            bCollisionSeparation, bDsmcNCollsCum;
+        vectorField bDsmcMomentumCum, bMomentumCum;
+        List<Field<scalar>> bDsmcSpeciesEelecCum, bDsmcNSpeciesCum,
+            bNSpeciesCum, bDsmcMccSpeciesCum, bDsmcNGrndElecLvlSpeciesCum,
+            bDsmcN1stElecLvlSpeciesCum;
+        List<List<Field<scalar>>> bDsmcSpeciesEvibModCum;
+
+        if (ownedStorageActive_)
+        {
+            expandedOwned = true;
+            writeCellsPtr = &cloud_.replicatedMesh().myCells();
+            const UList<label>& writeCells = *writeCellsPtr;
+
+            expandOwnedToFull(dsmcNCum_, bDsmcNCum, writeCells);
+            expandOwnedToFull(nCum_, bNCum, writeCells);
+            expandOwnedToFull(dsmcNElecLvlCum_, bDsmcNElecLvlCum, writeCells);
+            expandOwnedToFull(dsmcMCum_, bDsmcMCum, writeCells);
+            expandOwnedToFull(mCum_, bMCum, writeCells);
+            expandOwnedToFull(dsmcLinearKECum_, bDsmcLinearKECum, writeCells);
+            expandOwnedToFull(linearKECum_, bLinearKECum, writeCells);
+            expandOwnedToFull(dsmcErotCum_, bDsmcErotCum, writeCells);
+            expandOwnedToFull(dsmcZetaRotCum_, bDsmcZetaRotCum, writeCells);
+            expandOwnedToFull(dsmcMuuCum_, bDsmcMuuCum, writeCells);
+            expandOwnedToFull(dsmcMuvCum_, bDsmcMuvCum, writeCells);
+            expandOwnedToFull(dsmcMuwCum_, bDsmcMuwCum, writeCells);
+            expandOwnedToFull(dsmcMvvCum_, bDsmcMvvCum, writeCells);
+            expandOwnedToFull(dsmcMvwCum_, bDsmcMvwCum, writeCells);
+            expandOwnedToFull(dsmcMwwCum_, bDsmcMwwCum, writeCells);
+            expandOwnedToFull(dsmcMccCum_, bDsmcMccCum, writeCells);
+            expandOwnedToFull(dsmcMccuCum_, bDsmcMccuCum, writeCells);
+            expandOwnedToFull(dsmcMccvCum_, bDsmcMccvCum, writeCells);
+            expandOwnedToFull(dsmcMccwCum_, bDsmcMccwCum, writeCells);
+            expandOwnedToFull(dsmcEuCum_, bDsmcEuCum, writeCells);
+            expandOwnedToFull(dsmcEvCum_, bDsmcEvCum, writeCells);
+            expandOwnedToFull(dsmcEwCum_, bDsmcEwCum, writeCells);
+            expandOwnedToFull(dsmcECum_, bDsmcECum, writeCells);
+            expandOwnedToFull(zetaVib_, bZetaVib, writeCells);
+            expandOwnedToFull(dsmcNClassICum_, bDsmcNClassICum, writeCells);
+            expandOwnedToFull(dsmcNClassIICum_, bDsmcNClassIICum, writeCells);
+            expandOwnedToFull(dsmcNClassIIICum_, bDsmcNClassIIICum, writeCells);
+            expandOwnedToFull(collisionSeparation_, bCollisionSeparation, writeCells);
+            expandOwnedToFull(dsmcNCollsCum_, bDsmcNCollsCum, writeCells);
+            expandOwnedToFull(dsmcMomentumCum_, bDsmcMomentumCum, writeCells);
+            expandOwnedToFull(momentumCum_, bMomentumCum, writeCells);
+
+            expandOwnedListToFull(dsmcSpeciesEelecCum_, bDsmcSpeciesEelecCum, writeCells);
+            expandOwnedListToFull(dsmcNSpeciesCum_, bDsmcNSpeciesCum, writeCells);
+            expandOwnedListToFull(nSpeciesCum_, bNSpeciesCum, writeCells);
+            expandOwnedListToFull(dsmcMccSpeciesCum_, bDsmcMccSpeciesCum, writeCells);
+            expandOwnedListToFull(dsmcNGrndElecLvlSpeciesCum_, bDsmcNGrndElecLvlSpeciesCum, writeCells);
+            expandOwnedListToFull(dsmcN1stElecLvlSpeciesCum_, bDsmcN1stElecLvlSpeciesCum, writeCells);
+
+            bDsmcSpeciesEvibModCum.setSize(dsmcSpeciesEvibModCum_.size());
+            forAll(dsmcSpeciesEvibModCum_, i)
+            {
+                bDsmcSpeciesEvibModCum[i].setSize
+                (
+                    dsmcSpeciesEvibModCum_[i].size()
+                );
+                forAll(dsmcSpeciesEvibModCum_[i], mod)
+                {
+                    expandOwnedToFull
+                    (
+                        dsmcSpeciesEvibModCum_[i][mod],
+                        bDsmcSpeciesEvibModCum[i][mod],
+                        writeCells
+                    );
+                }
+            }
+        }
+
         dict.add("nTimeSteps", nTimeSteps_);
 
         // DSMC parcel related cumulative values
@@ -2573,14 +2912,162 @@ void dsmcVolFields::writeOut()
         IOstream::compressionType cmp = time_.time().writeCompression();
 
         dict.regIOobject::writeObject(fmt, ver, cmp);
+
+        if (expandedOwned)
+        {
+            restoreField(dsmcNCum_, bDsmcNCum);
+            restoreField(nCum_, bNCum);
+            restoreField(dsmcNElecLvlCum_, bDsmcNElecLvlCum);
+            restoreField(dsmcMCum_, bDsmcMCum);
+            restoreField(mCum_, bMCum);
+            restoreField(dsmcLinearKECum_, bDsmcLinearKECum);
+            restoreField(linearKECum_, bLinearKECum);
+            restoreField(dsmcErotCum_, bDsmcErotCum);
+            restoreField(dsmcZetaRotCum_, bDsmcZetaRotCum);
+            restoreField(dsmcMuuCum_, bDsmcMuuCum);
+            restoreField(dsmcMuvCum_, bDsmcMuvCum);
+            restoreField(dsmcMuwCum_, bDsmcMuwCum);
+            restoreField(dsmcMvvCum_, bDsmcMvvCum);
+            restoreField(dsmcMvwCum_, bDsmcMvwCum);
+            restoreField(dsmcMwwCum_, bDsmcMwwCum);
+            restoreField(dsmcMccCum_, bDsmcMccCum);
+            restoreField(dsmcMccuCum_, bDsmcMccuCum);
+            restoreField(dsmcMccvCum_, bDsmcMccvCum);
+            restoreField(dsmcMccwCum_, bDsmcMccwCum);
+            restoreField(dsmcEuCum_, bDsmcEuCum);
+            restoreField(dsmcEvCum_, bDsmcEvCum);
+            restoreField(dsmcEwCum_, bDsmcEwCum);
+            restoreField(dsmcECum_, bDsmcECum);
+            restoreField(zetaVib_, bZetaVib);
+            restoreField(dsmcNClassICum_, bDsmcNClassICum);
+            restoreField(dsmcNClassIICum_, bDsmcNClassIICum);
+            restoreField(dsmcNClassIIICum_, bDsmcNClassIIICum);
+            restoreField(collisionSeparation_, bCollisionSeparation);
+            restoreField(dsmcNCollsCum_, bDsmcNCollsCum);
+            restoreField(dsmcMomentumCum_, bDsmcMomentumCum);
+            restoreField(momentumCum_, bMomentumCum);
+
+            restoreOwnedList(dsmcSpeciesEelecCum_, bDsmcSpeciesEelecCum);
+            restoreOwnedList(dsmcNSpeciesCum_, bDsmcNSpeciesCum);
+            restoreOwnedList(nSpeciesCum_, bNSpeciesCum);
+            restoreOwnedList(dsmcMccSpeciesCum_, bDsmcMccSpeciesCum);
+            restoreOwnedList(dsmcNGrndElecLvlSpeciesCum_, bDsmcNGrndElecLvlSpeciesCum);
+            restoreOwnedList(dsmcN1stElecLvlSpeciesCum_, bDsmcN1stElecLvlSpeciesCum);
+
+            forAll(dsmcSpeciesEvibModCum_, i)
+            {
+                forAll(dsmcSpeciesEvibModCum_[i], mod)
+                {
+                    restoreField
+                    (
+                        dsmcSpeciesEvibModCum_[i][mod],
+                        bDsmcSpeciesEvibModCum[i][mod]
+                    );
+                }
+            }
+        }
     }
 }
 
 
 //- Initial configuration
+// M2: construct the GeoFields on demand.  Core fields (written by the
+// derive pass unconditionally or consumed through the virtual accessors)
+// are always built; the rest follow their measure/write switches so that
+// disabled families never pay their memory.
+void dsmcVolFields::constructOutputFields()
+{
+    // Core set: derive pass writes these unconditionally; Tov_ backs the
+    // virtual overallT() accessor used by the collision model.
+    #define M2_MAKE_FIELD(NAME, TYPE, DIMS)                          \
+        if (NAME##_.empty())                                         \
+        {                                                            \
+            NAME##_.reset                                            \
+            (                                                        \
+                new TYPE                                             \
+                (                                                    \
+                    IOobject                                         \
+                    (                                                \
+                        #NAME + fieldName_,                          \
+                        time_.time().timeName(),                     \
+                        mesh_,                                       \
+                        IOobject::NO_READ,                           \
+                        IOobject::AUTO_WRITE                         \
+                    ),                                               \
+                    mesh_,                                           \
+                    dimensionedScalar("0.0", DIMS, 0.0)              \
+                )                                                    \
+            );                                                       \
+        }
+
+    M2_MAKE_FIELD(dsmcN, volScalarField, dimless)
+    M2_MAKE_FIELD(dsmcNMean, volScalarField, dimless)
+    M2_MAKE_FIELD(rhoN, volScalarField, dimless/dimVolume)
+    M2_MAKE_FIELD(rhoM, volScalarField, dimMass/dimVolume)
+    M2_MAKE_FIELD(p, volScalarField, dimPressure)
+    M2_MAKE_FIELD(Ttra, volScalarField, dimTemperature)
+    M2_MAKE_FIELD(Trot, volScalarField, dimTemperature)
+    M2_MAKE_FIELD(Tvib, volScalarField, dimTemperature)
+    M2_MAKE_FIELD(Telec, volScalarField, dimTemperature)
+    M2_MAKE_FIELD(Ma, volScalarField, dimless)
+    M2_MAKE_FIELD(q, volScalarField, dimensionSet(1, 0, -3, 0, 0))
+    if (fD_.empty())
+    {
+        fD_.reset
+        (
+            new volVectorField
+            (
+                IOobject
+                (
+                    "fD_"+ fieldName_,
+                    time_.time().timeName(),
+                    mesh_,
+                    IOobject::NO_READ,
+                    IOobject::AUTO_WRITE
+                ),
+                mesh_,
+                dimensionedVector
+                (
+                    "0.0",
+                    dimensionSet(1, -1, -2, 0, 0),
+                    vector::zero
+                )
+            )
+        );
+    }
+    M2_MAKE_FIELD(tau, volScalarField, dimPressure)
+    if (UMean_.empty())
+    {
+        UMean_.reset
+        (
+            new volVectorField
+            (
+                IOobject
+                (
+                    "UMean_"+ fieldName_,
+                    time_.time().timeName(),
+                    mesh_,
+                    IOobject::NO_READ,
+                    IOobject::AUTO_WRITE
+                ),
+                mesh_,
+                dimensionedVector("0.0", dimensionSet(0, 1, -1, 0, 0), vector::zero)
+            )
+        );
+    }
+    M2_MAKE_FIELD(Tov, volScalarField, dimTemperature)
+
+    #undef M2_MAKE_FIELD
+
+}
+
+
 void dsmcVolFields::createField()
 {
-    Info << "Initialising dsmcVolFields field" << endl;
+    if (Foam::dsmcIsPrintingRank())
+    {
+        Info << "Initialising dsmcVolFields field" << endl;
+    }
 
     const List<word>& species (propsDict_.lookup("typeIds"));
 
@@ -2863,10 +3350,14 @@ void dsmcVolFields::createField()
     {
         if (!time_.resetFieldsAtOutput())
         {
+            // M4: the load is deferred to initOwnedStorage() (first
+            // sampling call) so that, in owned mode, the resume file can
+            // be gathered onto the owned-cell layout.
+            pendingResumeReadIn_ = true;
             Info<< "Averaging across many runs for field " << fieldName_
-                << " is enabled. Sampled data will be read from file."
+                << " is enabled. Sampled data will be read from file at the"
+                << " first sampling step."
                 << endl;
-            readIn();
         }
         else
         {
@@ -2876,39 +3367,68 @@ void dsmcVolFields::createField()
         }
     }
 
-    if (cloud_.replicatedMeshActive())
+    updateOwnedBoundaryFaces();
+
+    // M2: GeoFields are built here, after all gate flags are known.
+    constructOutputFields();
+}
+
+
+void dsmcVolFields::updateOwnedBoundaryFaces()
+{
+    if (!cloud_.replicatedMeshActive())
     {
-        ownedBoundaryFaces_.setSize(mesh_.boundaryMesh().size());
-
-        forAll(mesh_.boundaryMesh(), patchi)
-        {
-            const polyPatch& pp = mesh_.boundaryMesh()[patchi];
-            const label startFace = pp.start();
-            DynamicList<label> owned(pp.size()/8 + 1);
-
-            forAll(pp, facei)
-            {
-                if
-                (
-                    cloud_.replicatedMesh().isMyCell
-                    (
-                        mesh_.faceOwner()[startFace + facei]
-                    )
-                )
-                {
-                    owned.append(facei);
-                }
-            }
-
-            ownedBoundaryFaces_[patchi].transfer(owned);
-        }
+        ownedBoundaryFaces_.clear();
+        ownedBoundaryFacesOwnerVersion_ = -1;
+        return;
     }
+
+    const dsmcReplicatedMesh& replicatedMesh = cloud_.replicatedMesh();
+    const label ownerVersion =
+        replicatedMesh.rebalanceCount() + replicatedMesh.autoRebalanceCount();
+
+    if
+    (
+        ownedBoundaryFacesOwnerVersion_ == ownerVersion
+     && ownedBoundaryFaces_.size() == mesh_.boundaryMesh().size()
+    )
+    {
+        return;
+    }
+
+    ownedBoundaryFaces_.setSize(mesh_.boundaryMesh().size());
+
+    forAll(mesh_.boundaryMesh(), patchi)
+    {
+        const polyPatch& pp = mesh_.boundaryMesh()[patchi];
+        const label startFace = pp.start();
+        DynamicList<label> owned(pp.size()/8 + 1);
+
+        forAll(pp, facei)
+        {
+            if (replicatedMesh.isMyCell(mesh_.faceOwner()[startFace + facei]))
+            {
+                owned.append(facei);
+            }
+        }
+
+        ownedBoundaryFaces_[patchi].transfer(owned);
+    }
+
+    ownedBoundaryFacesOwnerVersion_ = ownerVersion;
 }
 
 
 void dsmcVolFields::calculateField()
 {
     sampleCounter_++;
+
+    updateOwnedBoundaryFaces();
+
+    // M4: ensure the cumulative storage matches the current owned-cell set
+    // (first call: allocate owned-size and apply any deferred resume load;
+    // after a DLB owner reassignment: restart the averaging window).
+    initOwnedStorage();
 
     const scalar kB = physicoChemical::k.value();
     const scalar NAvo = physicoChemical::NA.value();
@@ -2928,19 +3448,10 @@ void dsmcVolFields::calculateField()
 
     ++profileCalls_;
     
-	    //- Reset instantaneous number of DSMC parcels.
-	    if (cloud_.hasOccupancyOrderedParcels())
-	    {
-	        forAll(dsmcNResetCells_, i)
-	        {
-	            dsmcN_[dsmcNResetCells_[i]] = 0.0;
-	        }
-	        dsmcNResetCells_.clear();
-	    }
-	    else
-	    {
-	        dsmcN_ = 0.0;
-	    }
+    // dsmcN is an instantaneous field.  In a replicated mesh, a cell can
+    // change owner between samples, so an active-cell-only reset can expose
+    // an older value left on its new owner.
+    dsmcN_() = 0.0;
 
     if (sampleInterval_ <= sampleCounter_)
     {
@@ -2956,9 +3467,13 @@ void dsmcVolFields::calculateField()
 
         if (densityOnly_)
         {
+            // M4: sample over all owned cells (ascending order) rather than
+            // occupancyActiveCells so the same cell list is used by every
+            // pass; empty cells contribute nothing and keep the RNG stream
+            // untouched.
             const UList<label>* sampleCellsPtr =
-                cloud_.hasOccupancyOrderedParcels()
-              ? static_cast<const UList<label>*>(&cloud_.occupancyActiveCells())
+                cloud_.replicatedMeshActive()
+              ? static_cast<const UList<label>*>(&cloud_.replicatedMesh().myCells())
               : nullptr;
             const label sampleLoopSize =
                 sampleCellsPtr ? sampleCellsPtr->size() : mesh_.nCells();
@@ -3007,10 +3522,10 @@ void dsmcVolFields::calculateField()
                         }
                     }
 
-                    dsmcNCum_[cell] += dsmcNLocal;
-                    dsmcN_[cell] += dsmcNLocal;
-                    nCum_[cell] += nLocal;
-                    mCum_[cell] += mLocal;
+                    dsmcNCum_[toOwned(cell)] += dsmcNLocal;
+                    dsmcN_()[cell] += dsmcNLocal;
+                    nCum_[toOwned(cell)] += nLocal;
+                    mCum_[toOwned(cell)] += mLocal;
                 }
             }
             else
@@ -3035,13 +3550,13 @@ void dsmcVolFields::calculateField()
                         const scalar mass = cloud_.constProps(typeId).mass();
 
                         // cumulative number of DSMC parcels
-                        dsmcNCum_[cell] += 1.0;
+                        dsmcNCum_[toOwned(cell)] += 1.0;
                         // instantaneous number of DSMC parcels in this time step
-                        dsmcN_[cell] += 1.0;
+                        dsmcN_()[cell] += 1.0;
                         // cumulative number of real particles
-                        nCum_[cell] += nParticles;
+                        nCum_[toOwned(cell)] += nParticles;
                         // cumulative mass of real particles
-                        mCum_[cell] += mass*nParticles;
+                        mCum_[toOwned(cell)] += mass*nParticles;
                     }
                 }
             }
@@ -3126,21 +3641,16 @@ void dsmcVolFields::calculateField()
 	                    }
 	                }
 	            }
-	            const UList<label>* combineCellsPtr =
-	                cloud_.hasOccupancyOrderedParcels()
-	              ? static_cast<const UList<label>*>(&cloud_.occupancyActiveCells())
-	              : nullptr;
-	            const label combineLoopSize =
-	                combineCellsPtr ? combineCellsPtr->size() : dsmcNCum_.size();
-	            if (combineCellsPtr)
-	            {
-	                dsmcNResetCells_.setSize(combineLoopSize);
-	                for (label i = 0; i < combineLoopSize; ++i)
-	                {
-	                    dsmcNResetCells_[i] = (*combineCellsPtr)[i];
-	                }
-	            }
-
+            // M4: combine over all owned cells (ascending order) rather than
+            // occupancyActiveCells so the same cell list is used by every
+            // pass; empty cells contribute nothing and keep the RNG stream
+            // untouched.
+            const UList<label>* combineCellsPtr =
+                cloud_.replicatedMeshActive()
+              ? static_cast<const UList<label>*>(&cloud_.replicatedMesh().myCells())
+              : nullptr;
+            const label combineLoopSize =
+                combineCellsPtr ? combineCellsPtr->size() : dsmcNCum_.size();
             #ifdef _OPENMP
             #pragma omp parallel for schedule(static) if (useOpenMPSampling)
             #endif
@@ -3194,15 +3704,15 @@ void dsmcVolFields::calculateField()
                     momentumLocal = dsmcMomentumLocal*cellNParticles;
                     linearKELocal = dsmcLinearKELocal*cellNParticles;
 
-                    dsmcNSpeciesCum_[0][cell] += dsmcNLocal;
-                    dsmcMccSpeciesCum_[0][cell] += dsmcLinearKELocal;
-                    nSpeciesCum_[0][cell] += nLocal;
+                    dsmcNSpeciesCum_[0][toOwned(cell)] += dsmcNLocal;
+                    dsmcMccSpeciesCum_[0][toOwned(cell)] += dsmcLinearKELocal;
+                    nSpeciesCum_[0][toOwned(cell)] += nLocal;
 
                     if (needVibrational)
                     {
                         forAll(dsmcSpeciesEvibModCum_[0], mod)
                         {
-                            dsmcSpeciesEvibModCum_[0][mod][cell] +=
+                            dsmcSpeciesEvibModCum_[0][mod][toOwned(cell)] +=
                                 sharedSampleCache_.dsmcSpeciesEvibMod[onlyTypeId][mod][cell];
                         }
                     }
@@ -3288,15 +3798,15 @@ void dsmcVolFields::calculateField()
 	                                speciesDsmcLinearKE*cellNParticles;
 	                        }
 
-                        dsmcNSpeciesCum_[i][cell] += speciesDsmcN;
-                        dsmcMccSpeciesCum_[i][cell] += speciesDsmcLinearKE;
-                        nSpeciesCum_[i][cell] += speciesNReal;
+                        dsmcNSpeciesCum_[i][toOwned(cell)] += speciesDsmcN;
+                        dsmcMccSpeciesCum_[i][toOwned(cell)] += speciesDsmcLinearKE;
+                        nSpeciesCum_[i][toOwned(cell)] += speciesNReal;
 
                         if (needVibrational)
                         {
                             forAll(dsmcSpeciesEvibModCum_[i], mod)
                             {
-                                dsmcSpeciesEvibModCum_[i][mod][cell] +=
+                                dsmcSpeciesEvibModCum_[i][mod][toOwned(cell)] +=
                                     sharedSampleCache_.dsmcSpeciesEvibMod[typeId][mod][cell];
                             }
                         }
@@ -3331,42 +3841,42 @@ void dsmcVolFields::calculateField()
                     }
                 }
 
-                dsmcNCum_[cell] += dsmcNLocal;
-                dsmcN_[cell] += dsmcNLocal;
-                dsmcMCum_[cell] += dsmcMLocal;
-                dsmcLinearKECum_[cell] += dsmcLinearKELocal;
-                dsmcMomentumCum_[cell] += dsmcMomentumLocal;
-                dsmcErotCum_[cell] += dsmcErotLocal;
-                dsmcZetaRotCum_[cell] += dsmcZetaRotLocal;
-                dsmcNElecLvlCum_[cell] += dsmcNElecLvlLocal;
-                nCum_[cell] += nLocal;
-                mCum_[cell] += mLocal;
-                momentumCum_[cell] += momentumLocal;
-                linearKECum_[cell] += linearKELocal;
+                dsmcNCum_[toOwned(cell)] += dsmcNLocal;
+                dsmcN_()[cell] += dsmcNLocal;
+                dsmcMCum_[toOwned(cell)] += dsmcMLocal;
+                dsmcLinearKECum_[toOwned(cell)] += dsmcLinearKELocal;
+                dsmcMomentumCum_[toOwned(cell)] += dsmcMomentumLocal;
+                dsmcErotCum_[toOwned(cell)] += dsmcErotLocal;
+                dsmcZetaRotCum_[toOwned(cell)] += dsmcZetaRotLocal;
+                dsmcNElecLvlCum_[toOwned(cell)] += dsmcNElecLvlLocal;
+                nCum_[toOwned(cell)] += nLocal;
+                mCum_[toOwned(cell)] += mLocal;
+                momentumCum_[toOwned(cell)] += momentumLocal;
+                linearKECum_[toOwned(cell)] += linearKELocal;
 
                 if (needHeatFluxShearStress)
                 {
-                    dsmcMuuCum_[cell] += dsmcMuuLocal;
-                    dsmcMuvCum_[cell] += dsmcMuvLocal;
-                    dsmcMuwCum_[cell] += dsmcMuwLocal;
-                    dsmcMvvCum_[cell] += dsmcMvvLocal;
-                    dsmcMvwCum_[cell] += dsmcMvwLocal;
-                    dsmcMwwCum_[cell] += dsmcMwwLocal;
-                    dsmcMccCum_[cell] += dsmcMccLocal;
-                    dsmcMccuCum_[cell] += dsmcMccuLocal;
-                    dsmcMccvCum_[cell] += dsmcMccvLocal;
-                    dsmcMccwCum_[cell] += dsmcMccwLocal;
-                    dsmcEuCum_[cell] += dsmcEuLocal;
-                    dsmcEvCum_[cell] += dsmcEvLocal;
-                    dsmcEwCum_[cell] += dsmcEwLocal;
-                    dsmcECum_[cell] += dsmcECumLocal;
+                    dsmcMuuCum_[toOwned(cell)] += dsmcMuuLocal;
+                    dsmcMuvCum_[toOwned(cell)] += dsmcMuvLocal;
+                    dsmcMuwCum_[toOwned(cell)] += dsmcMuwLocal;
+                    dsmcMvvCum_[toOwned(cell)] += dsmcMvvLocal;
+                    dsmcMvwCum_[toOwned(cell)] += dsmcMvwLocal;
+                    dsmcMwwCum_[toOwned(cell)] += dsmcMwwLocal;
+                    dsmcMccCum_[toOwned(cell)] += dsmcMccLocal;
+                    dsmcMccuCum_[toOwned(cell)] += dsmcMccuLocal;
+                    dsmcMccvCum_[toOwned(cell)] += dsmcMccvLocal;
+                    dsmcMccwCum_[toOwned(cell)] += dsmcMccwLocal;
+                    dsmcEuCum_[toOwned(cell)] += dsmcEuLocal;
+                    dsmcEvCum_[toOwned(cell)] += dsmcEvLocal;
+                    dsmcEwCum_[toOwned(cell)] += dsmcEwLocal;
+                    dsmcECum_[toOwned(cell)] += dsmcECumLocal;
                 }
 
                 if (needClassification)
                 {
-                    dsmcNClassICum_[cell] += dsmcNClassILocal;
-                    dsmcNClassIICum_[cell] += dsmcNClassIILocal;
-                    dsmcNClassIIICum_[cell] += dsmcNClassIIILocal;
+                    dsmcNClassICum_[toOwned(cell)] += dsmcNClassILocal;
+                    dsmcNClassIICum_[toOwned(cell)] += dsmcNClassIILocal;
+                    dsmcNClassIIICum_[toOwned(cell)] += dsmcNClassIIILocal;
                 }
             }
 
@@ -3394,51 +3904,51 @@ void dsmcVolFields::calculateField()
             {
                 const label celli =
                     reduceCellsPtr ? (*reduceCellsPtr)[reduceI] : reduceI;
-                collisionSeparation_[celli] +=
+                collisionSeparation_[toOwned(celli)] +=
                     cloud_.cellPropMeasurements().collisionSeparation()[celli];
                     
-                dsmcNCollsCum_[celli] +=
+                dsmcNCollsCum_[toOwned(celli)] +=
                     cloud_.cellPropMeasurements().nColls()[celli];
 
-                if (dsmcNCum_[celli] > 1e-3)
+                if (dsmcNCum_[toOwned(celli)] > 1e-3)
                 {
                     const scalar cellVolume = mesh_.cellVolumes()[celli];
 
-                    dsmcNMean_[celli] = dsmcNCum_[celli]/nAvTimeSteps;
+                    dsmcNMean_()[celli] = dsmcNCum_[toOwned(celli)]/nAvTimeSteps;
 
-                    const scalar rhoNMean = nCum_[celli]
+                    const scalar rhoNMean = nCum_[toOwned(celli)]
                         /(nAvTimeSteps*cellVolume);
-                    const scalar rhoMMean = mCum_[celli]
+                    const scalar rhoMMean = mCum_[toOwned(celli)]
                         /(nAvTimeSteps*cellVolume);
 
-                    rhoN_[celli] = rhoNMean;
-                    rhoM_[celli] = rhoMMean;
+                    rhoN_()[celli] = rhoNMean;
+                    rhoM_()[celli] = rhoMMean;
                     
-                    UMean_[celli] = momentumCum_[celli]/mCum_[celli];
+                    UMean_()[celli] = momentumCum_[toOwned(celli)]/mCum_[toOwned(celli)];
 
-                    const scalar linearKEMean = 0.5*linearKECum_[celli]
+                    const scalar linearKEMean = 0.5*linearKECum_[toOwned(celli)]
                         /(cellVolume*nAvTimeSteps);
 
-                    Ttra_[celli] =
+                    Ttra_()[celli] =
                         2.0/(3.0*kB*rhoNMean)
                        *(
                             linearKEMean - 0.5*rhoMMean
                            *(
-                                UMean_[celli] & UMean_[celli]
+                                UMean_()[celli] & UMean_()[celli]
                             )
                         );
 
-                    p_[celli] = rhoNMean*kB*Ttra_[celli];
+                    p_()[celli] = rhoNMean*kB*Ttra_()[celli];
                 }
                 else
                 {
                     // not zero so that weighted decomposition still works
-                    dsmcNMean_[celli] = 0.001;
-                    rhoN_[celli] = 0.0;
-                    rhoM_[celli] = 0.0;
-                    UMean_[celli] = vector::zero;
-                    Ttra_[celli] = 0.0;
-                    p_[celli] = 0.0;
+                    dsmcNMean_()[celli] = 0.001;
+                    rhoN_()[celli] = 0.0;
+                    rhoM_()[celli] = 0.0;
+                    UMean_()[celli] = vector::zero;
+                    Ttra_()[celli] = 0.0;
+                    p_()[celli] = 0.0;
                 }
             }
 
@@ -3453,26 +3963,29 @@ void dsmcVolFields::calculateField()
                 doProfile ? wallClockNow() : std::chrono::steady_clock::time_point();
             const boundaryMeasurements& boundaryFlux =
                 cloud_.boundaryFluxMeasurements();
-            const bool useOwnedBoundaryFaces =
-                cloud_.replicatedMeshActive()
-             && ownedBoundaryFaces_.size() == mesh_.boundaryMesh().size();
+            // Wall hits are recorded on the rank where the move occurs;
+            // migration to the cell owner happens only after the move.
+            // Accumulate every local face here and apply ownership only when
+            // processor output is selected below.
             forAll(speciesIds_, i)
             {
                 const label spId = speciesIds_[i];
 
-                forAll(sampledBoundaryPatches_, patchi)
+                // Boundary accumulation is per-face disjoint (each face's
+                // slots are written only here) and the boundaryFlux
+                // accessors are const reads — OMP over the sampled patches
+                // (§8.6).
+                const label nSampledPatches = sampledBoundaryPatches_.size();
+                #ifdef _OPENMP
+                #pragma omp parallel for schedule(dynamic)
+                #endif
+                for (label patchi = 0; patchi < nSampledPatches; ++patchi)
                 {
                     const label j = sampledBoundaryPatches_[patchi];
-                    const label nFaces =
-                        useOwnedBoundaryFaces
-                      ? ownedBoundaryFaces_[j].size()
-                      : mesh_.boundaryMesh()[j].size();
+                    const label nFaces = mesh_.boundaryMesh()[j].size();
                     for (label facei = 0; facei < nFaces; ++facei)
                     {
-                        const label k =
-                            useOwnedBoundaryFaces
-                          ? ownedBoundaryFaces_[j][facei]
-                          : facei;
+                        const label k = facei;
                         rhoNBF_[j][k] +=
                             boundaryFlux.speciesRhoNBF(spId, j, k);
                         rhoMBF_[j][k] +=
@@ -3507,21 +4020,17 @@ void dsmcVolFields::calculateField()
 
                 forAll(speciesEvibModBF_[i], mod)
                 {
-                    forAll(sampledBoundaryPatches_, patchi)
+                    #ifdef _OPENMP
+                    #pragma omp parallel for schedule(dynamic)
+                    #endif
+                    for (label patchi = 0; patchi < nSampledPatches; ++patchi)
                     {
                         const label j = sampledBoundaryPatches_[patchi];
-                        const label nFaces =
-                            useOwnedBoundaryFaces
-                          ? ownedBoundaryFaces_[j].size()
-                          : mesh_.boundaryMesh()[j].size();
+                        const label nFaces = mesh_.boundaryMesh()[j].size();
                         for (label facei = 0; facei < nFaces; ++facei)
                         {
-                            const label k =
-                                useOwnedBoundaryFaces
-                              ? ownedBoundaryFaces_[j][facei]
-                              : facei;
-                            speciesEvibModBF_[i][mod][j][k] +=
-                                boundaryFlux.speciesEvibModBF(spId, mod, j, k);
+                            speciesEvibModBF_[i][mod][j][facei] +=
+                                boundaryFlux.speciesEvibModBF(spId, mod, j, facei);
                         }
                     }
                 }
@@ -3566,11 +4075,10 @@ void dsmcVolFields::calculateField()
          || processorWrite;
         const bool restoreLocalAfterOutput =
             cloud_.replicatedMeshActive()
-         && !processorWrite
          && !time_.resetFieldsAtOutput();
-        const bool reduceForRootOutput =
-            cloud_.replicatedMeshActive()
-         && !processorWrite;
+        // DLB leaves sampled history on prior ranks when cell ownership moves.
+        // Sum it before applying the current output owner map in every mode.
+        const bool reduceForOutput = cloud_.replicatedMeshActive();
         const UList<label>* outputCellsPtr =
             (
                 cloud_.replicatedMeshActive()
@@ -3724,11 +4232,17 @@ void dsmcVolFields::calculateField()
             }
         }
 
-        if (reduceForRootOutput)
+        if (reduceForOutput)
         {
             const auto outputReduceStart =
                 doProfile ? wallClockNow() : std::chrono::steady_clock::time_point();
-            sumReduceField(dsmcN_.primitiveFieldRef());
+            sumReduceField(dsmcN_().primitiveFieldRef());
+            // M4: in owned mode the per-cell cumulative arrays are
+            // owned-size and each cell has exactly one owner rank, so the
+            // cross-rank sum is unnecessary (and would mismatch sizes
+            // across ranks).
+            if (!ownedStorageActive_)
+            {
             sumReduceField(dsmcNCum_);
             sumReduceField(nCum_);
             sumReduceField(dsmcNElecLvlCum_);
@@ -3768,6 +4282,7 @@ void dsmcVolFields::calculateField()
             sumReduceFieldList(dsmcNGrndElecLvlSpeciesCum_);
             sumReduceFieldList(dsmcN1stElecLvlSpeciesCum_);
             sumReduceFieldListList(dsmcSpeciesEvibModCum_);
+            }
 
             sumReduceFieldList(rhoNBF_);
             sumReduceFieldList(rhoMBF_);
@@ -3810,41 +4325,41 @@ void dsmcVolFields::calculateField()
             {
                 const label celli =
                     outputCellsPtr ? (*outputCellsPtr)[outputI] : outputI;
-                if (dsmcNCum_[celli] > 1e-3)
+                if (dsmcNCum_[toOwned(celli)] > 1e-3)
                 {
                     const scalar cellVolume = mesh_.cellVolumes()[celli];
 
-                    dsmcNMean_[celli] = dsmcNCum_[celli]/nAvTimeSteps;
+                    dsmcNMean_()[celli] = dsmcNCum_[toOwned(celli)]/nAvTimeSteps;
 
                     const scalar rhoNMean =
-                        nCum_[celli]/(nAvTimeSteps*cellVolume);
+                        nCum_[toOwned(celli)]/(nAvTimeSteps*cellVolume);
                     const scalar rhoMMean =
-                        mCum_[celli]/(nAvTimeSteps*cellVolume);
+                        mCum_[toOwned(celli)]/(nAvTimeSteps*cellVolume);
 
-                    rhoN_[celli] = rhoNMean;
-                    rhoM_[celli] = rhoMMean;
-                    UMean_[celli] = momentumCum_[celli]/mCum_[celli];
+                    rhoN_()[celli] = rhoNMean;
+                    rhoM_()[celli] = rhoMMean;
+                    UMean_()[celli] = momentumCum_[toOwned(celli)]/mCum_[toOwned(celli)];
 
                     const scalar linearKEMean =
-                        0.5*linearKECum_[celli]/(cellVolume*nAvTimeSteps);
+                        0.5*linearKECum_[toOwned(celli)]/(cellVolume*nAvTimeSteps);
 
-                    Ttra_[celli] =
+                    Ttra_()[celli] =
                         2.0/(3.0*kBLocal*rhoNMean)
                        *(
                             linearKEMean
-                          - 0.5*rhoMMean*(UMean_[celli] & UMean_[celli])
+                          - 0.5*rhoMMean*(UMean_()[celli] & UMean_()[celli])
                         );
 
-                    p_[celli] = rhoNMean*kBLocal*Ttra_[celli];
+                    p_()[celli] = rhoNMean*kBLocal*Ttra_()[celli];
                 }
                 else
                 {
-                    dsmcNMean_[celli] = 0.001;
-                    rhoN_[celli] = 0.0;
-                    rhoM_[celli] = 0.0;
-                    UMean_[celli] = vector::zero;
-                    Ttra_[celli] = 0.0;
-                    p_[celli] = 0.0;
+                    dsmcNMean_()[celli] = 0.001;
+                    rhoN_()[celli] = 0.0;
+                    rhoM_()[celli] = 0.0;
+                    UMean_()[celli] = vector::zero;
+                    Ttra_()[celli] = 0.0;
+                    p_()[celli] = 0.0;
                 }
             }
         }
@@ -3857,27 +4372,27 @@ void dsmcVolFields::calculateField()
                 {
                     const label celli =
                         outputCellsPtr ? (*outputCellsPtr)[outputI] : outputI;
-                    if (dsmcNCum_[celli] > SMALL)
+                    if (dsmcNCum_[toOwned(celli)] > SMALL)
                     {
                         const scalar cellVolume = mesh_.cellVolumes()[celli];
 
-                        dsmcNMean_[celli] = dsmcNCum_[celli]/nAvTimeSteps;
+                        dsmcNMean_()[celli] = dsmcNCum_[toOwned(celli)]/nAvTimeSteps;
 
-                        rhoN_[celli] = nCum_[celli]/(nAvTimeSteps*cellVolume);
-                        rhoM_[celli] = mCum_[celli]/(nAvTimeSteps*cellVolume);
+                        rhoN_()[celli] = nCum_[toOwned(celli)]/(nAvTimeSteps*cellVolume);
+                        rhoM_()[celli] = mCum_[toOwned(celli)]/(nAvTimeSteps*cellVolume);
                     }
                     else
                     {
                         // not zero so that weighted decomposition still works
-                        dsmcNMean_[celli] = 0.001;
-                        rhoN_[celli] = 0.0;
-                        rhoM_[celli] = 0.0;
+                        dsmcNMean_()[celli] = 0.001;
+                        rhoN_()[celli] = 0.0;
+                        rhoM_()[celli] = 0.0;
                     }
 
-                    if (dsmcN_[celli] < SMALL)
+                    if (dsmcN_()[celli] < SMALL)
                     {
                         // not zero so that weighted decomposition still works
-                        dsmcN_[celli] = 0.001;
+                        dsmcN_()[celli] = 0.001;
                     }
                 }
             }
@@ -3891,7 +4406,7 @@ void dsmcVolFields::calculateField()
                     outputCellsPtr ? (*outputCellsPtr)[outputI] : outputI;
                 //- Fields initialisation 
                 scalar moleculesRhoN = 0.0;
-                Tvib_[celli] = 0.0;
+                Tvib_()[celli] = 0.0;
                 scalarList speciesTvib(nSpecies, 0.0);
                 List<scalarList> speciesTvibMod(nSpecies);
                 scalarList speciesZetaVib(nSpecies, 0.0);
@@ -3906,15 +4421,15 @@ void dsmcVolFields::calculateField()
                 //- Rotational energy mode
                 const scalar zetaRotTot
                 (
-                    dsmcNCum_[celli] > SMALL
-                  ? dsmcZetaRotCum_[celli]/dsmcNCum_[celli]
+                    dsmcNCum_[toOwned(celli)] > SMALL
+                  ? dsmcZetaRotCum_[toOwned(celli)]/dsmcNCum_[toOwned(celli)]
                   : 0.0
                 );
 
-                Trot_[celli] =
+                Trot_()[celli] =
                 (
-                    dsmcZetaRotCum_[celli] > SMALL
-                  ? 2.0*dsmcErotCum_[celli]/(kB*dsmcZetaRotCum_[celli])
+                    dsmcZetaRotCum_[toOwned(celli)] > SMALL
+                  ? 2.0*dsmcErotCum_[toOwned(celli)]/(kB*dsmcZetaRotCum_[toOwned(celli)])
                   : 0.0
                 );
 
@@ -3929,18 +4444,18 @@ void dsmcVolFields::calculateField()
                     speciesTvibMod[i].setSize(nVibMod, 0.0);
                     scalar zetaByTvibMod = 0.0;
                     const bool enoughTvibSamples =
-                        dsmcNSpeciesCum_[i][celli] >= nMinParcelsTvib_;
+                        dsmcNSpeciesCum_[i][toOwned(celli)] >= nMinParcelsTvib_;
 
                     if (nVibMod > 0 && enoughTvibSamples)
                     {
-                        moleculesRhoN += nSpeciesCum_[i][celli];
+                        moleculesRhoN += nSpeciesCum_[i][toOwned(celli)];
                     }
 
                     forAll(dsmcSpeciesEvibModCum_[i], mod)
                     {
                         if
                         (
-                            dsmcSpeciesEvibModCum_[i][mod][celli] > VSMALL
+                            dsmcSpeciesEvibModCum_[i][mod][toOwned(celli)] > VSMALL
                          && enoughTvibSamples
                          && nVibMod > 0
                         )
@@ -3949,8 +4464,8 @@ void dsmcVolFields::calculateField()
                                 cloud_.constProps(spId).thetaV_m(mod);
 
                             const scalar iMean =
-                                dsmcSpeciesEvibModCum_[i][mod][celli]
-                               /(kB*thetaV*dsmcNSpeciesCum_[i][celli]);
+                                dsmcSpeciesEvibModCum_[i][mod][toOwned(celli)]
+                               /(kB*thetaV*dsmcNSpeciesCum_[i][toOwned(celli)]);
                                
                             if (iMean > iMeanMinTvib_)
                             {
@@ -3972,9 +4487,9 @@ void dsmcVolFields::calculateField()
                     {
                         speciesTvib[i] = zetaByTvibMod/speciesZetaVib[i];
                         
-                        Tvib_[celli] += nSpeciesCum_[i][celli]*speciesTvib[i];
+                        Tvib_()[celli] += nSpeciesCum_[i][toOwned(celli)]*speciesTvib[i];
                             
-                        zetaVib_[celli] += nSpeciesCum_[i][celli]
+                        zetaVib_[toOwned(celli)] += nSpeciesCum_[i][toOwned(celli)]
                             *speciesZetaVib[i];    
                     }
                     
@@ -3982,140 +4497,140 @@ void dsmcVolFields::calculateField()
 
                 if (moleculesRhoN > SMALL)
                 {
-                    Tvib_[celli] /= moleculesRhoN;
-                    zetaVib_[celli] /= moleculesRhoN;
+                    Tvib_()[celli] /= moleculesRhoN;
+                    zetaVib_[toOwned(celli)] /= moleculesRhoN;
                 }
 
                 //- Electronic energy mode // TODO Vincent
                 //  To reintroduce - I do not trust this part
                 scalar zetaElecTot = 0.0;
-                Telec_[celli] = 0.0;
+                Telec_()[celli] = 0.0;
 
                 //- Overall temperature
-                Tov_[celli] =
+                Tov_()[celli] =
                     (
-                        3.0*Ttra_[celli]
-                      + zetaRotTot*Trot_[celli]
-                      + zetaVib_[celli]*Tvib_[celli]
-                      + zetaElecTot*Telec_[celli]
+                        3.0*Ttra_()[celli]
+                      + zetaRotTot*Trot_()[celli]
+                      + zetaVib_[toOwned(celli)]*Tvib_()[celli]
+                      + zetaElecTot*Telec_()[celli]
                     ) /
-                    (3.0 + zetaRotTot + zetaVib_[celli] + zetaElecTot);
+                    (3.0 + zetaRotTot + zetaVib_[toOwned(celli)] + zetaElecTot);
 
 
                 if (measureHeatFluxShearStress_)
                 {
-                    if (dsmcNCum_[celli] > SMALL)
+                    if (dsmcNCum_[toOwned(celli)] > SMALL)
                     {
-                        pressureTensor_[celli].xx() =
-                            rhoN_[celli]/dsmcNCum_[celli]
+                        pressureTensor_()[celli].xx() =
+                            rhoN_()[celli]/dsmcNCum_[toOwned(celli)]
                            *(
-                                dsmcMuuCum_[celli]
-                              - dsmcMCum_[celli]*sqr(UMean_[celli].x())
+                                dsmcMuuCum_[toOwned(celli)]
+                              - dsmcMCum_[toOwned(celli)]*sqr(UMean_()[celli].x())
                             );
-                        pressureTensor_[celli].xy() =
-                            rhoN_[celli]/dsmcNCum_[celli]
+                        pressureTensor_()[celli].xy() =
+                            rhoN_()[celli]/dsmcNCum_[toOwned(celli)]
                            *(
-                                dsmcMuvCum_[celli]
-                              - dsmcMCum_[celli]*UMean_[celli].x()
-                              * UMean_[celli].y()
+                                dsmcMuvCum_[toOwned(celli)]
+                              - dsmcMCum_[toOwned(celli)]*UMean_()[celli].x()
+                              * UMean_()[celli].y()
                             );
-                        pressureTensor_[celli].xz() =
-                            rhoN_[celli]/dsmcNCum_[celli]
+                        pressureTensor_()[celli].xz() =
+                            rhoN_()[celli]/dsmcNCum_[toOwned(celli)]
                            *(
-                                dsmcMuwCum_[celli]
-                              - dsmcMCum_[celli]*UMean_[celli].x()
-                              * UMean_[celli].z()
-                            );
-
-                        pressureTensor_[celli].yx() =
-                            pressureTensor_[celli].xy();
-                        pressureTensor_[celli].yy() =
-                            rhoN_[celli]/dsmcNCum_[celli]
-                           *(
-                                dsmcMvvCum_[celli]
-                              - dsmcMCum_[celli]*sqr(UMean_[celli].y())
-                            );
-                        pressureTensor_[celli].yz() =
-                            rhoN_[celli]/dsmcNCum_[celli]
-                           *(
-                                dsmcMvwCum_[celli]
-                              - dsmcMCum_[celli]*UMean_[celli].y()
-                              * UMean_[celli].z()
+                                dsmcMuwCum_[toOwned(celli)]
+                              - dsmcMCum_[toOwned(celli)]*UMean_()[celli].x()
+                              * UMean_()[celli].z()
                             );
 
-                        pressureTensor_[celli].zx() =
-                            pressureTensor_[celli].xz();
-                        pressureTensor_[celli].zy() =
-                            pressureTensor_[celli].yz();
-                        pressureTensor_[celli].zz() =
-                            rhoN_[celli]/dsmcNCum_[celli]
+                        pressureTensor_()[celli].yx() =
+                            pressureTensor_()[celli].xy();
+                        pressureTensor_()[celli].yy() =
+                            rhoN_()[celli]/dsmcNCum_[toOwned(celli)]
                            *(
-                                dsmcMwwCum_[celli]
-                              - dsmcMCum_[celli]*sqr(UMean_[celli].z())
+                                dsmcMvvCum_[toOwned(celli)]
+                              - dsmcMCum_[toOwned(celli)]*sqr(UMean_()[celli].y())
+                            );
+                        pressureTensor_()[celli].yz() =
+                            rhoN_()[celli]/dsmcNCum_[toOwned(celli)]
+                           *(
+                                dsmcMvwCum_[toOwned(celli)]
+                              - dsmcMCum_[toOwned(celli)]*UMean_()[celli].y()
+                              * UMean_()[celli].z()
+                            );
+
+                        pressureTensor_()[celli].zx() =
+                            pressureTensor_()[celli].xz();
+                        pressureTensor_()[celli].zy() =
+                            pressureTensor_()[celli].yz();
+                        pressureTensor_()[celli].zz() =
+                            rhoN_()[celli]/dsmcNCum_[toOwned(celli)]
+                           *(
+                                dsmcMwwCum_[toOwned(celli)]
+                              - dsmcMCum_[toOwned(celli)]*sqr(UMean_()[celli].z())
                             );
 
                         const scalar scalarPressure =
                             1.0/3.0
                            *(
-                                pressureTensor_[celli].xx()
-                              + pressureTensor_[celli].yy()
-                              + pressureTensor_[celli].zz()
+                                pressureTensor_()[celli].xx()
+                              + pressureTensor_()[celli].yy()
+                              + pressureTensor_()[celli].zz()
                             );
 
-                        shearStressTensor_[celli] = -pressureTensor_[celli];
-                        shearStressTensor_[celli].xx() += scalarPressure;
-                        shearStressTensor_[celli].yy() += scalarPressure;
-                        shearStressTensor_[celli].zz() += scalarPressure;
+                        shearStressTensor_()[celli] = -pressureTensor_()[celli];
+                        shearStressTensor_()[celli].xx() += scalarPressure;
+                        shearStressTensor_()[celli].yy() += scalarPressure;
+                        shearStressTensor_()[celli].zz() += scalarPressure;
 
                         //- terms involving pressure tensor should not be
                         //  multiplied by the number density
                         //  (see Bird corrigendum)
 
-                        heatFluxVector_[celli].x() =
-                            rhoN_[celli]/dsmcNCum_[celli]
+                        heatFluxVector_()[celli].x() =
+                            rhoN_()[celli]/dsmcNCum_[toOwned(celli)]
                            *(
-                                0.5*dsmcMccuCum_[celli]
-                              - 0.5*dsmcMccCum_[celli]*UMean_[celli].x()
-                              + dsmcEuCum_[celli]
-                              - dsmcECum_[celli]*UMean_[celli].x()
+                                0.5*dsmcMccuCum_[toOwned(celli)]
+                              - 0.5*dsmcMccCum_[toOwned(celli)]*UMean_()[celli].x()
+                              + dsmcEuCum_[toOwned(celli)]
+                              - dsmcECum_[toOwned(celli)]*UMean_()[celli].x()
                             )
-                          - pressureTensor_[celli].xx()*UMean_[celli].x()
-                          - pressureTensor_[celli].xy()*UMean_[celli].y()
-                          - pressureTensor_[celli].xz()*UMean_[celli].z();
+                          - pressureTensor_()[celli].xx()*UMean_()[celli].x()
+                          - pressureTensor_()[celli].xy()*UMean_()[celli].y()
+                          - pressureTensor_()[celli].xz()*UMean_()[celli].z();
 
-                        heatFluxVector_[celli].y() =
-                            rhoN_[celli]/dsmcNCum_[celli]
+                        heatFluxVector_()[celli].y() =
+                            rhoN_()[celli]/dsmcNCum_[toOwned(celli)]
                            *(
-                                0.5*dsmcMccvCum_[celli]
-                              - 0.5*dsmcMccCum_[celli]*UMean_[celli].y()
-                              + dsmcEvCum_[celli]
-                              - dsmcECum_[celli]*UMean_[celli].y()
+                                0.5*dsmcMccvCum_[toOwned(celli)]
+                              - 0.5*dsmcMccCum_[toOwned(celli)]*UMean_()[celli].y()
+                              + dsmcEvCum_[toOwned(celli)]
+                              - dsmcECum_[toOwned(celli)]*UMean_()[celli].y()
                             )
-                          - pressureTensor_[celli].yx()*UMean_[celli].x()
-                          - pressureTensor_[celli].yy()*UMean_[celli].y()
-                          - pressureTensor_[celli].yz()*UMean_[celli].z();
+                          - pressureTensor_()[celli].yx()*UMean_()[celli].x()
+                          - pressureTensor_()[celli].yy()*UMean_()[celli].y()
+                          - pressureTensor_()[celli].yz()*UMean_()[celli].z();
 
-                        heatFluxVector_[celli].z() =
-                            rhoN_[celli]/dsmcNCum_[celli]
+                        heatFluxVector_()[celli].z() =
+                            rhoN_()[celli]/dsmcNCum_[toOwned(celli)]
                            *(
-                                0.5*dsmcMccwCum_[celli]
-                              - 0.5*dsmcMccCum_[celli]*UMean_[celli].z()
-                              + dsmcEwCum_[celli]
-                              - dsmcECum_[celli]*UMean_[celli].z()
+                                0.5*dsmcMccwCum_[toOwned(celli)]
+                              - 0.5*dsmcMccCum_[toOwned(celli)]*UMean_()[celli].z()
+                              + dsmcEwCum_[toOwned(celli)]
+                              - dsmcECum_[toOwned(celli)]*UMean_()[celli].z()
                             )
-                          - pressureTensor_[celli].zx()*UMean_[celli].x()
-                          - pressureTensor_[celli].zy()*UMean_[celli].y()
-                          - pressureTensor_[celli].zz()*UMean_[celli].z();
+                          - pressureTensor_()[celli].zx()*UMean_()[celli].x()
+                          - pressureTensor_()[celli].zy()*UMean_()[celli].y()
+                          - pressureTensor_()[celli].zz()*UMean_()[celli].z();
                     }
                     else
                     {
-                        pressureTensor_[celli] = tensor::zero;
-                        shearStressTensor_[celli] = tensor::zero;
-                        heatFluxVector_[celli] = vector::zero;
+                        pressureTensor_()[celli] = tensor::zero;
+                        shearStressTensor_()[celli] = tensor::zero;
+                        heatFluxVector_()[celli] = vector::zero;
                     }
                 }
                 
-                if (dsmcNCum_[celli] > SMALL and Ttra_[celli] > SMALL)
+                if (dsmcNCum_[toOwned(celli)] > SMALL and Ttra_()[celli] > SMALL)
                 {
                     forAll(speciesIds_, i)
                     {
@@ -4124,8 +4639,8 @@ void dsmcVolFields::calculateField()
                             cloud_.constProps(spId)
                               .rotationalDegreesOfFreedom();
                         
-                        const scalar Xs = nSpeciesCum_[i][celli]
-                            /nCum_[celli];
+                        const scalar Xs = nSpeciesCum_[i][toOwned(celli)]
+                            /nCum_[toOwned(celli)];
 
                         molecularMass += Xs*cloud_.constProps(spId).mass();
                             
@@ -4144,29 +4659,29 @@ void dsmcVolFields::calculateField()
 
                     const scalar speedOfSound = sqrt
                         (
-                            gamma*kB/molecularMass*Ttra_[celli]
+                            gamma*kB/molecularMass*Ttra_()[celli]
                         );
 
-                    Ma_[celli] = mag(UMean_[celli])/speedOfSound;
+                    Ma_()[celli] = mag(UMean_()[celli])/speedOfSound;
                 }
                 else
                 {
-                    Ma_[celli] = 0.0;
+                    Ma_()[celli] = 0.0;
                 }
 
-                if (measureMeanFreePath_ && Ttra_[celli] > 1.0)
+                if (measureMeanFreePath_ && Ttra_()[celli] > 1.0)
                 {
                     const scalar deltaT = cloud_.deltaTValue(celli);
                     
-                    mfp_[celli] = 0.0;
-                    meanCollisionRate_[celli] = 0.0;
+                    mfp_()[celli] = 0.0;
+                    meanCollisionRate_()[celli] = 0.0;
                     
                     forAll(speciesIds_, s)
                     {
                         const label spIdp = speciesIds_[s];
                         
-                        speciesMfp_[s][celli] = 0.0;
-                        speciesMcr_[s][celli] = 0.0;
+                        speciesMfp_[s][toOwned(celli)] = 0.0;
+                        speciesMcr_[s][toOwned(celli)] = 0.0;
 
                         forAll(speciesIds_, r)
                         {
@@ -4190,12 +4705,12 @@ void dsmcVolFields::calculateField()
 
                             if
                             (
-                                dsmcNSpeciesCum_[r][celli] > SMALL
-                             && Ttra_[celli] > SMALL
+                                dsmcNSpeciesCum_[r][toOwned(celli)] > SMALL
+                             && Ttra_()[celli] > SMALL
                             )
                             {
                                 const scalar nDensQ =
-                                    nSpeciesCum_[r][celli]
+                                    nSpeciesCum_[r][toOwned(celli)]
                                    /(mesh_.cellVolumes()[celli]*nAvTimeSteps);
                                 const scalar reducedMass =
                                     cloud_.constProps(spIdp).mass()
@@ -4207,18 +4722,18 @@ void dsmcVolFields::calculateField()
                                     );
 
                                 // Bird 1994, eq (4.76)
-                                speciesMfp_[s][celli] += pi*sqr(dPQ)*nDensQ
+                                speciesMfp_[s][toOwned(celli)] += pi*sqr(dPQ)*nDensQ
                                    *pow
                                     (
-                                        mfpTref_/Ttra_[celli], omegaPQ - 0.5
+                                        mfpTref_/Ttra_()[celli], omegaPQ - 0.5
                                     )*sqrt(1.0+massRatio);
 
                                 // Bird 1994, eq (4.74)
-                                speciesMcr_[s][celli] +=
+                                speciesMcr_[s][toOwned(celli)] +=
                                     2.0*sqrt(pi)*sqr(dPQ)*nDensQ
                                    *pow
                                     (
-                                        Ttra_[celli]/mfpTref_, 1.0 - omegaPQ
+                                        Ttra_()[celli]/mfpTref_, 1.0 - omegaPQ
                                     )
                                    *sqrt
                                     (
@@ -4227,61 +4742,61 @@ void dsmcVolFields::calculateField()
                             }
                         }
 
-                        if (speciesMfp_[s][celli] > SMALL)
+                        if (speciesMfp_[s][toOwned(celli)] > SMALL)
                         {
-                            speciesMfp_[s][celli] = 1.0/speciesMfp_[s][celli];
+                            speciesMfp_[s][toOwned(celli)] = 1.0/speciesMfp_[s][toOwned(celli)];
                         }
                     }
 
-                    meanCollisionSeparation_[celli] =
+                    meanCollisionSeparation_()[celli] =
                     (
-                        dsmcNCollsCum_[celli] > SMALL
-                      ? collisionSeparation_[celli]/dsmcNCollsCum_[celli]
+                        dsmcNCollsCum_[toOwned(celli)] > SMALL
+                      ? collisionSeparation_[toOwned(celli)]/dsmcNCollsCum_[toOwned(celli)]
                       : GREAT
                     );
 
-                    if (nCum_[celli] > SMALL)
+                    if (nCum_[toOwned(celli)] > SMALL)
                     {
                         // const scalar symmFactor = 2.0;
                         // TODO (s == r ? 1.0 : 2.0);
-                        measuredCollisionRate_[celli] = dsmcNCollsCum_[celli]
-                            *cloud_.nParticles(celli)/(nCum_[celli]*deltaT);
+                        measuredCollisionRate_()[celli] = dsmcNCollsCum_[toOwned(celli)]
+                            *cloud_.nParticles(celli)/(nCum_[toOwned(celli)]*deltaT);
                     }
 
-                    if (rhoN_[celli] > SMALL)
+                    if (rhoN_()[celli] > SMALL)
                     {
                         forAll(speciesIds_, i)
                         {
-                            const scalar rhoNi = nSpeciesCum_[i][celli];
+                            const scalar rhoNi = nSpeciesCum_[i][toOwned(celli)];
 
                             // Bird 1994, eq (4.77)
-                            mfp_[celli] += speciesMfp_[i][celli]
-                                *rhoNi/nCum_[celli];
+                            mfp_()[celli] += speciesMfp_[i][toOwned(celli)]
+                                *rhoNi/nCum_[toOwned(celli)];
 
                             // Bird 1994, eq (1.38)
-                            meanCollisionRate_[celli] +=
-                                speciesMcr_[i][celli]*rhoNi/nCum_[celli];
+                            meanCollisionRate_()[celli] +=
+                                speciesMcr_[i][toOwned(celli)]*rhoNi/nCum_[toOwned(celli)];
                         }
                     }
 
-                    if (mfp_[celli] < SMALL)
+                    if (mfp_()[celli] < SMALL)
                     {
-                        mfp_[celli] = GREAT;
+                        mfp_()[celli] = GREAT;
                     }
 
-                    if (meanCollisionRate_[celli] > SMALL)
+                    if (meanCollisionRate_()[celli] > SMALL)
                     {
-                        meanCollisionTime_[celli] =
-                            1.0/meanCollisionRate_[celli];
-                        mctToDt_[celli] = meanCollisionTime_[celli]/deltaT;
+                        meanCollisionTime_()[celli] =
+                            1.0/meanCollisionRate_()[celli];
+                        mctToDt_()[celli] = meanCollisionTime_()[celli]/deltaT;
                     }
                     else
                     {
-                        meanCollisionTime_[celli] = GREAT;
-                        mctToDt_[celli] = GREAT;
+                        meanCollisionTime_()[celli] = GREAT;
+                        mctToDt_()[celli] = GREAT;
                     }
 
-                    if (mfp_[celli] != GREAT)
+                    if (mfp_()[celli] != GREAT)
                     {
                         scalar maxCellDx = 0.0;
                         scalarField cellDx(3, 0.0);
@@ -4314,39 +4829,39 @@ void dsmcVolFields::calculateField()
                             }
                         }
 
-                        mfpToDx_[celli] = mfp_[celli]/maxCellDx;
+                        mfpToDx_()[celli] = mfp_()[celli]/maxCellDx;
 
-                        SOF_[celli] =
+                        SOF_()[celli] =
                         (
-                            mfp_[celli] > SMALL
-                          ? meanCollisionSeparation_[celli]/mfp_[celli]
+                            mfp_()[celli] > SMALL
+                          ? meanCollisionSeparation_()[celli]/mfp_()[celli]
                           : 0.0
                         );
                     }
                     else
                     {
-                        mfpToDx_[celli] = GREAT;
-                        SOF_[celli] = GREAT;
+                        mfpToDx_()[celli] = GREAT;
+                        SOF_()[celli] = GREAT;
                     }
 
                     // when few particles in cell, undesired refinement
                     // this condition should eliminates this problem
-                    if (dsmcN_[celli] >= 4.0)
+                    if (dsmcN_()[celli] >= 4.0)
                     {
-                        DxToMfp_[celli] = 1.0/mfpToDx_[celli];
+                        DxToMfp_()[celli] = 1.0/mfpToDx_()[celli];
                     }
                 }
 
                 if (measureClassifications_)
                 {
-                    if (dsmcNCum_[celli] > SMALL)
+                    if (dsmcNCum_[toOwned(celli)] > SMALL)
                     {
-                        classIDistribution_[celli] = dsmcNClassICum_[celli]
-                            /dsmcNCum_[celli];
-                        classIIDistribution_[celli] = dsmcNClassIICum_[celli]
-                            /dsmcNCum_[celli];
-                        classIIIDistribution_[celli] = dsmcNClassIIICum_[celli]
-                            /dsmcNCum_[celli];
+                        classIDistribution_()[celli] = dsmcNClassICum_[toOwned(celli)]
+                            /dsmcNCum_[toOwned(celli)];
+                        classIIDistribution_()[celli] = dsmcNClassIICum_[toOwned(celli)]
+                            /dsmcNCum_[toOwned(celli)];
+                        classIIIDistribution_()[celli] = dsmcNClassIIICum_[toOwned(celli)]
+                            /dsmcNCum_[toOwned(celli)];
                     }
                 }
 
@@ -4354,16 +4869,16 @@ void dsmcVolFields::calculateField()
                 {
                     if
                     (
-                         dsmcNMean_[celli] > SMALL && Ma_[celli] > SMALL
+                         dsmcNMean_()[celli] > SMALL && Ma_()[celli] > SMALL
                       && gamma > SMALL && particleCv > SMALL
                     )
                     {
-                        const scalar deno = sqrt(dsmcNMean_[celli]*nAvTimeSteps);
+                        const scalar deno = sqrt(dsmcNMean_()[celli]*nAvTimeSteps);
                         
-                        densityError_[celli] = 1.0/deno;
-                        velocityError_[celli] = 1.0/(deno*Ma_[celli]*sqrt(gamma));
-                        temperatureError_[celli] = sqrt(kB/particleCv)/deno;
-                        pressureError_[celli] = sqrt(gamma)/deno;
+                        densityError_()[celli] = 1.0/deno;
+                        velocityError_()[celli] = 1.0/(deno*Ma_()[celli]*sqrt(gamma));
+                        temperatureError_()[celli] = sqrt(kB/particleCv)/deno;
+                        pressureError_()[celli] = sqrt(gamma)/deno;
                     }
 
                 }
@@ -4402,7 +4917,7 @@ void dsmcVolFields::calculateField()
                         const label celli = boundaryCells_[j][k];
                         
                         //- Initialise face fields
-                        Tvib_.boundaryFieldRef()[j][k] = 0.0;
+                        Tvib_().boundaryFieldRef()[j][k] = 0.0;
                         zetaVibBF_[j][k] = 0.0;
                         scalar molecularMassBF = 0.0;
                         scalar molarCvBF_trarot = 0.0;
@@ -4426,34 +4941,34 @@ void dsmcVolFields::calculateField()
                         const scalar linearKEMean =
                             linearKEBF_[j][k]*nParticles/nAvTimeSteps;
 
-                        rhoN_.boundaryFieldRef()[j][k] = rhoNMean;
-                        rhoM_.boundaryFieldRef()[j][k] = rhoMMean;
+                        rhoN_().boundaryFieldRef()[j][k] = rhoNMean;
+                        rhoM_().boundaryFieldRef()[j][k] = rhoMMean;
                         
                         //- Instantaneous and sampled numbers of DSMC parcels
                         //  are that of the neighbouring cell
-                        dsmcN_.boundaryFieldRef()[j][k] = dsmcN_[celli];
-                        dsmcNMean_.boundaryFieldRef()[j][k] = dsmcNMean_[celli];
+                        dsmcN_().boundaryFieldRef()[j][k] = dsmcN_()[celli];
+                        dsmcNMean_().boundaryFieldRef()[j][k] = dsmcNMean_()[celli];
 
                         //- Translational energy mode and velocity
                         if (rhoMMean > VSMALL)
                         {
-                            UMean_.boundaryFieldRef()[j][k] = momentumBF_[j][k]
+                            UMean_().boundaryFieldRef()[j][k] = momentumBF_[j][k]
                                 /rhoMBF_[j][k];
 
-                            Ttra_.boundaryFieldRef()[j][k] =
+                            Ttra_().boundaryFieldRef()[j][k] =
                                 2.0/(3.0*kB*rhoNMean)*
                                 (
                                     linearKEMean - 0.5*rhoMMean*
                                     (
-                                        UMean_.boundaryField()[j][k]
-                                      & UMean_.boundaryField()[j][k]
+                                        UMean_().boundaryField()[j][k]
+                                      & UMean_().boundaryField()[j][k]
                                     )
                                 );
                         }
                         else
                         {
-                            UMean_.boundaryFieldRef()[j][k] = vector::zero;
-                            Ttra_.boundaryFieldRef()[j][k] = 0.0;
+                            UMean_().boundaryFieldRef()[j][k] = vector::zero;
+                            Ttra_().boundaryFieldRef()[j][k] = 0.0;
                         }
 
                         //- Rotational energy mode
@@ -4464,7 +4979,7 @@ void dsmcVolFields::calculateField()
                           : 0.0
                         );
 
-                        Trot_.boundaryFieldRef()[j][k] =
+                        Trot_().boundaryFieldRef()[j][k] =
                         (
                             zetaRotBF_[j][k] > SMALL
                           ? 2.0*ErotBF_[j][k]/(kB*zetaRotBF_[j][k])
@@ -4487,10 +5002,11 @@ void dsmcVolFields::calculateField()
                             scalarList speciesZetaVibMod(nVibMod, 0.0);
                             scalarList speciesTvibMod(nVibMod, 0.0);
 
+                            const label tvibCellI = toOwned(celli);
                             const bool enoughTvibSamples =
-                                celli >= 0
-                             && celli < dsmcNSpeciesCum_[i].size()
-                             && dsmcNSpeciesCum_[i][celli] >= nMinParcelsTvib_;
+                                tvibCellI >= 0
+                             && tvibCellI < dsmcNSpeciesCum_[i].size()
+                             && dsmcNSpeciesCum_[i][tvibCellI] >= nMinParcelsTvib_;
 
                             if
                             (
@@ -4541,7 +5057,7 @@ void dsmcVolFields::calculateField()
                                 speciesTvibBF_[i][j][k] = zetaByTvibMod
                                     /speciesZetaVibBF_[i][j][k];
                                     
-                                Tvib_.boundaryFieldRef()[j][k] +=
+                                Tvib_().boundaryFieldRef()[j][k] +=
                                     speciesRhoNBF_[i][j][k]
                                    *speciesTvibBF_[i][j][k];
 
@@ -4553,26 +5069,26 @@ void dsmcVolFields::calculateField()
 
                         if (moleculesRhoN > SMALL)
                         {
-                            Tvib_.boundaryFieldRef()[j][k] /= moleculesRhoN;
+                            Tvib_().boundaryFieldRef()[j][k] /= moleculesRhoN;
                             zetaVibBF_[j][k] /= moleculesRhoN;
                         }
 
                         //- Electronic energy mode // TODO Vincent
                         //  Removed temporarily - I don't trust this part
                         scalar zetaElecTot = 0.0;
-                        Telec_.boundaryFieldRef()[j][k] = 0.0;
+                        Telec_().boundaryFieldRef()[j][k] = 0.0;
 
-                        Tov_.boundaryFieldRef()[j][k] =
+                        Tov_().boundaryFieldRef()[j][k] =
                             (
-                                (3.0*Ttra_.boundaryField()[j][k])
-                              + (zetaRotTot*Trot_.boundaryField()[j][k])
+                                (3.0*Ttra_().boundaryField()[j][k])
+                              + (zetaRotTot*Trot_().boundaryField()[j][k])
                               + (
                                     zetaVibBF_[j][k]
-                                   *Tvib_.boundaryField()[j][k]
+                                   *Tvib_().boundaryField()[j][k]
                                 )
                               + (
                                     zetaElecTot
-                                   *Telec_.boundaryFieldRef()[j][k]
+                                   *Telec_().boundaryFieldRef()[j][k]
                                 )
                             )
                            /(
@@ -4610,7 +5126,7 @@ void dsmcVolFields::calculateField()
                             const scalar gasConstant = 
                                 (
                                     rhoNBF_[j][k] > SMALL
-                                 && Ttra_.boundaryFieldRef()[j][k] > SMALL
+                                 && Ttra_().boundaryFieldRef()[j][k] > SMALL
                                   ? kB/molecularMassBF
                                   : 0.0
                                 );
@@ -4620,46 +5136,62 @@ void dsmcVolFields::calculateField()
                             const scalar speedOfSound =
                                 sqrt
                                 (
-                                    gamma*gasConstant*Ttra_.boundaryField()[j][k]
+                                    gamma*gasConstant*Ttra_().boundaryField()[j][k]
                                 );
 
-                            Ma_.boundaryFieldRef()[j][k] =
-                                mag(UMean_.boundaryField()[j][k])/speedOfSound;
+                            Ma_().boundaryFieldRef()[j][k] =
+                                mag(UMean_().boundaryField()[j][k])/speedOfSound;
                         }
                         else
                         {
-                            Ma_.boundaryFieldRef()[j][k] = 0.0;
+                            Ma_().boundaryFieldRef()[j][k] = 0.0;
                         }
 
                         //- Force density
-                        fD_.boundaryFieldRef()[j][k] = fDBF_[j][k]/nAvTimeSteps;
+                        fD_().boundaryFieldRef()[j][k] = fDBF_[j][k]/nAvTimeSteps;
 
                         //- Surface pressure
-                        p_.boundaryFieldRef()[j][k] =
-                            fD_.boundaryField()[j][k] & n_[j][k];
+                        p_().boundaryFieldRef()[j][k] =
+                            fD_().boundaryField()[j][k] & n_[j][k];
                             
                         //- Wall shear stress
-                        tau_.boundaryFieldRef()[j][k] =
+                        tau_().boundaryFieldRef()[j][k] =
                             sqrt
                             (
-                                sqr(fD_.boundaryField()[j][k] & t1_[j][k])
-                              + sqr(fD_.boundaryField()[j][k] & t2_[j][k])
+                                sqr(fD_().boundaryField()[j][k] & t1_[j][k])
+                              + sqr(fD_().boundaryField()[j][k] & t2_[j][k])
                             );
                             
                         //- Heat flux
-                        q_.boundaryFieldRef()[j][k] = qBF_[j][k]/nAvTimeSteps;
+                        q_().boundaryFieldRef()[j][k] = qBF_[j][k]/nAvTimeSteps;
+
+                        if (writeWallPressureCoefficient_)
+                        {
+                            Cp_->boundaryFieldRef()[j][k] =
+                                (
+                                    p_().boundaryField()[j][k]
+                                  - forceMomentPInf_
+                                )/forceMomentQInf_;
+                        }
+
+                        if (writeForceMomentCoefficients_)
+                        {
+                            Ch_->boundaryFieldRef()[j][k] =
+                                q_().boundaryField()[j][k]
+                               /forceMomentHeatFluxInf_;
+                        }
                         
                         //- ZeroGradient condition assumed for Optional fields
                         if (measureMeanFreePath_)
                         {
-                            mfp_.boundaryFieldRef()[j][k] = mfp_[celli];
-                            SOF_.boundaryFieldRef()[j][k] = SOF_[celli];
-                            mfpToDx_.boundaryFieldRef()[j][k] = mfpToDx_[celli];
-                            meanCollisionRate_.boundaryFieldRef()[j][k] =
-                                meanCollisionRate_[celli];
-                            meanCollisionTime_.boundaryFieldRef()[j][k] =
-                                meanCollisionTime_[celli];
-                            mctToDt_.boundaryFieldRef()[j][k] = mctToDt_[celli];
+                            mfp_().boundaryFieldRef()[j][k] = mfp_()[celli];
+                            SOF_().boundaryFieldRef()[j][k] = SOF_()[celli];
+                            mfpToDx_().boundaryFieldRef()[j][k] = mfpToDx_()[celli];
+                            meanCollisionRate_().boundaryFieldRef()[j][k] =
+                                meanCollisionRate_()[celli];
+                            meanCollisionTime_().boundaryFieldRef()[j][k] =
+                                meanCollisionTime_()[celli];
+                            mctToDt_().boundaryFieldRef()[j][k] = mctToDt_()[celli];
                         }
                     }
                 }
@@ -4682,56 +5214,56 @@ void dsmcVolFields::calculateField()
 
                         //- Instantaneous and sampled numbers of DSMC parcels
                         //  are that of the neighbouring cell
-                        dsmcN_.boundaryFieldRef()[j][k] = dsmcN_[celli];
-                        dsmcNMean_.boundaryFieldRef()[j][k] =
-                            dsmcNMean_[celli];
+                        dsmcN_().boundaryFieldRef()[j][k] = dsmcN_()[celli];
+                        dsmcNMean_().boundaryFieldRef()[j][k] =
+                            dsmcNMean_()[celli];
                             
                         //- Number density and mass density fields
-                        rhoN_.boundaryFieldRef()[j][k] = rhoN_[celli];
-                        rhoM_.boundaryFieldRef()[j][k] = rhoM_[celli];
+                        rhoN_().boundaryFieldRef()[j][k] = rhoN_()[celli];
+                        rhoM_().boundaryFieldRef()[j][k] = rhoM_()[celli];
                         
                         //- Temperature fields
-                        Ttra_.boundaryFieldRef()[j][k] = Ttra_[celli];
-                        Trot_.boundaryFieldRef()[j][k] = Trot_[celli];
-                        Tvib_.boundaryFieldRef()[j][k] = Tvib_[celli];
-                        Tov_.boundaryFieldRef()[j][k] = Tov_[celli];
+                        Ttra_().boundaryFieldRef()[j][k] = Ttra_()[celli];
+                        Trot_().boundaryFieldRef()[j][k] = Trot_()[celli];
+                        Tvib_().boundaryFieldRef()[j][k] = Tvib_()[celli];
+                        Tov_().boundaryFieldRef()[j][k] = Tov_()[celli];
                         
                         //- Pressure, Mach and velocity fields
-                        p_.boundaryFieldRef()[j][k] = p_[celli];
-                        Ma_.boundaryFieldRef()[j][k] = Ma_[celli];
-                        UMean_.boundaryFieldRef()[j][k] = UMean_[celli];
+                        p_().boundaryFieldRef()[j][k] = p_()[celli];
+                        Ma_().boundaryFieldRef()[j][k] = Ma_()[celli];
+                        UMean_().boundaryFieldRef()[j][k] = UMean_()[celli];
                         
                         //- Optional fields
                         if (measureMeanFreePath_)
                         {
-                            mfp_.boundaryFieldRef()[j][k] = mfp_[celli];
-                            SOF_.boundaryFieldRef()[j][k] = SOF_[celli];
-                            mfpToDx_.boundaryFieldRef()[j][k] = mfpToDx_[celli];
-                            meanCollisionRate_.boundaryFieldRef()[j][k] =
-                                meanCollisionRate_[celli];
-                            meanCollisionTime_.boundaryFieldRef()[j][k] =
-                                meanCollisionTime_[celli];
-                            mctToDt_.boundaryFieldRef()[j][k] = mctToDt_[celli];
+                            mfp_().boundaryFieldRef()[j][k] = mfp_()[celli];
+                            SOF_().boundaryFieldRef()[j][k] = SOF_()[celli];
+                            mfpToDx_().boundaryFieldRef()[j][k] = mfpToDx_()[celli];
+                            meanCollisionRate_().boundaryFieldRef()[j][k] =
+                                meanCollisionRate_()[celli];
+                            meanCollisionTime_().boundaryFieldRef()[j][k] =
+                                meanCollisionTime_()[celli];
+                            mctToDt_().boundaryFieldRef()[j][k] = mctToDt_()[celli];
                         }
                         
                         if (measureHeatFluxShearStress_)
                         {
-                            shearStressTensor_.boundaryFieldRef()[j][k] =
-                                shearStressTensor_[celli];
-                            heatFluxVector_.boundaryFieldRef()[j][k] =
-                                heatFluxVector_[celli];
-                            pressureTensor_.boundaryFieldRef()[j][k] =
-                                pressureTensor_[celli];
+                            shearStressTensor_().boundaryFieldRef()[j][k] =
+                                shearStressTensor_()[celli];
+                            heatFluxVector_().boundaryFieldRef()[j][k] =
+                                heatFluxVector_()[celli];
+                            pressureTensor_().boundaryFieldRef()[j][k] =
+                                pressureTensor_()[celli];
                         }
                         
                         if (measureClassifications_)
                         {
-                            classIDistribution_.boundaryFieldRef()[j][k] =
-                                classIDistribution_[celli];
-                            classIIDistribution_.boundaryFieldRef()[j][k] =
-                                classIIDistribution_[celli];
-                            classIIIDistribution_.boundaryFieldRef()[j][k] =
-                                classIIIDistribution_[celli];
+                            classIDistribution_().boundaryFieldRef()[j][k] =
+                                classIDistribution_()[celli];
+                            classIIDistribution_().boundaryFieldRef()[j][k] =
+                                classIIDistribution_()[celli];
+                            classIIIDistribution_().boundaryFieldRef()[j][k] =
+                                classIIIDistribution_()[celli];
                         }
                     }
                 }
@@ -4745,184 +5277,484 @@ void dsmcVolFields::calculateField()
 
             const auto fieldWriteStart =
                 doProfile ? wallClockNow() : std::chrono::steady_clock::time_point();
+
+            if (writeForceMoment_)
+            {
+                vector totalForce(vector::zero);
+                vector totalMoment(vector::zero);
+                vectorField wallForces
+                (
+                    forceMomentWallPatchIds_.size(),
+                    vector::zero
+                );
+                vectorField wallMoments
+                (
+                    forceMomentWallPatchIds_.size(),
+                    vector::zero
+                );
+                const bool useOwnedForceMomentFaces =
+                    processorWrite
+                 && cloud_.replicatedMeshActive()
+                 && ownedBoundaryFaces_.size() == mesh_.boundaryMesh().size();
+
+                forAll(mesh_.boundaryMesh(), patchi)
+                {
+                    const polyPatch& patch = mesh_.boundaryMesh()[patchi];
+                    const label wallPatchI = forceMomentWallPatchIndices_[patchi];
+
+                    if (wallPatchI < 0)
+                    {
+                        continue;
+                    }
+
+                    const label nFaces =
+                        useOwnedForceMomentFaces
+                      ? ownedBoundaryFaces_[patchi].size()
+                      : patch.size();
+
+                    for (label localFaceI = 0; localFaceI < nFaces; ++localFaceI)
+                    {
+                        const label facei =
+                            useOwnedForceMomentFaces
+                          ? ownedBoundaryFaces_[patchi][localFaceI]
+                          : localFaceI;
+                        const label meshFacei = patch.start() + facei;
+                        const vector faceForce =
+                            fD_().boundaryField()[patchi][facei]
+                           *mag(mesh_.faceAreas()[meshFacei]);
+
+                        const vector faceMoment =
+                            (mesh_.faceCentres()[meshFacei]
+                           - forceMomentReferencePoint_) ^ faceForce;
+
+                        totalForce += faceForce;
+                        totalMoment += faceMoment;
+                        wallForces[wallPatchI] += faceForce;
+                        wallMoments[wallPatchI] += faceMoment;
+                    }
+                }
+
+                if (processorWrite || !cloud_.replicatedMeshActive())
+                {
+                    vectorField forceMoment
+                    (
+                        2 + 2*forceMomentWallPatchIds_.size(),
+                        vector::zero
+                    );
+                    forceMoment[0] = totalForce;
+                    forceMoment[1] = totalMoment;
+                    forAll(forceMomentWallPatchIds_, wallPatchI)
+                    {
+                        forceMoment[2 + 2*wallPatchI] = wallForces[wallPatchI];
+                        forceMoment[3 + 2*wallPatchI] = wallMoments[wallPatchI];
+                    }
+                    sumReduceField(forceMoment);
+                    totalForce = forceMoment[0];
+                    totalMoment = forceMoment[1];
+                    forAll(forceMomentWallPatchIds_, wallPatchI)
+                    {
+                        wallForces[wallPatchI] = forceMoment[2 + 2*wallPatchI];
+                        wallMoments[wallPatchI] = forceMoment[3 + 2*wallPatchI];
+                    }
+                }
+
+                if (cloud_.isOutputRank())
+                {
+                    const fileName timePath
+                    (
+                        time_.time().path()/time_.time().timeName()
+                    );
+                    const fileName uniformPath(timePath/"uniform");
+                    mkDir(timePath);
+                    mkDir(uniformPath);
+
+                    OFstream forceMomentFile
+                    (
+                        uniformPath/("forceMoment_" + fieldName_)
+                    );
+
+                    if (!forceMomentFile.good())
+                    {
+                        FatalErrorInFunction
+                            << "Cannot write force and moment output for field "
+                            << fieldName_ << " to " << uniformPath
+                            << exit(FatalError);
+                    }
+
+                    forceMomentFile
+                        << "FoamFile" << nl
+                        << "{" << nl
+                        << "    version     2.0;" << nl
+                        << "    format      ascii;" << nl
+                        << "    class       dictionary;" << nl
+                        << "    location    \"" << time_.time().timeName()
+                        << "/uniform\";" << nl
+                        << "    object      forceMoment_" << fieldName_ << ";" << nl
+                        << "}" << nl << nl
+                        << "referencePoint " << forceMomentReferencePoint_ << ";" << nl
+                        << "referencePointAutomatic "
+                        << forceMomentReferencePointAutomatic_ << ";" << nl
+                        << "patchSelection allWallPatches;" << nl
+                        << "force " << totalForce << "; // N" << nl
+                        << "moment " << totalMoment << "; // N m" << nl;
+
+                    vector totalForceCoefficients(vector::zero);
+                    vector totalMomentCoefficients(vector::zero);
+                    if (writeForceMomentCoefficients_)
+                    {
+                        const scalar forceScale =
+                            1.0/(forceMomentQInf_*forceMomentReferenceArea_);
+                        const scalar momentScale =
+                            forceScale/forceMomentReferenceLength_;
+
+                        totalForceCoefficients = vector
+                        (
+                            (totalForce & forceMomentDragDirection_)*forceScale,
+                            (totalForce & forceMomentLiftDirection_)*forceScale,
+                            (totalForce & forceMomentSideDirection_)*forceScale
+                        );
+                        totalMomentCoefficients = vector
+                        (
+                            (totalMoment & forceMomentDragDirection_)*momentScale,
+                            (totalMoment & forceMomentLiftDirection_)*momentScale,
+                            (totalMoment & forceMomentSideDirection_)*momentScale
+                        );
+
+                        forceMomentFile
+                            << nl << "coefficients" << nl << "{" << nl
+                            << "    qInf " << forceMomentQInf_ << "; // Pa" << nl
+                            << "    pInf " << forceMomentPInf_ << "; // Pa" << nl
+                            << "    heatFluxInf " << forceMomentHeatFluxInf_
+                            << "; // W/m2" << nl
+                            << "    referenceArea " << forceMomentReferenceArea_
+                            << "; // m2" << nl
+                            << "    referenceLength "
+                            << forceMomentReferenceLength_ << "; // m" << nl
+                            << "    freestreamSource "
+                            << forceMomentFreestreamSource_ << ";" << nl
+                            << "    referenceAreaDefinition "
+                            << forceMomentReferenceAreaDefinition_ << ";" << nl
+                            << "    referenceLengthDefinition "
+                            << forceMomentReferenceLengthDefinition_ << ";" << nl
+                            << "    dragDirection " << forceMomentDragDirection_
+                            << ";" << nl
+                            << "    liftDirection " << forceMomentLiftDirection_
+                            << ";" << nl
+                            << "    sideDirection " << forceMomentSideDirection_
+                            << ";" << nl
+                            << "    CD " << totalForceCoefficients.x() << ";" << nl
+                            << "    CL " << totalForceCoefficients.y() << ";" << nl
+                            << "    CS " << totalForceCoefficients.z() << ";" << nl
+                            << "    CMdrag " << totalMomentCoefficients.x()
+                            << ";" << nl
+                            << "    CMlift " << totalMomentCoefficients.y()
+                            << ";" << nl
+                            << "    CMside " << totalMomentCoefficients.z()
+                            << ";" << nl
+                            << "    CMglobal " << totalMoment*momentScale
+                            << ";" << nl
+                            << "}" << nl;
+                    }
+
+                    if (!forceMomentWallPatchIds_.empty())
+                    {
+                        forceMomentFile << nl << "wallPatches" << nl << "{" << nl;
+
+                        forAll(forceMomentWallPatchIds_, wallPatchI)
+                        {
+                            const label patchi = forceMomentWallPatchIds_[wallPatchI];
+                            forceMomentFile
+                                << "    " << mesh_.boundaryMesh()[patchi].name()
+                                << nl << "    {" << nl
+                                << "        force " << wallForces[wallPatchI]
+                                << "; // N" << nl
+                                << "        moment " << wallMoments[wallPatchI]
+                                << "; // N m" << nl;
+
+                            if (writeForceMomentCoefficients_)
+                            {
+                                const scalar forceScale =
+                                    1.0/
+                                    (
+                                        forceMomentQInf_
+                                       *forceMomentReferenceArea_
+                                    );
+                                const scalar momentScale =
+                                    forceScale/forceMomentReferenceLength_;
+                                const vector wallForceCoefficients
+                                (
+                                    (wallForces[wallPatchI]
+                                   & forceMomentDragDirection_)*forceScale,
+                                    (wallForces[wallPatchI]
+                                   & forceMomentLiftDirection_)*forceScale,
+                                    (wallForces[wallPatchI]
+                                   & forceMomentSideDirection_)*forceScale
+                                );
+                                const vector wallMomentCoefficients
+                                (
+                                    (wallMoments[wallPatchI]
+                                   & forceMomentDragDirection_)*momentScale,
+                                    (wallMoments[wallPatchI]
+                                   & forceMomentLiftDirection_)*momentScale,
+                                    (wallMoments[wallPatchI]
+                                   & forceMomentSideDirection_)*momentScale
+                                );
+
+                                forceMomentFile
+                                    << "        coefficients" << nl
+                                    << "        {" << nl
+                                    << "            CD "
+                                    << wallForceCoefficients.x() << ";" << nl
+                                    << "            CL "
+                                    << wallForceCoefficients.y() << ";" << nl
+                                    << "            CS "
+                                    << wallForceCoefficients.z() << ";" << nl
+                                    << "            CMdrag "
+                                    << wallMomentCoefficients.x() << ";" << nl
+                                    << "            CMlift "
+                                    << wallMomentCoefficients.y() << ";" << nl
+                                    << "            CMside "
+                                    << wallMomentCoefficients.z() << ";" << nl
+                                    << "            CMglobal "
+                                    << wallMoments[wallPatchI]*momentScale
+                                    << ";" << nl
+                                    << "        }" << nl;
+                            }
+
+                            forceMomentFile << "    }" << nl;
+                        }
+
+                        forceMomentFile << "}" << nl;
+                    }
+
+                    Info<< "dsmcVolFields [" << fieldName_
+                        << "]: force " << totalForce << " N, moment about "
+                        << forceMomentReferencePoint_ << " " << totalMoment
+                        << " N m";
+
+                    if (writeForceMomentCoefficients_)
+                    {
+                        Info<< ", CD " << totalForceCoefficients.x()
+                            << ", CL " << totalForceCoefficients.y()
+                            << ", CS " << totalForceCoefficients.z()
+                            << ", CMside " << totalMomentCoefficients.z();
+                    }
+
+                    Info<< endl;
+                }
+            }
+
             const bool writeDsmcN =
-                outputFieldEnabled("dsmcN", dsmcN_.name());
+                outputFieldEnabled("dsmcN", dsmcN_().name());
             const bool writeDsmcNMean =
-                outputFieldEnabled("dsmcNMean", dsmcNMean_.name());
+                outputFieldEnabled("dsmcNMean", dsmcNMean_().name());
             const bool writeRhoN =
-                outputFieldEnabled("rhoN", rhoN_.name());
+                outputFieldEnabled("rhoN", rhoN_().name());
             const bool writeRhoM =
-                outputFieldEnabled("rhoM", rhoM_.name());
+                outputFieldEnabled("rhoM", rhoM_().name());
             const bool writeP =
-                outputFieldEnabled("p", p_.name());
+                outputFieldEnabled("p", p_().name());
             const bool writeTtra =
-                outputFieldEnabled("Ttra", Ttra_.name());
+                outputFieldEnabled("Ttra", Ttra_().name());
             const bool writeU =
-                outputFieldEnabled("U", UMean_.name());
+                outputFieldEnabled("U", UMean_().name());
             const bool writeMa =
-                outputFieldEnabled("Ma", Ma_.name());
+                outputFieldEnabled("Ma", Ma_().name());
             const bool writeQ =
-                outputFieldEnabled("wallHeatFlux", q_.name());
+                outputFieldEnabled("wallHeatFlux", q_().name());
             const bool writeFD =
-                outputFieldEnabled("fD", fD_.name());
+                outputFieldEnabled("fD", fD_().name());
             const bool writeTau =
-                outputFieldEnabled("wallShearStress", tau_.name());
+                outputFieldEnabled("wallShearStress", tau_().name());
+            const bool writeCp =
+                writeWallPressureCoefficient_
+             && outputFieldEnabled
+                (
+                    "wallPressureCoefficient",
+                    Cp_->name(),
+                    writeWallPressureCoefficient_
+                );
+            const bool writeCh =
+                writeForceMomentCoefficients_
+             && outputFieldEnabled
+                (
+                    "wallHeatFluxCoefficient",
+                    Ch_->name(),
+                    writeForceMomentCoefficients_
+                );
             const bool writeTrot =
                 outputFieldEnabled
                 (
                     "Trot",
-                    Trot_.name(),
+                    Trot_().name(),
                     writeRotationalTemperature_
                 );
             const bool writeTvib =
                 outputFieldEnabled
                 (
                     "Tvib",
-                    Tvib_.name(),
+                    Tvib_().name(),
                     writeVibrationalTemperature_
                 );
             const bool writeTelec =
                 outputFieldEnabled
                 (
                     "Telec",
-                    Telec_.name(),
+                    Telec_().name(),
                     writeElectronicTemperature_
                 );
             const bool writeTov =
                 outputFieldEnabled
                 (
                     "Tov",
-                    Tov_.name(),
+                    Tov_().name(),
                     writeRotationalTemperature_
                  || writeVibrationalTemperature_
                  || writeElectronicTemperature_
                 );
             const bool writeMfp =
-                outputFieldEnabled("mfp", mfp_.name(), measureMeanFreePath_);
+                measureMeanFreePath_
+             && outputFieldEnabled("mfp", mfp_().name(), measureMeanFreePath_);
             const bool writeMfpToDx =
-                outputFieldEnabled
+                measureMeanFreePath_
+             && outputFieldEnabled
                 (
                     "mfpToDx",
-                    mfpToDx_.name(),
+                    mfpToDx_().name(),
                     measureMeanFreePath_
                 );
             const bool writeMct =
-                outputFieldEnabled
+                measureMeanFreePath_
+             && outputFieldEnabled
                 (
                     "mct",
-                    meanCollisionTime_.name(),
+                    meanCollisionTime_().name(),
                     measureMeanFreePath_
                 );
             const bool writeMctToDt =
-                outputFieldEnabled
+                measureMeanFreePath_
+             && outputFieldEnabled
                 (
                     "mctToDt",
-                    mctToDt_.name(),
+                    mctToDt_().name(),
                     measureMeanFreePath_
                 );
             const bool writeSOF =
-                outputFieldEnabled("SOFP", SOF_.name(), measureMeanFreePath_);
+                measureMeanFreePath_
+             && outputFieldEnabled("SOFP", SOF_().name(), measureMeanFreePath_);
             const bool writeClassI =
-                outputFieldEnabled
+                measureClassifications_
+             && outputFieldEnabled
                 (
                     "classIDistribution",
-                    classIDistribution_.name(),
+                    classIDistribution_().name(),
                     measureClassifications_
                 );
             const bool writeClassII =
-                outputFieldEnabled
+                measureClassifications_
+             && outputFieldEnabled
                 (
                     "classIIDistribution",
-                    classIIDistribution_.name(),
+                    classIIDistribution_().name(),
                     measureClassifications_
                 );
             const bool writeClassIII =
-                outputFieldEnabled
+                measureClassifications_
+             && outputFieldEnabled
                 (
                     "classIIIDistribution",
-                    classIIIDistribution_.name(),
+                    classIIIDistribution_().name(),
                     measureClassifications_
                 );
             const bool writeDensityError =
-                outputFieldEnabled
+                measureErrors_
+             && outputFieldEnabled
                 (
                     "rhoMError",
-                    densityError_.name(),
+                    densityError_().name(),
                     measureErrors_
                 );
             const bool writeVelocityError =
-                outputFieldEnabled
+                measureErrors_
+             && outputFieldEnabled
                 (
                     "UError",
-                    velocityError_.name(),
+                    velocityError_().name(),
                     measureErrors_
                 );
             const bool writeTemperatureError =
-                outputFieldEnabled
+                measureErrors_
+             && outputFieldEnabled
                 (
                     "TError",
-                    temperatureError_.name(),
+                    temperatureError_().name(),
                     measureErrors_
                 );
             const bool writePressureError =
-                outputFieldEnabled
+                measureErrors_
+             && outputFieldEnabled
                 (
                     "pError",
-                    pressureError_.name(),
+                    pressureError_().name(),
                     measureErrors_
                 );
             const bool writeHeatFluxVector =
-                outputFieldEnabled
+                measureHeatFluxShearStress_
+             && outputFieldEnabled
                 (
                     "heatFluxVector",
-                    heatFluxVector_.name(),
+                    heatFluxVector_().name(),
                     measureHeatFluxShearStress_
                 );
             const bool writePressureTensor =
-                outputFieldEnabled
+                measureHeatFluxShearStress_
+             && outputFieldEnabled
                 (
                     "pressureTensor",
-                    pressureTensor_.name(),
+                    pressureTensor_().name(),
                     measureHeatFluxShearStress_
                 );
             const bool writeShearStressTensor =
-                outputFieldEnabled
+                measureHeatFluxShearStress_
+             && outputFieldEnabled
                 (
                     "shearStressTensor",
-                    shearStressTensor_.name(),
+                    shearStressTensor_().name(),
                     measureHeatFluxShearStress_
                 );
 
-            setProcessorWriteOpt(dsmcN_, writeDsmcN);
-            setProcessorWriteOpt(dsmcNMean_, writeDsmcNMean);
-            setProcessorWriteOpt(rhoN_, writeRhoN);
-            setProcessorWriteOpt(rhoM_, writeRhoM);
-            setProcessorWriteOpt(p_, writeP);
-            setProcessorWriteOpt(Ttra_, writeTtra);
-            setProcessorWriteOpt(UMean_, writeU);
-            setProcessorWriteOpt(Ma_, writeMa);
-            setProcessorWriteOpt(q_, writeQ);
-            setProcessorWriteOpt(fD_, writeFD);
-            setProcessorWriteOpt(tau_, writeTau);
-            setProcessorWriteOpt(Trot_, writeTrot);
-            setProcessorWriteOpt(Tvib_, writeTvib);
-            setProcessorWriteOpt(Telec_, writeTelec);
-            setProcessorWriteOpt(Tov_, writeTov);
-            setProcessorWriteOpt(mfp_, writeMfp);
-            setProcessorWriteOpt(mfpToDx_, writeMfpToDx);
-            setProcessorWriteOpt(meanCollisionTime_, writeMct);
-            setProcessorWriteOpt(mctToDt_, writeMctToDt);
-            setProcessorWriteOpt(SOF_, writeSOF);
-            setProcessorWriteOpt(classIDistribution_, writeClassI);
-            setProcessorWriteOpt(classIIDistribution_, writeClassII);
-            setProcessorWriteOpt(classIIIDistribution_, writeClassIII);
-            setProcessorWriteOpt(densityError_, writeDensityError);
-            setProcessorWriteOpt(velocityError_, writeVelocityError);
-            setProcessorWriteOpt(temperatureError_, writeTemperatureError);
-            setProcessorWriteOpt(pressureError_, writePressureError);
-            setProcessorWriteOpt(heatFluxVector_, writeHeatFluxVector);
-            setProcessorWriteOpt(pressureTensor_, writePressureTensor);
-            setProcessorWriteOpt(shearStressTensor_, writeShearStressTensor);
+            setProcessorWriteOpt(dsmcN_(), writeDsmcN);
+            setProcessorWriteOpt(dsmcNMean_(), writeDsmcNMean);
+            setProcessorWriteOpt(rhoN_(), writeRhoN);
+            setProcessorWriteOpt(rhoM_(), writeRhoM);
+            setProcessorWriteOpt(p_(), writeP);
+            setProcessorWriteOpt(Ttra_(), writeTtra);
+            setProcessorWriteOpt(UMean_(), writeU);
+            if (Ma_.valid()) setProcessorWriteOpt(Ma_(), writeMa);
+            if (q_.valid()) setProcessorWriteOpt(q_(), writeQ);
+            if (fD_.valid()) setProcessorWriteOpt(fD_(), writeFD);
+            if (tau_.valid()) setProcessorWriteOpt(tau_(), writeTau);
+            if (Cp_.valid()) setProcessorWriteOpt(Cp_(), writeCp);
+            if (Ch_.valid()) setProcessorWriteOpt(Ch_(), writeCh);
+            if (Trot_.valid()) setProcessorWriteOpt(Trot_(), writeTrot);
+            if (Tvib_.valid()) setProcessorWriteOpt(Tvib_(), writeTvib);
+            if (Telec_.valid()) setProcessorWriteOpt(Telec_(), writeTelec);
+            if (Tov_.valid()) setProcessorWriteOpt(Tov_(), writeTov);
+            if (mfp_.valid()) setProcessorWriteOpt(mfp_(), writeMfp);
+            if (mfpToDx_.valid()) setProcessorWriteOpt(mfpToDx_(), writeMfpToDx);
+            if (meanCollisionTime_.valid()) setProcessorWriteOpt(meanCollisionTime_(), writeMct);
+            if (mctToDt_.valid()) setProcessorWriteOpt(mctToDt_(), writeMctToDt);
+            if (SOF_.valid()) setProcessorWriteOpt(SOF_(), writeSOF);
+            if (classIDistribution_.valid()) setProcessorWriteOpt(classIDistribution_(), writeClassI);
+            if (classIIDistribution_.valid()) setProcessorWriteOpt(classIIDistribution_(), writeClassII);
+            if (classIIIDistribution_.valid()) setProcessorWriteOpt(classIIIDistribution_(), writeClassIII);
+            if (densityError_.valid()) setProcessorWriteOpt(densityError_(), writeDensityError);
+            if (velocityError_.valid()) setProcessorWriteOpt(velocityError_(), writeVelocityError);
+            if (temperatureError_.valid()) setProcessorWriteOpt(temperatureError_(), writeTemperatureError);
+            if (pressureError_.valid()) setProcessorWriteOpt(pressureError_(), writePressureError);
+            if (heatFluxVector_.valid()) setProcessorWriteOpt(heatFluxVector_(), writeHeatFluxVector);
+            if (pressureTensor_.valid()) setProcessorWriteOpt(pressureTensor_(), writePressureTensor);
+            if (shearStressTensor_.valid()) setProcessorWriteOpt(shearStressTensor_(), writeShearStressTensor);
 
             if (processorWrite)
             {
@@ -4931,32 +5763,34 @@ void dsmcVolFields::calculateField()
             else
             {
                 //- Write solution fields
-                if (writeP) p_.write();
-                if (writeTtra) Ttra_.write();
-                if (writeU) UMean_.write();
-                if (writeMa) Ma_.write();
-                if (writeQ) q_.write();
-                if (writeFD) fD_.write();
-                if (writeTau) tau_.write();
-                if (writeTrot) Trot_.write();
-                if (writeTvib) Tvib_.write();
-                if (writeTelec) Telec_.write();
-                if (writeTov) Tov_.write();
-                if (writeMfp) mfp_.write();
-                if (writeMfpToDx) mfpToDx_.write();
-                if (writeMct) meanCollisionTime_.write();
-                if (writeMctToDt) mctToDt_.write();
-                if (writeSOF) SOF_.write();
-                if (writeClassI) classIDistribution_.write();
-                if (writeClassII) classIIDistribution_.write();
-                if (writeClassIII) classIIIDistribution_.write();
-                if (writeDensityError) densityError_.write();
-                if (writeVelocityError) velocityError_.write();
-                if (writeTemperatureError) temperatureError_.write();
-                if (writePressureError) pressureError_.write();
-                if (writeHeatFluxVector) heatFluxVector_.write();
-                if (writePressureTensor) pressureTensor_.write();
-                if (writeShearStressTensor) shearStressTensor_.write();
+                if (writeP) p_().write();
+                if (writeTtra) Ttra_().write();
+                if (writeU) UMean_().write();
+                if (writeMa) Ma_().write();
+                if (writeQ) q_().write();
+                if (writeFD) fD_().write();
+                if (writeTau) tau_().write();
+                if (writeCp) Cp_->write();
+                if (writeCh) Ch_->write();
+                if (writeTrot) Trot_().write();
+                if (writeTvib) Tvib_().write();
+                if (writeTelec) Telec_().write();
+                if (writeTov) Tov_().write();
+                if (writeMfp) mfp_().write();
+                if (writeMfpToDx) mfpToDx_().write();
+                if (writeMct) meanCollisionTime_().write();
+                if (writeMctToDt) mctToDt_().write();
+                if (writeSOF) SOF_().write();
+                if (writeClassI) classIDistribution_().write();
+                if (writeClassII) classIIDistribution_().write();
+                if (writeClassIII) classIIIDistribution_().write();
+                if (writeDensityError) densityError_().write();
+                if (writeVelocityError) velocityError_().write();
+                if (writeTemperatureError) temperatureError_().write();
+                if (writePressureError) pressureError_().write();
+                if (writeHeatFluxVector) heatFluxVector_().write();
+                if (writePressureTensor) pressureTensor_().write();
+                if (writeShearStressTensor) shearStressTensor_().write();
             }
 
             if (doProfile)
@@ -4975,7 +5809,19 @@ void dsmcVolFields::calculateField()
         if (resetAtOutput)
         {
             nTimeSteps_ = 0.0;
-            
+
+            // M4: measuredCollisionRate_ is a GeoField (full mesh size);
+            // zero it over all cells independently of the cumulative
+            // storage layout.  It only exists when measureMeanFreePath_ is
+            // enabled (M2: lazily constructed).
+            if (measuredCollisionRate_.valid())
+            {
+                forAll(measuredCollisionRate_(), gCelli)
+                {
+                    measuredCollisionRate_()[gCelli] = 0.0;
+                }
+            }
+
             forAll(dsmcNCum_, celli)
             {
                 dsmcNCum_[celli] = 0.0;
@@ -4990,7 +5836,6 @@ void dsmcVolFields::calculateField()
                 dsmcNClassIIICum_[celli] = 0.0;
                 collisionSeparation_[celli] = 0.0;
                 dsmcNCollsCum_[celli] = 0.0;
-                measuredCollisionRate_[celli] = 0.0;
                 dsmcMuuCum_[celli] = 0.0;
                 dsmcMuvCum_[celli] = 0.0;
                 dsmcMuwCum_[celli] = 0.0;
@@ -5219,8 +6064,15 @@ void dsmcVolFields::calculateField()
 //- reset fields when mesh is edited
 void dsmcVolFields::resetField()
 {
-    const label nCells = mesh_.nCells();
-    
+    // M4: align the cumulative storage with the current owned-cell set
+    // before resizing (also invalidates any stale owner version).
+    initOwnedStorage();
+
+    const label nCells =
+        ownedStorageActive_
+      ? cloud_.replicatedMesh().myCells().size()
+      : mesh_.nCells();
+
     nTimeSteps_ = 0.0;
 
     //- Reset volume information
@@ -5268,7 +6120,26 @@ void dsmcVolFields::resetField()
     dsmcNClassIIICum_.setSize(nCells, 0.0);
     collisionSeparation_.setSize(nCells, 0.0);
     dsmcNCollsCum_.setSize(nCells, 0.0);
-    measuredCollisionRate_.setSize(nCells, 0.0);
+    if (measuredCollisionRate_.empty())
+    {
+        measuredCollisionRate_.reset
+        (
+            new volScalarField
+            (
+                IOobject
+                (
+                    "measuredCollisionRate_"+ fieldName_,
+                    time_.time().timeName(),
+                    mesh_,
+                    IOobject::NO_READ,
+                    IOobject::NO_WRITE
+                ),
+                mesh_,
+                dimensionedScalar("0.0", dimensionSet(0, 0, -1, 0, 0), 0.0)
+            )
+        );
+    }
+    measuredCollisionRate_() = 0.0;
     dsmcMuuCum_.setSize(nCells, 0.0);
     dsmcMuvCum_.setSize(nCells, 0.0);
     dsmcMuwCum_.setSize(nCells, 0.0);
@@ -5434,6 +6305,332 @@ void dsmcVolFields::updateProperties(const dictionary& newDict)
 {
     //- the main properties should be updated first
     updateBasicFieldProperties(newDict);
+
+    const dictionary& controlDict = mesh_.time().controlDict();
+
+    const bool hasManualForceMomentCoefficients =
+        controlDict.found("forceMomentCoefficients");
+    const bool writeAutomaticForceMomentCoefficients =
+        controlDict.lookupOrDefault<bool>
+        (
+            "writeForceMomentCoefficients",
+            true
+        );
+
+    // Force, moment, and coefficients are enabled by default.  Explicit
+    // switches remain available for cases that need to disable the output.
+    writeForceMoment_ =
+        controlDict.lookupOrDefault<bool>("writeForceMoment", true)
+     || hasManualForceMomentCoefficients;
+
+    writeForceMoment_ = writeForceMoment_ && fieldName_ == "mixture";
+
+    const bool hasForceMomentReferencePoint =
+        controlDict.found("forceMomentReferencePoint");
+    const bool hasForceMomentReferenceArea = controlDict.found("Aref");
+    const bool hasForceMomentReferenceLength = controlDict.found("lRef");
+
+    forceMomentReferencePoint_ = controlDict.lookupOrDefault<vector>
+    (
+        "forceMomentReferencePoint",
+        vector::zero
+    );
+
+    writeForceMomentCoefficients_ = false;
+    writeWallPressureCoefficient_ = false;
+    forceMomentQInf_ = 0.0;
+    forceMomentPInf_ = 0.0;
+    forceMomentHeatFluxInf_ = 0.0;
+    forceMomentDragDirection_ = vector::zero;
+    forceMomentLiftDirection_ = vector::zero;
+    forceMomentSideDirection_ = vector::zero;
+    forceMomentReferencePointAutomatic_ = false;
+
+    if
+    (
+        hasManualForceMomentCoefficients
+     || !writeAutomaticForceMomentCoefficients
+    )
+    {
+        forceMomentReferenceArea_ = 0.0;
+        forceMomentReferenceLength_ = 0.0;
+        forceMomentFreestreamSource_ = word::null;
+        forceMomentReferenceAreaDefinition_ = word::null;
+        forceMomentReferenceLengthDefinition_ = word::null;
+        forceMomentAutomaticReferencePoint_ = vector::zero;
+        forceMomentReferenceGeometryDirection_ = vector::zero;
+        forceMomentReferenceGeometryCached_ = false;
+    }
+
+    const label nBoundaryPatches = mesh_.boundaryMesh().size();
+    forceMomentWallPatchIds_.clear();
+    forceMomentWallPatchIndices_.setSize(nBoundaryPatches, -1);
+
+    if (writeForceMoment_)
+    {
+        label nWallPatches = 0;
+
+        forAll(mesh_.boundaryMesh(), patchi)
+        {
+            if (isA<wallPolyPatch>(mesh_.boundaryMesh()[patchi]))
+            {
+                ++nWallPatches;
+            }
+        }
+
+        forceMomentWallPatchIds_.setSize(nWallPatches);
+        nWallPatches = 0;
+
+        forAll(mesh_.boundaryMesh(), patchi)
+        {
+            if (isA<wallPolyPatch>(mesh_.boundaryMesh()[patchi]))
+            {
+                forceMomentWallPatchIds_[nWallPatches] = patchi;
+                forceMomentWallPatchIndices_[patchi] = nWallPatches;
+                ++nWallPatches;
+            }
+        }
+    }
+
+    if
+    (
+        writeForceMoment_
+     &&
+        (
+            hasManualForceMomentCoefficients
+         || writeAutomaticForceMomentCoefficients
+        )
+    )
+    {
+        scalar rhoInf = 0.0;
+        vector UInf(vector::zero);
+        scalar pInf = 0.0;
+        bool hasLiftDirection = false;
+        vector liftDirection(vector(0, 1, 0));
+
+        if (hasManualForceMomentCoefficients)
+        {
+            const dictionary& coefficientDict =
+                controlDict.subDict("forceMomentCoefficients");
+
+            rhoInf = readScalar(coefficientDict.lookup("rhoInf"));
+            UInf = vector(coefficientDict.lookup("UInf"));
+            pInf = coefficientDict.lookupOrDefault<scalar>("pInf", 0.0);
+            forceMomentReferenceArea_ =
+                readScalar(coefficientDict.lookup("Aref"));
+            forceMomentReferenceLength_ =
+                readScalar(coefficientDict.lookup("lRef"));
+            hasLiftDirection = coefficientDict.found("liftDir");
+            liftDirection = coefficientDict.lookupOrDefault<vector>
+            (
+                "liftDir",
+                liftDirection
+            );
+            forceMomentFreestreamSource_ = "userSpecified";
+            forceMomentReferenceAreaDefinition_ = "userSpecified";
+            forceMomentReferenceLengthDefinition_ = "userSpecified";
+        }
+        else
+        {
+            if
+            (
+               !readAutomaticFreestream
+                (
+                    mesh_,
+                    cloud_,
+                    rhoInf,
+                    UInf,
+                    pInf,
+                    forceMomentFreestreamSource_
+                )
+            )
+            {
+                FatalErrorInFunction
+                    << "Cannot determine free-stream density and velocity. "
+                    << "Define dsmcFreeStreamInflowPatch or "
+                    << "dsmcChapmanEnskogFreeStreamInflowPatch in "
+                    << "boundariesDict, or provide velocity and "
+                    << "numberDensities in the first dsmcInitialiseDict "
+                    << "configuration." << exit(FatalError);
+            }
+
+            hasLiftDirection = controlDict.found("forceMomentLiftDirection");
+            liftDirection = controlDict.lookupOrDefault<vector>
+            (
+                "forceMomentLiftDirection",
+                liftDirection
+            );
+        }
+
+        const scalar magUInf = mag(UInf);
+        if (rhoInf <= VSMALL || magUInf <= VSMALL)
+        {
+            FatalErrorInFunction
+                << "Force-moment coefficients require positive free-stream "
+                << "density and velocity." << exit(FatalError);
+        }
+
+        forceMomentDragDirection_ = UInf/magUInf;
+
+        if (!hasManualForceMomentCoefficients)
+        {
+            const bool needsAutomaticReferenceGeometry =
+                   !hasForceMomentReferencePoint
+                || !hasForceMomentReferenceArea
+                || !hasForceMomentReferenceLength;
+
+            if
+            (
+                needsAutomaticReferenceGeometry
+             &&
+                (
+                   !forceMomentReferenceGeometryCached_
+                 || mag
+                    (
+                        forceMomentReferenceGeometryDirection_
+                      - forceMomentDragDirection_
+                    ) > SMALL
+                )
+            )
+            {
+                calculateAutomaticReferenceGeometry
+                (
+                    mesh_,
+                    forceMomentWallPatchIds_,
+                    forceMomentDragDirection_,
+                    controlDict.lookupOrDefault<bool>("replicatedMesh", false),
+                    forceMomentReferenceArea_,
+                    forceMomentReferenceLength_,
+                    forceMomentAutomaticReferencePoint_,
+                    forceMomentReferenceAreaDefinition_,
+                    forceMomentReferenceLengthDefinition_
+                );
+                forceMomentReferenceGeometryDirection_ =
+                    forceMomentDragDirection_;
+                forceMomentReferenceGeometryCached_ = true;
+            }
+
+            if (!hasForceMomentReferencePoint)
+            {
+                forceMomentReferencePoint_ = forceMomentAutomaticReferencePoint_;
+                forceMomentReferencePointAutomatic_ = true;
+            }
+
+        }
+
+        if (hasForceMomentReferenceArea)
+        {
+            forceMomentReferenceArea_ = readScalar(controlDict.lookup("Aref"));
+            forceMomentReferenceAreaDefinition_ = "userSpecified";
+        }
+
+        if (hasForceMomentReferenceLength)
+        {
+            forceMomentReferenceLength_ = readScalar(controlDict.lookup("lRef"));
+            forceMomentReferenceLengthDefinition_ = "userSpecified";
+        }
+
+        if
+        (
+            forceMomentReferenceArea_ <= VSMALL
+         || forceMomentReferenceLength_ <= VSMALL
+        )
+        {
+            FatalErrorInFunction
+                << "Force-moment coefficients require positive reference area "
+                << "and reference length." << exit(FatalError);
+        }
+
+        if (!hasLiftDirection)
+        {
+            const vector& dragDirection = forceMomentDragDirection_;
+
+            if
+            (
+                   mag(dragDirection.y()) <= mag(dragDirection.x())
+                && mag(dragDirection.y()) <= mag(dragDirection.z())
+            )
+            {
+                liftDirection = vector(0, 1, 0);
+            }
+            else if (mag(dragDirection.z()) <= mag(dragDirection.x()))
+            {
+                liftDirection = vector(0, 0, 1);
+            }
+            else
+            {
+                liftDirection = vector(1, 0, 0);
+            }
+        }
+
+        liftDirection -=
+            (liftDirection & forceMomentDragDirection_)
+           *forceMomentDragDirection_;
+
+        if (mag(liftDirection) <= VSMALL)
+        {
+            FatalErrorInFunction
+                << "forceMomentLiftDirection must not be parallel to the "
+                << "free-stream velocity." << exit(FatalError);
+        }
+
+        forceMomentLiftDirection_ = liftDirection/mag(liftDirection);
+        forceMomentSideDirection_ =
+            forceMomentDragDirection_ ^ forceMomentLiftDirection_;
+        forceMomentQInf_ = 0.5*rhoInf*sqr(magUInf);
+        forceMomentPInf_ = pInf;
+        forceMomentHeatFluxInf_ = forceMomentQInf_*magUInf;
+        writeForceMomentCoefficients_ = true;
+        writeWallPressureCoefficient_ = pInf > VSMALL;
+    }
+
+    if (writeWallPressureCoefficient_ && !Cp_.valid())
+    {
+        Cp_.reset
+        (
+            new volScalarField
+            (
+                IOobject
+                (
+                    "wallPressureCoefficient_"+ fieldName_,
+                    time_.time().timeName(),
+                    mesh_,
+                    IOobject::NO_READ,
+                    IOobject::NO_WRITE
+                ),
+                mesh_,
+                dimensionedScalar("zero", dimless, 0.0)
+            )
+        );
+    }
+    else if (!writeWallPressureCoefficient_ && Cp_.valid())
+    {
+        Cp_.clear();
+    }
+
+    if (writeForceMomentCoefficients_ && !Ch_.valid())
+    {
+        Ch_.reset
+        (
+            new volScalarField
+            (
+                IOobject
+                (
+                    "wallHeatFluxCoefficient_"+ fieldName_,
+                    time_.time().timeName(),
+                    mesh_,
+                    IOobject::NO_READ,
+                    IOobject::NO_WRITE
+                ),
+                mesh_,
+                dimensionedScalar("zero", dimless, 0.0)
+            )
+        );
+    }
+    else if (!writeForceMomentCoefficients_ && Ch_.valid())
+    {
+        Ch_.clear();
+    }
 }
 
 } // End namespace Foam

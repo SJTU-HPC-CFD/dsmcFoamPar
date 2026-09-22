@@ -27,6 +27,125 @@ License
 #include "dsmcCloud.H"
 #include "meshTools.H"
 
+#include <cstdlib>
+#include <mutex>
+#include <new>
+
+// * * * * * * * * * * * * * * * M6 slab arena  * * * * * * * * * * * * * * //
+
+// Fixed-size slot allocator for dsmcParcel.  Blocks of `blockParcels_`
+// parcels are carved from ::malloc'd chunks; freed slots are recycled
+// through an intrusive free list stored in the slot itself (the first
+// pointer-sized word, always overwritten by the next construction).
+// Thread safety: a per-thread arena avoids locking on the hot path; the
+// OMP thread number keys the arena.  MPI ranks never share memory.
+namespace Foam
+{
+
+class dsmcParcelArena
+{
+public:
+
+    static const size_t slotSize_ = sizeof(dsmcParcel);
+
+private:
+
+    // 4096 parcels per block ~ 8-10 MB; keeps block count small while
+    // bounding waste for shrinking clouds.
+    static const label blockParcels_ = 4096;
+
+    struct FreeSlot
+    {
+        FreeSlot* next_;
+    };
+
+    FreeSlot* freeList_;
+    DynamicList<void*> blocks_;
+    label inUse_;
+
+    void allocateBlock()
+    {
+        const size_t blockBytes = slotSize_*blockParcels_;
+        void* mem = std::malloc(blockBytes);
+        if (!mem)
+        {
+            FatalErrorInFunction
+                << "dsmcParcel arena: failed to allocate "
+                << blockBytes << " bytes" << exit(FatalError);
+        }
+        blocks_.append(mem);
+
+        // Chain the new slots (ascending addresses for locality).
+        char* base = reinterpret_cast<char*>(mem);
+        for (label i = blockParcels_ - 1; i >= 0; --i)
+        {
+            FreeSlot* s = reinterpret_cast<FreeSlot*>(base + i*slotSize_);
+            s->next_ = freeList_;
+            freeList_ = s;
+        }
+    }
+
+public:
+
+    dsmcParcelArena()
+    :
+        freeList_(nullptr),
+        blocks_(),
+        inUse_(0)
+    {}
+
+    ~dsmcParcelArena()
+    {
+        forAll(blocks_, i)
+        {
+            std::free(blocks_[i]);
+        }
+    }
+
+    void* allocate()
+    {
+        if (!freeList_)
+        {
+            allocateBlock();
+        }
+        FreeSlot* s = freeList_;
+        freeList_ = s->next_;
+        ++inUse_;
+        return s;
+    }
+
+    void deallocate(void* ptr)
+    {
+        if (!ptr)
+        {
+            return;
+        }
+        FreeSlot* s = reinterpret_cast<FreeSlot*>(ptr);
+        s->next_ = freeList_;
+        freeList_ = s;
+        --inUse_;
+    }
+
+    static dsmcParcelArena& threadArena()
+    {
+        #ifdef _OPENMP
+        static const label nMax = 256;
+        label tid = omp_get_thread_num();
+        if (tid >= nMax)
+        {
+            tid = 0;  // fall back to the master arena
+        }
+        #else
+        const label tid = 0;
+        #endif
+        static dsmcParcelArena arenas[256];
+        return arenas[tid];
+    }
+};
+
+
+} // End namespace Foam
+
 #include <chrono>
 
 #ifdef _OPENMP
@@ -239,9 +358,32 @@ bool Foam::dsmcParcel::move
                 ++td.moveTrackCalls;
                 tetFaceBefore = tetFace();
                 tetPtBefore = tetPt();
+                // Flag on the starting cell: cell() is stale after
+                // trackToFace.
+                const bool nearWallStart =
+                    td.nearWallCells
+                  ? (*td.nearWallCells)[cell()]
+                  : false;
                 const auto tTrack0 = MoveDetailClock::now();
                 dt *= trackToFace(position() + dt*Utracking, td, true);
-                td.moveTrackWallTime += elapsedMoveDetailSeconds(tTrack0);
+                const scalar tTrackElapsed =
+                    elapsedMoveDetailSeconds(tTrack0);
+                td.moveTrackWallTime += tTrackElapsed;
+
+                // §11.6: split by nearWall vs interior cell.
+                if (td.nearWallCells)
+                {
+                    if (nearWallStart)
+                    {
+                        ++td.moveWallCellTrackCalls;
+                        td.moveWallCellTrackWallTime += tTrackElapsed;
+                    }
+                    else
+                    {
+                        ++td.moveInteriorTrackCalls;
+                        td.moveInteriorTrackWallTime += tTrackElapsed;
+                    }
+                }
 
                 if (face() != -1)
                 {
@@ -625,6 +767,86 @@ bool Foam::dsmcParcel::relocateStuckParcel
 
 
 // * * * * * * * * * * * * * * * *  IOStream operators * * * * * * * * * * * //
+
+// * * * * * * * * * * * * * * * Operators  * * * * * * * * * * * * * * * * //
+
+// M7 phase 1: dedicated arena for StuckParcel cold data.  Stuck parcels are
+// a small fraction of the cloud, so a single shared arena (no per-thread
+// split) is sufficient; a mutex guards the rare concurrent wall-stick.
+namespace
+{
+
+Foam::dsmcParcelArena& stuckParcelArena()
+{
+    static Foam::dsmcParcelArena arena;
+    return arena;
+}
+
+} // anonymous namespace
+
+
+void* Foam::dsmcParcel::StuckParcel::operator new(size_t sz)
+{
+    // StuckParcel is small and allocation is rare: the general arena slot
+    // size is larger than needed, so use a simple mutex-protected pool of
+    // exact-size slots via the shared parcel arena of the master thread.
+    if (sz != sizeof(Foam::dsmcParcel::StuckParcel))
+    {
+        return std::malloc(sz);
+    }
+    static std::mutex m;
+    std::lock_guard<std::mutex> lock(m);
+    return stuckParcelArena().allocate();
+}
+
+
+void Foam::dsmcParcel::StuckParcel::operator delete(void* ptr) noexcept
+{
+    if (!ptr)
+    {
+        return;
+    }
+    static std::mutex m;
+    std::lock_guard<std::mutex> lock(m);
+    stuckParcelArena().deallocate(ptr);
+}
+
+
+void* Foam::dsmcParcel::operator new(size_t sz)
+{
+    if (sz != dsmcParcelArena::slotSize_)
+    {
+        // Derived-class or padded request: fall back to the heap.
+        return std::malloc(sz);
+    }
+    return dsmcParcelArena::threadArena().allocate();
+}
+
+
+void* Foam::dsmcParcel::operator new(size_t, void* ptr) noexcept
+{
+    return ptr;
+}
+
+
+void Foam::dsmcParcel::operator delete(void* ptr) noexcept
+{
+    if (!ptr)
+    {
+        return;
+    }
+    // Slots from the fallback heap path cannot be distinguished from arena
+    // slots by value; the arena only ever receives sizeof(dsmcParcel)
+    // requests, so any delete of a base-size parcel is an arena slot.
+    dsmcParcelArena::threadArena().deallocate(ptr);
+}
+
+
+void Foam::dsmcParcel::operator delete(void* ptr, size_t sz) noexcept
+{
+    Foam::dsmcParcel::operator delete(ptr);
+}
+
 
 #include "dsmcParcelIO.C"
 

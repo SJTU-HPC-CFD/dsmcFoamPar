@@ -26,6 +26,7 @@ Description
 \*---------------------------------------------------------------------------*/
 
 #include "dsmcField.H"
+#include "dsmcMasterInfo.H"
 #include "graph.H"
 
 
@@ -74,8 +75,11 @@ autoPtr<dsmcField> dsmcField::New
         dict.lookup("fieldModel")
     );
 
-    Info<< "Selecting field: "
-         << dsmcFieldName << endl;
+    if (Foam::dsmcIsPrintingRank())
+    {
+        Info<< "Selecting field: "
+             << dsmcFieldName << endl;
+    }
 
     dictionaryConstructorTable::iterator cstrIter =
         dictionaryConstructorTablePtr_->find(dsmcFieldName);

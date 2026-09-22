@@ -27,6 +27,7 @@ License
 #include "constants.H"
 #include "zeroGradientFvPatchFields.H"
 #include <chrono>
+#include <fstream>
 #include <mpi.h>
 
 using namespace Foam::constant;
@@ -43,6 +44,61 @@ namespace
 
     thread_local Foam::dsmcFastRng* collisionRngContext = nullptr;
 
+    // buildCellOccupancy subphase wall accumulators (§6.4 diagnostics,
+    // worklog dlb_further_opt.md).  OMP path only; serial fallback leaves
+    // these unchanged.  Reported (max over ranks) by printProfileSummary.
+    Foam::scalar buildOccResetWall = 0.0;
+    Foam::scalar buildOccCountWall = 0.0;
+    Foam::scalar buildOccReduceWall = 0.0;
+    Foam::scalar buildOccFillWall = 0.0;
+    Foam::label buildOccOrderedHits = 0;
+    Foam::label buildOccFallbacks = 0;
+
+    // Overflow-safe cumulative move-detail counters (worklog §11).  The
+    // per-step trackingData label counters cannot overflow within one step,
+    // but run-long label accumulators wrap at 13M-cell scale (200 steps x
+    // 1.5e8 parcels), so the by-rank table reads these double accumulators
+    // instead (exact to 2^53).  Zero header change (file-static pattern).
+    // Index order: parcels, trackCalls, sameTet, internalTet, faceHits,
+    // procHits, cyclicHits, patchHits, stuckHits, trackWall, trackerWall,
+    // boundaryWall.
+    double dsmcMoveDetailCum[12] = {0};
+
+    // §11.6 nearWall/interior track accounting.  Cumulative doubles
+    // (wall-cell track calls, wall-cell track wall, interior track calls,
+    // interior track wall) plus the lazily built nearWall flag table.
+    double dsmcMoveDetailSplitCum[4] = {0};
+    bool dsmcNearWallBuilt = false;
+    const Foam::fvMesh* dsmcNearWallMeshPtr = nullptr;
+    Foam::boolList dsmcNearWallCells;
+
+    void buildNearWallCells(const Foam::fvMesh& mesh)
+    {
+        if (dsmcNearWallBuilt && dsmcNearWallMeshPtr == &mesh)
+        {
+            return;
+        }
+
+        Foam::boolList& flags = dsmcNearWallCells;
+        flags.setSize(mesh.nCells());
+        flags = false;
+
+        const Foam::labelList& owner = mesh.faceOwner();
+        const Foam::polyBoundaryMesh& pbMesh = mesh.boundaryMesh();
+        forAll(pbMesh, patchi)
+        {
+            const Foam::polyPatch& pp = pbMesh[patchi];
+            for (Foam::label fi = pp.start(); fi < pp.start() + pp.size(); ++fi)
+            {
+                flags[owner[fi]] = true;
+            }
+        }
+
+        dsmcNearWallMeshPtr = &mesh;
+        dsmcNearWallBuilt = true;
+    }
+
+
     Foam::scalar elapsedWallSeconds
     (
         const steadyWallClock::time_point& start
@@ -53,6 +109,162 @@ namespace
             std::chrono::duration<Foam::scalar>
         >(steadyWallClock::now() - start).count();
     }
+
+    Foam::IOobject::readOption dsmcSigmaReadOption
+    (
+        const Foam::fvMesh& mesh
+    )
+    {
+        const Foam::dictionary& controlDict = mesh.time().controlDict();
+        const bool processorRestart =
+            controlDict.lookupOrDefault<bool>("replicatedMesh", false)
+         && controlDict.lookupOrDefault<Foam::word>
+            ("replicatedMeshWriteMode", "gathered") == "processor"
+         && controlDict.lookupOrDefault<Foam::word>
+            ("startFrom", "latestTime") == "latestTime";
+
+        if (processorRestart)
+        {
+            const Foam::fileName checkpoint =
+                mesh.time().path()
+               /"processor0"
+               /mesh.time().timeName()
+               /"dsmcSigmaTcRMax";
+
+        if (Foam::isFile(checkpoint))
+        {
+            // Checkpoint restart: value constructor starts from zero and
+            // restoreProcessorCheckpoint() fills it in explicitly.
+            return Foam::IOobject::READ_IF_PRESENT;
+        }
+    }
+
+    // Fresh start: the value constructor calls readIfPresent() internally,
+    // which only performs a real read for READ_IF_PRESENT (MUST_READ would
+    // just emit a warning and leave the field zeroed).
+    return Foam::IOobject::READ_IF_PRESENT;
+}
+
+
+// Tier-2 initial-read filtering (see doc/worklog/v2506/dsmcFoam_todolist.md):
+// for replicated-mesh fresh starts (startTime branch, positions file
+// present) read only the parcels owned by this rank; the checkpoint
+// restart path, single-rank runs and non-replicated runs are excluded.
+// Controlled by replicatedMeshFilterInitialRead (default off).
+static bool dsmcFilteredInitialRead
+(
+    const Foam::fvMesh& mesh,
+    const Foam::word& cloudName
+)
+{
+    const Foam::dictionary& controlDict = mesh.time().controlDict();
+
+    if (!controlDict.lookupOrDefault<bool>("replicatedMesh", false))
+    {
+        return false;
+    }
+
+    if
+    (
+        !controlDict.lookupOrDefault<bool>
+        (
+            "replicatedMeshFilterInitialRead",
+            false
+        )
+    )
+    {
+        return false;
+    }
+
+    const Foam::word startFrom = controlDict.lookupOrDefault<Foam::word>
+    (
+        "startFrom",
+        "startTime"
+    );
+
+    if (startFrom == "latestTime")
+    {
+        // Checkpoint restart reads through restoreProcessorCheckpoint()
+        return false;
+    }
+
+    // NB: no Pstream::nProcs() check here - without the -parallel flag
+    // Pstream still reports 1 at this point (MPI is initialised later in
+    // dsmcReplicatedMesh::initialize()).  For a genuine single-rank run
+    // the filter keeps everything (cellOwner all zero == myRank), which
+    // is harmless.
+
+    // Same path resolution as IOPosition::headerOk (top-level positions
+    // file only)
+    const Foam::fileName posFile
+    (
+        mesh.time().path()
+       /mesh.time().timeName()
+       /"lagrangian"
+       /cloudName
+       /"positions"
+    );
+
+    return Foam::isFile(posFile);
+}
+}
+
+
+// In-solver parallel fill (optimisation 3b): for replicated-mesh fresh
+// starts without an initial cloud file, fill owned cells directly from
+// dsmcInitialiseDict (zero file round-trip).  Off by default.
+static bool dsmcInSolverFill
+(
+    const Foam::fvMesh& mesh,
+    const Foam::word& cloudName
+)
+{
+    const Foam::dictionary& controlDict = mesh.time().controlDict();
+
+    if (!controlDict.lookupOrDefault<bool>("replicatedMesh", false))
+    {
+        return false;
+    }
+
+    if (!controlDict.lookupOrDefault<bool>("dsmcInSolverFill", false))
+    {
+        return false;
+    }
+
+    const Foam::word startFrom = controlDict.lookupOrDefault<Foam::word>
+    (
+        "startFrom",
+        "startTime"
+    );
+
+    if (startFrom == "latestTime")
+    {
+        // Checkpoint restart reads through restoreProcessorCheckpoint()
+        return false;
+    }
+
+    // Only when there is no initial cloud file to read
+    const Foam::fileName posFile
+    (
+        mesh.time().path()
+       /mesh.time().timeName()
+       /"lagrangian"
+       /cloudName
+       /"positions"
+    );
+
+    return !Foam::isFile(posFile);
+}
+
+
+void Foam::dsmcCloud::initialFillFromDict(const IOdictionary& dsmcInitialiseDict)
+{
+    dsmcAllConfigurations conf(dsmcInitialiseDict, *this);
+    conf.setInitialConfigParallel
+    (
+        replicatedMesh().cellOwner(),
+        replicatedMesh().myRank()
+    );
 }
 
 
@@ -391,8 +603,14 @@ void Foam::dsmcCloud::buildCellOccupancy()
 
                 for (label threadI = 0; threadI < ompNumThreads_; ++threadI)
                 {
-                    appendedThreadOffsets[threadI] =
-                        threadI*appendedParcels/ompNumThreads_;
+                    appendedThreadOffsets[threadI] = label
+                    (
+                        (
+                            static_cast<long long>(threadI)
+                          * static_cast<long long>(appendedParcels)
+                        )
+                      / static_cast<long long>(ompNumThreads_)
+                    );
                 }
 
                 appendedThreadOffsets[ompNumThreads_] = appendedParcels;
@@ -411,11 +629,17 @@ void Foam::dsmcCloud::buildCellOccupancy()
             gatheredParcels.setSize(parcelI);
             generatedThreadOffsets.setSize(ompNumThreads_ + 1, 0);
 
-            for (label threadI = 0; threadI < ompNumThreads_; ++threadI)
-            {
-                generatedThreadOffsets[threadI] =
-                    threadI*gatheredParcels.size()/ompNumThreads_;
-            }
+                for (label threadI = 0; threadI < ompNumThreads_; ++threadI)
+                {
+                    generatedThreadOffsets[threadI] = label
+                    (
+                        (
+                            static_cast<long long>(threadI)
+                          * static_cast<long long>(gatheredParcels.size())
+                        )
+                      / static_cast<long long>(ompNumThreads_)
+                    );
+                }
 
             generatedThreadOffsets[ompNumThreads_] = gatheredParcels.size();
             parcelsPtr = &gatheredParcels;
@@ -425,6 +649,18 @@ void Foam::dsmcCloud::buildCellOccupancy()
         const List<dsmcParcel*>& parcels = *parcelsPtr;
         const labelList& parcelThreadOffsets = *parcelThreadOffsetsPtr;
         const bool useAppendedParcels = appendedParcelsPtr != nullptr;
+
+        if (useMoveOrderedParcels)
+        {
+            ++buildOccOrderedHits;
+        }
+        else
+        {
+            ++buildOccFallbacks;
+        }
+
+        // ---- subphase: per-thread count reset ----
+        const auto tBuildOccReset0 = steadyWallClock::now();
 
         if (occupancyThreadCellCounts_.size() != ompNumThreads_)
         {
@@ -436,7 +672,10 @@ void Foam::dsmcCloud::buildCellOccupancy()
             occupancyThreadActiveCells_.setSize(ompNumThreads_);
         }
 
-        forAll(occupancyThreadCellCounts_, threadI)
+        // Per-thread reset is thread-disjoint: each thread clears only its
+        // own lists (§8.5).
+        #pragma omp parallel for num_threads(ompNumThreads_) schedule(static)
+        for (label threadI = 0; threadI < ompNumThreads_; ++threadI)
         {
             labelList& localCounts = occupancyThreadCellCounts_[threadI];
             DynamicList<label>& localActiveCells =
@@ -476,6 +715,11 @@ void Foam::dsmcCloud::buildCellOccupancy()
                 )
             );
         }
+
+        buildOccResetWall += elapsedWallSeconds(tBuildOccReset0);
+
+        // ---- subphase: parallel counting ----
+        const auto tBuildOccCount0 = steadyWallClock::now();
 
         #pragma omp parallel num_threads(ompNumThreads_)
         {
@@ -534,18 +778,41 @@ void Foam::dsmcCloud::buildCellOccupancy()
             }
         }
 
-        labelList totalCounts(nCells, 0);
+        buildOccCountWall += elapsedWallSeconds(tBuildOccCount0);
 
-        for (label threadI = 0; threadI < ompNumThreads_; ++threadI)
+        // ---- subphase: thread reduce + active/collision cell lists ----
+        const auto tBuildOccReduce0 = steadyWallClock::now();
+
+        // Persistent total counts (no per-step 52 MB allocation) + parallel
+        // zero and per-thread atomic merge: the per-thread active-cell lists
+        // are disjoint, cells may be shared across threads (§8.5).
+        labelList& totalCounts = occupancyTotalCounts_;
+        if (totalCounts.size() != nCells)
         {
-            const labelList& localCounts = occupancyThreadCellCounts_[threadI];
-            const DynamicList<label>& activeCells =
-                occupancyThreadActiveCells_[threadI];
+            totalCounts.setSize(nCells, 0);
+        }
 
-            forAll(activeCells, activeI)
+        #pragma omp parallel num_threads(ompNumThreads_)
+        {
+            #pragma omp for schedule(static)
+            for (label cellI = 0; cellI < nCells; ++cellI)
             {
-                const label cellI = activeCells[activeI];
-                totalCounts[cellI] += localCounts[cellI];
+                totalCounts[cellI] = 0;
+            }
+
+            #pragma omp for schedule(static)
+            for (label threadI = 0; threadI < ompNumThreads_; ++threadI)
+            {
+                const labelList& localCounts = occupancyThreadCellCounts_[threadI];
+                const DynamicList<label>& activeCells =
+                    occupancyThreadActiveCells_[threadI];
+
+                forAll(activeCells, activeI)
+                {
+                    const label cellI = activeCells[activeI];
+                    #pragma omp atomic
+                    totalCounts[cellI] += localCounts[cellI];
+                }
             }
         }
 
@@ -607,12 +874,56 @@ void Foam::dsmcCloud::buildCellOccupancy()
             occupancyOwnedCollisionCells_ = occupancyCollisionCells_;
         }
 
+        buildOccReduceWall += elapsedWallSeconds(tBuildOccReduce0);
+
+        // ---- subphase: offsets + flat ordered fill ----
+        const auto tBuildOccFill0 = steadyWallClock::now();
+
         occupancyCellOffsets_.setSize(nCells + 1, 0);
 
-        for (label cellI = 0; cellI < nCells; ++cellI)
+        // Chunked parallel exclusive prefix sum over nCells (§8.5): the
+        // serial 13M-cell pass was a measurable fill-subphase cost.
+        const label nPrefixThreads = max(label(1), min(ompNumThreads_, nCells));
+        const label chunkSize = (nCells + nPrefixThreads - 1)/nPrefixThreads;
+        labelList chunkStart(nPrefixThreads, 0);
+        #pragma omp parallel num_threads(nPrefixThreads)
         {
-            occupancyCellOffsets_[cellI + 1] =
-                occupancyCellOffsets_[cellI] + totalCounts[cellI];
+            #pragma omp for schedule(static)
+            for (label c = 0; c < nPrefixThreads; ++c)
+            {
+                const label b = c*chunkSize;
+                const label e = min(b + chunkSize, nCells);
+                label s = 0;
+                for (label i = b; i < e; ++i)
+                {
+                    s += totalCounts[i];
+                }
+                chunkStart[c] = s;
+            }
+
+            #pragma omp single
+            {
+                label run = 0;
+                for (label c = 0; c < nPrefixThreads; ++c)
+                {
+                    const label v = chunkStart[c];
+                    chunkStart[c] = run;
+                    run += v;
+                }
+            }
+
+            #pragma omp for schedule(static)
+            for (label c = 0; c < nPrefixThreads; ++c)
+            {
+                const label b = c*chunkSize;
+                const label e = min(b + chunkSize, nCells);
+                label acc = chunkStart[c];
+                for (label i = b; i < e; ++i)
+                {
+                    occupancyCellOffsets_[i + 1] = acc + totalCounts[i];
+                    acc += totalCounts[i];
+                }
+            }
         }
 
         occupancyOrderedParcels_.resize(occupancyCellOffsets_.last());
@@ -680,6 +991,8 @@ void Foam::dsmcCloud::buildCellOccupancy()
 
         occupancyOrderedParcelsValid_ = true;
         cellOccupancyMaterialized_ = false;
+
+        buildOccFillWall += elapsedWallSeconds(tBuildOccFill0);
 
         if (profileSummary_ && profileTimingActive_)
         {
@@ -1471,7 +1784,7 @@ Foam::dsmcCloud::dsmcCloud
     bool readFields
 )
 :
-    Cloud<dsmcParcel>(mesh, cloudName, false),
+    Cloud<dsmcParcel>(mesh, cloudName, false, !dsmcFilteredInitialRead(mesh, cloudName)),
     cloudName_(cloudName),
     mesh_(mesh),
     particleProperties_
@@ -1564,6 +1877,9 @@ Foam::dsmcCloud::dsmcCloud
     profilePostBoundariesWall_(0.0),
     profilePostBoundaryMeasWall_(0.0),
     profilePostCleanWall_(0.0),
+    profilePostTrackingCleanWall_(0.0),
+    profilePostBoundaryMeasCleanWall_(0.0),
+    profilePostCellMeasCleanWall_(0.0),
     profileFullEvolveCpu_(0.0),
     profileMoveAndCollideCpu_(0.0),
     profileMoveCpu_(0.0),
@@ -1577,6 +1893,9 @@ Foam::dsmcCloud::dsmcCloud
     profilePostBoundariesCpu_(0.0),
     profilePostBoundaryMeasCpu_(0.0),
     profilePostCleanCpu_(0.0),
+    profilePostTrackingCleanCpu_(0.0),
+    profilePostBoundaryMeasCleanCpu_(0.0),
+    profilePostCellMeasCleanCpu_(0.0),
     occupancyOrderedParcels_(),
     occupancyCellOffsets_(),
     occupancyActiveCells_(),
@@ -1602,10 +1921,12 @@ Foam::dsmcCloud::dsmcCloud
             this->name() + "SigmaTcRMax",
             mesh_.time().timeName(),
             mesh_,
-            IOobject::MUST_READ,
+            dsmcSigmaReadOption(mesh_),
             IOobject::AUTO_WRITE
         ),
-        mesh_
+        mesh_,
+        dimensionedScalar("zero", dimensionSet(0, 3, -1, 0, 0), 0.0),
+        zeroGradientFvPatchScalarField::typeName
     ),
     collisionSelectionRemainder_(),
     constProps_(),
@@ -1683,12 +2004,120 @@ Foam::dsmcCloud::dsmcCloud
     ompNumThreads_ = 1;
     #endif
 
+    buildConstProps();
+
+    bool inSolverFilled = false;
+
     if (readFields)
     {
-        dsmcParcel::readFields(*this);
+        if (dsmcFilteredInitialRead(mesh, cloudName))
+        {
+            // Tier-2: construct the replicated mesh early so cellOwner_ is
+            // available, then read only owned parcels (positions file and
+            // parcel fields) - see doc/worklog/v2506/dsmcFoam_todolist.md.
+            replicatedMesh_.reset(new dsmcReplicatedMesh(*this, mesh_));
+            replicatedMesh_->initialize();
+
+            Cloud<dsmcParcel>::readCloudFiltered
+            (
+                replicatedMesh_->cellOwner(),
+                replicatedMesh_->myRank()
+            );
+
+            dsmcParcel::readFieldsFiltered
+            (
+                *this,
+                initialReadKeep(),
+                initialReadNFull()
+            );
+
+            Info<< "Replicated mesh: rank " << replicatedMesh_->myRank()
+                << " filtered initial read: kept " << this->size()
+                << " / " << initialReadNFull() << " particles (skipped "
+                << initialReadNFull() - this->size()
+                << " non-owned during read)" << endl;
+        }
+        else if (dsmcInSolverFill(mesh, cloudName))
+        {
+            // Optimisation 3b: in-solver parallel fill from
+            // dsmcInitialiseDict (zero file round-trip)
+            replicatedMesh_.reset(new dsmcReplicatedMesh(*this, mesh_));
+            replicatedMesh_->initialize();
+
+            IOdictionary dsmcInitialiseDict
+            (
+                IOobject
+                (
+                    "dsmcInitialiseDict",
+                    mesh_.time().system(),
+                    mesh_,
+                    IOobject::MUST_READ,
+                    IOobject::NO_WRITE
+                )
+            );
+
+            initialFillFromDict(dsmcInitialiseDict);
+
+            inSolverFilled = true;
+
+            Info<< "Replicated mesh: rank " << replicatedMesh_->myRank()
+                << " in-solver fill: " << this->size() << " particles"
+                << endl;
+        }
+        else
+        {
+            dsmcParcel::readFields(*this);
+        }
     }
 
-    buildConstProps();
+    if (!inSolverFilled)
+    {
+    // v1706 value-constructor + readIfPresent() does NOT read the file when
+    // the read option is MUST_READ (warning only).  Read dsmcSigmaTcRMax
+    // explicitly when present so fresh starts get the initial max cross
+    // section (processor checkpoint restart restores it separately in
+    // dsmcReplicatedMesh::restoreProcessorCheckpoint()).
+    // dsmcSigmaTcRMax read guard.  The value constructor with
+    // READ_IF_PRESENT reads the field when the file exists; the processor
+    // checkpoint restart restores it explicitly.  If neither is available
+    // the field would stay zero, which silently disables all NTC collisions
+    // (zero is an absorbing state) - fail loudly instead.
+    {
+        const fileName sigmaFile
+        (
+            mesh_.time().path()
+           /mesh_.time().timeName()
+           /(this->name() + "SigmaTcRMax")
+        );
+
+        if (isFile(sigmaFile))
+        {
+            Info<< "dsmcSigmaTcRMax: initial field found at " << sigmaFile
+                << endl;
+        }
+        else
+        {
+            const fileName checkpoint
+            (
+                mesh_.time().path()
+               /"processor0"
+               /mesh_.time().timeName()
+               /"dsmcSigmaTcRMax"
+            );
+
+            if (!isFile(checkpoint))
+            {
+                FatalErrorInFunction
+                    << "Cannot find dsmcSigmaTcRMax at " << sigmaFile << nl
+                    << "A zero initial field would silently disable all "
+                    << "NTC collisions." << exit(FatalError);
+            }
+
+            Info<< "dsmcSigmaTcRMax: expecting processor checkpoint "
+                << "restore from " << checkpoint << endl;
+        }
+    }
+    }
 
     coordSystem().checkCoordinateSystemInputs();
     porousMeas().checkPorousMeasurementsInputs();
@@ -1713,8 +2142,13 @@ Foam::dsmcCloud::dsmcCloud
 
     if (controlDict_.lookupOrDefault<bool>("replicatedMesh", false))
     {
-        replicatedMesh_.reset(new dsmcReplicatedMesh(*this, mesh_));
-        replicatedMesh_->initialize();
+        if (replicatedMesh_.empty())
+        {
+            replicatedMesh_.reset(new dsmcReplicatedMesh(*this, mesh_));
+            replicatedMesh_->initialize();
+        }
+        // else: already constructed and initialized before the filtered
+        // initial read (Tier-2 path)
     }
 }
 
@@ -1804,6 +2238,9 @@ Foam::dsmcCloud::dsmcCloud
     profilePostBoundariesWall_(0.0),
     profilePostBoundaryMeasWall_(0.0),
     profilePostCleanWall_(0.0),
+    profilePostTrackingCleanWall_(0.0),
+    profilePostBoundaryMeasCleanWall_(0.0),
+    profilePostCellMeasCleanWall_(0.0),
     profileFullEvolveCpu_(0.0),
     profileMoveAndCollideCpu_(0.0),
     profileMoveCpu_(0.0),
@@ -1817,6 +2254,9 @@ Foam::dsmcCloud::dsmcCloud
     profilePostBoundariesCpu_(0.0),
     profilePostBoundaryMeasCpu_(0.0),
     profilePostCleanCpu_(0.0),
+    profilePostTrackingCleanCpu_(0.0),
+    profilePostBoundaryMeasCleanCpu_(0.0),
+    profilePostCellMeasCleanCpu_(0.0),
     occupancyOrderedParcels_(),
     occupancyCellOffsets_(),
     occupancyActiveCells_(),
@@ -1958,6 +2398,11 @@ void Foam::dsmcCloud::evolve_moveAndCollide()
     td.moveDetailProfile =
         profileDetail_
      && controlDict_.lookupOrDefault<bool>("moveDetailProfile", false);
+    if (td.moveDetailProfile)
+    {
+        buildNearWallCells(mesh_);
+        td.nearWallCells = &dsmcNearWallCells;
+    }
 
     if (debug)
     {
@@ -2197,6 +2642,24 @@ void Foam::dsmcCloud::evolve_moveAndCollide()
         moveDetailTrackWallTime_ += td.moveTrackWallTime;
         moveDetailTrackerWallTime_ += td.moveTrackerWallTime;
         moveDetailBoundaryWallTime_ += td.moveBoundaryWallTime;
+
+        dsmcMoveDetailCum[0] += double(td.moveParcels);
+        dsmcMoveDetailCum[1] += double(td.moveTrackCalls);
+        dsmcMoveDetailCum[2] += double(td.moveSameTetNoFaceHits);
+        dsmcMoveDetailCum[3] += double(td.moveInternalTetNoFaceHits);
+        dsmcMoveDetailCum[4] += double(td.moveFaceHits);
+        dsmcMoveDetailCum[5] += double(td.moveProcessorHits);
+        dsmcMoveDetailCum[6] += double(td.moveCyclicHits);
+        dsmcMoveDetailCum[7] += double(td.movePatchHits);
+        dsmcMoveDetailCum[8] += double(td.moveStuckHits);
+        dsmcMoveDetailCum[9] += td.moveTrackWallTime;
+        dsmcMoveDetailCum[10] += td.moveTrackerWallTime;
+        dsmcMoveDetailCum[11] += td.moveBoundaryWallTime;
+
+        dsmcMoveDetailSplitCum[0] += double(td.moveWallCellTrackCalls);
+        dsmcMoveDetailSplitCum[1] += td.moveWallCellTrackWallTime;
+        dsmcMoveDetailSplitCum[2] += double(td.moveInteriorTrackCalls);
+        dsmcMoveDetailSplitCum[3] += td.moveInteriorTrackWallTime;
     }
     if (profileSummary_)
     {
@@ -2439,10 +2902,45 @@ void Foam::dsmcCloud::evolve_fields()
     boundaryMeas_.outputResults();
     addDetailTimer(profilePostBoundaryMeasWall_, profilePostBoundaryMeasCpu_);
 
+    const steadyWallClock::time_point cleanWallStart = detailWallStart;
+    const scalar cleanCpu0 = detailCpu0;
+    steadyWallClock::time_point cleanStageWallStart = cleanWallStart;
+    scalar cleanStageCpu0 = cleanCpu0;
+
     trackingInfo_.clean();
+    if (detailTiming)
+    {
+        profilePostTrackingCleanWall_ +=
+            elapsedWallSeconds(cleanStageWallStart);
+        profilePostTrackingCleanCpu_ +=
+            mesh_.time().elapsedCpuTime() - cleanStageCpu0;
+        cleanStageWallStart = steadyWallClock::now();
+        cleanStageCpu0 = mesh_.time().elapsedCpuTime();
+    }
+
     boundaryMeas_.clean();
+    if (detailTiming)
+    {
+        profilePostBoundaryMeasCleanWall_ +=
+            elapsedWallSeconds(cleanStageWallStart);
+        profilePostBoundaryMeasCleanCpu_ +=
+            mesh_.time().elapsedCpuTime() - cleanStageCpu0;
+        cleanStageWallStart = steadyWallClock::now();
+        cleanStageCpu0 = mesh_.time().elapsedCpuTime();
+    }
+
     cellMeas_.clean();
-    addDetailTimer(profilePostCleanWall_, profilePostCleanCpu_);
+    if (detailTiming)
+    {
+        profilePostCellMeasCleanWall_ +=
+            elapsedWallSeconds(cleanStageWallStart);
+        profilePostCellMeasCleanCpu_ +=
+            mesh_.time().elapsedCpuTime() - cleanStageCpu0;
+
+        profilePostCleanWall_ += elapsedWallSeconds(cleanWallStart);
+        profilePostCleanCpu_ += mesh_.time().elapsedCpuTime() - cleanCpu0;
+        resetDetailTimer();
+    }
 
     if (profileSummary_)
     {
@@ -2510,7 +3008,14 @@ void Foam::dsmcCloud::rebuildMoveOrderedParcels()
 
     for (label threadI = 0; threadI <= nThreads; ++threadI)
     {
-        moveOrderedThreadOffsets_[threadI] = threadI*i/nThreads;
+        moveOrderedThreadOffsets_[threadI] = label
+        (
+            (
+                static_cast<long long>(threadI)
+              * static_cast<long long>(i)
+            )
+          / static_cast<long long>(nThreads)
+        );
     }
     moveOrderedParcelsValid_ = true;
     moveAppendedParcels_.clear();
@@ -2612,8 +3117,14 @@ void Foam::dsmcCloud::setMoveOrderedParcels
 
     for (label threadI = 0; threadI <= nThreads; ++threadI)
     {
-        moveOrderedThreadOffsets_[threadI] =
-            threadI*moveOrderedParcels_.size()/nThreads;
+        moveOrderedThreadOffsets_[threadI] = label
+        (
+            (
+                static_cast<long long>(threadI)
+              * static_cast<long long>(moveOrderedParcels_.size())
+            )
+          / static_cast<long long>(nThreads)
+        );
     }
     moveOrderedParcelsValid_ = true;
     moveAppendedParcels_.clear();
@@ -2640,8 +3151,14 @@ void Foam::dsmcCloud::appendBatchToMoveOrdered
 
     for (label threadI = 0; threadI <= nThreads; ++threadI)
     {
-        moveOrderedThreadOffsets_[threadI] =
-            threadI*moveOrderedParcels_.size()/nThreads;
+        moveOrderedThreadOffsets_[threadI] = label
+        (
+            (
+                static_cast<long long>(threadI)
+              * static_cast<long long>(moveOrderedParcels_.size())
+            )
+          / static_cast<long long>(nThreads)
+        );
     }
 
     moveOrderedParcelsValid_ = true;
@@ -2656,6 +3173,15 @@ void Foam::dsmcCloud::deleteParcel(dsmcParcel* p)
     if (p)
     {
         deleteParticle(*p);
+    }
+}
+
+
+void Foam::dsmcCloud::setLastStepWallTime(const scalar t)
+{
+    if (replicatedMeshActive())
+    {
+        replicatedMesh_->setLastStepWallTime(t);
     }
 }
 
@@ -2681,6 +3207,9 @@ void Foam::dsmcCloud::printProfileSummary() const
     scalar postBoundariesWall = profilePostBoundariesWall_;
     scalar postBoundaryMeasWall = profilePostBoundaryMeasWall_;
     scalar postCleanWall = profilePostCleanWall_;
+    scalar postTrackingCleanWall = profilePostTrackingCleanWall_;
+    scalar postBoundaryMeasCleanWall = profilePostBoundaryMeasCleanWall_;
+    scalar postCellMeasCleanWall = profilePostCellMeasCleanWall_;
 
     const bool replicatedRawMpi =
         replicatedMeshActive() && replicatedMesh_->nProcs() > 1;
@@ -2723,7 +3252,7 @@ void Foam::dsmcCloud::printProfileSummary() const
                 MPI_COMM_WORLD
             );
 
-            const int nProfileValues = 13;
+            const int nProfileValues = 16;
             scalar profileValues[nProfileValues] =
             {
                 fullEvolveWall,
@@ -2738,7 +3267,10 @@ void Foam::dsmcCloud::printProfileSummary() const
                 postControllersWall,
                 postBoundariesWall,
                 postBoundaryMeasWall,
-                postCleanWall
+                postCleanWall,
+                postTrackingCleanWall,
+                postBoundaryMeasCleanWall,
+                postCellMeasCleanWall
             };
 
             MPI_Allreduce
@@ -2764,6 +3296,48 @@ void Foam::dsmcCloud::printProfileSummary() const
             postBoundariesWall = profileValues[10];
             postBoundaryMeasWall = profileValues[11];
             postCleanWall = profileValues[12];
+            postTrackingCleanWall = profileValues[13];
+            postBoundaryMeasCleanWall = profileValues[14];
+            postCellMeasCleanWall = profileValues[15];
+
+            // buildCellOccupancy subphase diagnostics (§6.4)
+            scalar buildOccValues[4] =
+            {
+                buildOccResetWall,
+                buildOccCountWall,
+                buildOccReduceWall,
+                buildOccFillWall
+            };
+            MPI_Allreduce
+            (
+                MPI_IN_PLACE,
+                buildOccValues,
+                4,
+                MPI_DOUBLE,
+                MPI_MAX,
+                MPI_COMM_WORLD
+            );
+            buildOccResetWall = buildOccValues[0];
+            buildOccCountWall = buildOccValues[1];
+            buildOccReduceWall = buildOccValues[2];
+            buildOccFillWall = buildOccValues[3];
+
+            label buildOccHits[2] =
+            {
+                buildOccOrderedHits,
+                buildOccFallbacks
+            };
+            MPI_Allreduce
+            (
+                MPI_IN_PLACE,
+                buildOccHits,
+                2,
+                MPI_INT,
+                MPI_MAX,
+                MPI_COMM_WORLD
+            );
+            buildOccOrderedHits = buildOccHits[0];
+            buildOccFallbacks = buildOccHits[1];
         }
     }
     else if (Pstream::parRun())
@@ -2782,6 +3356,9 @@ void Foam::dsmcCloud::printProfileSummary() const
         reduce(postBoundariesWall, maxOp<scalar>());
         reduce(postBoundaryMeasWall, maxOp<scalar>());
         reduce(postCleanWall, maxOp<scalar>());
+        reduce(postTrackingCleanWall, maxOp<scalar>());
+        reduce(postBoundaryMeasCleanWall, maxOp<scalar>());
+        reduce(postCellMeasCleanWall, maxOp<scalar>());
     }
 
     if (profileDetail_ && replicatedRawMpi && replicatedRawMpiInitialized)
@@ -2911,6 +3488,16 @@ void Foam::dsmcCloud::printProfileSummary() const
             << "    move max [s]                  = " << moveWall << nl
             << "    build_occupancy max [s]       = "
             << buildCellOccupancyWall << nl
+            << "    build_occupancy reset max [s] = "
+            << buildOccResetWall << nl
+            << "    build_occupancy count max [s] = "
+            << buildOccCountWall << nl
+            << "    build_occupancy reduce max [s] = "
+            << buildOccReduceWall << nl
+            << "    build_occupancy fill max [s]  = "
+            << buildOccFillWall << nl
+            << "    build_occupancy ordered/fallback = "
+            << buildOccOrderedHits << "/" << buildOccFallbacks << nl
             << "    coll max [s]                  = " << collisionWall << nl
             << "    post max [s]                  = " << postFieldsWall << nl
             << "    core phase sum [s]            = " << coreAccountedWall << nl
@@ -2931,6 +3518,12 @@ void Foam::dsmcCloud::printProfileSummary() const
             << postBoundaryMeasWall << nl
             << "    post clean [s]                = "
             << postCleanWall << nl
+            << "    post tracking clean [s]      = "
+            << postTrackingCleanWall << nl
+            << "    post boundary meas clean [s] = "
+            << postBoundaryMeasCleanWall << nl
+            << "    post cell meas clean [s]     = "
+            << postCellMeasCleanWall << nl
             << "    post subphase sum [s]         = "
             << postDetailWall << nl
             << "    post residual [s]             = "
@@ -2944,6 +3537,156 @@ void Foam::dsmcCloud::printProfileSummary() const
             << openmpCollisionSchedule_ << ", chunk "
             << openmpCollisionChunk_ << nl
             << endl;
+
+        if
+        (
+            profileDetail_
+         && controlDict_.lookupOrDefault<bool>
+            (
+                "moveDetailProfile",
+                false
+            )
+        )
+        {
+            Info<< "DSMC move detail profile (thread-summed diagnostics)" << nl
+                << "    parcels [count]              = "
+                << dsmcMoveDetailCum[0] << nl
+                << "    track calls [count]          = "
+                << dsmcMoveDetailCum[1] << nl
+                << "    same-tet no-face [count]     = "
+                << dsmcMoveDetailCum[2] << nl
+                << "    internal-tet [count]         = "
+                << dsmcMoveDetailCum[3] << nl
+                << "    face hits [count]            = "
+                << dsmcMoveDetailCum[4] << nl
+                << "    processor hits [count]       = "
+                << dsmcMoveDetailCum[5] << nl
+                << "    cyclic hits [count]          = "
+                << dsmcMoveDetailCum[6] << nl
+                << "    patch hits [count]           = "
+                << dsmcMoveDetailCum[7] << nl
+                << "    stuck hits [count]           = "
+                << dsmcMoveDetailCum[8] << nl
+                << "    trackToFace sum [s]           = "
+                << dsmcMoveDetailCum[9] << nl
+                << "    tracker sum [s]              = "
+                << dsmcMoveDetailCum[10] << nl
+                << "    boundary sum [s]             = "
+                << dsmcMoveDetailCum[11] << nl
+                << endl;
+        }
+    }
+
+    // Worklog dlb_further_opt.md §11: per-rank move sub-phase table.
+    // Under replicated mesh each rank is a spatial region, so per-rank
+    // counters locate the source of the measured ~1.5x per-parcel move
+    // cost variation (tracking crossing rate vs boundary critical-section
+    // cost vs thread imbalance).
+    // NOTE: this block must be OUTSIDE the rank0-gated section above so
+    // that every rank reaches the MPI_Gather (same collective-communication
+    // placement rule as the §5.6 report() Allreduce fix).
+    if
+    (
+        profileDetail_
+     && controlDict_.lookupOrDefault<bool>
+        (
+            "moveDetailProfile",
+            false
+        )
+     && replicatedRawMpi
+     && replicatedRawMpiInitialized
+    )
+    {
+        const int nMoveVals = 14;
+        scalar localMoveVals[nMoveVals] =
+        {
+            dsmcMoveDetailCum[0],
+            dsmcMoveDetailCum[1],
+            dsmcMoveDetailCum[4],
+            dsmcMoveDetailCum[6],
+            dsmcMoveDetailCum[7],
+            dsmcMoveDetailCum[5],
+            dsmcMoveDetailCum[9],
+            dsmcMoveDetailCum[10],
+            dsmcMoveDetailCum[11],
+            localMoveWall,
+            dsmcMoveDetailSplitCum[0],
+            dsmcMoveDetailSplitCum[1],
+            dsmcMoveDetailSplitCum[2],
+            dsmcMoveDetailSplitCum[3]
+        };
+
+        List<scalar> allMoveVals;
+        if (replicatedRawMpiOutput)
+        {
+            allMoveVals.setSize(replicatedRawMpiSize*nMoveVals, 0.0);
+        }
+        MPI_Gather
+        (
+            localMoveVals,
+            nMoveVals,
+            MPI_DOUBLE,
+            replicatedRawMpiOutput ? allMoveVals.data() : nullptr,
+            nMoveVals,
+            MPI_DOUBLE,
+            0,
+            MPI_COMM_WORLD
+        );
+
+        if (replicatedRawMpiOutput)
+        {
+            Info<< nl
+                << "Move sub-phase by rank (spatial cost split):" << nl
+                << "    rank parcels trackCalls tc/parcel"
+                << " faceHits patchHits trackWall moveWall"
+                << " | wallCellCalls wallCell_s wCall_us"
+                << " | intCalls int_s iCall_us" << nl;
+
+            scalar minTcPerParcel = GREAT;
+            scalar maxTcPerParcel = 0.0;
+            for (int rankI = 0; rankI < replicatedRawMpiSize; ++rankI)
+            {
+                const scalar base = rankI*nMoveVals;
+                const scalar parcels = allMoveVals[base + 0];
+                const scalar trackCalls = allMoveVals[base + 1];
+                const scalar tcPerParcel =
+                    parcels > 0.5 ? trackCalls/parcels : 0.0;
+                minTcPerParcel = min(minTcPerParcel, tcPerParcel);
+                maxTcPerParcel = max(maxTcPerParcel, tcPerParcel);
+
+                const scalar wallCalls = allMoveVals[base + 10];
+                const scalar wallTime = allMoveVals[base + 11];
+                const scalar intCalls = allMoveVals[base + 12];
+                const scalar intTime = allMoveVals[base + 13];
+                const scalar wallPerCall_us =
+                    wallCalls > 0.5 ? 1.0e6*wallTime/wallCalls : 0.0;
+                const scalar intPerCall_us =
+                    intCalls > 0.5 ? 1.0e6*intTime/intCalls : 0.0;
+
+                // Counts printed as scalars: Info<< has no long overload
+                // and a long here silently degrades to label (int32),
+                // wrapping counts above 2^31 (worklog §11).
+                Info<< "    rank" << rankI
+                    << " " << parcels
+                    << " " << trackCalls
+                    << " " << tcPerParcel
+                    << " " << allMoveVals[base + 2]
+                    << " " << allMoveVals[base + 4]
+                    << " " << allMoveVals[base + 6]
+                    << " " << allMoveVals[base + 9]
+                    << " | " << wallCalls
+                    << " " << wallTime
+                    << " " << wallPerCall_us
+                    << " | " << intCalls
+                    << " " << intTime
+                    << " " << intPerCall_us
+                    << nl;
+            }
+
+            Info<< "    rank trackCalls/parcel max/min = "
+                << maxTcPerParcel/max(minTcPerParcel, SMALL) << nl
+                << endl;
+        }
     }
 
     if (replicatedMeshActive())
@@ -3417,6 +4160,163 @@ Foam::label Foam::dsmcCloud::equipartitionElectronicLevel
     return jDash;
 }
 
+
+Foam::vector Foam::dsmcCloud::equipartitionLinearVelocity
+(
+    const scalar temperature,
+    const scalar mass,
+            Random& random
+)
+{
+    return sqrt(physicoChemical::k.value()*temperature/mass)
+        *random.GaussNormal<vector>();
+}
+
+Foam::scalar Foam::dsmcCloud::equipartitionRotationalEnergy
+(
+    const scalar temperature,
+    const scalar rotationalDof,
+            Random& random
+)
+{
+    scalar ERot = 0.0;
+
+    if (rotationalDof < SMALL)
+    {
+        return ERot;
+    }
+    else if (rotationalDof < 2.0 + SMALL && rotationalDof > 2.0 - SMALL)
+    {
+        // Special case for rDof = 2, i.e. diatomics;
+        ERot = -log(random.sample01<scalar>())*physicoChemical::k.value()*temperature;
+    }
+    else
+    {
+        scalar a = 0.5*rotationalDof - 1;
+
+        scalar energyRatio;
+
+        scalar P = -1;
+
+        do
+        {
+            energyRatio = 10*random.sample01<scalar>();
+
+            P = pow((energyRatio/a), a)*exp(a - energyRatio);
+
+        } while (P < random.sample01<scalar>());
+
+        ERot = energyRatio*physicoChemical::k.value()*temperature;
+    }
+
+    return ERot;
+}
+
+Foam::labelList Foam::dsmcCloud::equipartitionVibrationalEnergyLevel
+(
+    const scalar temperature,
+    const label nVibrationalModes,
+    const label typeId,
+            Random& random
+)
+{
+    labelList vibLevel(nVibrationalModes, 0);
+
+    if (nVibrationalModes == 0)
+    {
+        return vibLevel;
+    }
+    else
+    {
+        forAll(vibLevel, mode)
+        {
+            vibLevel[mode] = -log(random.sample01<scalar>())*temperature
+                /constProps(typeId).thetaV_m(mode);
+        }
+    }
+
+    return vibLevel;
+}
+
+Foam::label Foam::dsmcCloud::equipartitionElectronicLevel
+(
+    const scalar temperature,
+    const labelList& electronicDegeneracyList,
+    const scalarList& electronicEnergyList,
+            Random& random
+)
+{
+    const scalar EMax = physicoChemical::k.value()*temperature;
+    const label jMax = electronicDegeneracyList.size() - 1;
+
+    //- Random integer between 0 and jMax
+    label jDash = 0;
+    //- Maximum possible electronic energy level within list based on k*TElec
+    scalar EJ = 0.0;
+    //- Maximum possible degeneracy level within list
+    label gJ = 0;
+    //- Selected intermediate integer electronic level (0 to jMax)
+    label jSelect = 0;
+    //- Maximum denominator value in Liechty pdf (see below)
+    scalar expMax = 0.0;
+    //- Summation term based on random electronic level
+    scalar expSum = 0.0;
+    //- Boltzmann distribution of Eq. 3.1.1 of Liechty thesis
+    scalar boltz = 0.0;
+    //- Distribution function Eq. 3.1.2 of Liechty thesis
+    scalar func = 0.0;
+
+    if (jMax > 0 and temperature > SMALL)
+    {
+        //- Calculate summation term in denominator of Eq. 3.1.1 in Liechty
+        //  thesis
+        forAll(electronicDegeneracyList, i)
+        {
+            expSum += electronicDegeneracyList[i]
+                *exp(-electronicEnergyList[i]/EMax);
+        }
+
+        //- Select maximum integer energy level based on boltz value.
+        //  Note that this depends on the temperature.
+        scalar boltzMax = 0.0;
+
+        forAll(electronicDegeneracyList, i)
+        {
+            //- Eq. 3.1.1 of Liechty thesis.
+            boltz =
+                electronicDegeneracyList[i]
+               *exp(-electronicEnergyList[i]/EMax)
+               /expSum;
+
+            if (boltzMax < boltz)
+            {
+                boltzMax = boltz;
+                jSelect = i;
+            }
+        }
+
+        //- Max. poss energy in list: list goes from 0 to jMax
+        EJ = electronicEnergyList[jSelect];
+        //- Max. poss degeneracy in list: list goes from 0 to jMax
+        gJ = electronicDegeneracyList[jSelect];
+        //- Max. in denominator of Liechty pdf for initialisation/wall
+        //  bcs/freestream EEle etc..
+        expMax = gJ*exp(-EJ/EMax);
+
+        //- Acceptance - rejection based on Eq. 3.1.2 of Liechty thesis
+        do
+        {
+          //jDash = random.position<label>(0,jMax); OLD
+            jDash = randomLabel(0, jMax);
+            func =
+                electronicDegeneracyList[jDash]
+               *exp(-electronicEnergyList[jDash]/EMax)
+               /expMax;
+        } while(func < random.sample01<scalar>());
+    }
+
+    return jDash;
+}
 
 Foam::scalar Foam::dsmcCloud::postCollisionRotationalEnergy
 (

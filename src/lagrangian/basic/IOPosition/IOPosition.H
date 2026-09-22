@@ -78,7 +78,28 @@ public:
 
     // Member functions
 
+        //- Read the positions header, return the particle count and set
+        //  entriesStart to the byte offset of the first entry
+        label readHeader(off_t& entriesStart);
+
+        //- Read positions without filtering (all particles)
         virtual void readData(CloudType& c, bool checkClass);
+
+        //- Read positions keeping only parcels whose cell is owned by
+        //  filterRank according to cellOwner.  Appends the kept file
+        //  indices to keep and sets nFull to the total entry count.
+        //  Non-owned parcels are constructed and immediately deleted so
+        //  that the cell/tet assignment semantics are identical to the
+        //  unfiltered read.
+        void readDataFiltered
+        (
+            CloudType& c,
+            bool checkClass,
+            const labelUList& cellOwner,
+            const label filterRank,
+            labelList& keep,
+            label& nFull
+        );
 
         virtual bool write() const;
 

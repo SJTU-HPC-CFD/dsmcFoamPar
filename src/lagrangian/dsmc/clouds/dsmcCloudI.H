@@ -330,6 +330,132 @@ inline Foam::scalarList Foam::dsmcCloud::infoMeasurements()
 {
     scalarList infoMeasurements(7, 0.0);
 
+    #ifdef _OPENMP
+    if
+    (
+        openmpEnabled_
+     && ompNumThreads_ > 1
+     && hasOccupancyOrderedParcels()
+     && occupancyOrderedParcels_.size() == this->size()
+    )
+    {
+        const List<dsmcParcel*>& parcels = occupancyOrderedParcels();
+        const bool useCellBlocks =
+            occupancyCellOffsets_.size() == mesh_.nCells() + 1
+         && occupancyCellOffsets_.last() == parcels.size();
+        List<scalarList> threadMeasurements(ompNumThreads_);
+
+        forAll(threadMeasurements, threadI)
+        {
+            threadMeasurements[threadI].setSize(7, 0.0);
+        }
+
+        #pragma omp parallel num_threads(ompNumThreads_)
+        {
+            const label threadI = omp_get_thread_num();
+            scalarList& localMeasurements = threadMeasurements[threadI];
+
+            if (useCellBlocks)
+            {
+                #pragma omp for schedule(static)
+                for (label cellI = 0; cellI < mesh_.nCells(); ++cellI)
+                {
+                    const scalar nParticles = this->nParticles(cellI);
+                    const label begin = occupancyCellOffsets_[cellI];
+                    const label end = occupancyCellOffsets_[cellI + 1];
+
+                    for (label parcelI = begin; parcelI < end; ++parcelI)
+                    {
+                        const dsmcParcel& p = *parcels[parcelI];
+
+                        const dsmcParcel::constantProperties& cP =
+                            constProps(p.typeId());
+
+                        localMeasurements[0] += cP.mass()*nParticles;
+                        localMeasurements[1] +=
+                            0.5*cP.mass()*(p.U() & p.U())*nParticles;
+                        localMeasurements[2] += p.ERot()*nParticles;
+                        localMeasurements[3] +=
+                            cP.eVib_tot(p.vibLevel())*nParticles;
+                        localMeasurements[4] +=
+                            cP.electronicEnergyList()[p.ELevel()]
+                           *nParticles;
+
+                        if (p.isStuck())
+                        {
+                            localMeasurements[5] += nParticles;
+                        }
+                        else
+                        {
+                            localMeasurements[6] += nParticles;
+                        }
+                    }
+                }
+            }
+            else
+            {
+                const label begin = label
+                (
+                    (
+                        static_cast<long long>(threadI)
+                      * static_cast<long long>(parcels.size())
+                    )
+                  / static_cast<long long>(ompNumThreads_)
+                );
+                const label end = label
+                (
+                    (
+                        static_cast<long long>(threadI + 1)
+                      * static_cast<long long>(parcels.size())
+                    )
+                  / static_cast<long long>(ompNumThreads_)
+                );
+
+                for (label parcelI = begin; parcelI < end; ++parcelI)
+                {
+                    const dsmcParcel& p = *parcels[parcelI];
+
+                    const dsmcParcel::constantProperties& cP =
+                        constProps(p.typeId());
+
+                    const scalar nParticles = this->nParticles(p.cell());
+
+                    localMeasurements[0] += cP.mass()*nParticles;
+                    localMeasurements[1] +=
+                        0.5*cP.mass()*(p.U() & p.U())*nParticles;
+                    localMeasurements[2] += p.ERot()*nParticles;
+                    localMeasurements[3] +=
+                        cP.eVib_tot(p.vibLevel())*nParticles;
+                    localMeasurements[4] +=
+                        cP.electronicEnergyList()[p.ELevel()]*nParticles;
+
+                    if (p.isStuck())
+                    {
+                        localMeasurements[5] += nParticles;
+                    }
+                    else
+                    {
+                        localMeasurements[6] += nParticles;
+                    }
+                }
+            }
+        }
+
+        forAll(threadMeasurements, threadI)
+        {
+            const scalarList& localMeasurements = threadMeasurements[threadI];
+
+            forAll(infoMeasurements, measurementI)
+            {
+                infoMeasurements[measurementI] +=
+                    localMeasurements[measurementI];
+            }
+        }
+
+        return infoMeasurements;
+    }
+    #endif
+
     forAllIter(dsmcCloud, *this, iter)
     {
         dsmcParcel& p = iter();

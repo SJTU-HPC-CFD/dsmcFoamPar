@@ -75,40 +75,42 @@ protected:
         labelList speciesIds_;
         labelList typeIdToSpeciesIndex_;
         
-        volScalarField dsmcN_;
-        volScalarField dsmcNMean_;
-        volScalarField rhoN_;
-        volScalarField rhoM_;
-        volScalarField p_;
-        volScalarField Ttra_;
-        volScalarField Trot_;
-        volScalarField Tvib_;
-        volScalarField Telec_;
-        volScalarField Tov_;
-        volScalarField q_;
-        volScalarField tau_;
-        volScalarField mfp_;
-        volScalarField mfpToDx_;
-        volScalarField DxToMfp_;
-        volScalarField meanCollisionRate_;
-        volScalarField measuredCollisionRate_;
-        volScalarField meanCollisionTime_;
-        volScalarField mctToDt_;
-        volScalarField meanCollisionSeparation_;
-        volScalarField SOF_;
-        volScalarField Ma_;
-        volScalarField classIDistribution_;
-        volScalarField classIIDistribution_;
-        volScalarField classIIIDistribution_;
-        volScalarField densityError_;
-        volScalarField velocityError_;
-        volScalarField temperatureError_;
-        volScalarField pressureError_;
-        volVectorField UMean_;
-        volVectorField fD_;
-        volVectorField heatFluxVector_;
-        volTensorField pressureTensor_;
-        volTensorField shearStressTensor_;
+        autoPtr<volScalarField> dsmcN_;
+        autoPtr<volScalarField> dsmcNMean_;
+        autoPtr<volScalarField> rhoN_;
+        autoPtr<volScalarField> rhoM_;
+        autoPtr<volScalarField> p_;
+        autoPtr<volScalarField> Ttra_;
+        autoPtr<volScalarField> Trot_;
+        autoPtr<volScalarField> Tvib_;
+        autoPtr<volScalarField> Telec_;
+        autoPtr<volScalarField> Tov_;
+        autoPtr<volScalarField> q_;
+        autoPtr<volScalarField> tau_;
+        autoPtr<volScalarField> Cp_;
+        autoPtr<volScalarField> Ch_;
+        autoPtr<volScalarField> mfp_;
+        autoPtr<volScalarField> mfpToDx_;
+        autoPtr<volScalarField> DxToMfp_;
+        autoPtr<volScalarField> meanCollisionRate_;
+        autoPtr<volScalarField> measuredCollisionRate_;
+        autoPtr<volScalarField> meanCollisionTime_;
+        autoPtr<volScalarField> mctToDt_;
+        autoPtr<volScalarField> meanCollisionSeparation_;
+        autoPtr<volScalarField> SOF_;
+        autoPtr<volScalarField> Ma_;
+        autoPtr<volScalarField> classIDistribution_;
+        autoPtr<volScalarField> classIIDistribution_;
+        autoPtr<volScalarField> classIIIDistribution_;
+        autoPtr<volScalarField> densityError_;
+        autoPtr<volScalarField> velocityError_;
+        autoPtr<volScalarField> temperatureError_;
+        autoPtr<volScalarField> pressureError_;
+        autoPtr<volVectorField> UMean_;
+        autoPtr<volVectorField> fD_;
+        autoPtr<volVectorField> heatFluxVector_;
+        autoPtr<volTensorField> pressureTensor_;
+        autoPtr<volTensorField> shearStressTensor_;
 
         scalarField dsmcNCum_;
         scalarField nCum_;
@@ -154,9 +156,6 @@ protected:
         List<scalarField> dsmcN1stElecLvlSpeciesCum_;
         List<scalarField> speciesMfp_;
         List<scalarField> speciesMcr_;
-        labelList dsmcNResetCells_;
-
-
         //- Boundary measurements
       
         List<scalarField> rhoNBF_;
@@ -197,6 +196,27 @@ protected:
         bool writeElectronicTemperature_;
         bool restrictOutputFields_;
         HashSet<word> outputFieldNames_;
+        bool writeForceMoment_;
+        vector forceMomentReferencePoint_;
+        labelList forceMomentWallPatchIds_;
+        labelList forceMomentWallPatchIndices_;
+        bool writeForceMomentCoefficients_;
+        bool writeWallPressureCoefficient_;
+        scalar forceMomentQInf_;
+        scalar forceMomentPInf_;
+        scalar forceMomentHeatFluxInf_;
+        scalar forceMomentReferenceArea_;
+        scalar forceMomentReferenceLength_;
+        vector forceMomentDragDirection_;
+        vector forceMomentLiftDirection_;
+        vector forceMomentSideDirection_;
+        word forceMomentFreestreamSource_;
+        word forceMomentReferenceAreaDefinition_;
+        word forceMomentReferenceLengthDefinition_;
+        bool forceMomentReferencePointAutomatic_;
+        vector forceMomentAutomaticReferencePoint_;
+        vector forceMomentReferenceGeometryDirection_;
+        bool forceMomentReferenceGeometryCached_;
         bool profileSummaryEnabled_;
         bool profileDetailEnabled_;
         scalar profileSampleAccumWallTime_;
@@ -226,13 +246,50 @@ protected:
         //- Precomputed owned boundary face indices for replicated mesh sampling
         List<labelList> ownedBoundaryFaces_;
 
+        //- Repartition version used to construct ownedBoundaryFaces_
+        label ownedBoundaryFacesOwnerVersion_;
+
+        //- M4 owned-only cumulative storage: when the replicated mesh runs in
+        //  processor-write mode the per-cell cumulative arrays are allocated
+        //  at owned-cell size and indexed through toOwnedCell_ instead of
+        //  the global cell index.  GeoFields stay full-size for output.
+        bool ownedStorageActive_;
+        label ownedStorageOwnerVersion_;
+        labelList toOwnedCell_;
+        bool pendingResumeReadIn_;
+
+        //- Allocate the cumulative arrays at owned-cell size (or full size in
+        //  legacy modes) and rebuild the global-to-owned mapping.  A version
+        //  mismatch after a DLB rebalance reallocates and clears the
+        //  accumulators (accepted loss of one averaging window).
+        void initOwnedStorage();
+
+        //- Global cell index to cumulative-array index.  In owned mode the
+        //  mapping is precomputed; otherwise it is the identity.
+        inline label toOwned(const label globalCell) const
+        {
+            return ownedStorageActive_ ? toOwnedCell_[globalCell] : globalCell;
+        }
+
+        //- True when per-cell cumulative arrays are owned-size
+        inline bool ownedStorageActive() const
+        {
+            return ownedStorageActive_;
+        }
+
     // Protected Member Functions
 
         void readIn();
 
         void writeOut();
 
+        //- M2: build the GeoFields on demand (core set unconditionally,
+        //  the rest behind their measure/write switches)
+        void constructOutputFields();
+
         void calculateWallUnitVectors();
+
+        void updateOwnedBoundaryFaces();
 
         bool outputFieldEnabled
         (
@@ -283,12 +340,12 @@ public:
 
       virtual scalar translationalT(const label cellI)
       {
-          return Ttra_[cellI];
+          return Ttra_()[cellI];
       }
 
       virtual scalar overallT(const label cellI)
       {
-          return Tov_[cellI];
+          return Tov_()[cellI];
       }
 };
 

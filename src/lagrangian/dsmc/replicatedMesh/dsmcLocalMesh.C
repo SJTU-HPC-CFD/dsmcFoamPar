@@ -82,14 +82,16 @@ void dsmcLocalMesh::build(const labelList& myCells)
     }
 
     // ---- identify halo cells -------------------------------------------
+    // Ownership membership test by bitmap.  The previous per-cell
+    // findIndex over myCells is O(nTotal*nOwned) and dominated DLB
+    // repartition wall time on ~13M-cell meshes.
+    List<bool> isOwnedCell(nGlobalCells, false);
+    forAll(myCells, i) isOwnedCell[myCells[i]] = true;
+
     isHaloCell_.setSize(nTotal, false);
     for (label localI = 0; localI < nTotal; ++localI)
     {
-        const label globalI = localToGlobalCell_[localI];
-        if (findIndex(myCells, globalI) < 0)
-        {
-            isHaloCell_[localI] = true;
-        }
+        isHaloCell_[localI] = !isOwnedCell[localToGlobalCell_[localI]];
     }
 
     const label nOwned = myCells.size();

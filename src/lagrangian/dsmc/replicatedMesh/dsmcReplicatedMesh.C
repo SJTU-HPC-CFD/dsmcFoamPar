@@ -25,6 +25,7 @@ License
 #include "IOField.H"
 #include "IOPosition.H"
 #include "labelIOList.H"
+#include "HashSet.H"
 #include "passiveParticleCloud.H"
 #include "volFields.H"
 #include "scotchDecomp.H"
@@ -33,6 +34,7 @@ License
 #include "parmetis.h"
 #include <mpi.h>
 #include <chrono>
+#include <cstdint>
 #include <cstring>
 #include <limits>
 #include <string>
@@ -213,9 +215,29 @@ dsmcReplicatedMesh::dsmcReplicatedMesh(dsmcCloud& cloud, const fvMesh& mesh)
     asyncRecvSize_(0),
     useNoAlltoall_(false),
     useFlatTransfer_(false),
+    transferChunkBytes_(256*1024*1024),
     gatherCandidates_(false),
     overlapSizeExchange_(false),
     writeMode_("gathered"),
+    // Wall-time trigger metric (§5.6)
+    triggerWallTime_(false),
+    lastStepWallTime_(0.0),
+    stepFullWallCum_(0.0),
+    lastStepWait_(0.0),
+    lastSizeExchangeWall_(0.0),
+    lastWaitWall_(0.0),
+    lastUpcWall_(0.0),
+    // Futile-rebalance back-off (§5.3)
+    backOffEnabled_(false),
+    backOffChangedRatio_(1e-3),
+    backOffTol_(0.05),
+    backOffFutileRuns_(2),
+    backOffSkipChecks_(6),
+    backOffEscalate_(1.5),
+    backOffRemaining_(0),
+    futileCount_(0),
+    lastExecChangedRatio_(0.0),
+    lastExecImbalance_(0.0),
     processorWriteDecompVersion_(-1),
     processorWriteMeshInstance_(word::null)
 {}
@@ -343,10 +365,241 @@ void dsmcReplicatedMesh::rebuildMyCells()
     const label nCells = mesh_.nCells();
     myCells_.clear();
     myCells_.setCapacity(nCells / nProcs_ + 1);
-    for (label cellI = 0; cellI < nCells; ++cellI)
-        if (cellOwner_[cellI] == myRank_) myCells_.append(cellI);
+
+    label nT = 1;
+    #ifdef _OPENMP
+    if (cloud_.openmpEnabled())
+    {
+        nT = max(cloud_.ompNumThreads(), label(1));
+    }
+    #endif
+
+    if (nT > 1 && nCells >= 2*nT)
+    {
+        // Two-pass fill: parallel counts, serial prefix, parallel fill.
+        // Preserves ascending global cell order of the serial path.
+        List<label> threadBegin(nT + 1);
+        for (label tI = 0; tI <= nT; ++tI)
+        {
+            threadBegin[tI] = label
+            (
+                (static_cast<long long>(tI)
+               * static_cast<long long>(nCells))
+              / static_cast<long long>(nT)
+            );
+        }
+
+        List<label> threadCounts(nT, 0);
+        #pragma omp parallel num_threads(nT)
+        {
+            #ifdef _OPENMP
+            const label tid = omp_get_thread_num();
+            #else
+            const label tid = 0;
+            #endif
+            label count = 0;
+            for (label cellI = threadBegin[tid]; cellI < threadBegin[tid + 1]; ++cellI)
+            {
+                if (cellOwner_[cellI] == myRank_)
+                {
+                    ++count;
+                }
+            }
+            threadCounts[tid] = count;
+        }
+
+        List<label> threadStart(nT + 1, 0);
+        for (label tI = 0; tI < nT; ++tI)
+        {
+            threadStart[tI + 1] = threadStart[tI] + threadCounts[tI];
+        }
+        myCells_.setSize(threadStart[nT]);
+
+        #pragma omp parallel num_threads(nT)
+        {
+            #ifdef _OPENMP
+            const label tid = omp_get_thread_num();
+            #else
+            const label tid = 0;
+            #endif
+            label idx = threadStart[tid];
+            for (label cellI = threadBegin[tid]; cellI < threadBegin[tid + 1]; ++cellI)
+            {
+                if (cellOwner_[cellI] == myRank_)
+                {
+                    myCells_[idx++] = cellI;
+                }
+            }
+        }
+    }
+    else
+    {
+        for (label cellI = 0; cellI < nCells; ++cellI)
+        {
+            if (cellOwner_[cellI] == myRank_) myCells_.append(cellI);
+        }
+    }
+
     Info<< "Replicated mesh: rank " << myRank_ << " owns "
         << myCells_.size() << " / " << nCells << " cells" << endl;
+}
+
+
+// ============================================================================
+// validateCellOwnerMap -- validate a DLB owner-map update before migration
+// ============================================================================
+
+void dsmcReplicatedMesh::validateCellOwnerMap(const char* context) const
+{
+    const label nCells = mesh_.nCells();
+
+    if (cellOwner_.size() != nCells)
+    {
+        FatalErrorInFunction
+            << context << ": cellOwner size " << cellOwner_.size()
+            << " does not match mesh cell count " << nCells
+            << exit(FatalError);
+    }
+
+    label nOwnedByMap = 0;
+    forAll(cellOwner_, cellI)
+    {
+        const label owner = cellOwner_[cellI];
+        if (owner < 0 || owner >= nProcs_)
+        {
+            FatalErrorInFunction
+                << context << ": invalid owner " << owner
+                << " for global cell " << cellI
+                << " (valid range [0, " << nProcs_ - 1 << "])"
+                << exit(FatalError);
+        }
+
+        if (owner == myRank_)
+        {
+            ++nOwnedByMap;
+        }
+    }
+
+    // Duplicate detection by membership bitmap.  The previous HashSet<label>
+    // relied on Foam::Hash<label> (identity hash) with power-of-two bucketing
+    // (HashTableCore::canonicalSize): for rank-dependent ownership
+    // distributions this collapsed many keys into few buckets, turning
+    // insert/found into O(myCells^2) chain walks -- the dominant DLB cost on
+    // the 13M-cell mesh (measured: one rank grinding 15+ min inside the
+    // chain-walk loop, bjm8 jobs 4746365/4746420).  A 13 MB bitmap gives
+    // guaranteed O(1) membership regardless of key distribution; the transient
+    // is negligible against a ~90 GB rank footprint.
+    List<bool> listedOwned(nCells, false);
+    forAll(myCells_, localI)
+    {
+        const label cellI = myCells_[localI];
+        if (cellI < 0 || cellI >= nCells)
+        {
+            FatalErrorInFunction
+                << context << ": myCells contains invalid global cell "
+                << cellI << exit(FatalError);
+        }
+        if (cellOwner_[cellI] != myRank_)
+        {
+            FatalErrorInFunction
+                << context << ": myCells contains global cell " << cellI
+                << " owned by rank " << cellOwner_[cellI]
+                << ", not local rank " << myRank_
+                << exit(FatalError);
+        }
+        if (listedOwned[cellI])
+        {
+            FatalErrorInFunction
+                << context << ": myCells contains duplicate global cell "
+                << cellI << exit(FatalError);
+        }
+        listedOwned[cellI] = true;
+    }
+
+    if (myCells_.size() != nOwnedByMap)
+    {
+        FatalErrorInFunction
+            << context << ": myCells has " << myCells_.size()
+            << " cells, but cellOwner assigns " << nOwnedByMap
+            << " cells to rank " << myRank_
+            << exit(FatalError);
+    }
+
+    forAll(cellOwner_, cellI)
+    {
+        if (cellOwner_[cellI] == myRank_ && !listedOwned[cellI])
+        {
+            FatalErrorInFunction
+                << context << ": owned global cell " << cellI
+                << " is absent from myCells" << exit(FatalError);
+        }
+    }
+
+    label totalOwned = nOwnedByMap;
+    MPI_Allreduce(MPI_IN_PLACE, &totalOwned, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+    if (totalOwned != nCells)
+    {
+        FatalErrorInFunction
+            << context << ": owner-map coverage is " << totalOwned
+            << " cells across all ranks, expected " << nCells
+            << exit(FatalError);
+    }
+
+    // Prove that every rank has exactly the same replicated owner map.
+    // A 64-bit wrapping checksum per rank is compared via two MIN/MAX
+    // allreduces.  Wrapping addition is associative and commutative, so the
+    // checksum is rank-order independent.  This replaces the previous
+    // per-chunk MIN/MAX allreduce over the full owner map (2 * nCells/256K
+    // collectives; ~100 on a 13M-cell mesh), which was a measurable DLB
+    // cost and an observed intermittent hcoll/UCX hang point on bjm8
+    // (job 4738842 DLB #2, job 4744935 DLB #1: all ranks spinning inside
+    // the collective, gdb stacks in validateCellOwnerMap).
+    const std::uint64_t checksumMix = 0x9E3779B97F4A7C15ULL;
+    std::uint64_t localChecksum = 0;
+    for (label cellI = 0; cellI < nCells; ++cellI)
+    {
+        localChecksum +=
+            static_cast<std::uint64_t>(cellOwner_[cellI] + 1)
+          * (checksumMix ^ static_cast<std::uint64_t>(cellI));
+    }
+
+    unsigned long long minChecksum = localChecksum;
+    unsigned long long maxChecksum = localChecksum;
+    MPI_Allreduce
+    (
+        MPI_IN_PLACE,
+        &minChecksum,
+        1,
+        MPI_UNSIGNED_LONG_LONG,
+        MPI_MIN,
+        MPI_COMM_WORLD
+    );
+    MPI_Allreduce
+    (
+        MPI_IN_PLACE,
+        &maxChecksum,
+        1,
+        MPI_UNSIGNED_LONG_LONG,
+        MPI_MAX,
+        MPI_COMM_WORLD
+    );
+
+    if (minChecksum != maxChecksum)
+    {
+        FatalErrorInFunction
+            << context << ": replicated owner map differs between MPI ranks"
+            // Ostream has no unsigned long long overload in OFv1706; the
+            // long cast preserves the 64-bit pattern for diagnostics.
+            << " (checksum min=" << static_cast<long>(minChecksum)
+            << ", max=" << static_cast<long>(maxChecksum) << ")"
+            << exit(FatalError);
+    }
+
+    if (myRank_ == 0)
+    {
+        Info<< "Phase C DLB owner map validated: " << nCells
+            << " cells, " << nProcs_ << " ranks" << endl;
+    }
 }
 
 
@@ -390,6 +643,7 @@ void dsmcReplicatedMesh::initialize()
     }
     dlbAlpha_ = max(adaptiveAlphaMin_, min(adaptiveAlphaMax_, dlbAlpha_));
 
+
     if (nProcs_ < 2)
     {
         cellOwner_ = 0;
@@ -431,6 +685,42 @@ void dsmcReplicatedMesh::initialize()
         mesh_.time().controlDict().lookupOrDefault<bool>
         ("replicatedMeshAutoDLB", false);
 
+    // ---- Wall-time trigger metric (§5.6) ----
+    triggerWallTime_ =
+        mesh_.time().controlDict().lookupOrDefault<bool>
+        ("replicatedMeshDLBTriggerWallTime", false);
+
+    // ---- Futile-rebalance back-off (§5.3) ----
+    backOffEnabled_ =
+        mesh_.time().controlDict().lookupOrDefault<bool>
+        ("replicatedMeshDLBBackOff", false);
+    backOffChangedRatio_ =
+        mesh_.time().controlDict().lookupOrDefault<scalar>
+        ("replicatedMeshDLBBackOffChangedRatio", 1e-3);
+    backOffTol_ =
+        mesh_.time().controlDict().lookupOrDefault<scalar>
+        ("replicatedMeshDLBBackOffTol", 0.05);
+    backOffFutileRuns_ =
+        max(label(1), mesh_.time().controlDict().lookupOrDefault<label>
+        ("replicatedMeshDLBBackOffFutileRuns", 2));
+    backOffSkipChecks_ =
+        max(label(1), mesh_.time().controlDict().lookupOrDefault<label>
+        ("replicatedMeshDLBBackOffSkipChecks", 6));
+    backOffEscalate_ =
+        mesh_.time().controlDict().lookupOrDefault<scalar>
+        ("replicatedMeshDLBBackOffEscalate", 1.5);
+    if (backOffEnabled_)
+    {
+        Info<< "Replicated mesh: DLB back-off enabled (changedRatio<"
+            << backOffChangedRatio_ << " tol=" << backOffTol_
+            << " futileRuns=" << backOffFutileRuns_
+            << " skipChecks=" << backOffSkipChecks_
+            << " escalate=" << backOffEscalate_ << "x)" << nl
+            << "Replicated mesh: DLB wall trigger metric = "
+            << (triggerWallTime_ ? "per-step full wall" : "CPU (legacy)")
+            << endl;
+    }
+
     // ---- No-Alltoall async migration ----
     useNoAlltoall_ =
         mesh_.time().controlDict().lookupOrDefault<bool>
@@ -453,6 +743,24 @@ void dsmcReplicatedMesh::initialize()
     {
         Info<< "Replicated mesh: flat POD transfer enabled" << endl;
     }
+
+    const label requestedTransferChunkMB =
+        mesh_.time().controlDict().lookupOrDefault<label>
+        ("replicatedMeshTransferChunkMB", 256);
+    const label transferChunkMB =
+        max(label(1), min(requestedTransferChunkMB, label(512)));
+    if (transferChunkMB != requestedTransferChunkMB)
+    {
+        WarningInFunction
+            << "replicatedMeshTransferChunkMB="
+            << requestedTransferChunkMB
+            << " is outside [1, 512]; using "
+            << transferChunkMB << " MiB" << endl;
+    }
+    transferChunkBytes_ = transferChunkMB*1024*1024;
+    Info<< "Replicated mesh: transfer chunk limit="
+        << transferChunkBytes_/(1024*1024) << " MiB"
+        << " (" << transferChunkBytes_ << " bytes)" << endl;
 
     gatherCandidates_ =
         mesh_.time().controlDict().lookupOrDefault<bool>
@@ -534,9 +842,578 @@ void dsmcReplicatedMesh::initialize()
         }
     }
 
+    if (writeMode_ == "processor")
+    {
+        restoreProcessorCheckpoint();
+    }
+
     active_ = true;
     Info<< "Replicated mesh: initialized with " << nProcs_ << " MPI ranks"
         << ", migrate interval " << migrateInterval_ << endl;
+}
+
+
+// ============================================================================
+// Restore a processor-write checkpoint selected before cloud evolution.
+// ============================================================================
+
+bool dsmcReplicatedMesh::restoreProcessorCheckpoint()
+{
+    if (writeMode_ != "processor")
+    {
+        return false;
+    }
+
+    const Time& runTime = mesh_.time();
+    if
+    (
+        runTime.controlDict().lookupOrDefault<word>
+        ("startFrom", "latestTime") != "latestTime"
+    )
+    {
+        return false;
+    }
+
+    const word timeName = runTime.timeName();
+    const fileName processorRoot = runTime.path();
+
+    label nCheckpointProcs = 0;
+    while
+    (
+        isDir
+        (
+            processorRoot
+           /fileName
+            (
+                word("processor") + Foam::name(nCheckpointProcs)
+            )
+        )
+    )
+    {
+        ++nCheckpointProcs;
+    }
+
+    if (!nCheckpointProcs)
+    {
+        return false;
+    }
+
+    if (nCheckpointProcs != nProcs_)
+    {
+        FatalErrorInFunction
+            << "Processor checkpoint at time " << timeName
+            << " contains " << nCheckpointProcs << " processor directories,"
+            << " but the current run has " << nProcs_ << " MPI ranks."
+            << " Processor-write restart requires the same MPI rank count."
+            << exit(FatalError);
+    }
+
+    const fileName processorDir =
+        processorRoot
+       /fileName(word("processor") + Foam::name(myRank_));
+    const fileName timePolyMeshDir =
+        processorDir/timeName/polyMesh::meshSubDir;
+    const fileName constantPolyMeshDir =
+        processorDir/runTime.constant()/polyMesh::meshSubDir;
+
+    word procMeshInstance;
+    if (isFile(timePolyMeshDir/"cellProcAddressing"))
+    {
+        procMeshInstance = timeName;
+    }
+    else if (isFile(constantPolyMeshDir/"cellProcAddressing"))
+    {
+        procMeshInstance = runTime.constant();
+    }
+    else
+    {
+        FatalErrorInFunction
+            << "Cannot find cellProcAddressing for processor" << myRank_
+            << " at checkpoint time " << timeName << exit(FatalError);
+    }
+
+    fileName processorCasePath
+    (
+        runTime.caseName()
+       /fileName(word("processor") + Foam::name(myRank_))
+    );
+    Time processorDb
+    (
+        Time::controlDictName,
+        runTime.rootPath(),
+        processorCasePath,
+        word("system"),
+        word("constant")
+    );
+    processorDb.setTime(runTime);
+
+    fvMesh procMesh
+    (
+        IOobject
+        (
+            mesh_.name(),
+            procMeshInstance,
+            processorDb,
+            IOobject::MUST_READ,
+            IOobject::NO_WRITE,
+            false
+        )
+    );
+
+    labelIOList cellProcAddressing
+    (
+        IOobject
+        (
+            "cellProcAddressing",
+            procMesh.facesInstance(),
+            procMesh.meshSubDir,
+            procMesh,
+            IOobject::MUST_READ,
+            IOobject::NO_WRITE
+        )
+    );
+
+    if (!cellProcAddressing.size())
+    {
+        FatalErrorInFunction
+            << "Processor" << myRank_ << " checkpoint has no cells"
+            << " in cellProcAddressing at time " << timeName
+            << exit(FatalError);
+    }
+
+    const label nCells = mesh_.nCells();
+    labelList localOwner(nCells, -1);
+    labelList localOwnerCount(nCells, 0);
+
+    forAll(cellProcAddressing, procCellI)
+    {
+        const label globalCellI = cellProcAddressing[procCellI];
+        if (globalCellI < 0 || globalCellI >= nCells)
+        {
+            FatalErrorInFunction
+                << "Invalid global cell " << globalCellI
+                << " in processor" << myRank_ << " cellProcAddressing"
+                << exit(FatalError);
+        }
+
+        localOwner[globalCellI] = myRank_;
+        localOwnerCount[globalCellI] = 1;
+    }
+
+    labelList ownerCount(nCells, 0);
+    cellOwner_.setSize(nCells, -1);
+    MPI_Allreduce
+    (
+        localOwner.data(),
+        cellOwner_.data(),
+        nCells,
+        MPI_INT,
+        MPI_MAX,
+        MPI_COMM_WORLD
+    );
+    MPI_Allreduce
+    (
+        localOwnerCount.data(),
+        ownerCount.data(),
+        nCells,
+        MPI_INT,
+        MPI_SUM,
+        MPI_COMM_WORLD
+    );
+
+    forAll(ownerCount, cellI)
+    {
+        if (ownerCount[cellI] != 1 || cellOwner_[cellI] < 0)
+        {
+            FatalErrorInFunction
+                << "Processor checkpoint does not provide exactly one owner"
+                << " for global cell " << cellI
+                << " (owner count=" << ownerCount[cellI]
+                << ", owner=" << cellOwner_[cellI] << ")"
+                << exit(FatalError);
+        }
+    }
+
+    rebuildMyCells();
+    localMesh_.build(myCells_);
+
+    volScalarField processorSigma
+    (
+        IOobject
+        (
+            cloud_.name() + "SigmaTcRMax",
+            timeName,
+            processorDb,
+            IOobject::MUST_READ,
+            IOobject::NO_WRITE,
+            false
+        ),
+        procMesh
+    );
+
+    if (processorSigma.size() != cellProcAddressing.size())
+    {
+        FatalErrorInFunction
+            << "Processor" << myRank_ << " sigmaTcRMax size "
+            << processorSigma.size() << " does not match local cell count "
+            << cellProcAddressing.size() << exit(FatalError);
+    }
+
+    scalarField localSigma(nCells, 0.0);
+    scalarField globalSigma(nCells, 0.0);
+    forAll(cellProcAddressing, procCellI)
+    {
+        localSigma[cellProcAddressing[procCellI]] = processorSigma[procCellI];
+    }
+
+    MPI_Allreduce
+    (
+        localSigma.data(),
+        globalSigma.data(),
+        nCells,
+        MPI_DOUBLE,
+        MPI_MAX,
+        MPI_COMM_WORLD
+    );
+
+    forAll(cloud_.sigmaTcRMax(), cellI)
+    {
+        cloud_.sigmaTcRMax()[cellI] = globalSigma[cellI];
+    }
+    cloud_.sigmaTcRMax().correctBoundaryConditions();
+
+    passiveParticleCloud positions
+    (
+        procMesh,
+        cloud_.name(),
+        IDLList<passiveParticle>()
+    );
+    const fileName positionsPath =
+        processorDir/timeName/"lagrangian"/cloud_.name()/"positions";
+    if (isFile(positionsPath))
+    {
+        IOPosition<Cloud<passiveParticle>> positionIO(positions);
+        positionIO.readData(positions, false);
+        positionIO.close();
+    }
+
+    const label nParcels = positions.size();
+    if (nParcels)
+    {
+        IOField<vector> U
+        (
+            positions.fieldIOobject("U", IOobject::MUST_READ)
+        );
+        IOField<scalar> RWF
+        (
+            positions.fieldIOobject("radialWeight", IOobject::READ_IF_PRESENT),
+            scalarField(nParcels, 1.0)
+        );
+        IOField<scalar> ERot
+        (
+            positions.fieldIOobject("ERot", IOobject::READ_IF_PRESENT),
+            scalarField(nParcels, 0.0)
+        );
+        IOField<label> ELevel
+        (
+            positions.fieldIOobject("ELevel", IOobject::READ_IF_PRESENT),
+            labelField(nParcels, 0)
+        );
+        IOField<label> typeId
+        (
+            positions.fieldIOobject("typeId", IOobject::MUST_READ)
+        );
+        IOField<label> newParcel
+        (
+            positions.fieldIOobject("newParcel", IOobject::MUST_READ)
+        );
+        IOField<label> classification
+        (
+            positions.fieldIOobject("classification", IOobject::MUST_READ)
+        );
+
+        IOField<label> stuckToWall
+        (
+            positions.fieldIOobject("stuckToWall", IOobject::READ_IF_PRESENT),
+            labelField(nParcels, 0)
+        );
+        IOField<scalarField> wallTemperature
+        (
+            positions.fieldIOobject
+            (
+                "wallTemperature",
+                IOobject::READ_IF_PRESENT
+            )
+        );
+        if (wallTemperature.size() != nParcels)
+        {
+            wallTemperature.setSize(nParcels);
+            forAll(wallTemperature, i)
+            {
+                wallTemperature[i] = scalarField(4, 0.0);
+            }
+        }
+
+        IOField<vectorField> wallVectors
+        (
+            positions.fieldIOobject
+            (
+                "wallVectors",
+                IOobject::READ_IF_PRESENT
+            )
+        );
+        if (wallVectors.size() != nParcels)
+        {
+            wallVectors.setSize(nParcels);
+            forAll(wallVectors, i)
+            {
+                wallVectors[i] = vectorField(4, vector::zero);
+            }
+        }
+
+        IOField<label> isTracked
+        (
+            positions.fieldIOobject("isTracked", IOobject::READ_IF_PRESENT),
+            labelField(nParcels, 0)
+        );
+        IOField<label> inPatchId
+        (
+            positions.fieldIOobject("inPatchId", IOobject::READ_IF_PRESENT),
+            labelField(nParcels, -1)
+        );
+        IOField<scalar> tracerInitialTime
+        (
+            positions.fieldIOobject
+            (
+                "tracerInitialTime",
+                IOobject::READ_IF_PRESENT
+            ),
+            scalarField(nParcels, 0.0)
+        );
+        IOField<vector> tracerInitialPosition
+        (
+            positions.fieldIOobject
+            (
+                "tracerInitialPosition",
+                IOobject::READ_IF_PRESENT
+            ),
+            vectorField(nParcels, vector::zero)
+        );
+        IOField<vector> tracerCurrentPosition
+        (
+            positions.fieldIOobject
+            (
+                "tracerCurrentPosition",
+                IOobject::READ_IF_PRESENT
+            ),
+            vectorField(nParcels, vector::zero)
+        );
+        IOField<vector> tracerDistanceTravelled
+        (
+            positions.fieldIOobject
+            (
+                "tracerDistanceTravelled",
+                IOobject::READ_IF_PRESENT
+            ),
+            vectorField(nParcels, vector::zero)
+        );
+
+        IOField<labelField> vibLevel
+        (
+            positions.fieldIOobject("vibLevel", IOobject::READ_IF_PRESENT)
+        );
+        if (vibLevel.size() != nParcels)
+        {
+            vibLevel.setSize(nParcels);
+            forAll(vibLevel, i)
+            {
+                vibLevel[i].setSize(0);
+            }
+        }
+
+        labelField defaultOrigProc(nParcels, myRank_);
+        labelField defaultOrigId(nParcels, 0);
+        forAll(defaultOrigId, i)
+        {
+            defaultOrigId[i] = i;
+        }
+        IOField<label> origProcId
+        (
+            positions.fieldIOobject("origProcId", IOobject::READ_IF_PRESENT),
+            defaultOrigProc
+        );
+        IOField<label> origId
+        (
+            positions.fieldIOobject("origId", IOobject::READ_IF_PRESENT),
+            defaultOrigId
+        );
+
+        if
+        (
+            U.size() != nParcels
+         || RWF.size() != nParcels
+         || ERot.size() != nParcels
+         || ELevel.size() != nParcels
+         || typeId.size() != nParcels
+         || newParcel.size() != nParcels
+         || classification.size() != nParcels
+         || stuckToWall.size() != nParcels
+         || wallTemperature.size() != nParcels
+         || wallVectors.size() != nParcels
+         || isTracked.size() != nParcels
+         || inPatchId.size() != nParcels
+         || tracerInitialTime.size() != nParcels
+         || tracerInitialPosition.size() != nParcels
+         || tracerCurrentPosition.size() != nParcels
+         || tracerDistanceTravelled.size() != nParcels
+         || vibLevel.size() != nParcels
+         || origProcId.size() != nParcels
+         || origId.size() != nParcels
+        )
+        {
+            FatalErrorInFunction
+                << "Processor" << myRank_
+                << " checkpoint field sizes do not match positions size "
+                << nParcels << exit(FatalError);
+        }
+
+        if (cloud_.size())
+        {
+            cloud_.clear();
+        }
+
+        label parcelI = 0;
+        forAllConstIter(Cloud<passiveParticle>, positions, iter)
+        {
+            const passiveParticle& position = iter();
+            const label localCellI = position.cell();
+            if (localCellI < 0 || localCellI >= cellProcAddressing.size())
+            {
+                FatalErrorInFunction
+                    << "Invalid local cell " << localCellI
+                    << " in processor" << myRank_ << " positions"
+                    << exit(FatalError);
+            }
+
+            const label globalCellI = cellProcAddressing[localCellI];
+            label tetFaceI = -1;
+            label tetPtI = -1;
+            mesh_.findTetFacePt
+            (
+                globalCellI,
+                position.position(),
+                tetFaceI,
+                tetPtI
+            );
+            if (tetFaceI < 0 || tetPtI < 0)
+            {
+                FatalErrorInFunction
+                    << "Cannot locate tetrahedron for restored parcel "
+                    << parcelI << " in global cell " << globalCellI
+                    << " at position " << position.position()
+                    << exit(FatalError);
+            }
+
+            dsmcParcel* parcel = new dsmcParcel
+            (
+                mesh_,
+                position.position(),
+                U[parcelI],
+                RWF[parcelI],
+                ERot[parcelI],
+                ELevel[parcelI],
+                globalCellI,
+                tetFaceI,
+                tetPtI,
+                typeId[parcelI],
+                newParcel[parcelI],
+                classification[parcelI],
+                vibLevel[parcelI]
+            );
+
+            parcel->origProc() = origProcId[parcelI];
+            parcel->origId() = origId[parcelI];
+
+            if (stuckToWall[parcelI])
+            {
+                parcel->setStuck
+                (
+                    wallTemperature[parcelI],
+                    wallVectors[parcelI]
+                );
+            }
+
+            if (isTracked[parcelI])
+            {
+                parcel->setTracked
+                (
+                    true,
+                    inPatchId[parcelI],
+                    tracerInitialTime[parcelI],
+                    tracerInitialPosition[parcelI],
+                    tracerDistanceTravelled[parcelI]
+                );
+                parcel->tracked().updateCurrentPosition
+                (
+                    tracerCurrentPosition[parcelI]
+                );
+            }
+
+            cloud_.addParticle(parcel);
+            ++parcelI;
+        }
+    }
+    else if (cloud_.size())
+    {
+        cloud_.clear();
+    }
+
+    IOdictionary uniformPropsDict
+    (
+        IOobject
+        (
+            Cloud<dsmcParcel>::cloudPropertiesName,
+            timeName,
+            "uniform"/cloud::prefix/cloud_.name(),
+            processorDb,
+            IOobject::MUST_READ,
+            IOobject::NO_WRITE,
+            false
+        )
+    );
+    const word procName("processor" + Foam::name(myRank_));
+    if
+    (
+        !uniformPropsDict.found(procName)
+     || !uniformPropsDict.subDict(procName).found("particleCount")
+    )
+    {
+        FatalErrorInFunction
+            << "Processor checkpoint cloudProperties has no particleCount"
+            << " for " << procName << exit(FatalError);
+    }
+    uniformPropsDict.subDict(procName).lookup("particleCount")
+        >> dsmcParcel::particleCount_;
+
+    cloud_.reBuildCellOccupancy();
+    localParticleCount_ = cloud_.size();
+    MPI_Allgather
+    (
+        &localParticleCount_,
+        1,
+        MPI_INT,
+        allParticleCounts_.data(),
+        1,
+        MPI_INT,
+        MPI_COMM_WORLD
+    );
+
+    Info<< "Replicated mesh: rank " << myRank_
+        << " restored processor checkpoint " << timeName
+        << " with " << localParticleCount_ << " parcels and "
+        << myCells_.size() << " owned cells" << endl;
+
+    return true;
 }
 
 
@@ -555,6 +1432,18 @@ label dsmcReplicatedMesh::reassignByParMetisAdaptiveRepart()
         "replicatedMeshDLBProfile",
         false
     );
+
+    // OMP thread count for DLB mesh-side bookkeeping loops.  Mirrors the
+    // migration-path convention: controlDict openmpThreads, degrading to
+    // serial when OpenMP is disabled or compiled out.  The if(nT > 1)
+    // clause keeps a single loop body for both paths.
+    label nT = 1;
+    #ifdef _OPENMP
+    if (cloud_.openmpEnabled())
+    {
+        nT = max(cloud_.ompNumThreads(), label(1));
+    }
+    #endif
 
     // ---- Distributed graph: each rank holds nCells/nProcs_ vertices --------
     const label localN = nCells / nProcs_;
@@ -603,13 +1492,15 @@ label dsmcReplicatedMesh::reassignByParMetisAdaptiveRepart()
     // replicated global particle-count field before constructing weights.
     List<idx_t> localCellParticles(nCells, 0);
     List<idx_t> globalCellParticles(nCells, 0);
-    forAll(cloud_.cellOccupancy(), cellI)
+    // cellOccupancy() lazily materialises: resolve the reference serially
+    // before entering any parallel region.
+    const DynamicList<DynamicList<dsmcParcel*>>& occCells =
+        cloud_.cellOccupancy();
+    const label nOcc = min(label(occCells.size()), nCells);
+    #pragma omp parallel for num_threads(nT) if (nT > 1) schedule(static)
+    for (label cellI = 0; cellI < nOcc; ++cellI)
     {
-        if (cellI < nCells)
-        {
-            localCellParticles[cellI] =
-                idx_t(cloud_.cellOccupancy()[cellI].size());
-        }
+        localCellParticles[cellI] = idx_t(occCells[cellI].size());
     }
     if (dlbProfile && myRank_ == 0)
     {
@@ -658,14 +1549,20 @@ label dsmcReplicatedMesh::reassignByParMetisAdaptiveRepart()
         idx_t maxCellParticles = 0;
         label activeCells = 0;
         label totalParticles = 0;
-        forAll(globalCellParticles, cellI)
+        #pragma omp parallel for num_threads(nT) if (nT > 1) schedule(static) \
+            reduction(+:activeCells) reduction(+:totalParticles) \
+            reduction(max:maxCellParticles)
+        for (label cellI = 0; cellI < nCells; ++cellI)
         {
             const idx_t nPart = globalCellParticles[cellI];
             if (nPart > 0)
             {
                 ++activeCells;
                 totalParticles += label(nPart);
-                maxCellParticles = max(maxCellParticles, nPart);
+                if (nPart > maxCellParticles)
+                {
+                    maxCellParticles = nPart;
+                }
             }
         }
         Info<< "Phase C ParMETIS weights: particles=" << totalParticles
@@ -673,44 +1570,23 @@ label dsmcReplicatedMesh::reassignByParMetisAdaptiveRepart()
             << " maxCellParticles=" << maxCellParticles << endl;
     }
 
-    // ---- Vertex weights: dual constraint (move + collision) ------------------
-    // ncon=2: constraint 0 = N^alpha for move balance
-    //         constraint 1 = N*(N-1) for collision balance
-
+    // ---- Vertex weights: N^alpha (particle count, compressed) --------------
     const scalar moveTime = cloud_.evolveMoveWallTime();
     const scalar collTime = cloud_.evolveCollisionWallTime();
 
-    // Dual-constraint DLB: ncon=2
-    // Constraint 0: compressed particle count (balance move)
-    // Constraint 1: N*(N-1) collision proxy
-    const bool useDualConstraint = mesh_.time().controlDict().lookupOrDefault<bool>
-        ("replicatedMeshDLBDualConstraint", false);
-    idx_t ncon = useDualConstraint ? 2 : 1;
+    idx_t ncon = 1;
     idx_t wgtflag = 2;  // vertex weights only
 
     List<idx_t> vwgt(myN * ncon, 1);
+    #pragma omp parallel for num_threads(nT) if (nT > 1) schedule(static)
     for (label i = 0; i < myN; ++i)
     {
         const label gi = myStart + i;
         const idx_t nPart = globalCellParticles[gi];
 
-        if (useDualConstraint)
-        {
-            // Constraint 0: N^alpha (move balance)
-            const scalar wMove = (nPart > 1)
-                ? std::pow(scalar(nPart), dlbAlpha_) : scalar(nPart);
-            vwgt[i*2 + 0] = positiveWeight(wMove);
-            // Constraint 1: N*(N-1) (collision balance, compressed range)
-            const scalar wColl =
-                scalar(nPart)*max(scalar(nPart - 1), scalar(0)) + scalar(1);
-            vwgt[i*2 + 1] = positiveWeight(wColl);
-        }
-        else
-        {
-            const scalar w = (nPart > 1)
-                ? std::pow(scalar(nPart), dlbAlpha_) : scalar(nPart);
-            vwgt[i] = positiveWeight(w);
-        }
+        const scalar w = (nPart > 1)
+            ? std::pow(scalar(nPart), dlbAlpha_) : scalar(nPart);
+        vwgt[i] = positiveWeight(w);
     }
 
     // Weight = sum of particle counts of the two cells sharing the face.
@@ -737,6 +1613,7 @@ label dsmcReplicatedMesh::reassignByParMetisAdaptiveRepart()
 
     // ---- Current partition (LOCAL) -----------------------------------------
     List<idx_t> part(myN);
+    #pragma omp parallel for num_threads(nT) if (nT > 1) schedule(static)
     for (label i = 0; i < myN; ++i)
         part[i] = cellOwner_[myStart + i];
 
@@ -747,11 +1624,6 @@ label dsmcReplicatedMesh::reassignByParMetisAdaptiveRepart()
     const real_t ubvecVal = mesh_.time().controlDict().lookupOrDefault<scalar>
         ("replicatedMeshDLBUbvec", 1.05);
     List<real_t> ubvec(ncon, ubvecVal);
-    if (useDualConstraint && ncon == 2)
-    {
-        ubvec[1] = mesh_.time().controlDict().lookupOrDefault<scalar>
-            ("replicatedMeshDLBUbvec1", 1.5);
-    }
 
     Info<< "Phase C ParMETIS: alpha=" << dlbAlpha_ << " ncon=" << ncon
         << " ubvec=[";
@@ -762,7 +1634,13 @@ label dsmcReplicatedMesh::reassignByParMetisAdaptiveRepart()
 
     real_t itr = mesh_.time().controlDict().lookupOrDefault<scalar>
         ("replicatedMeshDLBItr", 100.0);
-    idx_t options[4] = {1, 0, 0, 42};  // options[0]=1: use custom, [3]=seed
+    idx_t options[4] =
+    {
+        1,                          // use custom options
+        0,                          // no ParMETIS debug output
+        42,                         // random seed
+        PARMETIS_PSR_UNCOUPLED     // use the current part[] as the input partition
+    };
     idx_t edgecut = 0;
     // vsize: 2-rank uses N (conservative), 4+ rank uses N^vsExp (vsExp=0 means free migration)
     const scalar vsExp = mesh_.time().controlDict().lookupOrDefault<scalar>
@@ -770,6 +1648,7 @@ label dsmcReplicatedMesh::reassignByParMetisAdaptiveRepart()
     List<idx_t> vsize(myN, 1);
     if (nProcs_ <= 2)
     {
+        #pragma omp parallel for num_threads(nT) if (nT > 1) schedule(static)
         for (label i = 0; i < myN; ++i)
         {
             const label gi = myStart + i;
@@ -779,6 +1658,7 @@ label dsmcReplicatedMesh::reassignByParMetisAdaptiveRepart()
     }
     else if (vsExp > SMALL)
     {
+        #pragma omp parallel for num_threads(nT) if (nT > 1) schedule(static)
         for (label i = 0; i < myN; ++i)
         {
             const label gi = myStart + i;
@@ -857,7 +1737,9 @@ label dsmcReplicatedMesh::reassignByParMetisAdaptiveRepart()
     );
 
     label changedBeforeRemap = 0;
-    forAll(cellOwner_, i)
+    #pragma omp parallel for num_threads(nT) if (nT > 1) schedule(static) \
+        reduction(+:changedBeforeRemap)
+    for (label i = 0; i < nCells; ++i)
     {
         if (label(fullPart[i]) != cellOwner_[i])
         {
@@ -869,23 +1751,55 @@ label dsmcReplicatedMesh::reassignByParMetisAdaptiveRepart()
 
     if (remapEnabled && remapMode == "greedyOverlap")
     {
+        // Per-thread flattened nProcs x nProcs overlap matrices, merged
+        // serially (M1 two-pass pattern) to avoid write conflicts on the
+        // shared matrix entries.
+        List<labelList> threadOverlap(nT);
+        for (label tI = 0; tI < nT; ++tI)
+        {
+            threadOverlap[tI].setSize(nProcs_*nProcs_, 0);
+        }
+
+        #pragma omp parallel num_threads(nT) if (nT > 1)
+        {
+            #ifdef _OPENMP
+            const label tid = omp_get_thread_num();
+            #else
+            const label tid = 0;
+            #endif
+            labelList& myOverlap = threadOverlap[tid];
+
+            #pragma omp for schedule(static)
+            for (label i = 0; i < nCells; ++i)
+            {
+                const label newPart = label(fullPart[i]);
+                const label oldRank = cellOwner_[i];
+                if
+                (
+                    newPart >= 0 && newPart < nProcs_
+                 && oldRank >= 0 && oldRank < nProcs_
+                )
+                {
+                    ++myOverlap[newPart*nProcs_ + oldRank];
+                }
+            }
+        }
+
         List<labelList> overlap(nProcs_);
         for (label newPart = 0; newPart < nProcs_; ++newPart)
         {
             overlap[newPart].setSize(nProcs_, 0);
         }
-
-        forAll(cellOwner_, i)
+        for (label tI = 0; tI < nT; ++tI)
         {
-            const label newPart = label(fullPart[i]);
-            const label oldRank = cellOwner_[i];
-            if
-            (
-                newPart >= 0 && newPart < nProcs_
-             && oldRank >= 0 && oldRank < nProcs_
-            )
+            const labelList& myOverlap = threadOverlap[tI];
+            for (label newPart = 0; newPart < nProcs_; ++newPart)
             {
-                ++overlap[newPart][oldRank];
+                for (label oldRank = 0; oldRank < nProcs_; ++oldRank)
+                {
+                    overlap[newPart][oldRank] +=
+                        myOverlap[newPart*nProcs_ + oldRank];
+                }
             }
         }
 
@@ -955,23 +1869,42 @@ label dsmcReplicatedMesh::reassignByParMetisAdaptiveRepart()
         }
 
         label changedAfterRemap = 0;
-        forAll(fullPart, i)
+        label remapBadIndex = -1;
+        #pragma omp parallel for num_threads(nT) if (nT > 1) schedule(static) \
+            reduction(+:changedAfterRemap)
+        for (label i = 0; i < nCells; ++i)
         {
             const label newPart = label(fullPart[i]);
-            if (newPart < 0 || newPart >= nProcs_ || remap[newPart] < 0)
+            if
+            (
+                newPart >= 0 && newPart < nProcs_
+             && remap[newPart] >= 0
+            )
             {
-                FatalErrorInFunction
-                    << "Invalid replicated mesh DLB remap: newPart="
-                    << newPart << " nProcs=" << nProcs_
-                    << abort(FatalError);
+                const label newOwner = remap[newPart];
+                fullPart[i] = idx_t(newOwner);
+                if (newOwner != cellOwner_[i])
+                {
+                    ++changedAfterRemap;
+                }
             }
+            else
+            {
+                #pragma omp critical(dsmcReplicatedMeshRemapBadIndex)
+                if (remapBadIndex < 0)
+                {
+                    remapBadIndex = i;
+                }
+            }
+        }
 
-            const label newOwner = remap[newPart];
-            fullPart[i] = idx_t(newOwner);
-            if (newOwner != cellOwner_[i])
-            {
-                ++changedAfterRemap;
-            }
+        if (remapBadIndex >= 0)
+        {
+            const label newPart = label(fullPart[remapBadIndex]);
+            FatalErrorInFunction
+                << "Invalid replicated mesh DLB remap: newPart="
+                << newPart << " nProcs=" << nProcs_
+                << abort(FatalError);
         }
 
         remapSavedCells = changedBeforeRemap - changedAfterRemap;
@@ -996,7 +1929,9 @@ label dsmcReplicatedMesh::reassignByParMetisAdaptiveRepart()
 
     // ---- Update cellOwner_ ------------------------------------------------
     label nChanged = 0;
-    forAll(cellOwner_, i)
+    #pragma omp parallel for num_threads(nT) if (nT > 1) schedule(static) \
+        reduction(+:nChanged)
+    for (label i = 0; i < nCells; ++i)
     {
         const label newOwner = label(fullPart[i]);
         if (newOwner != cellOwner_[i])
@@ -1006,9 +1941,18 @@ label dsmcReplicatedMesh::reassignByParMetisAdaptiveRepart()
         }
     }
 
-    // ---- Rebuild local structures -----------------------------------------
-    rebuildMyCells();
-    localMesh_.build(myCells_);
+    // ---- Rebuild local structures only when ownership changed --------------
+    // ParMETIS can return the current partition (especially after a remap).
+    // Avoid invalidating local state and rebuilding the local mesh in that case.
+    if (nChanged > 0)
+    {
+        rebuildMyCells();
+        localMesh_.build(myCells_);
+    }
+
+    // The ParMETIS output is globally reconstructed above. Validate the
+    // resulting replicated map before particles are migrated to it.
+    validateCellOwnerMap("ParMETIS AdaptiveRepart");
 
     totalCellsChanged_ += nChanged;
 
@@ -1144,10 +2088,36 @@ void dsmcReplicatedMesh::autoRebalance()
         --postDLBSnapshotCountdown_;
     }
 
-    // ---- Accumulate productive time (move+collision, excluding migration) ----
-    const scalar stepEvolve = evolveStepTime_ - lastEvolveTime_;
-    const scalar stepMig = migrationWallTime_ - lastMigrationTime_;
-    const scalar stepProductive = stepEvolve - stepMig;
+    // ---- Accumulate productive time ----
+    // Legacy metric: CPU time of move+collision minus migration wall.
+    // Wall metric (§5.6): per-iteration full wall reported by the solver
+    // main loop minus that iteration's collective waits.  Both inputs lag
+    // one step, so the pair refers to the same iteration: lastStepWallTime_
+    // is set at the end of iteration N-1, and lastStepWait_ holds the wait
+    // delta captured at the previous autoRebalance (waits of iteration N-1).
+    scalar stepProductive = 0.0;
+    if (triggerWallTime_)
+    {
+        stepProductive = max(lastStepWallTime_ - lastStepWait_, scalar(0));
+        stepFullWallCum_ += lastStepWallTime_;
+    }
+    else
+    {
+        const scalar stepEvolve = evolveStepTime_ - lastEvolveTime_;
+        const scalar stepMig = migrationWallTime_ - lastMigrationTime_;
+        stepProductive = stepEvolve - stepMig;
+    }
+    // Collective-wait delta of the current step, consumed one step later.
+    const scalar sizeExchangeNow = migrationSizeExchangeWallTime_;
+    const scalar waitNow = migrationWaitWallTime_;
+    const scalar upcNow = updateParticleCountsWallTime_;
+    lastStepWait_ =
+        (sizeExchangeNow - lastSizeExchangeWall_)
+      + (waitNow - lastWaitWall_)
+      + (upcNow - lastUpcWall_);
+    lastSizeExchangeWall_ = sizeExchangeNow;
+    lastWaitWall_ = waitNow;
+    lastUpcWall_ = upcNow;
     productiveTime_ += stepProductive;
     lastEvolveTime_ = evolveStepTime_;
     lastMigrationTime_ = migrationWallTime_;
@@ -1160,6 +2130,9 @@ void dsmcReplicatedMesh::autoRebalance()
     bool triggered = false;
     bool forcedTriggered = false;
     bool globalTriggerDecisionComputed = false;
+    // Global imbalance measured at this check (>0 when a check ran); used
+    // by the back-off gate and recorded for the executed rebalance.
+    scalar checkImbalance = -1.0;
 
     if (forcedDLBSteps_.size())
     {
@@ -1254,6 +2227,8 @@ void dsmcReplicatedMesh::autoRebalance()
                 if (maxT > SMALL)
                 {
                     const scalar loadImbalance = maxT / max(minT, SMALL);
+                    checkImbalance = loadImbalance;
+                    printPerRankStepWall();
 
                     bool sarTriggered = false;
 
@@ -1326,6 +2301,8 @@ void dsmcReplicatedMesh::autoRebalance()
             if (maxT > SMALL)
             {
                 const scalar loadImbalance = maxT / max(minT, SMALL);
+                checkImbalance = loadImbalance;
+                printPerRankStepWall();
 
                 // SAR trend update
                 tidl_ += maxT - minT;
@@ -1414,6 +2391,51 @@ void dsmcReplicatedMesh::autoRebalance()
         }
     }
 
+    // ---- Futile-rebalance back-off (§5.3) ----
+    // Applies to auto triggers only (checkImbalance > 0; forced triggers
+    // carry checkImbalance = -1).  All inputs are globally identical on
+    // every rank, so the bookkeeping stays collective-consistent.
+    if (triggered && backOffEnabled_ && checkImbalance > 0)
+    {
+        const bool futile =
+            lastExecChangedRatio_ < backOffChangedRatio_
+         && checkImbalance >= lastExecImbalance_ - backOffTol_;
+        futileCount_ = futile ? (futileCount_ + 1) : 0;
+        if (futileCount_ >= backOffFutileRuns_ && backOffRemaining_ <= 0)
+        {
+            backOffRemaining_ = backOffSkipChecks_;
+        }
+
+        const scalar escalateImbalance =
+            imbalanceThreshold_ * backOffEscalate_;
+        if (backOffRemaining_ > 0 && checkImbalance < escalateImbalance)
+        {
+            if (myRank_ == 0)
+            {
+                Info<< "Phase C auto DLB skipped by back-off at step "
+                    << currentStep
+                    << ": remaining=" << backOffRemaining_
+                    << " imbalance=" << checkImbalance
+                    << " lastChangedRatio=" << lastExecChangedRatio_
+                    << nl;
+            }
+            --backOffRemaining_;
+            triggered = false;
+        }
+        else if (backOffRemaining_ > 0)
+        {
+            // Safety valve: imbalance well above threshold — execute now.
+            if (myRank_ == 0)
+            {
+                Info<< "Phase C auto DLB back-off overridden at step "
+                    << currentStep
+                    << ": imbalance=" << checkImbalance
+                    << " >= escalate=" << escalateImbalance << nl;
+            }
+            backOffRemaining_ = 0;
+        }
+    }
+
     if (globalTriggerDecisionComputed)
     {
         const int localTriggered = triggered ? 1 : 0;
@@ -1470,6 +2492,23 @@ void dsmcReplicatedMesh::autoRebalance()
 
     // Reassign by ParMETIS AdaptiveRepart
     const label nChanged = reassignByParMetisAdaptiveRepart();
+
+    // Record the executed rebalance for back-off bookkeeping (§5.3) and
+    // reset the back-off state: a fresh partition needs re-evaluation.
+    lastExecChangedRatio_ =
+        scalar(nChanged)/max(scalar(mesh_.nCells()), scalar(1));
+    lastExecImbalance_ = max(checkImbalance, scalar(1));
+    backOffRemaining_ = 0;
+    // §11.8: reset the futile counter only when the executed rebalance was
+    // actually effective.  The previous unconditional reset (worklog
+    // §11.8) pinned futileCount_ at 1 in a futile steady state (remap
+    // rejecting the ParMETIS output), so the back-off could never reach
+    // futileRuns and every check re-entered ParMETIS (500wcell-1bparticle
+    // job 4776404: 159 executions, each changing ~50 of 5.82M cells).
+    if (lastExecChangedRatio_ >= backOffChangedRatio_)
+    {
+        futileCount_ = 0;
+    }
     const auto tRepartEnd = std::chrono::steady_clock::now();
     autoRebalanceRepartWallTime_ +=
         std::chrono::duration<scalar>(tRepartEnd - tDecStart).count();
@@ -1511,8 +2550,11 @@ void dsmcReplicatedMesh::autoRebalance()
     );
     tdecps_ += globalDecWall;
 
-    lastAutoRebalanceStep_ = currentStep;
-    ++autoRebalanceCount_;
+    if (nChanged > 0)
+    {
+        lastAutoRebalanceStep_ = currentStep;
+        ++autoRebalanceCount_;
+    }
 
     // Reset SAR state: w1_=w2_ keeps current idle rate as baseline
     tidl_ = 0.0;
@@ -1530,8 +2572,17 @@ void dsmcReplicatedMesh::autoRebalance()
     // Reset per-cell move iteration counter after DLB uses it
     cloud_.moveItersPerCell() = 0;
 
-    Info<< "Phase C auto DLB complete: rebalance #" << autoRebalanceCount_
-        << nl << endl;
+    if (nChanged > 0)
+    {
+        Info<< "Phase C auto DLB complete: rebalance #"
+            << autoRebalanceCount_ << nl << endl;
+    }
+    else
+    {
+        Info<< "Phase C auto DLB complete: ParMETIS kept the current cell "
+            << "owners; actual rebalance count remains "
+            << autoRebalanceCount_ << nl << endl;
+    }
 
     // Inter-DLB load summary + arm post-DLB snapshot
     const auto tPostDiag0 = std::chrono::steady_clock::now();
@@ -2314,6 +3365,16 @@ void dsmcReplicatedMesh::writeProcessorOutput() const
         positions.fieldIOobject("classification", IOobject::NO_READ),
         nParcels
     );
+    IOField<label> origProcId
+    (
+        positions.fieldIOobject("origProcId", IOobject::NO_READ),
+        nParcels
+    );
+    IOField<label> origId
+    (
+        positions.fieldIOobject("origId", IOobject::NO_READ),
+        nParcels
+    );
 
     IOField<scalar>* RWFPtr = hasRWF
       ? new IOField<scalar>
@@ -2422,6 +3483,8 @@ void dsmcReplicatedMesh::writeProcessorOutput() const
         typeId[i] = p.typeId();
         newParcel[i] = p.newParcel();
         classification[i] = p.classification();
+        origProcId[i] = p.origProc();
+        origId[i] = p.origId();
 
         if (RWFPtr)
         {
@@ -2493,7 +3556,7 @@ void dsmcReplicatedMesh::writeProcessorOutput() const
     );
 
     labelList processorParticleCounts(nProcs_, 0);
-    label myParticleCount = nParcels;
+    label myParticleCount = dsmcParcel::particleCount_;
     MPI_Allgather
     (
         &myParticleCount,
@@ -2527,6 +3590,8 @@ void dsmcReplicatedMesh::writeProcessorOutput() const
         << endl;
 
     IOPosition<Cloud<passiveParticle>>(positions).write();
+    origProcId.write();
+    origId.write();
     U.write();
     if (RWFPtr)
     {
@@ -2629,6 +3694,7 @@ void dsmcReplicatedMesh::migrateParticlesByCellOwner()
         DynamicList<dsmcParcel*> toDelete(cloud_.size() / 4);
         DynamicList<dsmcParcel*> kept(cloud_.size());
         label nMigratedOut = 0;
+        label nRecv = 0;
         const bool maintainMoveOrdered =
             cloud_.openmpEnabled()
          && cloud_.openmpMoveEnabled()
@@ -2640,21 +3706,183 @@ void dsmcReplicatedMesh::migrateParticlesByCellOwner()
 
         if (useOrderedTraversal)
         {
-            const auto& ordered = cloud_.moveOrderedParcels();
-            for (label i = 0; i < ordered.size(); ++i)
+#ifdef _OPENMP
+            const label moveThreads = max(cloud_.ompNumThreads(), label(1));
+
+            if (moveThreads > 1)
             {
-                dsmcParcel& p = *ordered[i];
-                const label dstRank = cellOwner_[p.cell()];
-                if (dstRank != myRank_)
+                const auto& ordered = cloud_.moveOrderedParcels();
+                const labelList& orderedOffsets =
+                    cloud_.moveOrderedThreadOffsets();
+                List<labelList> threadDestinationCounts(moveThreads);
+                List<labelList> threadDestinationOffsets(moveThreads);
+                labelList threadKeptCounts(moveThreads, 0);
+                labelList threadDeleteCounts(moveThreads, 0);
+
+                for (label threadI = 0; threadI < moveThreads; ++threadI)
                 {
-                    sendTD[dstRank].append(dsmcParcel::TransferData());
-                    p.packTransfer(sendTD[dstRank].last());
-                    toDelete.append(ordered[i]);
-                    ++nMigratedOut;
+                    threadDestinationCounts[threadI].setSize(nProcs_, 0);
+                    threadDestinationOffsets[threadI].setSize(nProcs_, 0);
                 }
-                else
+
+                #pragma omp parallel num_threads(moveThreads)
                 {
-                    kept.append(ordered[i]);
+                    const label threadI = omp_get_thread_num();
+                    const label begin =
+                        orderedOffsets.size() == moveThreads + 1
+                      ? orderedOffsets[threadI]
+                      : label
+                        (
+                            (
+                                static_cast<long long>(threadI)
+                              * static_cast<long long>(ordered.size())
+                            )
+                          / static_cast<long long>(moveThreads)
+                        );
+                    const label end =
+                        orderedOffsets.size() == moveThreads + 1
+                      ? orderedOffsets[threadI + 1]
+                      : label
+                        (
+                            (
+                                static_cast<long long>(threadI + 1)
+                              * static_cast<long long>(ordered.size())
+                            )
+                          / static_cast<long long>(moveThreads)
+                        );
+                    labelList& destinationCounts =
+                        threadDestinationCounts[threadI];
+
+                    for (label i = begin; i < end; ++i)
+                    {
+                        const label dstRank =
+                            cellOwner_[ordered[i]->cell()];
+                        ++destinationCounts[dstRank];
+                        if (dstRank == myRank_)
+                        {
+                            ++threadKeptCounts[threadI];
+                        }
+                        else
+                        {
+                            ++threadDeleteCounts[threadI];
+                        }
+                    }
+                }
+
+                labelList destinationCounts(nProcs_, 0);
+                for (label threadI = 0; threadI < moveThreads; ++threadI)
+                {
+                    for (label dst = 0; dst < nProcs_; ++dst)
+                    {
+                        destinationCounts[dst] +=
+                            threadDestinationCounts[threadI][dst];
+                    }
+                    nMigratedOut += threadDeleteCounts[threadI];
+                }
+
+                label nKept = 0;
+                labelList threadKeptOffsets(moveThreads + 1, 0);
+                labelList threadDeleteOffsets(moveThreads + 1, 0);
+                for (label threadI = 0; threadI < moveThreads; ++threadI)
+                {
+                    threadKeptOffsets[threadI + 1] =
+                        threadKeptOffsets[threadI] + threadKeptCounts[threadI];
+                    threadDeleteOffsets[threadI + 1] =
+                        threadDeleteOffsets[threadI]
+                      + threadDeleteCounts[threadI];
+                    nKept += threadKeptCounts[threadI];
+                }
+
+                kept.setSize(nKept);
+                toDelete.setSize(nMigratedOut);
+                for (label dst = 0; dst < nProcs_; ++dst)
+                {
+                    sendTD[dst].setSize(destinationCounts[dst]);
+                }
+
+                labelList destinationOffset(nProcs_, 0);
+                for (label dst = 0; dst < nProcs_; ++dst)
+                {
+                    for (label threadI = 0; threadI < moveThreads; ++threadI)
+                    {
+                        threadDestinationOffsets[threadI][dst] =
+                            destinationOffset[dst];
+                        destinationOffset[dst] +=
+                            threadDestinationCounts[threadI][dst];
+                    }
+                }
+
+                #pragma omp parallel num_threads(moveThreads)
+                {
+                    const label threadI = omp_get_thread_num();
+                    const label begin =
+                        orderedOffsets.size() == moveThreads + 1
+                      ? orderedOffsets[threadI]
+                      : label
+                        (
+                            (
+                                static_cast<long long>(threadI)
+                              * static_cast<long long>(ordered.size())
+                            )
+                          / static_cast<long long>(moveThreads)
+                        );
+                    const label end =
+                        orderedOffsets.size() == moveThreads + 1
+                      ? orderedOffsets[threadI + 1]
+                      : label
+                        (
+                            (
+                                static_cast<long long>(threadI + 1)
+                              * static_cast<long long>(ordered.size())
+                            )
+                          / static_cast<long long>(moveThreads)
+                        );
+                    labelList& destinationOffsets =
+                        threadDestinationOffsets[threadI];
+                    label keptI = threadKeptOffsets[threadI];
+                    label deleteI = threadDeleteOffsets[threadI];
+
+                    for (label i = begin; i < end; ++i)
+                    {
+                        dsmcParcel* pPtr = ordered[i];
+                        const label dstRank = cellOwner_[pPtr->cell()];
+                        if (dstRank != myRank_)
+                        {
+                            pPtr->packTransfer
+                            (
+                                sendTD[dstRank][destinationOffsets[dstRank]++]
+                            );
+                            toDelete[deleteI++] = pPtr;
+                        }
+                        else
+                        {
+                            kept[keptI++] = pPtr;
+                        }
+                    }
+                }
+            }
+            else
+#endif
+            {
+                const auto& ordered = cloud_.moveOrderedParcels();
+                for (label i = 0; i < ordered.size(); ++i)
+                {
+                    dsmcParcel& p = *ordered[i];
+                    const label dstRank = cellOwner_[p.cell()];
+                    if (dstRank != myRank_)
+                    {
+                        sendTD[dstRank].append
+                        (
+                            dsmcParcel::TransferData()
+                        );
+                        p.packTransfer(sendTD[dstRank].last());
+                        toDelete.append(ordered[i]);
+                        ++nMigratedOut;
+                    }
+                    else
+                    {
+                        kept.append(ordered[i]);
+                    }
                 }
             }
         }
@@ -2679,27 +3907,35 @@ void dsmcReplicatedMesh::migrateParticlesByCellOwner()
         }
         const auto tPackEnd = std::chrono::steady_clock::now();
 
-        labelList sendSizes(nProcs_, 0);
+        List<std::uint64_t> sendSizes
+        (
+            nProcs_,
+            static_cast<std::uint64_t>(0)
+        );
         for (label i = 0; i < nProcs_; ++i)
         {
-            sendSizes[i] = sendTD[i].size() * sizeof(dsmcParcel::TransferData);
+            sendSizes[i] =
+                static_cast<std::uint64_t>(sendTD[i].size())
+              * static_cast<std::uint64_t>
+                (sizeof(dsmcParcel::TransferData));
         }
 
-        labelList recvSizes(nProcs_, 0);
+        List<std::uint64_t> recvSizes
+        (
+            nProcs_,
+            static_cast<std::uint64_t>(0)
+        );
         MPI_Request sizeExchangeReq = MPI_REQUEST_NULL;
-        const bool overlapSizeExchange =
-            overlapSizeExchange_ && !useNoAlltoall_;
-
-        if (overlapSizeExchange)
+        if (!useNoAlltoall_ && overlapSizeExchange_)
         {
             MPI_Ialltoall
             (
                 sendSizes.data(),
                 1,
-                MPI_INT,
+                MPI_UINT64_T,
                 recvSizes.data(),
                 1,
-                MPI_INT,
+                MPI_UINT64_T,
                 MPI_COMM_WORLD,
                 &sizeExchangeReq
             );
@@ -2708,212 +3944,304 @@ void dsmcReplicatedMesh::migrateParticlesByCellOwner()
         forAll(toDelete, i) { cloud_.deleteParcel(toDelete[i]); }
         const auto tLocalPrepEnd = std::chrono::steady_clock::now();
 
-        // MPI exchange
-        labelList recvOffsets(nProcs_, 0);
-        List<char> recvBuf;
-        std::chrono::steady_clock::time_point tSizeExchangeEnd;
-        std::chrono::steady_clock::time_point tRequestPostEnd;
-        std::chrono::steady_clock::time_point tWaitEnd;
-
+        // Exchange 64-bit total byte counts.  The no-Alltoall mode retains
+        // point-to-point headers; the regular mode uses the optimized
+        // collective and can overlap it with local deletion.
         if (useNoAlltoall_)
         {
-            // No size collective: every peer sends one message, including
-            // zero-byte messages, so Probe can discover actual receive sizes.
-            tSizeExchangeEnd = tLocalPrepEnd;
-            DynamicList<MPI_Request> sendReqs(nProcs_ - 1);
-            char zeroByte = 0;
-
+            DynamicList<MPI_Request> headerReqs(2*(nProcs_ - 1));
             for (label i = 0; i < nProcs_; ++i)
             {
-                if (i == myRank_) continue;
-
-                MPI_Request req;
-                const void* sendData = &zeroByte;
-                if (sendSizes[i] > 0)
-                {
-                    sendData = sendTD[i].data();
-                }
-                MPI_Isend
-                (
-                    sendData,
-                    sendSizes[i],
-                    MPI_BYTE,
-                    i,
-                    0,
-                    MPI_COMM_WORLD,
-                    &req
-                );
-                sendReqs.append(req);
-            }
-
-            tRequestPostEnd = std::chrono::steady_clock::now();
-
-            for (label recvI = 0; recvI < nProcs_ - 1; ++recvI)
-            {
-                MPI_Status status;
-                MPI_Probe(MPI_ANY_SOURCE, 0, MPI_COMM_WORLD, &status);
-
-                int actualBytes = 0;
-                MPI_Get_count(&status, MPI_BYTE, &actualBytes);
-                const label src = status.MPI_SOURCE;
-                recvSizes[src] = actualBytes;
-                prevRecvSizes_[src] = actualBytes;
-
-                if (actualBytes > 0)
-                {
-                    if (actualBytes > perPeerRecvCapacity_[src])
-                    {
-                        perPeerRecvCapacity_[src] = actualBytes;
-                        perPeerRecvBuf_[src].setSize(actualBytes);
-                    }
-                    MPI_Recv
-                    (
-                        perPeerRecvBuf_[src].data(),
-                        actualBytes,
-                        MPI_BYTE,
-                        src,
-                        0,
-                        MPI_COMM_WORLD,
-                        MPI_STATUS_IGNORE
-                    );
-                }
-                else
-                {
-                    MPI_Recv
-                    (
-                        &zeroByte,
-                        0,
-                        MPI_BYTE,
-                        src,
-                        0,
-                        MPI_COMM_WORLD,
-                        MPI_STATUS_IGNORE
-                    );
-                }
-            }
-
-            if (sendReqs.size() > 0)
-            {
-                MPI_Waitall
-                (
-                    sendReqs.size(),
-                    sendReqs.data(),
-                    MPI_STATUSES_IGNORE
-                );
-            }
-            tWaitEnd = std::chrono::steady_clock::now();
-        }
-        else
-        {
-            if (overlapSizeExchange)
-            {
-                MPI_Wait(&sizeExchangeReq, MPI_STATUS_IGNORE);
-            }
-            else
-            {
-                MPI_Alltoall
-                (
-                    sendSizes.data(),
-                    1,
-                    MPI_INT,
-                    recvSizes.data(),
-                    1,
-                    MPI_INT,
-                    MPI_COMM_WORLD
-                );
-            }
-            tSizeExchangeEnd = std::chrono::steady_clock::now();
-
-            label totalRecvBytes = 0;
-            for (label i = 0; i < nProcs_; ++i)
-            {
-                if (i != myRank_) totalRecvBytes += recvSizes[i];
-            }
-
-            recvBuf.setSize(totalRecvBytes);
-            {
-                label off = 0;
-                for (label i = 0; i < nProcs_; ++i)
-                {
-                    recvOffsets[i] = off;
-                    if (i != myRank_) off += recvSizes[i];
-                }
-            }
-
-            DynamicList<MPI_Request> allReqs(2 * (nProcs_ - 1));
-            for (label i = 0; i < nProcs_; ++i)
-            {
-                if (i != myRank_ && recvSizes[i] > 0)
+                if (i != myRank_)
                 {
                     MPI_Request req;
                     MPI_Irecv
                     (
-                        recvBuf.data() + recvOffsets[i],
-                        recvSizes[i],
-                        MPI_BYTE,
+                        &recvSizes[i],
+                        1,
+                        MPI_UINT64_T,
                         i,
-                        0,
+                        100,
                         MPI_COMM_WORLD,
                         &req
                     );
-                    allReqs.append(req);
+                    headerReqs.append(req);
                 }
             }
             for (label i = 0; i < nProcs_; ++i)
             {
-                if (i != myRank_ && sendSizes[i] > 0)
+                if (i != myRank_)
                 {
                     MPI_Request req;
                     MPI_Isend
                     (
-                        sendTD[i].data(),
-                        sendSizes[i],
-                        MPI_BYTE,
+                        &sendSizes[i],
+                        1,
+                        MPI_UINT64_T,
                         i,
-                        0,
+                        100,
                         MPI_COMM_WORLD,
                         &req
                     );
-                    allReqs.append(req);
+                    headerReqs.append(req);
                 }
             }
-            tRequestPostEnd = std::chrono::steady_clock::now();
-            if (allReqs.size() > 0)
+            if (headerReqs.size() > 0)
             {
                 MPI_Waitall
                 (
-                    allReqs.size(),
-                    allReqs.data(),
+                    headerReqs.size(),
+                    headerReqs.data(),
                     MPI_STATUSES_IGNORE
                 );
             }
-            tWaitEnd = std::chrono::steady_clock::now();
+        }
+        else if (sizeExchangeReq != MPI_REQUEST_NULL)
+        {
+            MPI_Wait(&sizeExchangeReq, MPI_STATUS_IGNORE);
+        }
+        else
+        {
+            MPI_Alltoall
+            (
+                sendSizes.data(),
+                1,
+                MPI_UINT64_T,
+                recvSizes.data(),
+                1,
+                MPI_UINT64_T,
+                MPI_COMM_WORLD
+            );
         }
 
-        // Deserialize from flat buffer
-        label nRecv = 0;
-        for (label i = 0; i < nProcs_; ++i)
+        // MPI exchange: all data transfers are bounded chunks.  Two receive
+        // buffers provide a small finite pipeline without MPI_THREAD_MULTIPLE.
+        std::chrono::steady_clock::time_point tSizeExchangeEnd;
+        std::chrono::steady_clock::time_point tRequestPostEnd;
+        tSizeExchangeEnd = std::chrono::steady_clock::now();
+
+        const label maxChunkRecords =
+            max
+            (
+                label(1),
+                transferChunkBytes_
+              / label(sizeof(dsmcParcel::TransferData))
+            );
+        scalar chunkWaitWall = 0.0;
+        scalar chunkDeserializeWall = 0.0;
+        std::uint64_t maxIncomingRecords = 0;
+        const std::uint64_t recordBytes =
+            static_cast<std::uint64_t>
+            (sizeof(dsmcParcel::TransferData));
+        for (label src = 0; src < nProcs_; ++src)
         {
-            if (i != myRank_ && recvSizes[i] > 0)
+            if (src == myRank_ || recvSizes[src] == 0) continue;
+            if (recvSizes[src] % recordBytes != 0)
             {
-                const label nParcels =
-                    recvSizes[i] / sizeof(dsmcParcel::TransferData);
-                const char* recvData =
-                    useNoAlltoall_
-                  ? perPeerRecvBuf_[i].data()
-                  : recvBuf.data() + recvOffsets[i];
-                const auto* tdArr =
-                    reinterpret_cast<const dsmcParcel::TransferData*>(recvData);
-                for (label j = 0; j < nParcels; ++j)
-                {
-                    auto* newp = dsmcParcel::unpackTransfer(mesh_, tdArr[j]);
-                    cloud_.addParticle(newp);
-                    kept.append(newp);
-                    ++nRecv;
-                }
+                FatalErrorInFunction
+                    << "Received byte count "
+                    << scalar(recvSizes[src])
+                    << " from rank " << src
+                    << " is not a multiple of TransferData size "
+                    << scalar(recordBytes) << abort(FatalError);
+            }
+            const std::uint64_t nRecords =
+                recvSizes[src] / recordBytes;
+            if (nRecords > maxIncomingRecords)
+            {
+                maxIncomingRecords = nRecords;
             }
         }
-        const auto tDeserializeEnd = std::chrono::steady_clock::now();
+
+        DynamicList<MPI_Request> sendReqs;
+        for (label dst = 0; dst < nProcs_; ++dst)
+        {
+            if (dst == myRank_ || sendSizes[dst] == 0) continue;
+
+            const std::uint64_t nRecords =
+                sendSizes[dst]
+              / static_cast<std::uint64_t>
+                (sizeof(dsmcParcel::TransferData));
+            std::uint64_t offset = 0;
+            while (offset < nRecords)
+            {
+                const std::uint64_t chunkLimit =
+                    static_cast<std::uint64_t>(maxChunkRecords);
+                const std::uint64_t remaining = nRecords - offset;
+                const std::uint64_t nChunk =
+                    remaining < chunkLimit ? remaining : chunkLimit;
+                MPI_Request req;
+                MPI_Isend
+                (
+                    sendTD[dst].data() + label(offset),
+                    int(nChunk*sizeof(dsmcParcel::TransferData)),
+                    MPI_BYTE,
+                    dst,
+                    101,
+                    MPI_COMM_WORLD,
+                    &req
+                );
+                sendReqs.append(req);
+                offset += nChunk;
+            }
+        }
+        tRequestPostEnd = std::chrono::steady_clock::now();
+
+        const std::uint64_t chunkLimit =
+            static_cast<std::uint64_t>(maxChunkRecords);
+        const label recvChunkRecords =
+            label
+            (
+                maxIncomingRecords < chunkLimit
+              ? maxIncomingRecords
+              : chunkLimit
+            );
+        List<List<dsmcParcel::TransferData>> recvChunks(2);
+        recvChunks[0].setSize(recvChunkRecords);
+        recvChunks[1].setSize(recvChunkRecords);
+        List<dsmcParcel*> received(recvChunkRecords);
+        MPI_Request recvReqs[2] =
+        {
+            MPI_REQUEST_NULL,
+            MPI_REQUEST_NULL
+        };
+        std::uint64_t postedRecords[2] = {0, 0};
+
+        for (label src = 0; src < nProcs_; ++src)
+        {
+            if (src == myRank_ || recvSizes[src] == 0) continue;
+
+            const std::uint64_t nRecords =
+                recvSizes[src] / recordBytes;
+            std::uint64_t nextRecord = 0;
+            label activeReceives = 0;
+            label expectedSlot = 0;
+
+            for (label slot = 0; slot < 2 && nextRecord < nRecords; ++slot)
+            {
+                const std::uint64_t remaining = nRecords - nextRecord;
+                const std::uint64_t nChunk =
+                    remaining < chunkLimit ? remaining : chunkLimit;
+                postedRecords[slot] = nChunk;
+                MPI_Irecv
+                (
+                    recvChunks[slot].data(),
+                    int(nChunk*sizeof(dsmcParcel::TransferData)),
+                    MPI_BYTE,
+                    src,
+                    101,
+                    MPI_COMM_WORLD,
+                    &recvReqs[slot]
+                );
+                nextRecord += nChunk;
+                ++activeReceives;
+            }
+
+            while (activeReceives > 0)
+            {
+                const label completedSlot = expectedSlot;
+                const auto tChunkWaitStart =
+                    std::chrono::steady_clock::now();
+                MPI_Wait
+                (
+                    &recvReqs[completedSlot],
+                    MPI_STATUS_IGNORE
+                );
+                chunkWaitWall += std::chrono::duration<scalar>
+                (
+                    std::chrono::steady_clock::now() - tChunkWaitStart
+                ).count();
+
+                const label nChunk = label(postedRecords[completedSlot]);
+                const auto tChunkDeserializeStart =
+                    std::chrono::steady_clock::now();
+#ifdef _OPENMP
+                if (maintainMoveOrdered && cloud_.ompNumThreads() > 1)
+                {
+                    #pragma omp parallel for num_threads(cloud_.ompNumThreads()) schedule(static)
+                    for (label j = 0; j < nChunk; ++j)
+                    {
+                        received[j] = dsmcParcel::unpackTransfer
+                        (
+                            mesh_,
+                            recvChunks[completedSlot][j]
+                        );
+                    }
+                }
+                else
+#endif
+                {
+                    for (label j = 0; j < nChunk; ++j)
+                    {
+                        received[j] = dsmcParcel::unpackTransfer
+                        (
+                            mesh_,
+                            recvChunks[completedSlot][j]
+                        );
+                    }
+                }
+                for (label j = 0; j < nChunk; ++j)
+                {
+                    // Base-class raw append.  The per-parcel cache
+                    // bookkeeping in dsmcCloud::addParticle is redundant on
+                    // this path: the post-transfer code below re-establishes
+                    // the ordered view (setMoveOrderedParcels) or clears all
+                    // traversal caches (clearMoveOrderedParcels).
+                    cloud_.Cloud<dsmcParcel>::addParticle(received[j]);
+                    kept.append(received[j]);
+                }
+                nRecv += nChunk;
+                chunkDeserializeWall += std::chrono::duration<scalar>
+                (
+                    std::chrono::steady_clock::now()
+                  - tChunkDeserializeStart
+                ).count();
+
+                if (nextRecord < nRecords)
+                {
+                    const std::uint64_t remaining =
+                        nRecords - nextRecord;
+                    const std::uint64_t nNextChunk =
+                        remaining < chunkLimit ? remaining : chunkLimit;
+                    postedRecords[completedSlot] = nNextChunk;
+                    MPI_Irecv
+                    (
+                        recvChunks[completedSlot].data(),
+                        int(nNextChunk*sizeof(dsmcParcel::TransferData)),
+                        MPI_BYTE,
+                        src,
+                        101,
+                        MPI_COMM_WORLD,
+                        &recvReqs[completedSlot]
+                    );
+                    nextRecord += nNextChunk;
+                }
+                else
+                {
+                    recvReqs[completedSlot] = MPI_REQUEST_NULL;
+                    postedRecords[completedSlot] = 0;
+                    --activeReceives;
+                }
+                expectedSlot = 1 - expectedSlot;
+            }
+        }
+
+        if (sendReqs.size() > 0)
+        {
+            const auto tSendWaitStart =
+                std::chrono::steady_clock::now();
+            MPI_Waitall
+            (
+                sendReqs.size(),
+                sendReqs.data(),
+                MPI_STATUSES_IGNORE
+            );
+            chunkWaitWall += std::chrono::duration<scalar>
+            (
+                std::chrono::steady_clock::now() - tSendWaitStart
+            ).count();
+        }
+        const auto tTransferEnd = std::chrono::steady_clock::now();
 
         if (maintainMoveOrdered && kept.size() == cloud_.size())
         {
@@ -2964,15 +4292,10 @@ void dsmcReplicatedMesh::migrateParticlesByCellOwner()
             (
                 tRequestPostEnd - tSizeExchangeEnd
             ).count();
-        migrationWaitWallTime_ +=
-            std::chrono::duration<scalar>(tWaitEnd - tRequestPostEnd).count();
-        migrationDeserializeWallTime_ +=
-            std::chrono::duration<scalar>
-            (
-                tDeserializeEnd - tWaitEnd
-            ).count();
+        migrationWaitWallTime_ += chunkWaitWall;
+        migrationDeserializeWallTime_ += chunkDeserializeWall;
         migrationPostWallTime_ +=
-            std::chrono::duration<scalar>(tPostEnd - tDeserializeEnd).count();
+            std::chrono::duration<scalar>(tPostEnd - tTransferEnd).count();
         migrationCandidateGatherWallTime_ +=
             std::chrono::duration<scalar>(tEnd - tPostEnd).count();
         const scalar migrationWall =
@@ -2986,10 +4309,7 @@ void dsmcReplicatedMesh::migrateParticlesByCellOwner()
             (
                 tRequestPostEnd - tSizeExchangeEnd
             ).count()
-          + std::chrono::duration<scalar>
-            (
-                tWaitEnd - tRequestPostEnd
-            ).count()
+          + chunkWaitWall
           + std::chrono::duration<scalar>(tEnd - tPostEnd).count();
         addMigrationProfileSample(migrationWall, migrationComm);
         ++migrationCalls_;
@@ -3013,12 +4333,10 @@ void dsmcReplicatedMesh::migrateParticlesByCellOwner()
                     (tSizeExchangeEnd - tLocalPrepEnd).count() << "s"
                 << " postReq " << std::chrono::duration<scalar>
                     (tRequestPostEnd - tSizeExchangeEnd).count() << "s"
-                << " wait " << std::chrono::duration<scalar>
-                    (tWaitEnd - tRequestPostEnd).count() << "s"
-                << " deser " << std::chrono::duration<scalar>
-                    (tDeserializeEnd - tWaitEnd).count() << "s"
+                << " wait " << chunkWaitWall << "s"
+                << " deser " << chunkDeserializeWall << "s"
                 << " post " << std::chrono::duration<scalar>
-                    (tPostEnd - tDeserializeEnd).count() << "s"
+                    (tPostEnd - tTransferEnd).count() << "s"
                 << " candX " << std::chrono::duration<scalar>
                     (tEnd - tPostEnd).count() << "s]"
                 << endl;
@@ -3742,6 +5060,7 @@ void dsmcReplicatedMesh::reassignCellOwner()
     }
 
     rebuildMyCells();
+    localMesh_.build(myCells_);
     label nChanged = 0;
     for (label cellI = 0; cellI < nCells; ++cellI)
         if (cellOwner_[cellI] != oldCellOwner[cellI]) ++nChanged;
@@ -3776,18 +5095,54 @@ void dsmcReplicatedMesh::gatherParcelsToRank0()
                 iter().packTransfer(sendTD.last());
             }
 
-            const label sendCount = sendTD.size();
-            MPI_Send(&sendCount, 1, MPI_INT, 0, 10, MPI_COMM_WORLD);
-            if (sendCount > 0)
-            {
-                MPI_Send
+            const std::uint64_t sendBytes =
+                static_cast<std::uint64_t>(sendTD.size())
+              * static_cast<std::uint64_t>
+                (sizeof(dsmcParcel::TransferData));
+            MPI_Send
+            (
+                &sendBytes, 1, MPI_UINT64_T, 0, 10,
+                MPI_COMM_WORLD
+            );
+
+            const label maxChunkRecords =
+                max
                 (
-                    sendTD.data(),
-                    sendCount*sizeof(dsmcParcel::TransferData),
+                    label(1),
+                    transferChunkBytes_
+                  / label(sizeof(dsmcParcel::TransferData))
+                );
+            DynamicList<MPI_Request> sendReqs;
+            std::uint64_t offset = 0;
+            const std::uint64_t nRecords = sendTD.size();
+            while (offset < nRecords)
+            {
+                const std::uint64_t chunkLimit =
+                    static_cast<std::uint64_t>(maxChunkRecords);
+                const std::uint64_t remaining = nRecords - offset;
+                const std::uint64_t nChunk =
+                    remaining < chunkLimit ? remaining : chunkLimit;
+                MPI_Request req;
+                MPI_Isend
+                (
+                    sendTD.data() + label(offset),
+                    int(nChunk*sizeof(dsmcParcel::TransferData)),
                     MPI_BYTE,
                     0,
                     11,
-                    MPI_COMM_WORLD
+                    MPI_COMM_WORLD,
+                    &req
+                );
+                sendReqs.append(req);
+                offset += nChunk;
+            }
+            if (sendReqs.size() > 0)
+            {
+                MPI_Waitall
+                (
+                    sendReqs.size(),
+                    sendReqs.data(),
+                    MPI_STATUSES_IGNORE
                 );
             }
 
@@ -3797,39 +5152,78 @@ void dsmcReplicatedMesh::gatherParcelsToRank0()
         {
             for (label src = 1; src < nProcs_; ++src)
             {
-                label recvCount = 0;
+                std::uint64_t recvBytes = 0;
                 MPI_Recv
                 (
-                    &recvCount,
+                    &recvBytes,
                     1,
-                    MPI_INT,
+                    MPI_UINT64_T,
                     src,
                     10,
                     MPI_COMM_WORLD,
                     MPI_STATUS_IGNORE
                 );
 
-                if (recvCount > 0)
+                const std::uint64_t recordBytes =
+                    static_cast<std::uint64_t>
+                    (sizeof(dsmcParcel::TransferData));
+                if (recvBytes % recordBytes != 0)
                 {
-                    List<dsmcParcel::TransferData> recvTD(recvCount);
-                    MPI_Recv
+                    FatalErrorInFunction
+                        << "Received output byte count "
+                        << scalar(recvBytes)
+                        << " from rank " << src
+                        << " is not a multiple of TransferData size "
+                        << scalar(recordBytes) << abort(FatalError);
+                }
+
+                std::uint64_t receivedRecords = 0;
+                const std::uint64_t nRecords = recvBytes / recordBytes;
+                if (nRecords == 0) continue;
+
+                const label maxChunkRecords =
+                    max
                     (
-                        recvTD.data(),
-                        recvCount*sizeof(dsmcParcel::TransferData),
+                        label(1),
+                        transferChunkBytes_
+                      / label(sizeof(dsmcParcel::TransferData))
+                    );
+                const std::uint64_t chunkLimit =
+                    static_cast<std::uint64_t>(maxChunkRecords);
+                const label recvChunkRecords =
+                    label
+                    (
+                        nRecords < chunkLimit ? nRecords : chunkLimit
+                    );
+                List<dsmcParcel::TransferData> recvChunk(recvChunkRecords);
+                while (receivedRecords < nRecords)
+                {
+                    const std::uint64_t remaining =
+                        nRecords - receivedRecords;
+                    const std::uint64_t nChunk =
+                        remaining < chunkLimit ? remaining : chunkLimit;
+                    MPI_Request req;
+                    MPI_Irecv
+                    (
+                        recvChunk.data(),
+                        int(nChunk*sizeof(dsmcParcel::TransferData)),
                         MPI_BYTE,
                         src,
                         11,
                         MPI_COMM_WORLD,
-                        MPI_STATUS_IGNORE
+                        &req
                     );
+                    MPI_Wait(&req, MPI_STATUS_IGNORE);
 
-                    forAll(recvTD, i)
+                    for (std::uint64_t i = 0; i < nChunk; ++i)
                     {
                         cloud_.addParticle
                         (
-                            dsmcParcel::unpackTransfer(mesh_, recvTD[i])
+                            dsmcParcel::unpackTransfer
+                            (mesh_, recvChunk[label(i)])
                         );
                     }
+                    receivedRecords += nChunk;
                 }
             }
         }
@@ -3881,6 +5275,55 @@ void dsmcReplicatedMesh::gatherParcelsToRank0()
 }
 
 // ============================================================================
+// printPerRankStepWall — per-rank iteration wall diagnostics at check time
+// ============================================================================
+
+void dsmcReplicatedMesh::printPerRankStepWall() const
+{
+    if (!triggerWallTime_) return;
+
+    scalarList wallPerRank(nProcs_, 0.0);
+    wallPerRank[myRank_] = lastStepWallTime_;
+    MPI_Allreduce
+    (
+        MPI_IN_PLACE,
+        wallPerRank.data(),
+        nProcs_,
+        MPI_DOUBLE,
+        MPI_SUM,
+        MPI_COMM_WORLD
+    );
+
+    scalarList workPerRank(nProcs_, 0.0);
+    workPerRank[myRank_] = max(lastStepWallTime_ - lastStepWait_, scalar(0));
+    MPI_Allreduce
+    (
+        MPI_IN_PLACE,
+        workPerRank.data(),
+        nProcs_,
+        MPI_DOUBLE,
+        MPI_SUM,
+        MPI_COMM_WORLD
+    );
+
+    if (myRank_ == 0)
+    {
+        Info<< "Phase C per-rank step wall [s]:";
+        forAll(wallPerRank, i)
+        {
+            Info<< (i ? " " : "") << wallPerRank[i];
+        }
+        Info<< nl << "Phase C per-rank step work [s]:";
+        forAll(workPerRank, i)
+        {
+            Info<< (i ? " " : "") << workPerRank[i];
+        }
+        Info<< nl;
+    }
+}
+
+
+// ============================================================================
 // report — profiling summary
 // ============================================================================
 
@@ -3914,7 +5357,7 @@ void dsmcReplicatedMesh::report() const
         scalar(0.0)
     );
 
-    const int nProfileValues = 27;
+    const int nProfileValues = 35;
     scalar profileValues[nProfileValues] =
     {
         migrationWallTime_,
@@ -3943,7 +5386,15 @@ void dsmcReplicatedMesh::report() const
         commTotalLocal,
         commDLBLocal,
         commOutputLocal,
-        dlbNonCommLocal
+        dlbNonCommLocal,
+        migrationPackWallTime_,
+        migrationLocalPrepWallTime_,
+        migrationSizeExchangeWallTime_,
+        migrationRequestPostWallTime_,
+        migrationWaitWallTime_,
+        migrationDeserializeWallTime_,
+        migrationPostWallTime_,
+        migrationCandidateGatherWallTime_
     };
 
     MPI_Allreduce
@@ -3960,6 +5411,20 @@ void dsmcReplicatedMesh::report() const
         (
             std::chrono::steady_clock::now() - tReport0
         ).count();
+
+    // Per-rank full-iteration wall (§5.6): slot-style SUM reduce — must run
+    // on every rank BEFORE the rank0 early return below.
+    scalarList allStepWalls(nProcs_, 0.0);
+    allStepWalls[myRank_] = stepFullWallCum_;
+    MPI_Allreduce
+    (
+        MPI_IN_PLACE,
+        allStepWalls.data(),
+        nProcs_,
+        MPI_DOUBLE,
+        MPI_SUM,
+        MPI_COMM_WORLD
+    );
 
     if (myRank_ != 0) return;
 
@@ -3978,6 +5443,14 @@ void dsmcReplicatedMesh::report() const
         << "    migration comm max [s]       = " << profileValues[1] << nl
         << "    updateParticleCounts max [s] = " << profileValues[15] << nl
         << "    regular migration wall [s]   = " << profileValues[2] << nl
+        << "    migration pack max [s]       = " << profileValues[27] << nl
+        << "    migration local prep max [s] = " << profileValues[28] << nl
+        << "    migration size exchange [s]  = " << profileValues[29] << nl
+        << "    migration request post [s]   = " << profileValues[30] << nl
+        << "    migration wait max [s]       = " << profileValues[31] << nl
+        << "    migration deserialize [s]    = " << profileValues[32] << nl
+        << "    migration post max [s]       = " << profileValues[33] << nl
+        << "    migration candidate gather [s]= " << profileValues[34] << nl
         << "    DLB migration wall [s]       = " << profileValues[4] << nl
         << "    output migration wall [s]    = " << profileValues[6] << nl;
     if (allParticleCounts_.size() > 0)
@@ -3991,6 +5464,22 @@ void dsmcReplicatedMesh::report() const
     Info<< "    rank wall time (evolve, " << evolveTimeSteps_ << " steps):"
         << " min " << min(allTimes) << " max " << max(allTimes)
         << " max/min " << (min(allTimes) > 0 ? max(allTimes)/min(allTimes) : 0) << nl;
+
+    if (triggerWallTime_)
+    {
+        Info<< "    rank step wall (full iter, " << evolveTimeSteps_
+            << " steps): min " << min(allStepWalls)
+            << " max " << max(allStepWalls)
+            << " max/min "
+            << (min(allStepWalls) > 0
+              ? max(allStepWalls)/min(allStepWalls) : 0) << nl;
+    }
+    if (backOffEnabled_)
+    {
+        Info<< "    DLB back-off skips remaining = " << backOffRemaining_
+            << ", futile count = " << futileCount_
+            << ", last changed ratio = " << lastExecChangedRatio_ << nl;
+    }
     if (rebalanceCount_ > 0)
     {
         const label nCells = mesh_.nCells();

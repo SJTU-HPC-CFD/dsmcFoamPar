@@ -29,6 +29,7 @@ Description
 \*----------------------------------------------------------------------------*/
 
 #include "porousMeasurements.H"
+#include "dsmcMasterInfo.H"
 #include "dsmcCloud.H"
 
 namespace Foam
@@ -76,8 +77,11 @@ Foam::porousMeasurements::New
         + static_cast<word>(std::toupper(porousMeasurementModel[0]))
         + porousMeasurementModel.substr(1) + "PorousMediumMeasurements";
 
-    Info<< "Selecting the porous measurement model:" << tab
-        << porousMeasurementModel << "\n" << endl;
+    if (Foam::dsmcIsPrintingRank())
+    {
+        Info<< "Selecting the porous measurement model:" << tab
+            << porousMeasurementModel << "\n" << endl;
+    }
 
     fvMeshConstructorTable::iterator cstrIter =
         fvMeshConstructorTablePtr_->find(porousMeasurementModel);

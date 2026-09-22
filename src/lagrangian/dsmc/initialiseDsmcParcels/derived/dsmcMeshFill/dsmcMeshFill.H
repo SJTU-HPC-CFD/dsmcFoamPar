@@ -89,6 +89,13 @@ public:
 
         ~dsmcMeshFill();
 
+        //- Per-cell parallel fill (owned cells only)
+        virtual void setInitialConfigParallel
+        (
+            const labelUList& cellOwner,
+            const label filterRank
+        );
+
 
     // Member Functions
 

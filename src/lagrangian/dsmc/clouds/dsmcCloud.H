@@ -183,6 +183,9 @@ private:
         scalar profilePostBoundariesWall_;
         scalar profilePostBoundaryMeasWall_;
         scalar profilePostCleanWall_;
+        scalar profilePostTrackingCleanWall_;
+        scalar profilePostBoundaryMeasCleanWall_;
+        scalar profilePostCellMeasCleanWall_;
         scalar profileFullEvolveCpu_;
         scalar profileMoveAndCollideCpu_;
         scalar profileMoveCpu_;
@@ -196,6 +199,9 @@ private:
         scalar profilePostBoundariesCpu_;
         scalar profilePostBoundaryMeasCpu_;
         scalar profilePostCleanCpu_;
+        scalar profilePostTrackingCleanCpu_;
+        scalar profilePostBoundaryMeasCleanCpu_;
+        scalar profilePostCellMeasCleanCpu_;
 
         //- Flat cell occupancy view used by OpenMP paths
         DynamicList<dsmcParcel*> occupancyOrderedParcels_;
@@ -207,6 +213,7 @@ private:
         mutable bool cellOccupancyMaterialized_;
         List<labelList> occupancyThreadCellCounts_;
         List<DynamicList<label>> occupancyThreadActiveCells_;
+        labelList occupancyTotalCounts_;
 
         //- A data structure holding which particles are in which cell
         //List<DynamicList<dsmcParcel*> > cellOccupancy_;
@@ -333,6 +340,12 @@ private:
 
         //- When mesh has changed, changed the size of cellOccupancy_
         void buildCellOccupancyFromScratch();
+
+        //- In-solver parallel fill from dsmcInitialiseDict (cells owned by
+        //  this rank only); requires replicatedMesh initialised and the
+        //  dsmcInitialiseDict configurations to support per-cell fill
+        //  (dsmcMeshFill)
+        void initialFillFromDict(const IOdictionary& dsmcInitialiseDict);
 
         //- When mesh has changed, change the size of collisionSelectionRemainder_
         void buildCollisionSelectionRemainderFromScratch();
@@ -586,6 +599,37 @@ public:
             const scalarList& electronicEnergyList
         );
 
+        //- Random-generator-parameterised overloads for parallel fill
+        vector equipartitionLinearVelocity
+        (
+            const scalar temperature,
+            const scalar mass,
+            Random& random
+        );
+
+        scalar equipartitionRotationalEnergy
+        (
+            const scalar temperature,
+            const scalar rotationalDegreesOfFreedom,
+            Random& random
+        );
+
+        labelList equipartitionVibrationalEnergyLevel
+        (
+            const scalar temperature,
+            const label nVibrationalModes,
+            const label typeId,
+            Random& random
+        );
+
+        label equipartitionElectronicLevel
+        (
+            const scalar temperature,
+            const labelList& electronicDegeneracyList,
+            const scalarList& electronicEnergyList,
+            Random& random
+        );
+
         // - Generate a LB post-collision rotational energy
         scalar postCollisionRotationalEnergy
         (
@@ -825,6 +869,11 @@ public:
 
             //- Print accumulated profiling summary
             void printProfileSummary() const;
+
+            //- Report the full wall time of the last completed main-loop
+            //  iteration (forwarded to the replicated mesh for the wall
+            //  trigger metric; no-op without replicated mesh)
+            void setLastStepWallTime(const scalar t);
 
             inline bool openmpEnabled() const
             {

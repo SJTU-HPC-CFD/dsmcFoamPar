@@ -79,6 +79,20 @@ void dsmcAllConfigurations::setInitialConfig()
 
 
 
+void dsmcAllConfigurations::setInitialConfigParallel
+(
+    const labelUList& cellOwner,
+    const label filterRank
+)
+{
+    forAll(configurations_, c)
+    {
+        configurations_[c]->setInitialConfigParallel(cellOwner, filterRank);
+    }
+}
+
+
+
 // * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //

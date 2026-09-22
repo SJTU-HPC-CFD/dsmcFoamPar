@@ -29,6 +29,7 @@ Description
 \*----------------------------------------------------------------------------*/
 
 #include "addToRunTimeSelectionTable.H"
+#include "dsmcMasterInfo.H"
 #include "dsmcVariableTimeStepModel.H"
 #include "dsmcCloud.H"
 
@@ -193,10 +194,13 @@ void dsmcVariableTimeStepModel::update()
 
 void dsmcVariableTimeStepModel::writeTimeStepModelInfo() const
 {
-    Info<< "Variable time-step model:" << nl
+    if (Foam::dsmcIsPrintingRank())
+    {
+        Info<< "Variable time-step model:" << nl
         << "- Initial time-step [sec]" << tab
         << dsmcTimeStepModel::deltaTValue(0) << nl
         << endl;
+    }
 }
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

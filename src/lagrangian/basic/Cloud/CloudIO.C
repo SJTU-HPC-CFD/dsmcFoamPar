@@ -27,6 +27,16 @@ License
 #include "Time.H"
 #include "IOPosition.H"
 
+#include <atomic>
+#include <cstring>
+#include <fcntl.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
 template<class ParticleType>
@@ -134,10 +144,23 @@ void Foam::Cloud<ParticleType>::initCloud(const bool checkClass)
         }
     }
 
+    initCloudPostRead();
+}
+
+
+template<class ParticleType>
+void Foam::Cloud<ParticleType>::initCloudPostRead(const bool reLocate)
+{
     // Ask for the tetBasePtIs to trigger all processors to build
     // them, otherwise, if some processors have no particles then
     // there is a comms mismatch.
     polyMesh_.tetBasePtIs();
+
+    if (!reLocate)
+    {
+        // Tet data already computed per particle (parallel filtered read)
+        return;
+    }
 
     scalar lostParticles = 0; // NEW VINCENT
     scalar totParticles = 0; // NEW VINCENT
@@ -165,6 +188,328 @@ void Foam::Cloud<ParticleType>::initCloud(const bool checkClass)
 }
 
 
+template<class ParticleType>
+void Foam::Cloud<ParticleType>::readCloudFiltered
+(
+    const labelUList& cellOwner,
+    const label filterRank
+)
+{
+    initialReadKeep_.clear();
+    initialReadNFull_ = 0;
+
+    readCloudUniformProperties();
+
+    IOPosition<Cloud<ParticleType> > ioP(*this);
+
+    if (ioP.headerOk())
+    {
+        const fileName posFile = ioP.objectPath();
+        off_t fileSize = 0;
+        {
+            const int fd = ::open(posFile.c_str(), O_RDONLY);
+            if (fd >= 0)
+            {
+                struct stat st;
+                if (::fstat(fd, &st) == 0)
+                {
+                    fileSize = st.st_size;
+                }
+                ::close(fd);
+            }
+        }
+
+        label nThreads = 1;
+        #ifdef _OPENMP
+        nThreads = omp_get_max_threads();
+        #endif
+
+        const bool useParallel =
+        (
+            nThreads > 1
+         && fileSize > (off_t(100)<<20)   // small files: serial read is faster
+        );
+
+        bool parallelOk = false;
+        if (useParallel)
+        {
+            parallelOk =
+                parallelFilteredRead
+                (
+                    ioP,
+                    posFile,
+                    fileSize,
+                    cellOwner,
+                    filterRank,
+                    initialReadKeep_,
+                    initialReadNFull_
+                );
+        }
+
+        if (!parallelOk)
+        {
+            // checkClass=false: same as the dsmcCloud constructor path
+            // (Cloud initCloud(false)); the positions header class is
+            // "Cloud" while IOPosition's inherited typeName would compare
+            // as "regIOobject".
+            ioP.readDataFiltered
+            (
+                *this,
+                false,
+                cellOwner,
+                filterRank,
+                initialReadKeep_,
+                initialReadNFull_
+            );
+            ioP.close();
+            initCloudPostRead(true);
+        }
+        else
+        {
+            // tet data already computed per particle in the parallel read
+            initCloudPostRead(false);
+        }
+    }
+    else
+    {
+        if (debug)
+        {
+            Pout<< "Cannot read particle positions file:" << nl
+                << "    " << ioP.objectPath() << nl
+                << "Assuming the initial cloud contains 0 particles." << endl;
+        }
+        initCloudPostRead(false);
+    }
+}
+
+
+template<class ParticleType>
+bool Foam::Cloud<ParticleType>::parallelFilteredRead
+(
+    IOPosition<Cloud<ParticleType>>& ioP,
+    const fileName& posFile,
+    const off_t fileSize,
+    const labelUList& cellOwner,
+    const label filterRank,
+    labelList& keep,
+    label& nFull
+)
+{
+    // ---- header, entry count, entries region start ----
+    off_t entriesStart = 0;
+    nFull = ioP.readHeader(entriesStart);
+    ioP.close();
+
+    if (nFull < 1)
+    {
+        keep.clear();
+        return true;    // nothing to read
+    }
+
+    // ---- mmap the positions file (page cache shared across ranks) ----
+    const int fd = ::open(posFile.c_str(), O_RDONLY);
+    if (fd < 0)
+    {
+        FatalIOErrorInFunction(posFile)
+            << "cannot open " << posFile << exit(FatalIOError);
+    }
+    const char* base = static_cast<const char*>
+    (
+        ::mmap(nullptr, size_t(fileSize), PROT_READ, MAP_PRIVATE, fd, 0)
+    );
+    ::close(fd);
+    if (base == MAP_FAILED)
+    {
+        FatalIOErrorInFunction(posFile)
+            << "cannot mmap " << posFile << exit(FatalIOError);
+    }
+
+    // ---- chunk plan: nThreads chunks of ceil(nFull/nThreads) entries ----
+    label nThreads = 1;
+    #ifdef _OPENMP
+    nThreads = omp_get_max_threads();
+    #endif
+    nThreads = max(1, min(nThreads, nFull));
+    const label chunkEntries = (nFull + nThreads - 1)/nThreads;
+
+    List<off_t> byteStart(nThreads + 1, off_t(-1));
+    List<label> idxStart(nThreads + 1, label(-1));
+    byteStart[0] = entriesStart;
+    idxStart[0] = 0;
+    for (label t = 1; t <= nThreads; ++t)
+    {
+        idxStart[t] = min(t*chunkEntries, nFull);
+    }
+
+    // ---- single-pass scan: byte offset of each chunk's first entry ----
+    {
+        const char* p = base + entriesStart;
+        const char* fileEnd = base + fileSize;
+        label entryI = 0;
+        label nextTarget = 1;
+        bool inEntries = true;
+
+        while (p < fileEnd && nextTarget <= nThreads)
+        {
+            const char* nl =
+                static_cast<const char*>(memchr(p, '\n', fileEnd - p));
+            const char* lineEnd = (nl ? nl : fileEnd);
+
+            if (*p == '(')
+            {
+                if (entryI == idxStart[nextTarget])
+                {
+                    byteStart[nextTarget] = p - base;
+                    ++nextTarget;
+                    if (nextTarget > nThreads)
+                    {
+                        break;
+                    }
+                }
+                ++entryI;
+            }
+            else if (*p == ')')
+            {
+                inEntries = false;
+                break;
+            }
+
+            p = lineEnd + 1;
+        }
+
+        if (inEntries || entryI != nFull)
+        {
+            ::munmap(const_cast<char*>(base), size_t(fileSize));
+            FatalIOErrorInFunction(posFile)
+                << "positions file entry scan found " << entryI
+                << " entries, expected " << nFull << exit(FatalIOError);
+        }
+        byteStart[nThreads] = (p - base) + 1;
+        idxStart[nThreads] = nFull;
+    }
+
+    // ---- warm-up mesh location caches (single-threaded) ----
+    polyMesh_.tetBasePtIs();
+
+    Info<< "Cloud filtered read: parsing " << nFull << " entries with "
+        << nThreads << " threads" << endl;
+
+    // ---- parallel parse + filter ----
+    List<DynamicList<ParticleType*>> keptLocal(nThreads);
+    List<DynamicList<label>> keepLocal(nThreads);
+    label parsedTotal = 0;
+
+    #ifdef _OPENMP
+    #pragma omp parallel num_threads(nThreads)
+    #endif
+    {
+        label t = 0;
+        #ifdef _OPENMP
+        t = omp_get_thread_num();
+        #endif
+        DynamicList<ParticleType*>& kept = keptLocal[t];
+        DynamicList<label>& kp = keepLocal[t];
+
+        const char* p = base + byteStart[t];
+        const char* end = base + byteStart[t + 1];
+        label gi = idxStart[t];
+
+        while (p < end)
+        {
+            const char* nl =
+                static_cast<const char*>(memchr(p, '\n', end - p));
+            const char* lineEnd = (nl ? nl : end);
+
+            if (*p == '(')
+            {
+                // entry format written by IOPosition: "(x y z) cellI"
+                char* q = const_cast<char*>(p + 1);
+                const double x = ::strtod(q, &q);
+                const double y = ::strtod(q, &q);
+                const double z = ::strtod(q, &q);
+                while (q < lineEnd && (*q == ' ' || *q == ')'))
+                {
+                    ++q;
+                }
+                const label cellI = label(::strtol(q, &q, 10));
+
+                if (cellI < 0 || cellI >= cellOwner.size())
+                {
+                    FatalErrorInFunction
+                        << "Entry " << gi << " has out-of-range cell index "
+                        << cellI << exit(FatalError);
+                }
+
+                if (cellOwner[cellI] == filterRank)
+                {
+                    ParticleType* pPtr =
+                        new ParticleType
+                        (
+                            polyMesh_,
+                            vector(x, y, z),
+                            cellI,
+                            true    // locate via initCellFacePtOrDeleteLostParticle
+                        );
+
+                    if (pPtr->initCellFacePtOrDeleteLostParticle())
+                    {
+                        delete pPtr;    // lost particle
+                    }
+                    else
+                    {
+                        kept.append(pPtr);
+                        kp.append(gi);
+                    }
+                }
+                // else: non-owned, skipped without construction cost
+
+                ++gi;
+
+                label done = 0;
+                #ifdef _OPENMP
+                #pragma omp atomic capture
+                #endif
+                done = ++parsedTotal;
+
+                if ((done % 20000000) == 0)
+                {
+                    #pragma omp critical(progressPrint)
+                    {
+                        Info<< "Cloud filtered read: parsed " << done
+                            << " / " << nFull << endl;
+                    }
+                }
+            }
+            else if (*p == ')')
+            {
+                break;
+            }
+
+            p = lineEnd + 1;
+        }
+    }
+
+    ::munmap(const_cast<char*>(base), size_t(fileSize));
+
+    // ---- serial merge in chunk order (deterministic cloud layout) ----
+    for (label t = 0; t < nThreads; ++t)
+    {
+        forAll(keptLocal[t], i)
+        {
+            this->append(keptLocal[t][i]);
+            keep.append(keepLocal[t][i]);
+        }
+        keptLocal[t].clear();
+        keepLocal[t].clear();
+    }
+
+    Info<< "Cloud filtered read: kept " << this->size()
+        << " / " << nFull << " particles" << endl;
+
+    return true;
+}
+
+
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
 template<class ParticleType>
@@ -179,7 +524,9 @@ Foam::Cloud<ParticleType>::Cloud
     labels_(),
     nTrackingRescues_(),
     cellWallFacesPtr_(),
-    openmpMoveMeshDataReady_(false)
+    openmpMoveMeshDataReady_(false),
+    initialReadKeep_(),
+    initialReadNFull_(0)
 {
     checkPatches();
 
@@ -192,7 +539,8 @@ Foam::Cloud<ParticleType>::Cloud
 (
     const polyMesh& pMesh,
     const word& cloudName,
-    const bool checkClass
+    const bool checkClass,
+    const bool readPositions
 )
 :
     cloud(pMesh, cloudName),
@@ -200,11 +548,22 @@ Foam::Cloud<ParticleType>::Cloud
     labels_(),
     nTrackingRescues_(),
     cellWallFacesPtr_(),
-    openmpMoveMeshDataReady_(false)
+    openmpMoveMeshDataReady_(false),
+    initialReadKeep_(),
+    initialReadNFull_(0)
 {
     checkPatches();
 
-    initCloud(checkClass);
+    if (readPositions)
+    {
+        initCloud(checkClass);
+    }
+    else
+    {
+        // Deferred read: uniform properties only; positions and fields
+        // are read later via readCloudFiltered + readFieldsFiltered.
+        readCloudUniformProperties();
+    }
 }
 
 

@@ -26,6 +26,7 @@ Description
 \*---------------------------------------------------------------------------*/
 
 #include "dsmcReaction.H"
+#include "dsmcMasterInfo.H"
 #include "IFstream.H"
 #include "graph.H"
 #include "dsmcCloud.H"
@@ -123,8 +124,11 @@ autoPtr<dsmcReaction> dsmcReaction::New
         dict.lookup("reactionModel")
     );
 
-    Info<< "Selecting the reaction model "
-         << dsmcReactionName << endl;
+    if (Foam::dsmcIsPrintingRank())
+    {
+        Info<< "Selecting the reaction model "
+             << dsmcReactionName << endl;
+    }
 
     dictionaryConstructorTable::iterator cstrIter =
         dictionaryConstructorTablePtr_->find(dsmcReactionName);

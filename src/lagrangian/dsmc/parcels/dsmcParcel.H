@@ -275,6 +275,12 @@ public:
                     wallVectors_(vectorField(4, vector::zero))
                 {}
 
+                //- M7 phase 1: stuck parcels are rare; route their
+                //  allocation through a small dedicated arena so the
+                //  general heap is not fragmented by desorption cycles.
+                static void* operator new(size_t sz);
+                static void operator delete(void* ptr) noexcept;
+
                 StuckParcel
                 (
                     const scalarField& wallTemperature,
@@ -1027,6 +1033,18 @@ public:
         scalar moveTrackerWallTime;
         scalar moveBoundaryWallTime;
 
+        // Worklog dlb_further_opt.md §11.6: per-track accounting split by
+        // whether the parcel's cell touches a boundary face (nearWall) or
+        // is interior.  Isolates the "near-wall trackToFace calls are more
+        // expensive" mechanism from the crossing-rate mechanism.  The
+        // nearWall flag table lives in dsmcCloud.C (file-static, lazily
+        // built) and is passed as a pointer; null disables the split.
+        const boolList* nearWallCells;
+        label moveWallCellTrackCalls;
+        label moveInteriorTrackCalls;
+        scalar moveWallCellTrackWallTime;
+        scalar moveInteriorTrackWallTime;
+
         // Constructors
 
             //- Construct from components
@@ -1047,7 +1065,12 @@ public:
                 moveStuckHits(0),
                 moveTrackWallTime(0.0),
                 moveTrackerWallTime(0.0),
-                moveBoundaryWallTime(0.0)
+                moveBoundaryWallTime(0.0),
+                nearWallCells(nullptr),
+                moveWallCellTrackCalls(0),
+                moveInteriorTrackCalls(0),
+                moveWallCellTrackWallTime(0.0),
+                moveInteriorTrackWallTime(0.0)
             {}
 
     };
@@ -1124,6 +1147,17 @@ public:
             const label newParcel,
             const label classification,
             const labelList& vibLevel
+        );
+
+        //- Skeleton parcel from position and cell for filtered initial
+        //  reads; tet data located on demand, field data assigned later
+        //  (readFieldsFiltered)
+        dsmcParcel
+        (
+            const polyMesh& mesh,
+            const vector& position,
+            const label cellI,
+            const bool doCellFacePt
         );
 
         //- Construct from Istream
@@ -1210,6 +1244,17 @@ public:
             }
         };
 
+
+    //- M6: class-level allocation through a slab arena.  Every
+    //  construction/destruction of dsmcParcel (cloud fill, boundary
+    //  injection, reactions, MPI transfer, checkpoint restore) routes
+    //  through these two functions, so the call sites stay untouched.
+    //  The arena hands out fixed-size slots from large blocks, removing
+    //  the per-parcel malloc header and fragmentation overhead.
+    static void* operator new(size_t sz);
+    static void* operator new(size_t, void* ptr) noexcept;
+    static void operator delete(void* ptr) noexcept;
+    static void operator delete(void* ptr, size_t) noexcept;
 
     // Member Functions
 
@@ -1455,6 +1500,18 @@ public:
             );
 
             static void readFields(Cloud<dsmcParcel>& c);
+
+            //- Read the cloud fields for a filtered initial read: the
+            //  positions stage (see IOPosition::readDataFiltered) kept
+            //  only parcels with file indices 'keep' out of 'nFull'
+            //  total entries; every field is read in full from file and
+            //  remapped through 'keep' before assignment.
+            static void readFieldsFiltered
+            (
+                Cloud<dsmcParcel>& c,
+                const labelList& keep,
+                const label nFull
+            );
 
             static void writeFields(const Cloud<dsmcParcel>& c);
 

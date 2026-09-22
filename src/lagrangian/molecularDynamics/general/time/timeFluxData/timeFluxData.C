@@ -24,6 +24,7 @@ License
 \*---------------------------------------------------------------------------*/
 
 #include "timeFluxData.H"
+#include "dsmcMasterInfo.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -86,7 +87,10 @@ timeFluxData::timeFluxData
 
 void timeFluxData::setInitialData()
 {
-    Info << nl << "TimeData Statistics: " << endl;
+    if (Foam::dsmcIsPrintingRank())
+    {
+        Info << nl << "TimeData Statistics: " << endl;
+    }
 
 //     scalar deltaTMD = readScalar(time_.controlDict().lookup("deltaT"));
 

@@ -83,6 +83,26 @@ bool Foam::IOPosition<CloudType>::writeData(Ostream& os) const
 
 
 template<class CloudType>
+Foam::label Foam::IOPosition<CloudType>::readHeader(off_t& entriesStart)
+{
+    Istream& is = readStream(this->type());
+    token firstToken(is);
+    if (!firstToken.isLabel())
+    {
+        FatalIOErrorInFunction(is)
+            << "expected the number of particles, found "
+            << firstToken.info() << exit(FatalIOError);
+    }
+    const label n = firstToken.labelToken();
+    is.readBeginList("IOPosition<CloudType>::readHeader");
+
+    ISstream& iss = dynamicCast<ISstream&>(is);
+    entriesStart = off_t(iss.stdStream().tellg());
+    return n;
+}
+
+
+template<class CloudType>
 void Foam::IOPosition<CloudType>::readData(CloudType& c, bool checkClass)
 {
     const polyMesh& mesh = c.pMesh();
@@ -148,6 +168,110 @@ void Foam::IOPosition<CloudType>::readData(CloudType& c, bool checkClass)
     is.check
     (
         "void IOPosition<CloudType>::readData(CloudType&, bool)"
+    );
+}
+
+
+template<class CloudType>
+void Foam::IOPosition<CloudType>::readDataFiltered
+(
+    CloudType& c,
+    bool checkClass,
+    const labelUList& cellOwner,
+    const label filterRank,
+    labelList& keep,
+    label& nFull
+)
+{
+    const polyMesh& mesh = c.pMesh();
+
+    Istream& is = readStream(checkClass ? typeName : "");
+
+    keep.clear();
+    nFull = 0;
+
+    // Construct each parcel through the same stream constructor as the
+    // unfiltered read (identical cell/tet-face/tet-point assignment),
+    // keep it only when its cell is owned by filterRank.
+    auto filteredAppend = [&](typename CloudType::particleType* pPtr)
+    {
+        if (cellOwner[pPtr->cell()] == filterRank)
+        {
+            c.append(pPtr);
+            keep.append(nFull);
+        }
+        else
+        {
+            delete pPtr;
+        }
+        ++nFull;
+    };
+
+    token firstToken(is);
+
+    if (firstToken.isLabel())
+    {
+        label s = firstToken.labelToken();
+
+        // Read beginning of contents
+        is.readBeginList("IOPosition<CloudType>::readDataFiltered(...)");
+
+        for (label i=0; i<s; i++)
+        {
+            // Do not read any fields, position only
+            filteredAppend
+            (
+                new typename CloudType::particleType(mesh, is, false)
+            );
+        }
+
+        // Read end of contents
+        is.readEndList("IOPosition<CloudType>::readDataFiltered(...)");
+    }
+    else if (firstToken.isPunctuation())
+    {
+        if (firstToken.pToken() != token::BEGIN_LIST)
+        {
+            FatalIOErrorIn
+            (
+                "void IOPosition<CloudType>::readDataFiltered(...)",
+                is
+            )   << "incorrect first token, '(', found "
+                << firstToken.info() << exit(FatalIOError);
+        }
+
+        token lastToken(is);
+        while
+        (
+           !(
+                lastToken.isPunctuation()
+             && lastToken.pToken() == token::END_LIST
+            )
+        )
+        {
+            is.putBack(lastToken);
+            // Do not read any fields, position only
+            filteredAppend
+            (
+                new typename CloudType::particleType(mesh, is, false)
+            );
+            is  >> lastToken;
+        }
+    }
+    else
+    {
+        FatalIOErrorIn
+        (
+            "void IOPosition<CloudType>::readDataFiltered(...)",
+            is
+        )   << "incorrect first token, expected <int> or '(', found "
+            << firstToken.info() << exit(FatalIOError);
+    }
+
+    // Check state of IOstream
+    is.check
+    (
+        "void IOPosition<CloudType>::readDataFiltered(...)"
     );
 }
 

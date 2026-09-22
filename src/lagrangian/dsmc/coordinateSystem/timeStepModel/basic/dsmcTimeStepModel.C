@@ -29,6 +29,7 @@ Description
 \*----------------------------------------------------------------------------*/
 
 #include "dsmcTimeStepModel.H"
+#include "dsmcMasterInfo.H"
 #include "dsmcCloud.H"
 
 namespace Foam
@@ -106,8 +107,11 @@ Foam::dsmcTimeStepModel::New
     timeStepModel = "dsmc" + static_cast<word>(std::toupper(timeStepModel[0]))
         + timeStepModel.substr(1) + "TimeStepModel";
 
-    Info<< "Selecting the time-step model:" << tab << timeStepModel
-        << "\n" << endl;
+    if (Foam::dsmcIsPrintingRank())
+    {
+        Info<< "Selecting the time-step model:" << tab << timeStepModel
+            << "\n" << endl;
+    }
 
     fvMeshConstructorTable::iterator cstrIter =
         fvMeshConstructorTablePtr_->find(timeStepModel);

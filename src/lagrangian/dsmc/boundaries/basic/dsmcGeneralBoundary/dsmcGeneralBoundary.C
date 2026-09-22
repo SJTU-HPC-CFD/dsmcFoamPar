@@ -26,6 +26,7 @@ Description
 \*---------------------------------------------------------------------------*/
 
 #include "dsmcGeneralBoundary.H"
+#include "dsmcMasterInfo.H"
 #include "graph.H"
 
 namespace Foam
@@ -123,8 +124,11 @@ autoPtr<dsmcGeneralBoundary> dsmcGeneralBoundary::New
         dict.lookup("boundaryModel")
     );
 
-    Info<< "Selecting dsmcGeneralBoundaryModel "
-         << dsmcGeneralBoundaryName << endl;
+    if (Foam::dsmcIsPrintingRank())
+    {
+        Info<< "Selecting dsmcGeneralBoundaryModel "
+             << dsmcGeneralBoundaryName << endl;
+    }
 
     dictionaryConstructorTable::iterator cstrIter =
         dictionaryConstructorTablePtr_->find(dsmcGeneralBoundaryName);

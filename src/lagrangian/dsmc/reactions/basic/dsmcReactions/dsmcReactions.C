@@ -26,6 +26,7 @@ Description
 \*---------------------------------------------------------------------------*/
 
 #include "dsmcReactions.H"
+#include "dsmcMasterInfo.H"
 #include "dsmcCloud.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
@@ -112,11 +113,17 @@ dsmcReactions::dsmcReactions
             nReactions_++;
         }
 
-        Info << "Number of reactions created: " << nReactions_ << endl;
+        if (Foam::dsmcIsPrintingRank())
+        {
+            Info << "Number of reactions created: " << nReactions_ << endl;
+        }
     }
     else
     {
-        Info << "There are no chemical reactions defined." << endl;
+        if (Foam::dsmcIsPrintingRank())
+        {
+            Info << "There are no chemical reactions defined." << endl;
+        }
     }
 
     pairAddressing_.setSize(cloud.typeIdList().size());

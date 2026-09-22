@@ -42,6 +42,7 @@ SourceFiles
 #include "CompactIOField.H"
 #include "polyMesh.H"
 #include "PackedBoolList.H"
+#include <sys/types.h>
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -90,6 +91,13 @@ class Cloud
         //- Demand-driven mesh data needed before OpenMP particle tracking
         mutable bool openmpMoveMeshDataReady_;
 
+        //- File indices kept by a filtered initial positions read
+        //  (empty when the read was unfiltered)
+        labelList initialReadKeep_;
+
+        //- Total entries in the positions file for a filtered initial read
+        label initialReadNFull_;
+
 
     // Private Member Functions
 
@@ -99,7 +107,27 @@ class Cloud
         //- Initialise cloud on IO constructor
         void initCloud(const bool checkClass);
 
-        //- Find all cells which have wall faces
+        //- Post-positions-read initialisation (tet base points and lost
+        //  particle cleanup) shared by initCloud and readCloudFiltered.
+        //  When reLocate is false the per-particle tet re-initialisation
+        //  is skipped (already done in the parallel filtered read).
+        void initCloudPostRead(const bool reLocate = true);
+
+        //- Parallel filtered read of the positions file: the entries
+        //  region is split across OMP threads (each thread parses its
+        //  own chunk), non-owned entries are skipped before particle
+        //  construction.  Returns false if the parallel path could not
+        //  be used (caller falls back to the serial read).
+        bool parallelFilteredRead
+        (
+            IOPosition<Cloud<ParticleType>>& ioP,
+            const fileName& posFile,
+            const off_t fileSize,
+            const labelUList& cellOwner,
+            const label filterRank,
+            labelList& keep,
+            label& nFull
+        );        //- Find all cells which have wall faces
         void calcCellWallFaces() const;
 
         //- Read cloud properties dictionary
@@ -157,12 +185,16 @@ public:
 
 
         //- Construct from mesh by reading from file with given cloud instance
-        //  Optionally disable checking of class name for post-processing
+        //  Optionally disable checking of class name for post-processing.
+        //  When readPositions is false the positions file is not read
+        //  during construction (deferred read, e.g. for filtered reading
+        //  via readCloudFiltered).
         Cloud
         (
             const polyMesh& pMesh,
             const word& cloudName,
-            const bool checkClass = true
+            const bool checkClass = true,
+            const bool readPositions = true
         );
 
 
@@ -313,6 +345,37 @@ public:
             //- Read the field data for the cloud of particles. Dummy at
             //  this level.
             virtual void readFields();
+
+            //- Deferred filtered read of the positions file: keep only
+            //  parcels whose cell is owned by filterRank according to
+            //  cellOwner.  Intended for replicated-mesh fresh starts;
+            //  must be called instead of the automatic constructor read
+            //  (readPositions = false).  Records the kept file indices
+            //  (initialReadKeep) and total entry count (initialReadNFull)
+            //  for the subsequent filtered field read.
+            void readCloudFiltered
+            (
+                const labelUList& cellOwner,
+                const label filterRank
+            );
+
+            //- True when the last positions read was filtered
+            bool initialReadFiltered() const
+            {
+                return initialReadNFull_ > 0;
+            }
+
+            //- File indices kept by the filtered initial read
+            const labelList& initialReadKeep() const
+            {
+                return initialReadKeep_;
+            }
+
+            //- Total entries in the positions file for the filtered read
+            label initialReadNFull() const
+            {
+                return initialReadNFull_;
+            }
 
 
         // Write

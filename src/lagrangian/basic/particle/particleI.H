@@ -605,7 +605,14 @@ inline void Foam::particle::crossEdgeConnectedFace
 
 inline Foam::label Foam::particle::getNewParticleID() const
 {
-    label id = particleCount_++;
+    label id = 0;
+
+    // Atomic: particles may be constructed concurrently by the parallel
+    // filtered initial read
+    #ifdef _OPENMP
+    #pragma omp atomic capture
+    #endif
+    id = particleCount_++;
 
     if (id == labelMax)
     {

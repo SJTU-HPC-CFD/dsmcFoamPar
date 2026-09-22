@@ -24,6 +24,28 @@ License
 \*---------------------------------------------------------------------------*/
 
 #include "timeDataMeas.H"
+#include "dsmcMasterInfo.H"
+
+namespace Foam
+{
+namespace
+{
+
+scalar writeIntervalInPhysicalTime(const Time& time)
+{
+    const scalar writeInterval =
+        readScalar(time.controlDict().lookup("writeInterval"));
+    const word writeControl =
+        time.controlDict().lookupOrDefault<word>("writeControl", "runTime");
+
+    return
+        writeControl == "timeStep"
+      ? writeInterval*time.deltaT().value()
+      : writeInterval;
+}
+
+}
+}
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -41,7 +63,7 @@ timeDataMeas::timeDataMeas
     time_(t),
     timeDict_(),
     timeMeasOption_(),
-    writeInterval_(readScalar(t.controlDict().lookup("writeInterval"))),
+    writeInterval_(writeIntervalInPhysicalTime(t)),
     writeIntSteps_(label((writeInterval_/t.deltaT().value())  + 0.5)),
     resetFieldsAtOutput_(true),
     resetIndex_(0),
@@ -69,7 +91,7 @@ timeDataMeas::timeDataMeas
     time_(t),
     timeDict_(timeDict),
     timeMeasOption_(timeDict_.lookup("timeOption")),
-    writeInterval_(readScalar(t.controlDict().lookup("writeInterval"))),
+    writeInterval_(writeIntervalInPhysicalTime(t)),
     writeIntSteps_(label((writeInterval_/t.deltaT().value()) + 0.5)),
     resetFieldsAtOutput_(true),
     resetIndex_(0),
@@ -90,7 +112,10 @@ timeDataMeas::timeDataMeas
 
 void timeDataMeas::setInitialData()
 {
-    Info << nl << "TimeData Statistics: " << endl;
+    if (Foam::dsmcIsPrintingRank())
+    {
+        Info << nl << "TimeData Statistics GATED: " << endl;
+    }
 
     scalar deltaTMD = readScalar(time_.controlDict().lookup("deltaT"));
 
@@ -347,14 +372,17 @@ void timeDataMeas::setInitialData()
     samplingTime_.deltaT() = deltaTMD * scalar(samplingTime_.nSteps());
     averagingTime_.deltaT() = deltaTMD * scalar(averagingTime_.nSteps());
 
-    Info << " measurement option: " << timeMeasOption_ << endl;
-    Info << " nSamples: " << samplingTime_.nSteps()
-         << ", time interval: " << samplingTime_.deltaT()
-         << endl;
+    if (Foam::dsmcIsPrintingRank())
+    {
+        Info << " measurement option: " << timeMeasOption_ << endl;
+        Info << " nSamples: " << samplingTime_.nSteps()
+             << ", time interval: " << samplingTime_.deltaT()
+             << endl;
 
-    Info << " nAverages: " << averagingTime_.nSteps()
-         << ", time interval: " << averagingTime_.deltaT()
-         << endl;
+        Info << " nAverages: " << averagingTime_.nSteps()
+             << ", time interval: " << averagingTime_.deltaT()
+             << endl;
+    }
 
 
     const scalar& endTime = time_.endTime().value();
@@ -374,8 +402,11 @@ void timeDataMeas::setInitialData()
 
     totalNSampSteps_ = label(((endTime - startTime) / samplingTime_.deltaT()) + 0.5);
 
-    Info << " total no. of sampling steps: " << totalNSampSteps_ << endl;
-    Info << " total no. of averaging Steps: " << totalNAvSteps_ << endl;
+    if (Foam::dsmcIsPrintingRank())
+    {
+        Info << " total no. of sampling steps: " << totalNSampSteps_ << endl;
+        Info << " total no. of averaging Steps: " << totalNAvSteps_ << endl;
+    }
 
 
     Info << nl << endl;

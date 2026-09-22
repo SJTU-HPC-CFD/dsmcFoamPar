@@ -24,6 +24,7 @@ License
 \*---------------------------------------------------------------------------*/
 
 #include "timeData.H"
+#include "dsmcMasterInfo.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -111,7 +112,10 @@ timeData::timeData
 
 void timeData::setInitialData()
 {
-    Info << nl << "TimeData Statistics: " << endl;
+    if (Foam::dsmcIsPrintingRank())
+    {
+        Info << nl << "TimeData Statistics: " << endl;
+    }
 
     scalar deltaTMD = readScalar(time_.controlDict().lookup("deltaT"));
 
@@ -144,9 +148,12 @@ void timeData::setInitialData()
 
     totalNSampSteps_ = label(((endTime - startTime) / samplingTime_.deltaT())+0.5);
 
-    Info << " total no. of sampling steps: " << totalNSampSteps_ << endl;
-    Info << " total no. of averaging Steps: " << totalNAvSteps_ << endl;
-    Info << " total no. of control Steps: " << totalNContSteps_ << endl;
+    if (Foam::dsmcIsPrintingRank())
+    {
+        Info << " total no. of sampling steps: " << totalNSampSteps_ << endl;
+        Info << " total no. of averaging Steps: " << totalNAvSteps_ << endl;
+        Info << " total no. of control Steps: " << totalNContSteps_ << endl;
+    }
 //     Info << " total no. of calc Steps: " << totalNCalcSteps_ << endl;
 
     Info << nl << endl;

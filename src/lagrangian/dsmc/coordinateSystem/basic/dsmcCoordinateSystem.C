@@ -29,6 +29,7 @@ Description
 \*----------------------------------------------------------------------------*/
 
 #include "dsmcCoordinateSystem.H"
+#include "dsmcMasterInfo.H"
 #include "dsmcCloud.H"
 
 namespace Foam
@@ -82,8 +83,11 @@ Foam::dsmcCoordinateSystem::New
           "dsmcCartesian"
       );
 
-    Info<< "Selecting the coordinate system model:" << tab << coordSystem
-        << "\n" << endl;
+    if (Foam::dsmcIsPrintingRank())
+    {
+        Info<< "Selecting the coordinate system model:" << tab << coordSystem
+            << "\n" << endl;
+    }
 
     fvMeshConstructorTable::iterator cstrIter =
         fvMeshConstructorTablePtr_->find(coordSystem);

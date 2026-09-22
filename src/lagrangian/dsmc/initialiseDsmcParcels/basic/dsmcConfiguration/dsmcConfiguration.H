@@ -126,6 +126,14 @@ public:
 
         virtual void setInitialConfiguration() = 0;
 
+        //- Per-cell parallel fill: fill only cells owned by filterRank.
+        //  Default: not supported for this configuration type.
+        virtual void setInitialConfigParallel
+        (
+            const labelUList& cellOwner,
+            const label filterRank
+        );
+
         const label& nParcelsAdded() const;
 };
 

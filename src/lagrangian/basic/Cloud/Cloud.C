@@ -195,14 +195,33 @@ inline bool replicatedMeshActive(const TrackCloudType&, long)
 
 template<class TrackData>
 inline auto copyMoveDetailProfile(TrackData& dst, const TrackData& src, int)
--> decltype(dst.moveDetailProfile = src.moveDetailProfile, void())
+-> decltype
+(
+    dst.moveDetailProfile = src.moveDetailProfile,
+    dst.nearWallCells = src.nearWallCells,
+    void()
+)
 {
     dst.moveDetailProfile = src.moveDetailProfile;
+    dst.nearWallCells = src.nearWallCells;
 }
 
 template<class TrackData>
 inline void copyMoveDetailProfile(TrackData&, const TrackData&, long)
 {}
+
+template<class TrackData>
+inline auto moveDetailEnabled(const TrackData& td, int)
+-> decltype(td.moveDetailProfile, bool())
+{
+    return td.moveDetailProfile;
+}
+
+template<class TrackData>
+inline bool moveDetailEnabled(const TrackData&, long)
+{
+    return false;
+}
 
 template<class TrackData>
 inline auto accumulateMoveDetailProfile(TrackData& dst, const TrackData& src, int)
@@ -220,6 +239,10 @@ inline auto accumulateMoveDetailProfile(TrackData& dst, const TrackData& src, in
     dst.moveTrackWallTime += src.moveTrackWallTime,
     dst.moveTrackerWallTime += src.moveTrackerWallTime,
     dst.moveBoundaryWallTime += src.moveBoundaryWallTime,
+    dst.moveWallCellTrackCalls += src.moveWallCellTrackCalls,
+    dst.moveInteriorTrackCalls += src.moveInteriorTrackCalls,
+    dst.moveWallCellTrackWallTime += src.moveWallCellTrackWallTime,
+    dst.moveInteriorTrackWallTime += src.moveInteriorTrackWallTime,
     void()
 )
 {
@@ -235,6 +258,10 @@ inline auto accumulateMoveDetailProfile(TrackData& dst, const TrackData& src, in
     dst.moveTrackWallTime += src.moveTrackWallTime;
     dst.moveTrackerWallTime += src.moveTrackerWallTime;
     dst.moveBoundaryWallTime += src.moveBoundaryWallTime;
+    dst.moveWallCellTrackCalls += src.moveWallCellTrackCalls;
+    dst.moveInteriorTrackCalls += src.moveInteriorTrackCalls;
+    dst.moveWallCellTrackWallTime += src.moveWallCellTrackWallTime;
+    dst.moveInteriorTrackWallTime += src.moveInteriorTrackWallTime;
 }
 
 template<class TrackData>
@@ -500,7 +527,9 @@ Foam::Cloud<ParticleType>::Cloud
     labels_(),
     nTrackingRescues_(),
     cellWallFacesPtr_(),
-    openmpMoveMeshDataReady_(false)
+    openmpMoveMeshDataReady_(false),
+    initialReadKeep_(),
+    initialReadNFull_(0)
 {
     checkPatches();
 
@@ -527,7 +556,9 @@ Foam::Cloud<ParticleType>::Cloud
     labels_(),
     nTrackingRescues_(),
     cellWallFacesPtr_(),
-    openmpMoveMeshDataReady_(false)
+    openmpMoveMeshDataReady_(false),
+    initialReadKeep_(),
+    initialReadNFull_(0)
 {
     checkPatches();
 
@@ -708,6 +739,8 @@ void Foam::Cloud<ParticleType>::move(TrackData& td, const scalar trackTime)
             max(label(1), cloudOpenMP::moveChunk(td.cloud(), 0));
         const bool moveOrderedReuse =
             cloudOpenMP::moveOrderedReuseEnabled(td.cloud(), 0);
+        const bool collectMoveDetail =
+            cloudOpenMP::moveDetailEnabled(td, 0);
 
         if (useProcessorPatchTransfer)
         {
@@ -809,9 +842,17 @@ void Foam::Cloud<ParticleType>::move(TrackData& td, const scalar trackTime)
                             localTd.switchProcessor ? 1 : 0;
                     }
 
-                    #pragma omp critical(dsmcMoveDetailProfile)
+                    if (collectMoveDetail)
                     {
-                        cloudOpenMP::accumulateMoveDetailProfile(td, localTd, 0);
+                        #pragma omp critical(dsmcMoveDetailProfile)
+                        {
+                            cloudOpenMP::accumulateMoveDetailProfile
+                            (
+                                td,
+                                localTd,
+                                0
+                            );
+                        }
                     }
                 }
 
@@ -1174,9 +1215,17 @@ void Foam::Cloud<ParticleType>::move(TrackData& td, const scalar trackTime)
                 }
             }
 
-            #pragma omp critical(dsmcMoveDetailProfile)
+            if (collectMoveDetail)
             {
-                cloudOpenMP::accumulateMoveDetailProfile(td, localTd, 0);
+                #pragma omp critical(dsmcMoveDetailProfile)
+                {
+                    cloudOpenMP::accumulateMoveDetailProfile
+                    (
+                        td,
+                        localTd,
+                        0
+                    );
+                }
             }
         }
 

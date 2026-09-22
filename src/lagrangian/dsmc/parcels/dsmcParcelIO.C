@@ -335,6 +335,311 @@ void Foam::dsmcParcel::readFields(Cloud<dsmcParcel>& c)
 }
 
 
+void Foam::dsmcParcel::readFieldsFiltered
+(
+    Cloud<dsmcParcel>& c,
+    const labelList& keep,
+    const label nFull
+)
+{
+    if (!c.size())
+    {
+        return;
+    }
+
+    if (c.size() != keep.size())
+    {
+        FatalErrorInFunction
+            << "Cloud size " << c.size()
+            << " does not match the number of kept indices "
+            << keep.size()
+            << " from the filtered positions read."
+            << exit(FatalIOError);
+    }
+
+    // A field read from file has nFull entries and is remapped through
+    // 'keep'; a field whose file is absent keeps its default with
+    // keep.size() entries.
+    auto checkSize = [&](const Foam::word& name, const label size)
+    {
+        if (size != nFull && size != keep.size())
+        {
+            FatalErrorIn
+            (
+                "Foam::dsmcParcel::readFieldsFiltered"
+            )   << "Field " << name << " has size " << size
+                << " which matches neither the positions file count "
+                << nFull << " nor the kept count " << keep.size()
+                << exit(FatalError);
+        }
+    };
+
+    // origProcId / origId (mirror particle::readFields with remap)
+    {
+        IOobject procIO(c.fieldIOobject("origProcId", IOobject::MUST_READ));
+
+        if (procIO.typeHeaderOk<IOList<label>>(false))
+        {
+            IOField<label> origProcIdFull(procIO);
+            checkSize("origProcId", origProcIdFull.size());
+            IOField<label> origIdFull
+            (
+                c.fieldIOobject("origId", IOobject::MUST_READ)
+            );
+            checkSize("origId", origIdFull.size());
+
+            label i = 0;
+            forAllIter(dsmcCloud, c, iter)
+            {
+                particle& p = iter();
+
+                if (origProcIdFull.size() == nFull)
+                {
+                    p.origProc() = origProcIdFull[keep[i]];
+                }
+                else
+                {
+                    p.origProc() = origProcIdFull[i];
+                }
+
+                if (origIdFull.size() == nFull)
+                {
+                    p.origId() = origIdFull[keep[i]];
+                }
+                else
+                {
+                    p.origId() = origIdFull[i];
+                }
+
+                i++;
+            }
+        }
+    }
+
+    // Mandatory and optional parcel fields, each remapped through keep
+    IOField<vector> UFull(c.fieldIOobject("U", IOobject::MUST_READ));
+    checkSize("U", UFull.size());
+
+    IOField<scalar> RWFRead
+    (
+        c.fieldIOobject("radialWeight", IOobject::READ_IF_PRESENT),
+        scalarField(keep.size(), 1.0)
+    );
+    checkSize("radialWeight", RWFRead.size());
+
+    IOField<scalar> ERotRead
+    (
+        c.fieldIOobject
+        (
+            "ERot",
+            IOobject::READ_IF_PRESENT
+        ),
+        scalarField(keep.size(), 0.0)
+    );
+    checkSize("ERot", ERotRead.size());
+
+    IOField<label> ELevelRead
+    (
+        c.fieldIOobject
+        (
+            "ELevel",
+            IOobject::READ_IF_PRESENT
+        ),
+        labelField(keep.size(), 0)
+    );
+    checkSize("ELevel", ELevelRead.size());
+
+    IOField<label> typeIdFull(c.fieldIOobject("typeId", IOobject::MUST_READ));
+    checkSize("typeId", typeIdFull.size());
+
+    IOField<label> newParcelFull
+    (
+        c.fieldIOobject("newParcel", IOobject::MUST_READ)
+    );
+    checkSize("newParcel", newParcelFull.size());
+
+    IOField<label> classificationFull
+    (
+        c.fieldIOobject("classification", IOobject::MUST_READ)
+    );
+    checkSize("classification", classificationFull.size());
+
+    IOField<label> stuckToWallRead
+    (
+        c.fieldIOobject
+        (
+            "stuckToWall",
+            IOobject::READ_IF_PRESENT
+        ),
+        labelField(keep.size(), 0)
+    );
+    checkSize("stuckToWall", stuckToWallRead.size());
+
+    IOField<scalarField> wallTemperatureRead
+    (
+        c.fieldIOobject
+        (
+            "wallTemperature",
+            IOobject::READ_IF_PRESENT
+        )
+    );
+
+    if (wallTemperatureRead.size() != nFull)
+    {
+        wallTemperatureRead.setSize(keep.size());
+        forAll(wallTemperatureRead, i)
+        {
+            wallTemperatureRead[i] = scalarField(4, 0.0);
+        }
+    }
+
+    IOField<vectorField> wallVectorsRead
+    (
+        c.fieldIOobject
+        (
+            "wallVectors",
+            IOobject::READ_IF_PRESENT
+        )
+    );
+
+    if (wallVectorsRead.size() != nFull)
+    {
+        wallVectorsRead.setSize(keep.size());
+        forAll(wallVectorsRead, i)
+        {
+            wallVectorsRead[i] = vectorField(4, vector::zero);
+        }
+    }
+
+    IOField<label> isTrackedRead
+    (
+        c.fieldIOobject
+        (
+            "isTracked",
+            IOobject::READ_IF_PRESENT
+        ),
+        labelField(keep.size(), 0)
+    );
+    checkSize("isTracked", isTrackedRead.size());
+
+    IOField<label> inPatchIdRead
+    (
+        c.fieldIOobject
+        (
+            "inPatchId",
+            IOobject::READ_IF_PRESENT
+        ),
+        labelField(keep.size(), -1)
+    );
+    checkSize("inPatchId", inPatchIdRead.size());
+
+    IOField<scalar> tracerInitialTimeRead
+    (
+        c.fieldIOobject
+        (
+            "tracerInitialTime",
+            IOobject::READ_IF_PRESENT
+        ),
+        scalarField(keep.size(), 0.0)
+    );
+    checkSize("tracerInitialTime", tracerInitialTimeRead.size());
+
+    IOField<vector> tracerInitialPositionRead
+    (
+        c.fieldIOobject
+        (
+            "tracerInitialPosition",
+            IOobject::READ_IF_PRESENT
+        ),
+        vectorField(keep.size(), vector::zero)
+    );
+    checkSize("tracerInitialPosition", tracerInitialPositionRead.size());
+
+    IOField<labelField> vibLevelRead
+    (
+        c.fieldIOobject
+        (
+            "vibLevel",
+            IOobject::READ_IF_PRESENT
+        )
+    );
+
+    if (vibLevelRead.size() != nFull)
+    {
+        vibLevelRead.setSize(keep.size());
+        forAll(vibLevelRead, i)
+        {
+            vibLevelRead[i].setSize(0);
+        }
+    }
+
+    // Assignment with remap through keep
+    label i = 0;
+    forAllIter(dsmcCloud, c, iter)
+    {
+        dsmcParcel& p = iter();
+        const label ki = keep[i];
+
+        p.U_ =
+            (UFull.size() == nFull) ? UFull[ki] : UFull[i];
+        p.RWF_ =
+            (RWFRead.size() == nFull) ? RWFRead[ki] : RWFRead[i];
+        p.ERot_ =
+            (ERotRead.size() == nFull) ? ERotRead[ki] : ERotRead[i];
+        p.ELevel_ =
+            (ELevelRead.size() == nFull) ? ELevelRead[ki] : ELevelRead[i];
+        p.typeId_ =
+            (typeIdFull.size() == nFull) ? typeIdFull[ki] : typeIdFull[i];
+        p.newParcel_ =
+            (newParcelFull.size() == nFull)
+          ? newParcelFull[ki] : newParcelFull[i];
+        p.classification_ =
+            (classificationFull.size() == nFull)
+          ? classificationFull[ki] : classificationFull[i];
+
+        const label stuck =
+            (stuckToWallRead.size() == nFull)
+          ? stuckToWallRead[ki] : stuckToWallRead[i];
+
+        if (stuck)
+        {
+            const scalarField wt =
+                (wallTemperatureRead.size() == nFull)
+              ? wallTemperatureRead[ki] : wallTemperatureRead[i];
+            const vectorField wv =
+                (wallVectorsRead.size() == nFull)
+              ? wallVectorsRead[ki] : wallVectorsRead[i];
+
+            p.setStuck(wt, wv);
+        }
+
+        const label tracked =
+            (isTrackedRead.size() == nFull)
+          ? isTrackedRead[ki] : isTrackedRead[i];
+
+        if (tracked)
+        {
+            p.setTracked
+            (
+                tracked,
+                (inPatchIdRead.size() == nFull)
+              ? inPatchIdRead[ki] : inPatchIdRead[i],
+                (tracerInitialTimeRead.size() == nFull)
+              ? tracerInitialTimeRead[ki] : tracerInitialTimeRead[i],
+                (tracerInitialPositionRead.size() == nFull)
+              ? tracerInitialPositionRead[ki] : tracerInitialPositionRead[i]
+            );
+        }
+
+        p.vibLevel_ =
+            (vibLevelRead.size() == nFull)
+          ? vibLevelRead[ki] : vibLevelRead[i];
+
+        i++;
+    }
+}
+
+
 void Foam::dsmcParcel::writeFields(const Cloud<dsmcParcel>& c)
 {
     particle::writeFields(c);

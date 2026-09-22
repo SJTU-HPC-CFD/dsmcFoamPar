@@ -122,6 +122,19 @@ dsmcConfiguration::~dsmcConfiguration()
 //     return name_;
 // }
 
+void Foam::dsmcConfiguration::setInitialConfigParallel
+(
+    const labelUList& cellOwner,
+    const label filterRank
+)
+{
+    FatalErrorInFunction
+        << "Parallel initial fill is not supported for configuration type "
+        << type() << ". Use the serial dsmcInitialise+ path instead."
+        << exit(FatalIOError);
+}
+
+
 const label& dsmcConfiguration::nParcelsAdded() const
 {
     return nParcelsAdded_;

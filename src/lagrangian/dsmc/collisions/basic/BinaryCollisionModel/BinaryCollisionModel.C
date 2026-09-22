@@ -24,6 +24,7 @@ License
 \*---------------------------------------------------------------------------*/
 
 #include "BinaryCollisionModel.H"
+#include "dsmcMasterInfo.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -64,7 +65,10 @@ Foam::autoPtr<Foam::BinaryCollisionModel> Foam::BinaryCollisionModel::New
 {
     const word modelType(dict.lookup("BinaryCollisionModel"));
 
-    Info<< "Selecting BinaryCollisionModel " << modelType << endl;
+    if (Foam::dsmcIsPrintingRank())
+    {
+        Info<< "Selecting BinaryCollisionModel " << modelType << endl;
+    }
 
     dictionaryConstructorTable::iterator cstrIter =
         dictionaryConstructorTablePtr_->find(modelType);

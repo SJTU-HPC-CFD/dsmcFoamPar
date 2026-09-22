@@ -232,6 +232,29 @@ inline Foam::dsmcParcel::dsmcParcel
 {}
 
 
+inline Foam::dsmcParcel::dsmcParcel
+(
+    const polyMesh& mesh,
+    const vector& position,
+    const label cellI,
+    const bool doCellFacePt
+)
+:
+    particle(mesh, position, cellI, doCellFacePt),
+    U_(vector::zero),
+    RWF_(1.0),
+    ERot_(0.0),
+    ELevel_(0),
+    typeId_(-1),
+    newParcel_(-1),
+    //tracked_(nullptr), // TODO TO BE REINTRODUCED
+    tracked_(),
+    classification_(0),
+    stuck_(nullptr),
+    vibLevel_()
+{}
+
+
 // * * * * * * * * * constantProperties Member Functions * * * * * * * * * * //
 
 inline Foam::label Foam::dsmcParcel::constantProperties::type() const

@@ -86,6 +86,13 @@ public:
         //- initial configuration
         void setInitialConfig();
 
+        //- Per-cell parallel fill (cells owned by filterRank only)
+        void setInitialConfigParallel
+        (
+            const labelUList& cellOwner,
+            const label filterRank
+        );
+
         // Access
 
 
