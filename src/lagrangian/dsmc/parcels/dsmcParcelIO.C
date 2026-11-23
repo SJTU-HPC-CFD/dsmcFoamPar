@@ -70,17 +70,14 @@ Foam::dsmcParcel::dsmcParcel
         }
         else
         {
-            is.read
-            (
-                reinterpret_cast<char*>(&U_),
-                sizeof(U_)
-                + sizeof(RWF_)
-                + sizeof(ERot_)
-                + sizeof(ELevel_)
-                + sizeof(typeId_)
-                + sizeof(newParcel_)
-                + sizeof(classification_)
-            );
+            // H11: symmetric with operator<< (member-wise; see there).
+            is  >> U_
+                >> RWF_
+                >> ERot_
+                >> ELevel_
+                >> typeId_
+                >> newParcel_
+                >> classification_;
             is >> tracked_; //tP;  // TODO VINCENT  11/05/2018
             is >> sP;
             is >> vibLevel_;
@@ -793,17 +790,18 @@ Foam::Ostream& Foam::operator<<
     {
         os  << static_cast<const particle&>(p);
 
-        os.write
-        (
-            reinterpret_cast<const char*>(&p.U_),
-            sizeof(p.U())
-            + sizeof(p.RWF())
-            + sizeof(p.ERot())
-            + sizeof(p.ELevel())
-            + sizeof(p.typeId())
-            + sizeof(p.newParcel())
-            + sizeof(p.classification())
-        );
+        // H11: write member by member.  The old raw block assumed
+        // U_/RWF_/ERot_/ELevel_/typeId_/newParcel_/classification_ were
+        // contiguous, but TrackedParcel tracked_ sits between newParcel_
+        // and classification_, so the block both over-read tracked_ and
+        // skipped classification_ (binary round-trip was misaligned).
+        os  << p.U_
+            << p.RWF()
+            << p.ERot()
+            << p.ELevel()
+            << p.typeId()
+            << p.newParcel()
+            << p.classification();
 
         os << p.tracked(); //tP; // TODO vincent  11/05/2018
         os << sP;

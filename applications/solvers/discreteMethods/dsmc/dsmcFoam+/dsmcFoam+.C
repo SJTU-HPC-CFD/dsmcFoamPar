@@ -392,6 +392,10 @@ bool run
             loadBalanceCheckWall += wallElapsed(loadBalanceCheckWallStart);
             loopWall += wallElapsed(loopWallStart);
         }
+
+        // Full wall time of this completed iteration for the replicated
+        // mesh wall trigger metric (§5.6 of worklog dlb_further_opt.md).
+        dsmc.setLastStepWallTime(wallElapsed(loopWallStart));
     }
 
     Info<< "End stage " << noRestart << "\n" << endl;

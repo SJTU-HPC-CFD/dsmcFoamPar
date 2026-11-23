@@ -68,6 +68,8 @@ SourceFiles
 #include <omp.h>
 #endif
 
+#include <fstream>
+
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 namespace Foam
@@ -154,6 +156,67 @@ private:
         word openmpMoveSchedule_;
         label openmpMoveChunk_;
 
+        // --- dlb_offload.md P0/P1 probe (controlDict-gated, default off) ---
+
+        //- P0: per-step timestamp line (controlDict: offloadProbe)
+        bool offloadProbe_;
+
+        //- P1: observe-only move-work counters (controlDict: offloadObserve)
+        bool offloadObserve_;
+
+        //- P1 bisect lever: build the boundary-clearance map (default
+        //  true).  false keeps the P/T/B counters but treats every cell
+        //  as unsafe — isolates clearance-map crashes from counting.
+        bool offloadObserveDistMap_;
+
+        //- P2-P5: enable per-step move offload (controlDict:
+        //  offloadEnable); the replicated mesh owns the protocol, the
+        //  cloud only triggers probe init (clock/clearance map)
+        bool offloadEnable_;
+
+        //- Probe initialisation done (epoch captured, tables built)
+        bool offloadProbeInited_;
+
+        //- MPI_COMM_WORLD rank (OF runs "serial" per process in
+        //  replicated-mesh mode, so Pstream::myProcNo is useless here)
+        label offloadProbeRank_;
+
+        //- Common probe clock epoch (steady-clock seconds, captured after
+        //  an MPI_Barrier so same-node ranks share the reference)
+        double offloadProbeEpoch_;
+
+        // Per-step timestamps, seconds relative to offloadProbeEpoch_
+        double tsMoveStart_;
+        double tsMoveEnd_;
+        double tsMigEnter_;
+        double tsOccEnd_;
+        double tsCollEnd_;
+        double tsPostEnd_;
+
+
+        // Per-step observe totals (merged from trackingData after move)
+        label offHistP_[12];
+        label offHistT_[12];
+        label offHistB_[12];
+        label offSafeP_;
+        label offSafeT_;
+        label offSafeB_;
+        scalar offMaxSpeed_;
+
+        //- One-time boundary clearance table (observe only): offSafeDist_
+        //  is a conservative lower bound on the clearance of any point of
+        //  the cell from any boundary face; buckets are linear in offDist_
+        //  with width offDistRef_
+        bool offDistBuilt_;
+        scalar offDistRef_;
+        scalarField offDist_;
+        scalarField offSafeDist_;
+        double offDistBuildWall_;
+
+        //- Per-rank probe CSV (per-rank Info does not reach the job
+        //  stdout in replicated-mesh mode, so the probe writes files)
+        std::ofstream offloadProbeFile_;
+
         //- Per-cell collision candidate counts for diagnostics/DLB
         labelList nCandidatesPerCell_;
 
@@ -214,6 +277,10 @@ private:
         List<labelList> occupancyThreadCellCounts_;
         List<DynamicList<label>> occupancyThreadActiveCells_;
         labelList occupancyTotalCounts_;
+        // §46 P1 reverted: the sparse-clear/parallel-classification trial
+        // (saved last-active set + atomic-fill lists) measured slower than
+        // the serial form at nCells = 5.8M; members removed with the code.
+        // See worklog §46.5.
 
         //- A data structure holding which particles are in which cell
         //List<DynamicList<dsmcParcel*> > cellOccupancy_;
@@ -332,8 +399,18 @@ private:
         //- Record which particles are in which cell
         void buildCellOccupancy();
 
+
         //- Materialize DynamicList cell occupancy from the flat view
         void materializeCellOccupancy();
+
+        //- reactionOccupancyAppendValidate: compare the flat view with an
+        //  independent reference computed from the cloud (FatalError on
+        //  the first difference)
+        void validateReactionOccupancy
+        (
+            const char* outcome,
+            const label appendedSizeBefore
+        );
 
         //- When mesh changed, relocate the patch/face of stuck parcels
         void relocateStuckParcels();
@@ -764,6 +841,86 @@ public:
             //- Print cloud information
             void info();
 
+            //- comm_further_opt.md §15.4: cumulative move-detail counters
+            //  (0 = moveParcels, 1 = trackCalls; file-static backed)
+            double moveDetailCumulative(const label idx) const;
+
+            //- §15.4: cumulative collision/candidate counters (hooked from
+            //  the collision partner selection, O(1) per collide call).
+            //  Double-backed: at 1200w scale these exceed int32 within
+            //  ~100 steps (double->label conversion raises SIGFPE under
+            //  FOAM_SIGFPE).
+            void addToCumulativeCollisions
+            (
+                const label nColl,
+                const label nCand
+            );
+
+            double cumulativeCollisions() const;
+
+            double cumulativeCollisionCandidates() const;
+
+            //- comm_further_opt.md §2.3: incremental occupancy append after
+            //  the async migration finish.  Requires a valid flat view from
+            //  a gap-time build over the kept parcels.  Returns false when
+            //  it fell back to a full buildCellOccupancy() instead
+            //  (received fraction over threshold or gap build missing).
+            bool appendReceivedToOccupancy(const List<dsmcParcel*>& received);
+
+            //- Shared incremental-append core (validation, threshold test,
+            //  shift/place/offsets/derived lists).  Returns false with the
+            //  flat state untouched when the threshold is exceeded; sets no
+            //  validity flag and no dsmcOverlapOccCurrent_.  Used by
+            //  appendReceivedToOccupancy() and the post-reaction path.
+            bool appendParcelsToOccupancy
+            (
+                const UList<dsmcParcel*>& parcels,
+                const bool requireOwned
+            );
+
+            //- reactionOccupancyAppend switch (controlDict, default false)
+            bool reactionOccupancyAppendEnabled() const;
+
+            //- Replaces the post-collision buildCellOccupancy() of a step
+            //  with reactions.  preSize/mark/preValid are the cloud size,
+            //  moveAppendedParcels_ size and flat-view validity captured
+            //  before collisions().  Switch off -> plain buildCellOccupancy().
+            //  Returns true when the incremental path (or the zero-new
+            //  skip) left a current flat view.
+            bool updateOccupancyAfterReactions
+            (
+                const label preSize,
+                const label mark,
+                const bool preValid
+            );
+
+            //- Count a flat-view invalidation after controlAfterCollisions
+            void noteReactionOccupancyLateInvalidate();
+
+            //- H4: cumulative wall time of the incremental-occupancy
+            //  validation (advanced only while the debug validation is on)
+            double occupancyValidationWall() const;
+
+            //- H4 coverage counters for the incremental occupancy append:
+            //  empty receive, one affected cell, several affected cells,
+            //  and a receive touching the last cell index.
+            void occupancyAppendCoverage
+            (
+                double& nEmpty,
+                double& nSingleCell,
+                double& nMultiCell,
+                double& nLastCell
+            ) const;
+
+            //- H4 self-test: real incremental append on synthetic inputs
+            //  (empty / singleCell / lastCell); see dsmcCloud.C.
+            bool occupancySelfTest
+            (
+                const word& mode,
+                label& nScratch,
+                label& nErrors
+            );
+
              //- Check if load balance is required
             void loadBalanceCheck();
 
@@ -874,6 +1031,11 @@ public:
             //  iteration (forwarded to the replicated mesh for the wall
             //  trigger metric; no-op without replicated mesh)
             void setLastStepWallTime(const scalar t);
+            void accumulateCellCostCandidates
+            (
+                const labelList& counts,
+                const labelList& touched
+            );   // §45 P0
 
             inline bool openmpEnabled() const
             {
@@ -1069,6 +1231,12 @@ public:
 
             void setMoveOrderedParcels(const DynamicList<dsmcParcel*>& parcels);
 
+            // §36.1: zero-copy variant — steals the caller's DynamicList
+            // storage (already built during the migration pass) instead of
+            // copying into a fresh List.  The argument is left empty and
+            // must not be reused by the caller.
+            void takeMoveOrderedParcels(DynamicList<dsmcParcel*>& parcels);
+
             void appendBatchToMoveOrdered(const DynamicList<dsmcParcel*>& parcels);
 
             inline void clearMoveOrderedParcels()
@@ -1143,6 +1311,60 @@ public:
             {
                 return profileDetail_;
             }
+
+            //- dlb_offload.md P0/P1 probe switches (SFINAE-probed by Cloud.C)
+            inline bool offloadProbeEnabled() const
+            {
+                return offloadProbe_;
+            }
+
+            inline bool offloadObserveEnabled() const
+            {
+                return offloadObserve_;
+            }
+
+            //- Common probe clock epoch; the replicated mesh uses it to
+            //  print its own migration timestamps on the same reference
+            inline double offloadProbeEpoch() const
+            {
+                return offloadProbeEpoch_;
+            }
+
+            //- Seconds since the probe epoch on this rank
+            double offloadProbeNow() const;
+
+            //- Distance bucket of a cell for the observe histogram
+            inline label offloadDistBucket(label celli) const
+            {
+                if (!offDistBuilt_ || celli < 0 || celli >= offDist_.size())
+                {
+                    return 0;
+                }
+                label b = label(offDist_[celli]/offDistRef_);
+                return min(b, label(11));
+            }
+
+            //- Conservative clearance lower bound of a cell; -1 if absent
+            inline scalar offloadCellClearance(label celli) const
+            {
+                if (!offDistBuilt_ || celli < 0)
+                {
+                    return -1;
+                }
+                if (celli >= offSafeDist_.size())
+                {
+                    return -1;
+                }
+                return offSafeDist_[celli];
+            }
+
+            //- One-time probe init: MPI rank/barrier, common epoch,
+            //  boundary clearance tables when observing
+            void offloadProbeInit();
+
+            //- Per-step probe line: move/occupancy/coll/post/step stamps
+            //  plus observe counters when enabled
+            void offloadProbeEmit();
 
             inline bool profileSummaryEnabled() const
             {

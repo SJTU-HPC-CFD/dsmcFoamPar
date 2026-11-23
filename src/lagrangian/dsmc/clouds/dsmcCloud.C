@@ -26,9 +26,14 @@ License
 #include "dsmcCloud.H"
 #include "constants.H"
 #include "zeroGradientFvPatchFields.H"
+#include <algorithm>
 #include <chrono>
 #include <fstream>
+#include <functional>
+#include <queue>
+#include <vector>
 #include <mpi.h>
+#include <malloc.h>
 
 using namespace Foam::constant;
 
@@ -63,6 +68,17 @@ namespace
     // procHits, cyclicHits, patchHits, stuckHits, trackWall, trackerWall,
     // boundaryWall.
     double dsmcMoveDetailCum[12] = {0};
+
+    // §15.4: cumulative collision/candidate counters (hooked from the
+    // collision partner selection once per collide call; read by the
+    // per-rank load tables at nTerminalOutputs and post-DLB cadences)
+    double dsmcCumCollisions_ = 0;
+    double dsmcCumCollisionCandidates_ = 0;
+
+    // §28: evolve-residual attribution (per-step model info updates).
+    double dsmcEvolveUpdateInfoWall_ = 0.0;
+    double dsmcEvolveCoordWall_ = 0.0;
+    double dsmcEvolveCtrlWall_ = 0.0;
 
     // §11.6 nearWall/interior track accounting.  Cumulative doubles
     // (wall-cell track calls, wall-cell track wall, interior track calls,
@@ -786,6 +802,11 @@ void Foam::dsmcCloud::buildCellOccupancy()
         // Persistent total counts (no per-step 52 MB allocation) + parallel
         // zero and per-thread atomic merge: the per-thread active-cell lists
         // are disjoint, cells may be shared across threads (§8.5).
+        // §46 P1 verdict: a sparse clear (saved last-active set) plus a
+        // parallelised classification measured SLOWER than this serial
+        // form (reduce 2.75 s vs 1.20 s per 100 steps, same node) — the
+        // barrier/atomic overhead exceeds the two serial scans at
+        // nCells = 5.8M.  Reverted; see worklog §46.5.
         labelList& totalCounts = occupancyTotalCounts_;
         if (totalCounts.size() != nCells)
         {
@@ -1108,6 +1129,1257 @@ void Foam::dsmcCloud::buildCellOccupancy()
         profileBuildCellOccupancyWall_ += elapsedWallSeconds(wallStart);
         profileBuildCellOccupancyCpu_ += mesh_.time().elapsedCpuTime() - cpu0;
     }
+}
+
+
+
+// comm_further_opt.md §2.3: occupancy "already current" flag for the
+// post-migration build guard, and incremental-append switch caches.
+// clean M6: real internal linkage (the previous definitions sat outside the
+// anonymous namespace, so "File-static" was wrong and the symbols were
+// exported).  Single cloud instance per process; no cross-TU consumer.
+static bool dsmcOverlapOccCurrent_ = false;
+static bool dsmcOverlapThresholdRead_ = false;
+static Foam::scalar dsmcOverlapThresholdCache_ = 0.1;
+static bool dsmcOverlapValidateRead_ = false;
+static bool dsmcOverlapValidateCache_ = false;
+
+// H4: cumulative wall time of the incremental-occupancy validation (only
+// advanced while the debug validation is enabled); reported separately in
+// the §35 migration stage table.
+static double dsmcOccValidateWall_ = 0.0;
+
+// H4 coverage counters: which input shapes the incremental append actually
+// saw (empty receive, one affected cell, several affected cells, and a
+// receive touching the last cell index).  Reported at the end of the run so
+// the coverage claim is measured, not assumed.
+static double dsmcOccAppendEmpty_ = 0.0;
+static double dsmcOccAppendSingleCell_ = 0.0;
+static double dsmcOccAppendMultiCell_ = 0.0;
+static double dsmcOccAppendLastCell_ = 0.0;
+
+// H4 self-test: while true, the debug full-rebuild validation is skipped —
+// the synthetic received parcels are not part of the cloud, so a reference
+// rebuild could not match them.
+static bool dsmcOccSelfTestActive_ = false;
+
+// ---- reactionOccupancyAppend / shared append core (O phase 2) ----
+// Per-call scratch written by appendParcelsToOccupancy() and read by the
+// reaction path (the async-migration path ignores it).
+struct DsmcOccAppendLast
+{
+    double tSort = 0.0;
+    double tShift = 0.0;
+    double tOffsets = 0.0;
+    double tDerived = 0.0;
+    Foam::label nAffected = 0;
+    Foam::label maxPerCell = 0;
+    Foam::label nKeptOne = 0;
+    Foam::label nKeptZero = 0;
+    bool touchesLast = false;
+};
+static DsmcOccAppendLast dsmcOccLast_;
+
+// Reaction-path counters (file-static, zero header change for the data).
+struct DsmcRxnAppendStats
+{
+    double nCalls = 0;          // post-collision updates attempted (reaction steps)
+    double nAppend = 0;         // successful incremental appends
+    double nFbThreshold = 0;    // fallback: new fraction above threshold
+    double nFbGuard = 0;        // fallback: a guard condition failed
+    double nSkipZero = 0;       // reactions but no new parcel: nothing to do
+    double nLate = 0;           // flat view invalidated after controlAfterCollisions
+    double nParcels = 0;        // cumulative appended parcels
+    double nShapeSingle = 0;    // appends touching exactly one cell
+    double nShapeMulti = 0;     // appends touching several cells
+    double nShapeSameCell = 0;  // appends with >=2 new parcels in one cell
+    double nKeptOneCells = 0;   // cells that had 1 parcel (1 -> >=2 transition)
+    double nKeptZeroCells = 0;  // cells that were empty (0 -> >=1 activation)
+    double nShapeLast = 0;      // appends touching the last cell index
+    double tAppend = 0.0;       // wall in append path (validation excluded)
+    double tSort = 0.0;
+    double tShift = 0.0;
+    double tOffsets = 0.0;
+    double tDerived = 0.0;
+    double tValidate = 0.0;     // reference rebuild + comparison (separate)
+    double nValidated = 0;
+};
+static DsmcRxnAppendStats dsmcRxn_;
+static bool dsmcRxnAppendRead_ = false;
+static bool dsmcRxnAppendEnabled_ = false;
+static bool dsmcRxnAppendValidate_ = false;
+static bool dsmcRxnAppendHasElectrons_ = false;
+
+static void dsmcReadOverlapControls(const Foam::dictionary& controlDict)
+{
+    if (!dsmcOverlapThresholdRead_)
+    {
+        dsmcOverlapThresholdCache_ =
+            controlDict.lookupOrDefault<Foam::scalar>
+            (
+                "replicatedMeshOverlapBuildThreshold",
+                0.1
+            );
+        dsmcOverlapValidateCache_ =
+            controlDict.lookupOrDefault<bool>
+            (
+                "replicatedMeshOverlapBuildValidate",
+                false
+            );
+        if (dsmcOverlapValidateCache_ && Foam::Pstream::master())
+        {
+            Foam::Info<< "Replicated mesh: incremental occupancy validation"
+                << " enabled (debug: full reference rebuild every append)"
+                << Foam::endl;
+        }
+        dsmcOverlapThresholdRead_ = true;
+    }
+}
+
+// Core of the incremental occupancy update (shared by the async-migration
+// path and the post-reaction path).  Precondition (NOT checked here, it is
+// the caller's guard): occupancyOrderedParcels_/occupancyCellOffsets_ hold
+// exactly the cloud minus 'received'.  Returns false, with the flat state
+// untouched, when the received fraction exceeds the threshold; the caller
+// decides how to fall back (it must call buildCellOccupancy() itself and must
+// NOT use markCurrent unless it is the async path).  Sets no validity flag.
+bool Foam::dsmcCloud::appendParcelsToOccupancy
+(
+    const UList<dsmcParcel*>& received,
+    const bool requireOwned
+)
+{
+    typedef std::chrono::steady_clock clk;
+    dsmcReadOverlapControls(controlDict_);
+    dsmcOccLast_ = DsmcOccAppendLast();
+
+    if (received.size() == 0)
+    {
+        return true;
+    }
+
+    const label nCells = mesh_.nCells();
+
+    // ---- 0. Input validation (H4) ----
+    // Runs before every consumer, including the threshold fallback below:
+    // buildCellOccupancy() also classifies these parcels by cell, so an
+    // out-of-range cell would corrupt memory there as well.  The check is
+    // O(nRecv) and always on; its cost is accumulated in the validation
+    // timer so it is never mixed into the incremental-append gain.
+    {
+        const auto tInput0 = clk::now();
+        label nBadCell = 0;
+        label firstBadCell = -1;
+        label nForeign = 0;
+        label firstForeign = -1;
+        forAll(received, i)
+        {
+            const label c = received[i]->cell();
+            if (c < 0 || c >= nCells)
+            {
+                if (nBadCell == 0)
+                {
+                    firstBadCell = c;
+                }
+                ++nBadCell;
+            }
+            else if
+            (
+                requireOwned
+             && replicatedMeshActive()
+             && !replicatedMesh_->isMyCell(c)
+            )
+            {
+                if (nForeign == 0)
+                {
+                    firstForeign = c;
+                }
+                ++nForeign;
+            }
+        }
+        if (nBadCell != 0 || nForeign != 0)
+        {
+            FatalErrorInFunction
+                << "Incremental occupancy append received invalid parcels:"
+                << " rank "
+                << (replicatedMeshActive() ? replicatedMesh_->myRank() : 0)
+                << " nRecv " << received.size()
+                << " nCells " << nCells
+                << " badCell " << nBadCell << " (first " << firstBadCell
+                << ") foreignOwner " << nForeign << " (first "
+                << firstForeign << ")"
+                << abort(FatalError);
+        }
+        dsmcOccValidateWall_ += std::chrono::duration<double>
+        (
+            clk::now() - tInput0
+        ).count();
+    }
+
+    // Fallback condition: received fraction too large (DLB repartition
+    // windows).  The caller does the full rebuild.
+    if (received.size() > dsmcOverlapThresholdCache_*this->size())
+    {
+        return false;
+    }
+
+    const auto tStep1 = clk::now();
+
+    // ---- 1. Received per-cell counts (O(nRecv)) ----
+    labelList recvCells(received.size());
+    forAll(received, i)
+    {
+        recvCells[i] = received[i]->cell();
+    }
+    std::sort(recvCells.begin(), recvCells.end());
+
+    label nAffected = 0;
+    for (label i = 0; i < recvCells.size(); ++i)
+    {
+        if (i == 0 || recvCells[i] != recvCells[i-1])
+        {
+            ++nAffected;
+        }
+    }
+    labelList affectedCells(nAffected);
+    labelList affectedRecvCounts(nAffected);
+    {
+        label a = -1;
+        for (label i = 0; i < recvCells.size(); ++i)
+        {
+            if (i == 0 || recvCells[i] != recvCells[i-1])
+            {
+                ++a;
+                affectedCells[a] = recvCells[i];
+                affectedRecvCounts[a] = 1;
+            }
+            else
+            {
+                ++affectedRecvCounts[a];
+            }
+        }
+    }
+
+    // Old offsets are needed only at the affected cells: capture them now
+    // (replaces the former full copy of occupancyCellOffsets_ and lets the
+    // offsets array be updated in place in step 4).
+    //   oldStart[a] = offsets[cell_a],  oldAt[a] = offsets[cell_a + 1]
+    labelList oldStart(nAffected);
+    labelList oldAt(nAffected);
+    for (label a = 0; a < nAffected; ++a)
+    {
+        oldStart[a] = occupancyCellOffsets_[affectedCells[a]];
+        oldAt[a] = occupancyCellOffsets_[affectedCells[a] + 1];
+    }
+    const label oldTotal = occupancyCellOffsets_[nCells];
+    const label recvTotal = received.size();
+
+    // Shape of this receive (H4 coverage / reaction-path coverage).
+    label maxPerCell = 0;
+    label nKeptOne = 0;
+    label nKeptZero = 0;
+    for (label a = 0; a < nAffected; ++a)
+    {
+        maxPerCell = max(maxPerCell, affectedRecvCounts[a]);
+        const label kept = oldAt[a] - oldStart[a];
+        if (kept == 1)
+        {
+            ++nKeptOne;
+        }
+        else if (kept == 0)
+        {
+            ++nKeptZero;
+        }
+    }
+
+    const auto tStep2 = clk::now();
+
+    // ---- 2. Shift kept segments to their new positions ----
+    // Block formulation: block a = cells (affected[a-1], affected[a]]
+    // (block 0 = cells [0, affected[0]]; top block = cells above the
+    // last affected).  Every cell in block a moves by the SAME shift
+    // S(a) = sum(recv[a'] for a' < a): its own received parcels go after
+    // its kept segment and do not move its start.  Process the top block
+    // first, then affected blocks DESCENDING, so each memmove
+    // destination never clobbers data that still needs moving (dest end
+    // = srcEnd + S(a) <= the next-higher block's final start).
+    occupancyOrderedParcels_.resize(oldTotal + recvTotal);
+
+    {
+        // Top block: cells (affectedCells[last], nCells) move by
+        // recvTotal.
+        if (nAffected > 0 && recvTotal > 0)
+        {
+            const label srcBegin = oldAt[nAffected - 1];
+            const label srcEnd = oldTotal;
+            if (srcEnd > srcBegin)
+            {
+                std::memmove
+                (
+                    occupancyOrderedParcels_.data() + srcBegin + recvTotal,
+                    occupancyOrderedParcels_.data() + srcBegin,
+                    sizeof(dsmcParcel*)*label(srcEnd - srcBegin)
+                );
+            }
+        }
+
+        // Affected blocks, descending.  shiftAcc holds
+        // sum(recv[a'] for a' >= a) on entry of iteration a.
+        label shiftAcc = recvTotal;
+        for (label a = nAffected - 1; a >= 0; --a)
+        {
+            shiftAcc -= affectedRecvCounts[a];
+            const label blockShift = shiftAcc;  // = S(a)
+            if (blockShift == 0) continue;
+            const label srcBegin = a > 0 ? oldAt[a - 1] : 0;
+            const label srcEnd = oldAt[a];
+            if (srcEnd > srcBegin)
+            {
+                std::memmove
+                (
+                    occupancyOrderedParcels_.data()
+                  + srcBegin + blockShift,
+                    occupancyOrderedParcels_.data() + srcBegin,
+                    sizeof(dsmcParcel*)*label(srcEnd - srcBegin)
+                );
+            }
+        }
+        // Cells below the first affected cell: shift 0, no move.
+    }
+
+    // ---- 3. Place received parcels at their cell segment tails ----
+    {
+        // cursors[a] = new start of cell_a + kept count
+        //            = oldStart[a] + S(a) + (oldAt[a] - oldStart[a])
+        //            = oldAt[a] + S(a)
+        labelList cursors(nAffected);
+        label shift = 0;
+        for (label a = 0; a < nAffected; ++a)
+        {
+            cursors[a] = oldAt[a] + shift;
+            shift += affectedRecvCounts[a];
+        }
+        forAll(received, i)
+        {
+            const label cellI = received[i]->cell();
+            const label a =
+                std::lower_bound
+                (
+                    affectedCells.begin(),
+                    affectedCells.end(),
+                    cellI
+                ) - affectedCells.begin();
+            occupancyOrderedParcels_[cursors[a]++] = received[i];
+        }
+    }
+
+    const auto tStep4 = clk::now();
+
+    // ---- 4. Update the offsets array in place ----
+    // offsets[c+1] += (number of received parcels in cells <= c).  Segment
+    // a = cells [affected[a], affected[a+1]) all gain cum[a] = sum of the
+    // first a+1 receive counts; cells below affected[0] are unchanged.
+    {
+        labelList cum(nAffected);
+        label run = 0;
+        for (label a = 0; a < nAffected; ++a)
+        {
+            run += affectedRecvCounts[a];
+            cum[a] = run;
+        }
+
+        labelList& off = occupancyCellOffsets_;
+
+        #ifdef _OPENMP
+        #pragma omp parallel for num_threads(ompNumThreads_) \
+            schedule(dynamic, 16) if (ompNumThreads_ > 1 && nAffected > 64)
+        #endif
+        for (label a = 0; a < nAffected; ++a)
+        {
+            const label cBegin = affectedCells[a];
+            const label cEnd =
+                (a + 1 < nAffected) ? affectedCells[a + 1] : nCells;
+            const label add = cum[a];
+            for (label c = cBegin; c < cEnd; ++c)
+            {
+                off[c + 1] += add;
+            }
+        }
+    }
+
+    const auto tStep5 = clk::now();
+
+    // ---- 5. Derived lists (active / collision / owned) ----
+    {
+        label activeCellCount = 0;
+        label collisionCellCount = 0;
+        for (label cellI = 0; cellI < nCells; ++cellI)
+        {
+            const label count =
+                occupancyCellOffsets_[cellI + 1]
+              - occupancyCellOffsets_[cellI];
+            if (count > 0)
+            {
+                ++activeCellCount;
+                if (count > 1)
+                {
+                    ++collisionCellCount;
+                }
+            }
+        }
+        occupancyActiveCells_.setSize(activeCellCount);
+        occupancyCollisionCells_.setSize(collisionCellCount);
+        activeCellCount = 0;
+        collisionCellCount = 0;
+        for (label cellI = 0; cellI < nCells; ++cellI)
+        {
+            const label count =
+                occupancyCellOffsets_[cellI + 1]
+              - occupancyCellOffsets_[cellI];
+            if (count > 0)
+            {
+                occupancyActiveCells_[activeCellCount++] = cellI;
+                if (count > 1)
+                {
+                    occupancyCollisionCells_[collisionCellCount++] = cellI;
+                }
+            }
+        }
+
+        if (replicatedMeshActive())
+        {
+            DynamicList<label> ownedCC(occupancyCollisionCells_.size());
+            forAll(occupancyCollisionCells_, i)
+            {
+                const label cellI = occupancyCollisionCells_[i];
+                if (replicatedMesh_->isMyCell(cellI))
+                {
+                    ownedCC.append(cellI);
+                }
+            }
+            occupancyOwnedCollisionCells_.transfer(ownedCC);
+        }
+        else
+        {
+            occupancyOwnedCollisionCells_ = occupancyCollisionCells_;
+        }
+    }
+
+    const auto tStep6 = clk::now();
+
+    // ---- 6. Per-cell DynamicList occupancy ----
+    if (cellOccupancyMaterialized_)
+    {
+        for (label a = 0; a < nAffected; ++a)
+        {
+            const label cellI = affectedCells[a];
+            DynamicList<dsmcParcel*>& cellParcels = cellOccupancy_[cellI];
+            cellParcels.clear();
+            for
+            (
+                label occI = occupancyCellOffsets_[cellI];
+                occI < occupancyCellOffsets_[cellI + 1];
+                ++occI
+            )
+            {
+                cellParcels.append(occupancyOrderedParcels_[occI]);
+            }
+        }
+    }
+
+    auto sec = [](const clk::time_point& a, const clk::time_point& b)
+    {
+        return std::chrono::duration<double>(b - a).count();
+    };
+    dsmcOccLast_.tSort = sec(tStep1, tStep2);
+    dsmcOccLast_.tShift = sec(tStep2, tStep4);
+    dsmcOccLast_.tOffsets = sec(tStep4, tStep5);
+    dsmcOccLast_.tDerived = sec(tStep5, tStep6);
+    dsmcOccLast_.nAffected = nAffected;
+    dsmcOccLast_.maxPerCell = maxPerCell;
+    dsmcOccLast_.nKeptOne = nKeptOne;
+    dsmcOccLast_.nKeptZero = nKeptZero;
+    dsmcOccLast_.touchesLast = (affectedCells[nAffected - 1] == nCells - 1);
+
+    return true;
+}
+bool Foam::dsmcCloud::appendReceivedToOccupancy
+(
+    const List<dsmcParcel*>& received
+)
+{
+    // Set the "current" flag on every exit path so the caller's
+    // post-migration buildCellOccupancy() is skipped exactly once, and
+    // restore the ordered-view validity: the occupancy data IS the
+    // complete post-migration state on every exit path (no-received
+    // early exit keeps the gap build; fallback rebuilds; incremental
+    // updates).  Without this, collide's lazy materialize would clear
+    // the per-cell lists and skip the rebuild (worklog
+    // comm_further_opt.md §6 root cause).
+    auto markCurrent = [&](bool ok)
+    {
+        dsmcOverlapOccCurrent_ = true;
+        occupancyOrderedParcelsValid_ = true;
+        return ok;
+    };
+
+    dsmcReadOverlapControls(controlDict_);
+
+    // Nothing received: the gap build over kept is already complete.
+    if (received.size() == 0)
+    {
+        dsmcOccAppendEmpty_ += 1.0;
+        return markCurrent(true);
+    }
+
+    const label nCells = mesh_.nCells();
+
+    // Input validation (H4), threshold fallback and the incremental update
+    // itself live in the shared core.  NOTE: the entry validity is the
+    // caller's gapBuildDone gate (passed via the mesh), NOT
+    // occupancyOrderedParcelsValid_: the moveOrdered set/clear in
+    // migrateFinish invalidates that flag while the ordered DATA from
+    // the gap build remains intact.
+    if (!appendParcelsToOccupancy(received, true))
+    {
+        buildCellOccupancy();
+        return markCurrent(false);
+    }
+
+    // H4 coverage: record the shape of this receive.
+    if (dsmcOccLast_.nAffected == 1)
+    {
+        dsmcOccAppendSingleCell_ += 1.0;
+    }
+    else
+    {
+        dsmcOccAppendMultiCell_ += 1.0;
+    }
+    if (dsmcOccLast_.touchesLast)
+    {
+        dsmcOccAppendLastCell_ += 1.0;
+    }
+    // ---- 7. Validation mode: recompute the reference and compare ----
+    const auto tOccValidate0 = std::chrono::steady_clock::now();
+    if (dsmcOverlapValidateCache_ && !dsmcOccSelfTestActive_)
+    {
+        labelList refCounts(nCells, 0);
+        forAllIter(dsmcCloud, *this, iter)
+        {
+            const label cellI = iter().cell();
+            if (cellI >= 0 && cellI < nCells)
+            {
+                ++refCounts[cellI];
+            }
+        }
+        labelList refOff(nCells + 1, 0);
+        for (label cellI = 0; cellI < nCells; ++cellI)
+        {
+            refOff[cellI + 1] = refOff[cellI] + refCounts[cellI];
+        }
+        List<dsmcParcel*> refOrdered(refOff[nCells]);
+        {
+            labelList cursor(refOff);
+            forAllIter(dsmcCloud, *this, iter)
+            {
+                const label cellI = iter().cell();
+                if (cellI >= 0 && cellI < nCells)
+                {
+                    refOrdered[cursor[cellI]++] = &iter();
+                }
+            }
+        }
+
+        label nMismatch = 0;
+        if (refOff[nCells] != occupancyCellOffsets_[nCells])
+        {
+            ++nMismatch;
+        }
+        for
+        (
+            label cellI = 0;
+            cellI <= nCells && nMismatch == 0;
+            ++cellI
+        )
+        {
+            if (refOff[cellI] != occupancyCellOffsets_[cellI])
+            {
+                ++nMismatch;
+                break;
+            }
+        }
+        if (nMismatch == 0)
+        {
+            for
+            (
+                label cellI = 0;
+                cellI < nCells && nMismatch == 0;
+                ++cellI
+            )
+            {
+                const label b = refOff[cellI];
+                const label e = refOff[cellI + 1];
+                if
+                (
+                    e - b
+                 != occupancyCellOffsets_[cellI + 1]
+                  - occupancyCellOffsets_[cellI]
+                )
+                {
+                    ++nMismatch;
+                    break;
+                }
+                // Membership scan (order-free); validation mode only
+                for (label i = b; i < e; ++i)
+                {
+                    const dsmcParcel* p = refOrdered[i];
+                    bool found = false;
+                    for
+                    (
+                        label j = occupancyCellOffsets_[cellI];
+                        j < occupancyCellOffsets_[cellI + 1];
+                        ++j
+                    )
+                    {
+                        if (occupancyOrderedParcels_[j] == p)
+                        {
+                            found = true;
+                            break;
+                        }
+                    }
+                    if (!found)
+                    {
+                        ++nMismatch;
+                        break;
+                    }
+                }
+            }
+        }
+        if (nMismatch != 0)
+        {
+            FatalErrorInFunction
+                << "Incremental occupancy append validation failed"
+                << " (mismatch count " << nMismatch << ")"
+                << " at time " << mesh_.time().timeName()
+                << abort(FatalError);
+        }
+    }
+    dsmcOccValidateWall_ += std::chrono::duration<double>
+    (
+        std::chrono::steady_clock::now() - tOccValidate0
+    ).count();
+
+    static label nIncrementalRuns_ = 0;
+    if (nIncrementalRuns_ == 0 && Pstream::master())
+    {
+        Info<< "Replicated mesh: overlap incremental occupancy active"
+            << " (first append: " << received.size() << " parcels)"
+            << endl;
+    }
+    ++nIncrementalRuns_;
+
+    return markCurrent(true);
+}
+
+// ---- reactionOccupancyAppend (O phase 2): post-reaction occupancy update ----
+
+bool Foam::dsmcCloud::reactionOccupancyAppendEnabled() const
+{
+    if (!dsmcRxnAppendRead_)
+    {
+        dsmcRxnAppendEnabled_ =
+            controlDict_.lookupOrDefault<bool>("reactionOccupancyAppend", false);
+        dsmcRxnAppendValidate_ =
+            controlDict_.lookupOrDefault<bool>
+            (
+                "reactionOccupancyAppendValidate",
+                false
+            );
+        dsmcRxnAppendHasElectrons_ = findIndex(typeIdList_, word("e-")) != -1;
+        dsmcRxnAppendRead_ = true;
+        if (dsmcRxnAppendEnabled_ && isOutputRank())
+        {
+            Info<< "Reaction occupancy append: enabled"
+                << (dsmcRxnAppendValidate_ ? " + VALIDATE (debug)" : "")
+                << (dsmcRxnAppendHasElectrons_
+                  ? " (e- species present: always falls back)" : "")
+                << endl;
+        }
+    }
+    return dsmcRxnAppendEnabled_;
+}
+
+
+void Foam::dsmcCloud::noteReactionOccupancyLateInvalidate()
+{
+    dsmcRxn_.nLate += 1.0;
+}
+
+
+namespace
+{
+    void dsmcRxnValidateFail(const std::string& msg)
+    {
+        FatalErrorInFunction
+            << "reactionOccupancyAppend validation failed: " << msg.c_str()
+            << Foam::abort(Foam::FatalError);
+    }
+}
+
+
+void Foam::dsmcCloud::validateReactionOccupancy
+(
+    const char* outcome,
+    const label appendedSizeBefore
+)
+{
+    // Independent reference: the flat occupancy view is recomputed from the
+    // cloud's IDLList (ground truth, no dependence on moveOrdered/appended)
+    // and compared with the state the update left.  Nothing the solver
+    // reads is modified - the state left behind is the APPEND result (or
+    // the fallback's full-rebuild result), never the reference, so the
+    // following consumers are exercised on the state under test.
+    const auto t0 = std::chrono::steady_clock::now();
+    const label nCells = mesh_.nCells();
+    const label nParcels = this->size();
+    const std::string tag = std::string("[") + outcome + "] time "
+      + mesh_.time().timeName().c_str() + ": ";
+
+    // ---- exit flags ----
+    if (!occupancyOrderedParcelsValid_)
+    {
+        dsmcRxnValidateFail(tag + "occupancyOrderedParcelsValid_ is false");
+    }
+    if (dsmcOverlapOccCurrent_)
+    {
+        dsmcRxnValidateFail(tag + "dsmcOverlapOccCurrent_ was set");
+    }
+    if (moveAppendedParcels_.size() != appendedSizeBefore)
+    {
+        dsmcRxnValidateFail
+        (
+            tag + "moveAppendedParcels_ size changed "
+          + std::to_string(appendedSizeBefore) + " -> "
+          + std::to_string(moveAppendedParcels_.size())
+        );
+    }
+    if (occupancyCellOffsets_.size() != nCells + 1)
+    {
+        dsmcRxnValidateFail(tag + "offsets size != nCells+1");
+    }
+    if (occupancyCellOffsets_.last() != nParcels)
+    {
+        dsmcRxnValidateFail
+        (
+            tag + "offsets.last()=" + std::to_string(occupancyCellOffsets_.last())
+          + " != cloud size " + std::to_string(nParcels)
+        );
+    }
+    if (occupancyOrderedParcels_.size() != nParcels)
+    {
+        dsmcRxnValidateFail(tag + "orderedParcels size != cloud size");
+    }
+
+    // ---- reference counts / offsets ----
+    labelList refCount(nCells, 0);
+    forAllIter(dsmcCloud, *this, iter)
+    {
+        const label c = iter().cell();
+        if (c >= 0 && c < nCells)
+        {
+            ++refCount[c];
+        }
+    }
+    labelList refOff(nCells + 1, 0);
+    for (label c = 0; c < nCells; ++c)
+    {
+        refOff[c + 1] = refOff[c] + refCount[c];
+    }
+    if (occupancyCellOffsets_[0] != 0)
+    {
+        dsmcRxnValidateFail(tag + "offsets[0] != 0");
+    }
+    for (label c = 0; c <= nCells; ++c)
+    {
+        if (refOff[c] != occupancyCellOffsets_[c])
+        {
+            // first differing offset: report the cell and counts
+            const label cc = (c > 0 ? c - 1 : 0);
+            dsmcRxnValidateFail
+            (
+                tag + "offsets[" + std::to_string(c) + "] ref "
+              + std::to_string(refOff[c]) + " got "
+              + std::to_string(occupancyCellOffsets_[c]) + " (first differing"
+                " cell ~" + std::to_string(cc) + ", ref count "
+              + std::to_string(refCount[cc]) + ")"
+            );
+        }
+    }
+
+    // ---- per-cell pointer multiset (sorted comparison, O(n log n)) ----
+    std::vector<dsmcParcel*> refOrdered(nParcels);
+    {
+        labelList cursor(refOff);
+        forAllIter(dsmcCloud, *this, iter)
+        {
+            const label c = iter().cell();
+            if (c >= 0 && c < nCells)
+            {
+                refOrdered[cursor[c]++] = &iter();
+            }
+        }
+    }
+    std::vector<dsmcParcel*> tmp;
+    for (label c = 0; c < nCells; ++c)
+    {
+        const label b = refOff[c];
+        const label e = refOff[c + 1];
+        if (e - b == 0)
+        {
+            continue;
+        }
+        std::sort(refOrdered.begin() + b, refOrdered.begin() + e);
+        tmp.assign
+        (
+            occupancyOrderedParcels_.begin() + b,
+            occupancyOrderedParcels_.begin() + e
+        );
+        std::sort(tmp.begin(), tmp.end());
+        for (label i = 0; i < e - b; ++i)
+        {
+            if (tmp[i] != refOrdered[b + i])
+            {
+                dsmcRxnValidateFail
+                (
+                    tag + "parcel multiset differs in cell " + std::to_string(c)
+                  + " (count " + std::to_string(e - b) + ", position "
+                  + std::to_string(i) + ")"
+                );
+            }
+        }
+    }
+
+    // ---- derived lists ----
+    DynamicList<label> act;
+    DynamicList<label> col;
+    for (label c = 0; c < nCells; ++c)
+    {
+        if (refCount[c] > 0)
+        {
+            act.append(c);
+            if (refCount[c] > 1)
+            {
+                col.append(c);
+            }
+        }
+    }
+    DynamicList<label> own;
+    forAll(col, i)
+    {
+        if (!replicatedMeshActive() || replicatedMesh_->isMyCell(col[i]))
+        {
+            own.append(col[i]);
+        }
+    }
+    auto cmpList = [&](const char* name, const labelList& got, const UList<label>& ref)
+    {
+        if (got.size() != ref.size())
+        {
+            dsmcRxnValidateFail
+            (
+                tag + name + " size ref " + std::to_string(ref.size())
+              + " got " + std::to_string(got.size())
+            );
+        }
+        forAll(got, i)
+        {
+            if (got[i] != ref[i])
+            {
+                dsmcRxnValidateFail
+                (
+                    tag + name + "[" + std::to_string(i) + "] ref "
+                  + std::to_string(ref[i]) + " got " + std::to_string(got[i])
+                );
+            }
+        }
+    };
+    cmpList("occupancyActiveCells", occupancyActiveCells_, act);
+    cmpList("occupancyCollisionCells", occupancyCollisionCells_, col);
+    cmpList("occupancyOwnedCollisionCells", occupancyOwnedCollisionCells_, own);
+
+    dsmcRxn_.tValidate += std::chrono::duration<double>
+    (
+        std::chrono::steady_clock::now() - t0
+    ).count();
+    dsmcRxn_.nValidated += 1.0;
+}
+
+
+bool Foam::dsmcCloud::updateOccupancyAfterReactions
+(
+    const label preSize,
+    const label mark,
+    const bool preValid
+)
+{
+    if (!reactionOccupancyAppendEnabled())
+    {
+        buildCellOccupancy();
+        return false;
+    }
+
+    typedef std::chrono::steady_clock clk;
+    const auto tEntry = clk::now();
+    const scalar cpu0 = profileSummary_ ? mesh_.time().elapsedCpuTime() : 0.0;
+    const label nCells = mesh_.nCells();
+    const label appSize0 = moveAppendedParcels_.size();
+    const label nNew = appSize0 - mark;
+    dsmcRxn_.nCalls += 1.0;
+
+    // Guard (audit_1.3.md §5.2.3 / §5.2.5): every condition must hold or the
+    // full rebuild runs.
+    const bool structural =
+        openmpEnabled_
+     && openmpMoveEnabled_
+     && ompNumThreads_ > 1
+     && !dsmcRxnAppendHasElectrons_;
+    const bool guard =
+        structural
+     && preValid
+     && moveOrderedParcelsValid_
+     && mark >= 0
+     && nNew >= 0
+     && this->size() == preSize + nNew
+     && occupancyCellOffsets_.size() == nCells + 1
+     && occupancyOrderedParcels_.size() == preSize;
+
+    const char* outcome = "fallback-guard";
+    bool current = false;
+
+    if (!guard)
+    {
+        buildCellOccupancy();
+        dsmcRxn_.nFbGuard += 1.0;
+    }
+    else if (nNew == 0)
+    {
+        // Only typeId-type reactions (or allowSplitting no): the flat view
+        // was not invalidated and is still exactly the cloud.
+        if (occupancyOrderedParcelsValid_)
+        {
+            dsmcRxn_.nSkipZero += 1.0;
+            current = true;
+            outcome = "skip-zero";
+        }
+        else
+        {
+            buildCellOccupancy();
+            dsmcRxn_.nFbGuard += 1.0;
+        }
+    }
+    else
+    {
+        UList<dsmcParcel*> newParcels(moveAppendedParcels_.data() + mark, nNew);
+        const double inputValidate0 = dsmcOccValidateWall_;
+
+        if (appendParcelsToOccupancy(newParcels, true))
+        {
+            // Full-rebuild exit state of the OMP path: valid=true,
+            // materialized=false (addParticle already cleared the latter).
+            // dsmcOverlapOccCurrent_ is deliberately NOT touched and
+            // moveAppendedParcels_ is NOT cleared (Cloud::move reuses it).
+            occupancyOrderedParcelsValid_ = true;
+
+            const double wall =
+                std::chrono::duration<double>(clk::now() - tEntry).count()
+              - (dsmcOccValidateWall_ - inputValidate0);
+            dsmcRxn_.nAppend += 1.0;
+            dsmcRxn_.nParcels += double(nNew);
+            if (dsmcOccLast_.nAffected == 1)
+            {
+                dsmcRxn_.nShapeSingle += 1.0;
+            }
+            else
+            {
+                dsmcRxn_.nShapeMulti += 1.0;
+            }
+            if (dsmcOccLast_.maxPerCell >= 2)
+            {
+                dsmcRxn_.nShapeSameCell += 1.0;
+            }
+            if (dsmcOccLast_.touchesLast)
+            {
+                dsmcRxn_.nShapeLast += 1.0;
+            }
+            dsmcRxn_.nKeptOneCells += double(dsmcOccLast_.nKeptOne);
+            dsmcRxn_.nKeptZeroCells += double(dsmcOccLast_.nKeptZero);
+            dsmcRxn_.tAppend += wall;
+            dsmcRxn_.tSort += dsmcOccLast_.tSort;
+            dsmcRxn_.tShift += dsmcOccLast_.tShift;
+            dsmcRxn_.tOffsets += dsmcOccLast_.tOffsets;
+            dsmcRxn_.tDerived += dsmcOccLast_.tDerived;
+
+            // Counted in build_occupancy so the total stays comparable.
+            if (profileSummary_ && profileTimingActive_)
+            {
+                profileBuildCellOccupancyWall_ += wall;
+                profileBuildCellOccupancyCpu_ +=
+                    mesh_.time().elapsedCpuTime() - cpu0;
+            }
+            current = true;
+            outcome = "append";
+        }
+        else
+        {
+            buildCellOccupancy();
+            dsmcRxn_.nFbThreshold += 1.0;
+            outcome = "fallback-threshold";
+        }
+    }
+
+    if (dsmcRxnAppendValidate_)
+    {
+        validateReactionOccupancy(outcome, appSize0);
+    }
+
+    return current;
+}
+
+
+double Foam::dsmcCloud::occupancyValidationWall() const
+{
+    return dsmcOccValidateWall_;
+}
+
+
+void Foam::dsmcCloud::occupancyAppendCoverage
+(
+    double& nEmpty,
+    double& nSingleCell,
+    double& nMultiCell,
+    double& nLastCell
+) const
+{
+    nEmpty = dsmcOccAppendEmpty_;
+    nSingleCell = dsmcOccAppendSingleCell_;
+    nMultiCell = dsmcOccAppendMultiCell_;
+    nLastCell = dsmcOccAppendLastCell_;
+}
+
+
+bool Foam::dsmcCloud::occupancySelfTest
+(
+    const word& mode,
+    label& nScratch,
+    label& nErrors
+)
+{
+    // H4: exercise the real incremental append with the input shapes that a
+    // production schedule rarely produces (empty receive, all parcels in one
+    // cell) and with the last cell index.  The scratch parcels are not in
+    // the cloud; the occupancy is rebuilt from the cloud afterwards, so the
+    // test leaves no trace beyond the counters.
+    const label nCells = mesh_.nCells();
+    if (nCells <= 0)
+    {
+        nScratch = 0;
+        nErrors = 1;
+        return false;
+    }
+
+    label celli = 0;
+    if (mode == "lastCell" || mode == "singleCell")
+    {
+        if (replicatedMeshActive())
+        {
+            celli = -1;
+            for (label c = nCells - 1; c >= 0; --c)
+            {
+                if (replicatedMesh_->isMyCell(c))
+                {
+                    celli = c;
+                    break;
+                }
+            }
+            if (celli < 0)
+            {
+                nScratch = 0;
+                nErrors = 1;
+                return false;
+            }
+        }
+        else
+        {
+            celli = (mode == "lastCell") ? nCells - 1 : 0;
+        }
+    }
+
+    List<dsmcParcel*> scratch;
+    if (mode == "empty")
+    {
+        nScratch = 0;
+    }
+    else if (mode == "singleCell" || mode == "lastCell")
+    {
+        nScratch = 3;
+        scratch.setSize(nScratch);
+        for (label i = 0; i < nScratch; ++i)
+        {
+            auto* p = new dsmcParcel
+            (
+                mesh_,
+                mesh_.cellCentres()[celli],
+                celli,
+                false
+            );
+            p->cell() = celli;
+            scratch[i] = p;
+        }
+    }
+    else
+    {
+        nScratch = 0;
+        nErrors = 1;
+        return false;
+    }
+
+    const labelList oldOff = occupancyCellOffsets_;
+    const label oldSize = occupancyOrderedParcels_.size();
+    List<dsmcParcel*> oldOrdered;
+    if (oldSize > 0)
+    {
+        oldOrdered.setSize(oldSize);
+        forAll(oldOrdered, i)
+        {
+            oldOrdered[i] = occupancyOrderedParcels_[i];
+        }
+    }
+
+    dsmcOccSelfTestActive_ = true;
+    const bool appended = appendReceivedToOccupancy(scratch);
+    dsmcOccSelfTestActive_ = false;
+
+    nErrors = 0;
+
+    // 1. offsets: size, monotonic, end == total
+    if (occupancyCellOffsets_.size() != nCells + 1)
+    {
+        ++nErrors;
+    }
+    else
+    {
+        for (label c = 0; c < nCells; ++c)
+        {
+            if (occupancyCellOffsets_[c] > occupancyCellOffsets_[c+1])
+            {
+                ++nErrors;
+                break;
+            }
+        }
+        if
+        (
+            occupancyCellOffsets_[nCells]
+         != occupancyOrderedParcels_.size()
+        )
+        {
+            ++nErrors;
+        }
+    }
+
+    // 2. each scratch parcel appears exactly once
+    forAll(scratch, i)
+    {
+        label nFound = 0;
+        forAll(occupancyOrderedParcels_, k)
+        {
+            if (occupancyOrderedParcels_[k] == scratch[i])
+            {
+                ++nFound;
+            }
+        }
+        if (nFound != 1)
+        {
+            ++nErrors;
+        }
+    }
+
+    // 3. scratch parcels sit in the requested cell's segment
+    if (nScratch > 0 && occupancyCellOffsets_.size() == nCells + 1)
+    {
+        forAll(scratch, i)
+        {
+            bool inCell = false;
+            for
+            (
+                label k = occupancyCellOffsets_[celli];
+                k < occupancyCellOffsets_[celli + 1];
+                ++k
+            )
+            {
+                if (occupancyOrderedParcels_[k] == scratch[i])
+                {
+                    inCell = true;
+                    break;
+                }
+            }
+            if (!inCell)
+            {
+                ++nErrors;
+            }
+        }
+    }
+
+    // 4. cells other than the target keep their old sequence, shifted by
+    //    the inserted count
+    if
+    (
+        occupancyCellOffsets_.size() == nCells + 1
+     && oldOff.size() == nCells + 1
+    )
+    {
+        for (label c = 0; c < nCells; ++c)
+        {
+            if (c == celli) continue;
+            const label shift = (c > celli) ? nScratch : 0;
+            const label oldLen = oldOff[c+1] - oldOff[c];
+            const label newLen =
+                occupancyCellOffsets_[c+1] - occupancyCellOffsets_[c];
+            if (newLen != oldLen)
+            {
+                ++nErrors;
+                break;
+            }
+            bool same = true;
+            for (label k = 0; k < oldLen; ++k)
+            {
+                if
+                (
+                    occupancyOrderedParcels_[occupancyCellOffsets_[c] + k]
+                 != oldOrdered[oldOff[c] + k]
+                )
+                {
+                    same = false;
+                    break;
+                }
+            }
+            if (!same)
+            {
+                ++nErrors;
+                break;
+            }
+            (void)shift;
+        }
+    }
+
+    // Restore the occupancy from the cloud (also drops the scratch pointers).
+    buildCellOccupancy();
+
+    forAll(scratch, i)
+    {
+        delete scratch[i];
+    }
+
+    return appended;
 }
 
 
@@ -1855,6 +3127,43 @@ Foam::dsmcCloud::dsmcCloud
     (
         max(label(1), controlDict_.lookupOrDefault<label>("openmpMoveChunk", 1))
     ),
+    offloadProbe_
+    (
+        controlDict_.lookupOrDefault<bool>("offloadProbe", false)
+    ),
+    offloadObserve_
+    (
+        controlDict_.lookupOrDefault<bool>("offloadObserve", false)
+    ),
+    offloadObserveDistMap_
+    (
+        controlDict_.lookupOrDefault<bool>("offloadObserveDistMap", true)
+    ),
+    offloadEnable_
+    (
+        controlDict_.lookupOrDefault<bool>("offloadEnable", false)
+    ),
+    offloadProbeInited_(false),
+    offloadProbeRank_(0),
+    offloadProbeEpoch_(0.0),
+    tsMoveStart_(-1.0),
+    tsMoveEnd_(-1.0),
+    tsMigEnter_(-1.0),
+    tsOccEnd_(-1.0),
+    tsCollEnd_(-1.0),
+    tsPostEnd_(-1.0),
+    offHistP_(),
+    offHistT_(),
+    offHistB_(),
+    offSafeP_(0),
+    offSafeT_(0),
+    offSafeB_(0),
+    offMaxSpeed_(0.0),
+    offDistBuilt_(false),
+    offDistRef_(1.0),
+    offDist_(),
+    offSafeDist_(),
+    offDistBuildWall_(0.0),
     nCandidatesPerCell_(mesh_.nCells(), 0),
     moveItersPerCell_(mesh_.nCells(), 0),
     moveItersPerCellCumulative_(mesh_.nCells(), 0),
@@ -1962,8 +3271,10 @@ Foam::dsmcCloud::dsmcCloud
         openmpCollisionSchedule_ != "static"
      && openmpCollisionSchedule_ != "dynamic"
      && openmpCollisionSchedule_ != "guided"
-     && openmpCollisionSchedule_ != "partition"
     )
+    // §47: "partition" removed from the valid set — it was accepted but
+    // never implemented (noTimeCounter has no partition branch), so it
+    // silently behaved as dynamic; validation now matches reality.
     {
         WarningInFunction
             << "Unknown openmpCollisionSchedule '"
@@ -2216,6 +3527,31 @@ Foam::dsmcCloud::dsmcCloud
     openmpCollisionChunk_(1),
     openmpMoveSchedule_("static"),
     openmpMoveChunk_(1),
+    offloadProbe_(false),
+    offloadObserve_(false),
+    offloadObserveDistMap_(true),
+    offloadEnable_(false),
+    offloadProbeInited_(false),
+    offloadProbeRank_(0),
+    offloadProbeEpoch_(0.0),
+    tsMoveStart_(-1.0),
+    tsMoveEnd_(-1.0),
+    tsMigEnter_(-1.0),
+    tsOccEnd_(-1.0),
+    tsCollEnd_(-1.0),
+    tsPostEnd_(-1.0),
+    offHistP_(),
+    offHistT_(),
+    offHistB_(),
+    offSafeP_(0),
+    offSafeT_(0),
+    offSafeB_(0),
+    offMaxSpeed_(0.0),
+    offDistBuilt_(false),
+    offDistRef_(1.0),
+    offDist_(),
+    offSafeDist_(),
+    offDistBuildWall_(0.0),
     nCandidatesPerCell_(),
     moveItersPerCell_(),
     moveItersPerCellCumulative_(),
@@ -2362,8 +3698,357 @@ Foam::dsmcCloud::~dsmcCloud()
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
+// * * * * * * * * * * dlb_offload.md P0/P1 probe  * * * * * * * * * * * * //
+
+namespace Foam
+{
+namespace
+{
+
+//- One-time conservative boundary-clearance map (dlb_offload.md §3).
+//  dist[c]: Dijkstra over cell adjacency with centre-to-centre edge
+//  weights, sources = cells owning any boundary face at 0 (v1 treats
+//  every patch as a side-effect boundary).  Lower-bound chain is valid
+//  because distance-to-a-set is 1-Lipschitz.  safeDist[c] = dist[c] -
+//  circumradius[c] (exact circumradius over the cell's vertices) then
+//  bounds the clearance of ANY point of cell c from the boundary.
+void offloadComputeClearance
+(
+    const dynamicFvMesh& mesh,
+    scalarField& dist,
+    scalarField& safeDist
+)
+{
+    const label nCells = mesh.nCells();
+    const label nIntFaces = mesh.nInternalFaces();
+    const labelList& faceOwner = mesh.faceOwner();
+    const labelList& faceNeighbour = mesh.faceNeighbour();
+    const vectorField& cc = mesh.cellCentres();
+    const vectorField& pts = mesh.points();
+    const cellList& cells = mesh.cells();
+    const faceList& faces = mesh.faces();
+
+    safeDist.setSize(nCells);
+
+    // exact circumradius per cell (a convex function attains its max over
+    // a polytope at a vertex; every cell vertex lies on one of its faces)
+    for (label c = 0; c < nCells; ++c)
+    {
+        scalar s = 0.0;
+        const labelList& fcs = cells[c];
+        forAll(fcs, i)
+        {
+            const face& f = faces[fcs[i]];
+            forAll(f, j)
+            {
+                s = max(s, mag(pts[f[j]] - cc[c]));
+            }
+        }
+        safeDist[c] = s;
+    }
+
+    dist.setSize(nCells);
+    dist = GREAT;
+    typedef std::pair<scalar, label> clearItem;
+    std::priority_queue
+    <
+        clearItem,
+        std::vector<clearItem>,
+        std::greater<clearItem>
+    > pq;
+    for (label f = nIntFaces; f < faceOwner.size(); ++f)
+    {
+        dist[faceOwner[f]] = 0.0;
+    }
+    for (label c = 0; c < nCells; ++c)
+    {
+        if (dist[c] == 0.0)
+        {
+            pq.push(clearItem(0.0, c));
+        }
+    }
+    while (!pq.empty())
+    {
+        const clearItem top = pq.top();
+        pq.pop();
+        const label c = top.second;
+        if (top.first > dist[c])
+        {
+            continue;
+        }
+        const labelList& fcs = cells[c];
+        forAll(fcs, i)
+        {
+            const label f = fcs[i];
+            if (f >= nIntFaces)
+            {
+                continue;
+            }
+            const label nb = (faceOwner[f] == c) ? faceNeighbour[f] : faceOwner[f];
+            const scalar nd = dist[c] + mag(cc[nb] - cc[c]);
+            if (nd < dist[nb])
+            {
+                dist[nb] = nd;
+                pq.push(clearItem(nd, nb));
+            }
+        }
+    }
+
+    for (label c = 0; c < nCells; ++c)
+    {
+        safeDist[c] = dist[c] - safeDist[c];
+    }
+}
+
+} // anonymous namespace
+} // namespace Foam
+
+
+double Foam::dsmcCloud::offloadProbeNow() const
+{
+    return std::chrono::duration<double>
+    (
+        std::chrono::steady_clock::now().time_since_epoch()
+    ).count() - offloadProbeEpoch_;
+}
+
+
+void Foam::dsmcCloud::offloadProbeInit()
+{
+    if (offloadProbeInited_)
+    {
+        return;
+    }
+    offloadProbeInited_ = true;
+
+    // MPI may not be initialised here: pure-OMP runs never start it and
+    // the replicated mesh (which does) may not exist yet on some paths.
+    int mpiIsInitialized = 0;
+    MPI_Initialized(&mpiIsInitialized);
+    if (mpiIsInitialized)
+    {
+        MPI_Comm_rank(MPI_COMM_WORLD, &offloadProbeRank_);
+
+        // One shared clock reference: capture after a barrier so same-node
+        // ranks agree within barrier-exit skew (CLOCK_MONOTONIC is per
+        // boot, so cross-node absolute comparison is not claimed).
+        MPI_Barrier(MPI_COMM_WORLD);
+    }
+    else
+    {
+        offloadProbeRank_ = 0;
+    }
+    offloadProbeEpoch_ = std::chrono::duration<double>
+    (
+        std::chrono::steady_clock::now().time_since_epoch()
+    ).count();
+
+    for (label b = 0; b < 12; ++b)
+    {
+        offHistP_[b] = 0;
+        offHistT_[b] = 0;
+        offHistB_[b] = 0;
+    }
+    offSafeP_ = 0;
+    offSafeT_ = 0;
+    offSafeB_ = 0;
+    offMaxSpeed_ = 0.0;
+
+    // Per-rank probe CSV in the run directory (CWD = case dir under the
+    // job's mpirun).  Per-rank Info does not reach the job stdout in
+    // replicated-mesh mode — only the cloud master's does — so all ranks
+    // write their own file.
+    offloadProbeFile_.open
+    (
+        "offloadProbe-r" + std::to_string(offloadProbeRank_) + ".csv"
+    );
+    offloadProbeFile_
+        << "step,mv0,mv1,mig0,migPrep1,migSx1,mig1,migSent,migRecv,"
+           "migSentB,migRecvB,occ1,coll1,post1";
+    if (offloadObserve_)
+    {
+        offloadProbeFile_ << ",safeP,safeT,safeB,maxU,bytes";
+        for (label b = 0; b < 12; ++b)
+        {
+            offloadProbeFile_ << ",bP" << b;
+        }
+        for (label b = 0; b < 12; ++b)
+        {
+            offloadProbeFile_ << ",bT" << b;
+        }
+        for (label b = 0; b < 12; ++b)
+        {
+            offloadProbeFile_ << ",bB" << b;
+        }
+    }
+    offloadProbeFile_ << "\n";
+
+    if ((offloadObserve_ || offloadEnable_) && offloadObserveDistMap_)
+    {
+        const auto t0 = steadyWallClock::now();
+        offloadComputeClearance(mesh_, offDist_, offSafeDist_);
+        offDistBuildWall_ =
+            std::chrono::duration<scalar>(steadyWallClock::now() - t0).count();
+        offDistBuilt_ = true;
+
+        scalar maxDist = 0.0;
+        forAll(offDist_, c)
+        {
+            maxDist = max(maxDist, offDist_[c]);
+        }
+        offDistRef_ = max(maxDist/12.0, ROOTVSMALL);
+
+        // dlb_offload.md P1: connected-component sizes of the
+        // positive-clearance set (the candidate task region structure).
+        label nComp = 0;
+        labelList compId(offDist_.size(), -1);
+        DynamicList<label> stack(offDist_.size()/(1000*24) + 1024);
+        DynamicList<label> compSizes;
+        forAll(offSafeDist_, c)
+        {
+            if (offSafeDist_[c] <= 0 || compId[c] >= 0)
+            {
+                continue;
+            }
+            const label id = nComp++;
+            compId[c] = id;
+            stack.clear();
+            stack.append(c);
+            label size = 0;
+            while (stack.size())
+            {
+                const label cc = stack.remove();
+                ++size;
+                const labelList& fcs = mesh_.cells()[cc];
+                forAll(fcs, i)
+                {
+                    const label f = fcs[i];
+                    if (f >= mesh_.nInternalFaces())
+                    {
+                        continue;
+                    }
+                    const label nb =
+                        (mesh_.faceOwner()[f] == cc)
+                      ? mesh_.faceNeighbour()[f]
+                      : mesh_.faceOwner()[f];
+                    if (offSafeDist_[nb] > 0 && compId[nb] < 0)
+                    {
+                        compId[nb] = id;
+                        stack.append(nb);
+                    }
+                }
+            }
+            compSizes.append(size);
+        }
+        std::sort(compSizes.begin(), compSizes.end(),
+                  std::greater<label>());
+
+        if (offloadProbeRank_ == 0)
+        {
+            OStringStream os;
+            os << "clearance>0 components: n=" << nComp
+               << " top=";
+            for (label i = 0; i < min(label(8), nComp); ++i)
+            {
+                os << compSizes[i] << (i < min(label(7), nComp - 1)
+                                       ? "," : "");
+            }
+            Info<< "Offload observe: clearance map built in "
+                << offDistBuildWall_ << " s"
+                << " (nCells " << offDist_.size()
+                << ", maxDist " << maxDist
+                << ", bucket width " << offDistRef_
+                << ", all patches treated as side-effect boundaries)"
+                << nl << "Offload observe: " << os.str() << endl;
+        }
+    }
+
+    if (offloadProbeRank_ == 0)
+    {
+        Info<< "Offload probe: enabled (observe=" << offloadObserve_
+            << ", epoch aligned via MPI_Barrier)" << endl;
+    }
+}
+
+
+void Foam::dsmcCloud::offloadProbeEmit()
+{
+    if (!offloadProbeFile_.is_open())
+    {
+        return;
+    }
+    std::ofstream& os = offloadProbeFile_;
+    os << mesh_.time().timeIndex()
+       << ',' << tsMoveStart_ << ',' << tsMoveEnd_
+       << ',' << tsMigEnter_;
+    if
+    (
+        replicatedMeshActive()
+     && !replicatedMesh_->asyncOverlapEnabled()
+    )
+    {
+        os << ',' << replicatedMesh_->offPrep1_
+           << ',' << replicatedMesh_->offSx1_
+           << ',' << replicatedMesh_->offMig1_
+           << ',' << replicatedMesh_->offSent_
+           << ',' << replicatedMesh_->offRecv_
+           << ',' << replicatedMesh_->offSentB_
+           << ',' << replicatedMesh_->offRecvB_;
+    }
+    else
+    {
+        // clean M1: the migration stamps are only produced by the
+        // synchronous flat path.  Async overlap runs must report NA (-1)
+        // instead of last step's values.
+        os << ",-1,-1,-1,-1,-1,-1,-1";
+    }
+    os << ',' << tsOccEnd_
+       << ',' << tsCollEnd_
+       << ',' << tsPostEnd_;
+    if (offloadObserve_)
+    {
+        // candidate task bytes: safe particles round-trip (task + result)
+        // clean M14: widen before the multiply (int32 overflows above
+        // ~9e6 safe parcels); the probe column is a diagnostic estimate.
+        const double taskBytes =
+            2.0*double(offSafeP_)*double(sizeof(dsmcParcel::TransferData));
+        os << ',' << offSafeP_
+           << ',' << offSafeT_
+           << ',' << offSafeB_
+           << ',' << offMaxSpeed_
+           << ',' << taskBytes;
+        for (label b = 0; b < 12; ++b)
+        {
+            os << ',' << offHistP_[b];
+        }
+        for (label b = 0; b < 12; ++b)
+        {
+            os << ',' << offHistT_[b];
+        }
+        for (label b = 0; b < 12; ++b)
+        {
+            os << ',' << offHistB_[b];
+        }
+    }
+    os << '\n';
+    if ((mesh_.time().timeIndex() % 50) == 0)
+    {
+        os.flush();
+    }
+}
+
+
 void Foam::dsmcCloud::evolve()
 {
+    if
+    (
+        (offloadProbe_ || offloadObserve_ || offloadEnable_)
+     && !offloadProbeInited_
+    )
+    {
+        offloadProbeInit();
+    }
+
     const steadyWallClock::time_point wallStart = steadyWallClock::now();
     const scalar cpu0 = profileSummary_ ? mesh_.time().elapsedCpuTime() : 0.0;
 
@@ -2380,6 +4065,12 @@ void Foam::dsmcCloud::evolve()
         profileFullEvolveCpu_ += mesh_.time().elapsedCpuTime() - cpu0;
         ++profileSteps_;
     }
+
+    if (offloadProbe_)
+    {
+        tsPostEnd_ = offloadProbeNow();
+        offloadProbeEmit();
+    }
 }
 
 
@@ -2390,9 +4081,17 @@ void Foam::dsmcCloud::evolve_moveAndCollide()
     const scalar moveAndCollideCpuStart =
         profileSummary_ ? mesh_.time().elapsedCpuTime() : 0.0;
 
+    // §28: evolve-residual attribution.  The four core phases (move/
+    // build/coll/post) leave ~20% of fullEvolve unattributed; two known
+    // residents are the per-step model-info updates (timed here) and
+    // updateParticleCounts (already accumulated in the mesh, reported
+    // next to the residual).  File-static: zero header change.
+    const auto dsmcEvolveInfoStart = steadyWallClock::now();
     boundaries_.updateTimeInfo();
     fields_.updateTimeInfo();
     controllers_.updateTimeInfo();
+    dsmcEvolveUpdateInfoWall_ +=
+        elapsedWallSeconds(dsmcEvolveInfoStart);
 
     dsmcParcel::trackingData td(*this);
     td.moveDetailProfile =
@@ -2618,15 +4317,60 @@ void Foam::dsmcCloud::evolve_moveAndCollide()
         prepareOpenMPMoveMeshData();
     }
 
+    // dlb_offload.md P2-P5: front dispatch of offload tasks before the
+    // move (donor packs/sends/deletes; helper posts receives)
+    if
+    (
+        replicatedMeshActive()
+     && replicatedMesh_->offloadEnabled()
+    )
+    {
+        replicatedMesh_->offloadDispatch();
+    }
+
     //scalar timer = mesh_.time().elapsedCpuTime();
     const steadyWallClock::time_point moveWallStart = steadyWallClock::now();
     const scalar moveCpuStart =
         profileSummary_ ? mesh_.time().elapsedCpuTime() : 0.0;
     reportReplicatedParticleState("beforeMove");
+    if (offloadProbe_)
+    {
+        tsMoveStart_ = offloadProbeNow();
+    }
     Cloud<dsmcParcel>::move(td, deltaTValue());
     if (openmpEnabled_ && openmpMoveEnabled_)
     {
         endMoveAppendCapture();
+    }
+    if (offloadProbe_)
+    {
+        tsMoveEnd_ = offloadProbeNow();
+    }
+    if (offloadObserve_)
+    {
+        // merge thread-local observe counters (master td accumulated
+        // inside Cloud::move via the per-thread critical sections)
+        for (label b = 0; b < 12; ++b)
+        {
+            offHistP_[b] = td.offHistP[b];
+            offHistT_[b] = td.offHistT[b];
+            offHistB_[b] = td.offHistB[b];
+        }
+        offSafeP_ = td.offSafeP;
+        offSafeT_ = td.offSafeT;
+        offSafeB_ = td.offSafeB;
+        offMaxSpeed_ = sqrt(td.offMaxMagSqrU);
+    }
+
+    // dlb_offload.md P2-P5: helper executes received tasks and inserts
+    // results before the regular migration routes them to final owners
+    if
+    (
+        replicatedMeshActive()
+     && replicatedMesh_->offloadEnabled()
+    )
+    {
+        replicatedMesh_->offloadExecuteAndInsert();
     }
     if (td.moveDetailProfile)
     {
@@ -2670,6 +4414,10 @@ void Foam::dsmcCloud::evolve_moveAndCollide()
 
     if (replicatedMeshActive())
     {
+        if (offloadProbe_)
+        {
+            tsMigEnter_ = offloadProbeNow();
+        }
         if
         (
             replicatedMesh_->stepCounter() == 0
@@ -2685,7 +4433,33 @@ void Foam::dsmcCloud::evolve_moveAndCollide()
             (
                 dsmcReplicatedMesh::migrationProfileRegular
             );
-            if (replicatedMeshDelayedReceive)
+            const bool asyncOverlap =
+                replicatedMesh_->asyncOverlapEnabled()
+             && replicatedMesh_->asyncOverlapCapable();
+            bool asyncOverlapRan = false;
+            if (asyncOverlap)
+            {
+                // comm_further_opt.md §2: begin -> gap build -> finish.
+                // begin packs + posts Isends and deletes migrated-out;
+                // the gap builds occupancy over the kept parcels while
+                // transfers are in flight; finish deserializes received
+                // and appends them into the occupancy incrementally.
+                // begin/finish own the moveOrdered lifecycle on this
+                // path - the clear-if below must NOT run here: it
+                // invalidates occupancyOrderedParcelsValid_ after
+                // finish has established the current occupancy, and
+                // collide's lazy materialize would then destroy the
+                // per-cell lists (clear-then-skip-rebuild semantics).
+                replicatedMesh_->migrateBegin();
+                if (replicatedMesh_->asyncMigrationPending())
+                {
+                    replicatedMesh_->markAsyncOverlapGapBuild();
+                    buildCellOccupancy();
+                    replicatedMesh_->migrateFinish();
+                    asyncOverlapRan = true;
+                }
+            }
+            else if (replicatedMeshDelayedReceive)
             {
                 replicatedMesh_->migrateBegin();
                 replicatedMesh_->migrateFinish();
@@ -2696,13 +4470,24 @@ void Foam::dsmcCloud::evolve_moveAndCollide()
             }
             replicatedMesh_->updateParticleCounts();
             replicatedMesh_->setMigrationProfileContext(oldMigrationContext);
-            if (!hasMoveOrderedParcels())
+            if (!asyncOverlapRan && !hasMoveOrderedParcels())
             {
                 clearMoveOrderedParcels();
             }
         }
 
         replicatedMesh_->advanceStepCounter();
+    }
+
+    // dlb_offload.md P2: post-migration particle-multiset checksum at
+    // the configured dump step (off/on bitwise comparison)
+    if
+    (
+        replicatedMeshActive()
+     && replicatedMesh_->offloadEnabled()
+    )
+    {
+        replicatedMesh_->offloadDumpChecksum();
     }
 
     if (replicatedMeshActive() && replicatedMesh_->rebalanceSteps().size())
@@ -2737,6 +4522,10 @@ void Foam::dsmcCloud::evolve_moveAndCollide()
                 Info<< nl
                     << "Replicated mesh: manual cell owner reassignment at step "
                     << currentStep << nl << endl;
+                // Manual rebalance re-migrates parcels after the async
+                // overlap may have built the occupancy — invalidate it so
+                // the unconditional build below runs (correctness first).
+                dsmcOverlapOccCurrent_ = false;
                 replicatedMesh_->reassignCellOwner();
                 const label oldMigrationContext =
                     replicatedMesh_->migrationProfileContext();
@@ -2758,7 +4547,22 @@ void Foam::dsmcCloud::evolve_moveAndCollide()
 
     //- Update cell occupancy
     //timer = mesh_.time().elapsedCpuTime();
-    buildCellOccupancy();
+    // comm_further_opt.md §2: the async path already built occupancy over
+    // kept in the gap and appended the received parcels incrementally in
+    // migrateFinish — consume the flag instead of rebuilding.
+    // clean M12 contract: exactly one consumer per migrateFinish()/
+    // appendReceivedToOccupancy() pair.  The flag is set by
+    // appendReceivedToOccupancy() on every exit path and consumed here
+    // (reset) or in the equivalent post-migration branch; a migrateFinish()
+    // that is not followed by one of these consumers must reset it.
+    if (dsmcOverlapOccCurrent_)
+    {
+        dsmcOverlapOccCurrent_ = false;
+    }
+    else
+    {
+        buildCellOccupancy();
+    }
     //Info<< "buildCellOccupancy" << tab << mesh_.time().elapsedCpuTime() - timer << " s " << endl;
 
     //- Add electrons back after the move function
@@ -2769,13 +4573,22 @@ void Foam::dsmcCloud::evolve_moveAndCollide()
         buildCellOccupancy();
     }
 
+    if (offloadProbe_)
+    {
+        tsOccEnd_ = offloadProbeNow();
+    }
+
     //- Radial weighting for non-Cartesian flows (e.g., axisymmetric). This is
     // where parcels will receive their new RWF and will possibly be cloned or
     // deleted.
+    const auto dsmcCoordStart = steadyWallClock::now();
     coordSystem().evolve();
+    dsmcEvolveCoordWall_ += elapsedWallSeconds(dsmcCoordStart);
 
+    const auto dsmcCtrlStart = steadyWallClock::now();
     controllers_.controlBeforeCollisions();
     boundaries_.controlBeforeCollisions();
+    dsmcEvolveCtrlWall_ += elapsedWallSeconds(dsmcCtrlStart);
 
     //- Calculate new velocities via stochastic collisions
     //timer = mesh_.time().elapsedCpuTime();
@@ -2783,6 +4596,19 @@ void Foam::dsmcCloud::evolve_moveAndCollide()
         steadyWallClock::now();
     const scalar collisionCpuStart =
         profileSummary_ ? mesh_.time().elapsedCpuTime() : 0.0;
+    // reactionOccupancyAppend: pre-collision snapshot (audit_1.3.md §5.2.3).
+    // Collisions only ever ADD parcels (addNewParcel); addParticle clears
+    // occupancyOrderedParcelsValid_ during the loop, so the state the
+    // incremental path needs must be captured here.
+    // (read the switch on every rank before the first reaction so the
+    // profile print does not depend on whether rank 0 ever reacted)
+    reactionOccupancyAppendEnabled();
+    const label occPreSize = this->size();
+    const label occPreMark = moveAppendedParcels_.size();
+    const bool occPreValid =
+        occupancyOrderedParcelsValid_
+     && occupancyCellOffsets_.size() == mesh_.nCells() + 1
+     && occupancyCellOffsets_.last() == occPreSize;
     collisions();
     if (profileSummary_)
     {
@@ -2790,16 +4616,32 @@ void Foam::dsmcCloud::evolve_moveAndCollide()
         profileCollisionCpu_ +=
             mesh_.time().elapsedCpuTime() - collisionCpuStart;
     }
+    if (offloadProbe_)
+    {
+        tsCollEnd_ = offloadProbeNow();
+    }
     //Info<< "collisions" << tab << mesh_.time().elapsedCpuTime() - timer << " s" << endl;
 
     //- Reactions may have changed cell occupancy, update only if this step reacted
+    bool occAppendCurrent = false;
     if (reactions_.nReactionsPerTimeStep() != 0)
     {
-        buildCellOccupancy();
+        // Switch off (default): exactly the former buildCellOccupancy().
+        occAppendCurrent =
+            updateOccupancyAfterReactions(occPreSize, occPreMark, occPreValid);
     }
 
     controllers_.controlAfterCollisions();
     boundaries_.controlAfterCollisions();
+
+    // The incremental update left a current flat view; if a controller
+    // changed the cloud afterwards (WIP density controllers add/delete
+    // parcels), fall back to the full rebuild and count it.
+    if (occAppendCurrent && !occupancyOrderedParcelsValid_)
+    {
+        noteReactionOccupancyLateInvalidate();
+        buildCellOccupancy();
+    }
 
     if (replicatedMeshActive())
     {
@@ -2930,6 +4772,7 @@ void Foam::dsmcCloud::evolve_fields()
     }
 
     cellMeas_.clean();
+
     if (detailTiming)
     {
         profilePostCellMeasCleanWall_ +=
@@ -2965,6 +4808,14 @@ bool Foam::dsmcCloud::noScheduledFieldOutput() const
 
     if (writeControl != "runTime" && writeControl != "adjustableRunTime")
     {
+        // §31 revert: the conservative legacy behaviour is restored —
+        // timeStep-based writing assumes output may happen, so the
+        // per-step field calculation always runs.  The lazyFieldCalculation
+        // experiment (precise interval-vs-span prediction, −19.6% on the
+        // no-output test config) was removed: production runs always have
+        // scheduled field output, so the optimisation never applies there,
+        // while as a default it would silently skip the per-step fields
+        // for any run without output.
         return false;
     }
 
@@ -3105,12 +4956,51 @@ void Foam::dsmcCloud::setMoveOrderedParcels
     const DynamicList<dsmcParcel*>& parcels
 )
 {
-    moveOrderedParcels_.setSize(parcels.size());
-
+    // §34.2: ownership-transfer fill.  List::setSize() allocates a fresh
+    // array AND copies min(old,new) old elements (List.C:283 — no
+    // capacity retention), which the fill loop below overwrites
+    // completely: up to ~136 MB of dead memcpy per step at 17M parcels.
+    // Fill a fresh list and transfer() its storage (O(1) swap) instead.
+    List<dsmcParcel*> tmp(parcels.size());
     forAll(parcels, i)
     {
-        moveOrderedParcels_[i] = parcels[i];
+        tmp[i] = parcels[i];
     }
+    moveOrderedParcels_.transfer(tmp);
+
+    const label nThreads = max(ompNumThreads_, label(1));
+    moveOrderedThreadOffsets_.setSize(nThreads + 1);
+
+    for (label threadI = 0; threadI <= nThreads; ++threadI)
+    {
+        moveOrderedThreadOffsets_[threadI] = label
+        (
+            (
+                static_cast<long long>(threadI)
+              * static_cast<long long>(moveOrderedParcels_.size())
+            )
+          / static_cast<long long>(nThreads)
+        );
+    }
+    moveOrderedParcelsValid_ = true;
+    moveAppendedParcels_.clear();
+    occupancyOrderedParcelsValid_ = false;
+    cellOccupancyMaterialized_ = false;
+}
+
+
+void Foam::dsmcCloud::takeMoveOrderedParcels
+(
+    DynamicList<dsmcParcel*>& parcels
+)
+{
+    // §36.1: zero-copy ownership transfer.  The caller's DynamicList was
+    // filled by index during the migration pass; List::transfer() steals
+    // its storage (v_/size_) instead of re-walking it into a fresh array
+    // (the previous path copied ~136 MB of pointers per step at 17M
+    // parcels, on top of the fill itself).  The DynamicList is left with
+    // v_=nullptr and must not be reused by the caller.
+    moveOrderedParcels_.transfer(parcels);
 
     const label nThreads = max(ompNumThreads_, label(1));
     moveOrderedThreadOffsets_.setSize(nThreads + 1);
@@ -3185,6 +5075,45 @@ void Foam::dsmcCloud::setLastStepWallTime(const scalar t)
     }
 }
 
+// §45 P0: 碰撞相每 cell 候选快照 → 复制网格的窗口观测累加
+void Foam::dsmcCloud::accumulateCellCostCandidates
+(
+    const labelList& counts,
+    const labelList& touched
+)
+{
+    if (replicatedMeshActive())
+    {
+        replicatedMesh_->accumulateCellCostCandidates(counts, touched);
+    }
+}
+
+
+// comm_further_opt.md §15.4: cumulative counters accessors
+double Foam::dsmcCloud::moveDetailCumulative(const label idx) const
+{
+    return (idx >= 0 && idx < 12) ? dsmcMoveDetailCum[idx] : 0.0;
+}
+
+void Foam::dsmcCloud::addToCumulativeCollisions
+(
+    const label nColl,
+    const label nCand
+)
+{
+    dsmcCumCollisions_ += nColl;
+    dsmcCumCollisionCandidates_ += nCand;
+}
+
+double Foam::dsmcCloud::cumulativeCollisions() const
+{
+    return dsmcCumCollisions_;
+}
+
+double Foam::dsmcCloud::cumulativeCollisionCandidates() const
+{
+    return dsmcCumCollisionCandidates_;
+}
 
 void Foam::dsmcCloud::printProfileSummary() const
 {
@@ -3231,6 +5160,52 @@ void Foam::dsmcCloud::printProfileSummary() const
     {
         localFinalCandidates += nCandidatesPerCell_[cellI];
     }
+
+    // §31: residual accounting.  The phase values below are per-phase
+    // MAXes over ranks (possibly from different ranks), so
+    // max(evolve) - sum(max(phase)) is not any rank's residual.  Compute
+    // each rank's own residual and reduce MAX, together with the
+    // residual sub-items, so the whole section shares one convention.
+    const scalar localCoreWall =
+        localMoveWall
+      + localBuildCellOccupancyWall
+      + localCollisionWall
+      + localPostFieldsWall;
+    scalar maxResidualWall = localFullEvolveWall - localCoreWall;
+    scalar maxResidualUpdateInfo = dsmcEvolveUpdateInfoWall_;
+    scalar maxResidualCoord = dsmcEvolveCoordWall_;
+    scalar maxResidualCtrl = dsmcEvolveCtrlWall_;
+    // Guarded: pure-OMP runs have no replicated mesh allocated.
+    scalar maxResidualUpc =
+        replicatedMeshActive()
+      ? replicatedMesh_->updateParticleCountsWallTime()
+      : 0.0;
+
+    // §33: per-rank residual table.  max(E) and max(R) may come from
+    // different ranks, so max E - max R is not any rank's phase sum;
+    // this gathers each rank's own (E, C, R) plus the residual's known
+    // residents (DLB migration wall, updateParticleCounts) so the
+    // attribution is per-rank and unambiguous.
+    List<scalar> perRankResidualRows;
+
+    // reactionOccupancyAppend profile values: times (max over rank), rank-max
+    // counters and rank-sum counters.  Local values unless raw-MPI reduces.
+    double rxnTime[6] =
+    {
+        dsmcRxn_.tAppend, dsmcRxn_.tSort, dsmcRxn_.tShift,
+        dsmcRxn_.tOffsets, dsmcRxn_.tDerived, dsmcRxn_.tValidate
+    };
+    double rxnMaxCnt[6] =
+    {
+        dsmcRxn_.nCalls, dsmcRxn_.nAppend, dsmcRxn_.nFbThreshold,
+        dsmcRxn_.nFbGuard, dsmcRxn_.nSkipZero, dsmcRxn_.nLate
+    };
+    double rxnSumCnt[8] =
+    {
+        dsmcRxn_.nParcels, dsmcRxn_.nShapeSingle, dsmcRxn_.nShapeMulti,
+        dsmcRxn_.nShapeSameCell, dsmcRxn_.nKeptOneCells,
+        dsmcRxn_.nKeptZeroCells, dsmcRxn_.nShapeLast, dsmcRxn_.nValidated
+    };
 
     if (replicatedRawMpi)
     {
@@ -3300,6 +5275,49 @@ void Foam::dsmcCloud::printProfileSummary() const
             postBoundaryMeasCleanWall = profileValues[14];
             postCellMeasCleanWall = profileValues[15];
 
+            // §31: residual + sub-items reduced together (one call).
+            scalar residualValues[5] =
+            {
+                maxResidualWall,
+                maxResidualUpdateInfo,
+                maxResidualCoord,
+                maxResidualCtrl,
+                maxResidualUpc
+            };
+            MPI_Allreduce
+            (
+                MPI_IN_PLACE,
+                residualValues,
+                5,
+                MPI_DOUBLE,
+                MPI_MAX,
+                MPI_COMM_WORLD
+            );
+            maxResidualWall = residualValues[0];
+            maxResidualUpdateInfo = residualValues[1];
+            maxResidualCoord = residualValues[2];
+            maxResidualCtrl = residualValues[3];
+            maxResidualUpc = residualValues[4];
+
+            // §33: gather the per-rank rows (E, C, R, DLB migration wall,
+            // DLB count, updateParticleCounts).
+            double myResidualRow[6] =
+            {
+                double(localFullEvolveWall),
+                double(localCoreWall),
+                double(localFullEvolveWall - localCoreWall),
+                double(replicatedMesh_->autoRebalanceMigrationWallTime()),
+                double(replicatedMesh_->autoRebalanceCount()),
+                double(replicatedMesh_->updateParticleCountsWallTime())
+            };
+            perRankResidualRows.setSize(6*replicatedRawMpiSize, 0.0);
+            MPI_Allgather
+            (
+                myResidualRow, 6, MPI_DOUBLE,
+                perRankResidualRows.data(), 6, MPI_DOUBLE,
+                MPI_COMM_WORLD
+            );
+
             // buildCellOccupancy subphase diagnostics (§6.4)
             scalar buildOccValues[4] =
             {
@@ -3338,6 +5356,19 @@ void Foam::dsmcCloud::printProfileSummary() const
             );
             buildOccOrderedHits = buildOccHits[0];
             buildOccFallbacks = buildOccHits[1];
+
+            MPI_Allreduce
+            (
+                MPI_IN_PLACE, rxnTime, 6, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD
+            );
+            MPI_Allreduce
+            (
+                MPI_IN_PLACE, rxnMaxCnt, 6, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD
+            );
+            MPI_Allreduce
+            (
+                MPI_IN_PLACE, rxnSumCnt, 8, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD
+            );
         }
     }
     else if (Pstream::parRun())
@@ -3498,12 +5529,91 @@ void Foam::dsmcCloud::printProfileSummary() const
             << buildOccFillWall << nl
             << "    build_occupancy ordered/fallback = "
             << buildOccOrderedHits << "/" << buildOccFallbacks << nl
+            << (
+                dsmcRxnAppendRead_ && dsmcRxnAppendEnabled_
+              ? "    build_occupancy reaction append max [s] = "
+              + std::to_string(rxnTime[0]) + "  (included in build_occupancy)\n"
+              + "      reaction append calls/append/fb-threshold/fb-guard/skip-zero/late (rank max) = "
+              + std::to_string(label(rxnMaxCnt[0])) + "/"
+              + std::to_string(label(rxnMaxCnt[1])) + "/"
+              + std::to_string(label(rxnMaxCnt[2])) + "/"
+              + std::to_string(label(rxnMaxCnt[3])) + "/"
+              + std::to_string(label(rxnMaxCnt[4])) + "/"
+              + std::to_string(label(rxnMaxCnt[5])) + "\n"
+              + "      reaction append parcels (rank sum) = "
+              + std::to_string(label(rxnSumCnt[0])) + "\n"
+              + "      reaction append shapes (rank sum): single/multi/sameCellMulti/keptOne cells/keptZero cells/lastCell = "
+              + std::to_string(label(rxnSumCnt[1])) + "/"
+              + std::to_string(label(rxnSumCnt[2])) + "/"
+              + std::to_string(label(rxnSumCnt[3])) + "/"
+              + std::to_string(label(rxnSumCnt[4])) + "/"
+              + std::to_string(label(rxnSumCnt[5])) + "/"
+              + std::to_string(label(rxnSumCnt[6])) + "\n"
+              + "      reaction append subphase max [s]: sort = "
+              + std::to_string(rxnTime[1]) + " shift = "
+              + std::to_string(rxnTime[2]) + " offsets = "
+              + std::to_string(rxnTime[3]) + " derived = "
+              + std::to_string(rxnTime[4]) + "\n"
+              + "      reaction append validate: checked (rank sum) = "
+              + std::to_string(label(rxnSumCnt[7]))
+              + " mismatches = 0 (any mismatch aborts) wall max [s] = "
+              + std::to_string(rxnTime[5]) + " (NOT in build_occupancy)\n"
+              : std::string("")
+              ).c_str()
             << "    coll max [s]                  = " << collisionWall << nl
             << "    post max [s]                  = " << postFieldsWall << nl
             << "    core phase sum [s]            = " << coreAccountedWall << nl
-            << "    evolve residual [s]           = "
-            << fullEvolveWall - coreAccountedWall << nl
-            << "    post definition               = dsmcCloud::evolve_fields()" << nl
+            << "    evolve residual (per-rank max) [s] = "
+            << maxResidualWall << nl
+            << "      residual: model info update (max) [s] = "
+            << maxResidualUpdateInfo << nl
+            << "      residual: coordSystem evolve (max) [s] = "
+            << maxResidualCoord << nl
+            << "      residual: controlBeforeCollisions (max) [s] = "
+            << maxResidualCtrl << nl
+            << "      residual: updateParticleCounts (max) [s] = "
+            << maxResidualUpc << nl
+            << "    per-rank residual table (E=evolve, C=4-phase sum,"
+            << " R=E-C, dlbMig=DLB migration wall, nDLB=executed,"
+            << " upc=updateParticleCounts):" << nl;
+            if (perRankResidualRows.size() == 6*replicatedRawMpiSize)
+            {
+                label argmaxR = 0;
+                for (label r = 0; r < replicatedRawMpiSize; ++r)
+                {
+                    if
+                    (
+                        perRankResidualRows[6*r + 2]
+                      > perRankResidualRows[6*argmaxR + 2]
+                    )
+                    {
+                        argmaxR = r;
+                    }
+                }
+                for (label r = 0; r < replicatedRawMpiSize; ++r)
+                {
+                    Info<< "      r" << r
+                        << " E=" << perRankResidualRows[6*r + 0]
+                        << " C=" << perRankResidualRows[6*r + 1]
+                        << " R=" << perRankResidualRows[6*r + 2]
+                        << " dlbMig=" << perRankResidualRows[6*r + 3]
+                        << " nDLB=" << label(perRankResidualRows[6*r + 4])
+                        << " upc=" << perRankResidualRows[6*r + 5]
+                        << nl;
+                }
+                Info<< "      argmax-R rank = r" << argmaxR
+                    << " (E=" << perRankResidualRows[6*argmaxR + 0]
+                    << ", C=" << perRankResidualRows[6*argmaxR + 1]
+                    << ", R=" << perRankResidualRows[6*argmaxR + 2]
+                    << ", dlbMig=" << perRankResidualRows[6*argmaxR + 3]
+                    << ", upc=" << perRankResidualRows[6*argmaxR + 5]
+                    << ", R - dlbMig - upc = "
+                    << (perRankResidualRows[6*argmaxR + 2]
+                      - perRankResidualRows[6*argmaxR + 3]
+                      - perRankResidualRows[6*argmaxR + 5])
+                    << ")" << nl;
+            }
+            Info<< "    post definition               = dsmcCloud::evolve_fields()" << nl
             << "    post reactions [s]            = "
             << postReactionsWall << nl
             << "    post field calculate [s]      = "

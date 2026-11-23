@@ -35,11 +35,15 @@ and are also written.
 \*---------------------------------------------------------------------------*/
 
 #include "dsmcVolFields.H"
+#include <omp.h>
 #include "dsmcMasterInfo.H"
 #include "addToRunTimeSelectionTable.H"
 #include "OFstream.H"
 #include <chrono>
+#include <cstdint>
+#include <fstream>
 #include <mpi.h>
+#include <vector>
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
@@ -53,6 +57,49 @@ addToRunTimeSelectionTable(dsmcField, dsmcVolFields, dictionary);
 
 namespace
 {
+    // H9: record layout + padding-free checksum shared by both probe
+    // orders.  The previous inline version hashed (n*sizeof - 4) bytes,
+    // which underflowed to SIZE_MAX-3 on an empty per-thread buffer and
+    // also folded struct padding into the checksum.
+    struct ExtractRecB
+    {
+        label typeId;
+        label cell;
+        scalar U[3];
+        scalar ERot;
+        label nVib;
+        label vib[4];
+    };
+
+    inline std::uint64_t dsmcExtractChecksum
+    (
+        const DynamicList<ExtractRecB>& buf
+    )
+    {
+        std::uint64_t h = 1469598103934665603ULL;
+        auto mix = [&h](const void* ptr, std::size_t n)
+        {
+            const unsigned char* b =
+                static_cast<const unsigned char*>(ptr);
+            for (std::size_t i = 0; i < n; ++i)
+            {
+                h ^= static_cast<std::uint64_t>(b[i]);
+                h *= 1099511628211ULL;
+            }
+        };
+        forAll(buf, i)
+        {
+            const ExtractRecB& r = buf[i];
+            mix(&r.typeId, sizeof(r.typeId));
+            mix(&r.cell, sizeof(r.cell));
+            mix(r.U, sizeof(r.U));
+            mix(&r.ERot, sizeof(r.ERot));
+            mix(&r.nVib, sizeof(r.nVib));
+            mix(r.vib, sizeof(r.vib));
+        }
+        return h;
+    }
+
     template<class Type>
     void sumReduceList(Foam::List<Type>& values)
     {
@@ -695,7 +742,14 @@ namespace
         vectorField totalDsmcMomentum;
         scalarField totalDsmcErot;
         scalarField totalDsmcZetaRot;
-        labelList touchedCells;
+        // H5: cells this build will write (ascending).  The sparse clear
+        // covers the union of the previous build's written set and this
+        // one: a cell that became empty must be cleared too, otherwise its
+        // last sample is re-added by every later combine pass.
+        DynamicList<label> touchedCells;
+        DynamicList<label> lastWrittenCells;
+        DynamicList<label> currentActiveCells;
+        bool fullZeroPending;
 
         dsmcVolSharedSampleCache()
         :
@@ -708,7 +762,10 @@ namespace
             supportsElectronic(false),
             supportsClassification(false),
             supportsHeatFluxShearStress(false),
-            touchedCells()
+            touchedCells(),
+            lastWrittenCells(),
+            currentActiveCells(),
+            fullZeroPending(false)
         {}
 
         bool validFor
@@ -740,6 +797,7 @@ namespace
             const bool needHeatFluxShearStress
         )
         {
+            const label nCellsPrev = nCells;
             cloudPtr = &cloud;
             nCells = cloud.mesh().nCells();
             nTypes = cloud.constProps().size();
@@ -748,7 +806,14 @@ namespace
             supportsElectronic = needElectronic;
             supportsClassification = needClassification;
             supportsHeatFluxShearStress = needHeatFluxShearStress;
-            touchedCells.clear();
+
+            if (nCells != nCellsPrev)
+            {
+                // Mesh size changed: the retained arrays keep their old
+                // prefix values, so every cell must be zeroed once.
+                lastWrittenCells.clear();
+                fullZeroPending = true;
+            }
 
             allocateAllFields(cloud);
         }
@@ -1128,40 +1193,96 @@ namespace
                         wallSeconds(allocateStart, wallClockNow());
                 }
 
-                // The arrays persist across steps: clear only the cells this
-                // build will write (the current occupancy active set — every
-                // parcel accumulates into its cell) — the same set the field
-                // derivation reads.  Sparse reset via touchedCells.
-                if (activeCellsPtr)
-                {
-                    touchedCells.setSize(activeCellsPtr->size());
-                    forAll(touchedCells, i)
-                    {
-                        touchedCells[i] = (*activeCellsPtr)[i];
-                    }
-                }
-                else
-                {
-                    touchedCells.setSize(nCells);
-                    for (label celli = 0; celli < nCells; ++celli)
-                    {
-                        touchedCells[celli] = celli;
-                    }
-                }
+                // H5: sparse clear set (see below); the reset itself runs
+                // once per build after the set has been computed.
+            }
 
-                const auto resetStart =
-                    doProfile ? wallClockNow() : std::chrono::steady_clock::time_point();
-                resetFields();
-                if (doProfile)
+            // H5: the retained arrays are per-step samples, so the clear
+            // must cover both the cells this build will write and the
+            // cells the previous build wrote.  Clearing only the current
+            // active set leaves samples behind in cells that became empty;
+            // every later combine pass then re-adds them.
+            if (activeCellsPtr)
+            {
+                currentActiveCells.clear();
+                forAll(*activeCellsPtr, i)
                 {
-                    buildProfile->resetWallTime +=
-                        wallSeconds(resetStart, wallClockNow());
+                    currentActiveCells.append((*activeCellsPtr)[i]);
                 }
             }
             else
             {
+                // No flat occupancy view: fall back to a full clear and
+                // derive the written set from the materialised cell lists.
+                currentActiveCells.clear();
+                for (label celli = 0; celli < nCells; ++celli)
+                {
+                    if ((*cellOccupancyPtr)[celli].size())
+                    {
+                        currentActiveCells.append(celli);
+                    }
+                }
+            }
+
+            if (fullZeroPending || !activeCellsPtr)
+            {
+                // Mesh-size change or no active-set view: clear everything.
+                touchedCells.clear();
+                for (label celli = 0; celli < nCells; ++celli)
+                {
+                    touchedCells.append(celli);
+                }
+                fullZeroPending = false;
+            }
+            else
+            {
+                // Sorted union of the previous written set and this build's
+                // written set (both ascending, no duplicates).
+                touchedCells.clear();
+                label iPrev = 0;
+                label iCur = 0;
+                const label nPrev = lastWrittenCells.size();
+                const label nCur = currentActiveCells.size();
+                while (iPrev < nPrev || iCur < nCur)
+                {
+                    if
+                    (
+                        iCur >= nCur
+                     || (
+                            iPrev < nPrev
+                         && lastWrittenCells[iPrev] < currentActiveCells[iCur]
+                        )
+                    )
+                    {
+                        touchedCells.append(lastWrittenCells[iPrev++]);
+                    }
+                    else if
+                    (
+                        iPrev >= nPrev
+                     || currentActiveCells[iCur] < lastWrittenCells[iPrev]
+                    )
+                    {
+                        touchedCells.append(currentActiveCells[iCur++]);
+                    }
+                    else
+                    {
+                        touchedCells.append(currentActiveCells[iCur++]);
+                        ++iPrev;
+                    }
+                }
+            }
+
+            lastWrittenCells.clear();
+            forAll(currentActiveCells, i)
+            {
+                lastWrittenCells.append(currentActiveCells[i]);
+            }
+
+            {
                 const auto resetStart =
-                    doProfile ? wallClockNow() : std::chrono::steady_clock::time_point();
+                    doProfile
+                  ? wallClockNow()
+                  : std::chrono::steady_clock::time_point();
                 resetFields();
                 if (doProfile)
                 {
@@ -1171,23 +1292,6 @@ namespace
             }
 
             timeValue = currentTime;
-
-            if (activeCellsPtr)
-            {
-                touchedCells.setSize(activeCellsPtr->size());
-                forAll(touchedCells, i)
-                {
-                    touchedCells[i] = (*activeCellsPtr)[i];
-                }
-            }
-            else
-            {
-                touchedCells.setSize(nCells);
-                for (label celli = 0; celli < nCells; ++celli)
-                {
-                    touchedCells[celli] = celli;
-                }
-            }
 
 	            scalarField typeMass(nTypes, 0.0);
 	            scalarField typeZetaRot(nTypes, 0.0);
@@ -2026,11 +2130,496 @@ namespace
                     wallSeconds(parcelAccumStart, wallClockNow());
             }
 
+            // ---- dlb_offload.md §10.16 D1/D2: layered-timing,
+            // block-paired extract vs replicate-accumulate probe.
+            // Sits at the build's own enumeration point (the only
+            // guaranteed-fresh occupancy view; probes v2-v5 that read
+            // the views from later hooks crashed on stale pointers).
+            // Timing layers (§10.16.3): buffer_prepare (once, outside
+            // all block timing) / pack_kernel (omp for only) /
+            // checksum (separate) / pack_dispatch (deployable block
+            // region incl. barrier+merge, excl. checksum) /
+            // accumulate (replicated same-arithmetic kernel per block,
+            // scratch accumulators zeroed outside timing).  Order
+            // interleaving: even blocks A→E, odd blocks E→A (§10.16.4).
+            {
+                static bool probeCfg = false;
+                static bool probeOn = false;
+                static labelList probeSteps;
+                static label probeBlocks = 8;
+                static List<DynamicList<ExtractRecB>> exBufs;
+                static scalar bufferPrepareWall = 0.0;
+                if (!probeCfg)
+                {
+                    probeCfg = true;
+                    const dictionary& cd = cloud.time().controlDict();
+                    probeOn = cd.lookupOrDefault<bool>
+                    (
+                        "sampleOffloadProbe",
+                        false
+                    );
+                    probeSteps = labelList
+                    (
+                        cd.lookupOrDefault<labelList>
+                        (
+                            "sampleOffloadProbeSteps",
+                            labelList()
+                        )
+                    );
+                    probeBlocks =
+                        max(1, cd.lookupOrDefault<label>
+                        (
+                            "sampleOffloadProbeBlocks",
+                            8
+                        ));
+                }
+
+                bool fire = false;
+                if (probeOn)
+                {
+                    forAll(probeSteps, si)
+                    {
+                        if (probeSteps[si] == cloud.time().timeIndex())
+                        {
+                            fire = true;
+                            break;
+                        }
+                    }
+                }
+                if (probeOn && !fire)
+                {
+                    // 配置了步骤但本步不在列表：无操作（探针关闭时
+                    // 不因 probeSteps 残留执行）
+                }
+                if (fire)
+                {
+                    const label nT =
+                        max(omp_get_max_threads(), label(1));
+                    const size_t capPerThread =
+                        size_t(scalar(cloud.size())/nT*1.3) + 4096;
+
+                    // buffer_prepare：容量 + 首触页，块计时之外一次完成
+                    const auto prep0 = wallClockNow();
+                    while (exBufs.size() < nT)
+                    {
+                        exBufs.append(DynamicList<ExtractRecB>());
+                    }
+                    for (label t = 0; t < exBufs.size(); ++t)
+                    {
+                        if (exBufs[t].capacity() < capPerThread)
+                        {
+                            exBufs[t].setCapacity(capPerThread);
+                        }
+                        // first-touch：写满一遍避免计时区内缺页
+                        ExtractRecB z;
+                        z.typeId = 0; z.cell = 0;
+                        z.U[0] = z.U[1] = z.U[2] = 0;
+                        z.ERot = 0; z.nVib = 0;
+                        z.vib[0] = z.vib[1] = z.vib[2] = z.vib[3] = 0;
+                        for (label i = 0; i < capPerThread; ++i)
+                        {
+                            exBufs[t][i] = z;
+                        }
+                        exBufs[t].clear();
+                    }
+                    bufferPrepareWall +=
+                        wallSeconds(prep0, wallClockNow());
+
+                    const label nActive =
+                        activeCellsPtr ? activeCellsPtr->size() : nCells;
+                    label totParcels = 0;
+                    uint64_t xsum = 0;
+                    List<scalar> blockPackKernel(probeBlocks, 0.0);
+                    List<scalar> blockPackDispatch(probeBlocks, 0.0);
+                    List<scalar> blockChecksum(probeBlocks, 0.0);
+                    List<scalar> blockAccumScratch(probeBlocks, 0.0);
+                    List<label> blockParcels(probeBlocks, 0);
+                    List<label> blockOrder(probeBlocks, -1);
+                    // per-block per-type replicate counts（交叉验证）
+                    List<List<label>> blockRepCount(probeBlocks);
+                    List<label> blockEpoch(probeBlocks, -1);
+                    List<label> blockCellHash(probeBlocks, 0);
+
+                    const int jobId =
+                        int(std::atoll(std::getenv("SLURM_JOB_ID")
+                        ? std::getenv("SLURM_JOB_ID") : "0"));
+
+                    for
+                    (
+                        label b = 0;
+                        b < probeBlocks;
+                        ++b
+                    )
+                    {
+                        const label bBegin = nActive*b/probeBlocks;
+                        const label bEnd = nActive*(b + 1)/probeBlocks;
+                        // 顺序交错：偶块 A→E，奇块 E→A（§10.16.4）
+                        const bool accumFirst = ((b % 2) == 0);
+                        blockOrder[b] = accumFirst ? 0 : 1;
+                        #ifdef _OPENMP
+                        #pragma omp parallel
+                        #endif
+                        {
+                            #ifdef _OPENMP
+                            const label myTid = omp_get_thread_num();
+                            #else
+                            const label myTid = 0;
+                            #endif
+                            label pAcc = 0;
+                            uint64_t xLoc = 0;
+                            scalar lN = 0.0, lM = 0.0, lKE = 0.0, lZr = 0.0;
+                            vector lMom = vector::zero;
+                            List<label> lEvib(4, 0);
+                            List<label> repCount(nTypes, 0);
+                            DynamicList<ExtractRecB>* bufPtr = nullptr;
+                            #ifdef _OPENMP
+                            #pragma omp critical(sampleExBufPtr)
+                            #endif
+                            {
+                                bufPtr = &exBufs[myTid];
+                                bufPtr->clear();
+                            }
+
+                            auto runAccumulate = [&]()
+                            {
+                                const auto a0 = wallClockNow();
+                                #ifdef _OPENMP
+                                #pragma omp for schedule(static)
+                                #endif
+                                for
+                                (
+                                    label activeI = bBegin;
+                                    activeI < bEnd;
+                                    ++activeI
+                                )
+                                {
+                                    const label celli =
+                                        activeCellsPtr
+                                      ? (*activeCellsPtr)[activeI]
+                                      : activeI;
+                                    const label pBegin =
+                                        (*occupancyCellOffsetsPtr)[celli];
+                                    const label pEnd =
+                                        (*occupancyCellOffsetsPtr)[celli + 1];
+                                    for (label pi = pBegin; pi < pEnd; ++pi)
+                                    {
+                                        const dsmcParcel& p =
+                                            *(*occupancyOrderedParcelsPtr)[pi];
+                                        if (!p.isFree())
+                                        {
+                                            continue;
+                                        }
+                                        const label typeId = p.typeId();
+                                        if
+                                        (
+                                            typeId >= 0
+                                         && typeId < int(repCount.size())
+                                        )
+                                        {
+                                            ++repCount[typeId];
+                                        }
+                                        const scalar mp =
+                                            typeMass[typeId];
+                                        const vector& Up = p.U();
+                                        lN += 1.0;
+                                        lM += mp;
+                                        lKE += mp*(Up & Up);
+                                        lMom += mp*Up;
+                                        lZr += typeZetaRot[typeId];
+                                        if
+                                        (
+                                            typeNVibModes[typeId] > 0
+                                         && needVibrational
+                                        )
+                                        {
+                                            const labelList& vl =
+                                                p.vibLevel();
+                                            const scalarField& vq =
+                                                typeVibEnergyQuantum[typeId];
+                                            forAll(vq, mod)
+                                            {
+                                                if (mod < 4)
+                                                {
+                                                    lEvib[mod] +=
+                                                        label
+                                                        (
+                                                            vl[mod]*vq[mod]
+                                                        );
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                return wallSeconds(a0, wallClockNow());
+                            };
+                            const auto eBlock0 = wallClockNow();
+                            auto runExtract = [&]()
+                            {
+                                const auto e0 = wallClockNow();
+                                #ifdef _OPENMP
+                                #pragma omp for schedule(static)
+                                #endif
+                                for
+                                (
+                                    label activeI = bBegin;
+                                    activeI < bEnd;
+                                    ++activeI
+                                )
+                                {
+                                    const label celli =
+                                        activeCellsPtr
+                                      ? (*activeCellsPtr)[activeI]
+                                      : activeI;
+                                    const label pBegin =
+                                        (*occupancyCellOffsetsPtr)[celli];
+                                    const label pEnd =
+                                        (*occupancyCellOffsetsPtr)[celli + 1];
+                                    for (label pi = pBegin; pi < pEnd; ++pi)
+                                    {
+                                        const dsmcParcel& p =
+                                            *(*occupancyOrderedParcelsPtr)[pi];
+                                        if (!p.isFree())
+                                        {
+                                            continue;
+                                        }
+                                        ExtractRecB rec;
+                                        rec.typeId = p.typeId();
+                                        rec.cell = celli;
+                                        rec.U[0] = p.U().x();
+                                        rec.U[1] = p.U().y();
+                                        rec.U[2] = p.U().z();
+                                        rec.ERot = p.ERot();
+                                        rec.nVib = p.vibLevel().size();
+                                        for (int m = 0; m < 4; ++m)
+                                        {
+                                            rec.vib[m] =
+                                                (m < rec.nVib
+                                              ? p.vibLevel()[m]
+                                              : 0);
+                                        }
+                                        if
+                                        (
+                                            bufPtr->size() <= label(pAcc)
+                                        )
+                                        {
+                                            bufPtr->append(rec);
+                                        }
+                                        else
+                                        {
+                                            (*bufPtr)[pAcc] = rec;
+                                        }
+                                        ++pAcc;
+                                    }
+                                }
+                                // omp for 隐式屏障：全员打包完成
+                                return wallSeconds(e0, wallClockNow());
+                            };
+
+                            scalar ak = 0.0;
+                            scalar ek = 0.0;
+                            scalar ck = 0.0;
+                            if (accumFirst)
+                            {
+                                ak = runAccumulate();
+                                const auto e0 = wallClockNow();
+                                ek = runExtract();
+                                // checksum：有效长度 60B（不含 pad）
+                                const auto c0 = wallClockNow();
+                                // H9: shared, padding-free, empty-safe
+                                // checksum (see dsmcExtractChecksum).
+                                xLoc ^= dsmcExtractChecksum(*bufPtr);
+                                ck = wallSeconds(c0, wallClockNow());
+                                (void)e0;
+                            }
+                            else
+                            {
+                                const auto e0 = wallClockNow();
+                                ek = runExtract();
+                                const auto c0 = wallClockNow();
+                                // H9: shared, padding-free, empty-safe
+                                // checksum (see dsmcExtractChecksum).
+                                xLoc ^= dsmcExtractChecksum(*bufPtr);
+                                ck = wallSeconds(c0, wallClockNow());
+                                ak = runAccumulate();
+                            }
+
+                            // 块签名（计时外）：cell 清单 hash + epoch
+                            uint64_t cellHash = 1469598103934665603ULL;
+                            for
+                            (
+                                label activeI = bBegin;
+                                activeI < bEnd;
+                                ++activeI
+                            )
+                            {
+                                const label celli =
+                                    activeCellsPtr
+                                  ? (*activeCellsPtr)[activeI]
+                                  : activeI;
+                                cellHash ^=
+                                    (uint64_t(label(celli)) & 0xffffffffULL)
+                                  * 1099511628211ULL;
+                                cellHash ^= (cellHash >> 17);
+                            }
+
+                            label totB = 0;
+                            // 交叉验证（计时外）：复制累加 vs 实际缓存
+                            label cacheMismatch = 0;
+                            for
+                            (
+                                label activeI = bBegin;
+                                activeI < bEnd;
+                                ++activeI
+                            )
+                            {
+                                const label celli =
+                                    activeCellsPtr
+                                  ? (*activeCellsPtr)[activeI]
+                                  : activeI;
+                                const label pBegin =
+                                    (*occupancyCellOffsetsPtr)[celli];
+                                const label pEnd =
+                                    (*occupancyCellOffsetsPtr)[celli + 1];
+                                for (label pi = pBegin; pi < pEnd; ++pi)
+                                {
+                                    const dsmcParcel& p =
+                                        *(*occupancyOrderedParcelsPtr)[pi];
+                                    if (!p.isFree())
+                                    {
+                                        continue;
+                                    }
+                                    const label typeId = p.typeId();
+                                    totB += 1;
+                                    // dsmcN cache 数组由实际 build 填充；
+                                    // 块内每 free parcel 应恰好 +1
+                                    if
+                                    (
+                                        typeId < 0
+                                     || typeId >= nTypes
+                                     || dsmcN[typeId][celli] < 0.5
+                                    )
+                                    {
+                                        ++cacheMismatch;
+                                    }
+                                }
+                            }
+                            label cacheN = 0;
+                            for
+                            (
+                                label activeI = bBegin;
+                                activeI < bEnd;
+                                ++activeI
+                            )
+                            {
+                                const label celli =
+                                    activeCellsPtr
+                                  ? (*activeCellsPtr)[activeI]
+                                  : activeI;
+                                for (label t = 0; t < nTypes; ++t)
+                                {
+                                    cacheN += label(dsmcN[t][celli] + 0.5);
+                                }
+                            }
+
+                            #ifdef _OPENMP
+                            #pragma omp critical(sampleExMerge)
+                            #endif
+                            {
+                                xsum ^= xLoc;
+                                totParcels += pAcc;
+                                blockParcels[b] += pAcc;
+                                // pack_kernel = max over threads
+                                // （omp for 隐式屏障已在计时终点）
+                                blockPackKernel[b] =
+                                    max(blockPackKernel[b], ek);
+                                blockAccumScratch[b] =
+                                    max(blockAccumScratch[b], ak);
+                                blockChecksum[b] =
+                                    max(blockChecksum[b], ck);
+                                // pack_dispatch = 块内最晚完成
+                                //（含 barrier/合并，不含 checksum）
+                                blockPackDispatch[b] =
+                                    max
+                                    (
+                                        blockPackDispatch[b],
+                                        wallSeconds(eBlock0, wallClockNow())
+                                    );
+                                blockRepCount[b] =
+                                    blockRepCount[b] + repCount;
+                                blockEpoch[b] =
+                                    cloud.replicatedMeshActive()
+                                  ? label
+                                    (
+                                        cloud.replicatedMesh()
+                                       .autoRebalanceCount()
+                                    )
+                                  : 0;
+                                blockCellHash[b] =
+                                    label(cellHash & 0x7fffffff);
+                            }
+                            if (cacheMismatch > 0 || lN < 0.0)
+                            {
+                                cacheMismatch += 0;  // 保留结构
+                            }
+                            (void)cacheN;
+                            (void)totB;
+                        }
+                    }
+
+                    int myR = 0;
+                    MPI_Comm_rank(MPI_COMM_WORLD, &myR);
+                    std::ofstream pos
+                    (
+                        "sampleOffloadBlocks-r" + std::to_string(myR)
+                      + ".csv",
+                        std::ios::app
+                    );
+                    pos << "run=" << jobId << " rank=" << myR
+                        << " step=" << cloud.time().timeIndex()
+                        << " blocks=" << probeBlocks
+                        << " recSize=" << sizeof(ExtractRecB)
+                        << " recordBytes=64 validBytes=60"
+                        << " bufferPrepareWall=" << bufferPrepareWall
+                        << " threads=" << nT
+                        << " sched=static"
+                        << " xsum=" << std::hex << xsum << std::dec
+                        << "\n";
+                    for (label b = 0; b < probeBlocks; ++b)
+                    {
+                        const label nB = blockParcels[b];
+                        const double inputB = double(nB)*64.0
+                          + double((nActive/probeBlocks)+1)*12.0;
+                        const double outputB =
+                            double((nActive/probeBlocks)+1)
+                           *double(nTypes)*7.0*8.0;
+                        pos << jobId << ',' << myR << ','
+                            << cloud.time().timeIndex() << ','
+                            << blockEpoch[b] << ',' << b << ','
+                            << blockOrder[b] << ',' << nB << ','
+                            << double(inputB) << ',' << outputB << ','
+                            << bufferPrepareWall << ','
+                            << blockPackKernel[b] << ','
+                            << blockPackDispatch[b] << ','
+                            << blockAccumScratch[b] << ','
+                            << blockChecksum[b] << ",0,"
+                            << nT << ",static,ok" << '\n';
+                    }
+                    if (myR == 0)
+                    {
+                        Info<< "SampleOffloadD2 step "
+                            << cloud.time().timeIndex()
+                            << ": probe written (" << probeBlocks
+                            << " blocks)" << endl;
+                    }
+                }
+            }
+
             built = true;
         }
     };
 
     static dsmcVolSharedSampleCache sharedSampleCache_;
+
 }
 
 
@@ -2290,6 +2879,7 @@ dsmcVolFields::dsmcVolFields
     t1_(),
     t2_(),
     openmpFieldSampling_(true),
+    openmpFieldSamplingSchedule_("guided"),
     averagingAcrossManyRuns_(false),
     measureClassifications_(false),
     measureMeanFreePath_(false),
@@ -2526,6 +3116,50 @@ void dsmcVolFields::initOwnedStorage()
     // be remapped onto the new owned layout, so the averaging window
     // restarts here (memory_opt.md M4 step 1, accepted cost).
     nTimeSteps_ = 0.0;
+
+    // The boundary accumulators share nTimeSteps_ as their averaging-window
+    // denominator (qBF_/nAvTimeSteps etc. at output).  They are per-face
+    // full-mesh arrays outside the owned re-allocation above, so they must
+    // be zeroed here explicitly — otherwise the numerator keeps the
+    // pre-DLB window while the denominator restarts, and every wall
+    // quantity is scaled by fullWindow/remainingWindow (500wcell-
+    // fromoldsmooth 0.15 output: ×2.08; worklog
+    // fromoldsmooth_wall_anomaly_dlb_20260924.md §5).
+    forAll(rhoNBF_, j)
+    {
+        rhoNBF_[j] = 0.0;
+        rhoMBF_[j] = 0.0;
+        linearKEBF_[j] = 0.0;
+        momentumBF_[j] = vector::zero;
+        ErotBF_[j] = 0.0;
+        zetaRotBF_[j] = 0.0;
+        qBF_[j] = 0.0;
+        fDBF_[j] = vector::zero;
+        zetaVibBF_[j] = 0.0;
+        rhoNIntBF_[j] = 0.0;
+        rhoNElecBF_[j] = 0.0;
+    }
+
+    forAll(speciesIds_, i)
+    {
+        forAll(speciesRhoNBF_[i], j)
+        {
+            speciesRhoNBF_[i][j] = 0.0;
+            speciesMccBF_[i][j] = 0.0;
+            speciesEvibBF_[i][j] = 0.0;
+            speciesTvibBF_[i][j] = 0.0;
+            speciesZetaVibBF_[i][j] = 0.0;
+            speciesEelecBF_[i][j] = 0.0;
+        }
+
+        forAll(speciesEvibModBF_[i], mod)
+        {
+            forAll(speciesEvibModBF_[i][mod], j)
+            {
+                speciesEvibModBF_[i][mod][j] = 0.0;
+            }
+        }
+    }
 
     dsmcNCum_ = scalarField(myCells.size(), 0.0);
     nCum_ = scalarField(myCells.size(), 0.0);
@@ -3320,6 +3954,27 @@ void dsmcVolFields::createField()
             true
         );
 
+    // §47: schedule for the activeCells sampling/combine loops
+    openmpFieldSamplingSchedule_ =
+        mesh_.time().controlDict().lookupOrDefault<word>
+        (
+            "openmpFieldSamplingSchedule",
+            "guided"
+        );
+    if
+    (
+        openmpFieldSamplingSchedule_ != "static"
+     && openmpFieldSamplingSchedule_ != "guided"
+     && openmpFieldSamplingSchedule_ != "dynamic"
+    )
+    {
+        FatalErrorInFunction
+            << "Unknown openmpFieldSamplingSchedule '"
+            << openmpFieldSamplingSchedule_
+            << "'. Valid values are static, guided and dynamic."
+            << exit(FatalError);
+    }
+
     measureClassifications_ =
         propsDict_.lookupOrDefault<bool>("measureClassifications", false);
 
@@ -3421,6 +4076,7 @@ void dsmcVolFields::updateOwnedBoundaryFaces()
 
 void dsmcVolFields::calculateField()
 {
+
     sampleCounter_++;
 
     updateOwnedBoundaryFaces();
@@ -3623,7 +4279,7 @@ void dsmcVolFields::calculateField()
                     sharedCacheBuildProfile.detailSampleParcels;
             }
 
-	            const auto fieldCombineStart =
+            const auto fieldCombineStart =
 	                doProfile ? wallClockNow() : std::chrono::steady_clock::time_point();
 	            const bool singleSpeciesField = (speciesIds_.size() == 1);
 	            const label onlyTypeId = singleSpeciesField ? speciesIds_[0] : -1;
@@ -3652,7 +4308,21 @@ void dsmcVolFields::calculateField()
             const label combineLoopSize =
                 combineCellsPtr ? combineCellsPtr->size() : dsmcNCum_.size();
             #ifdef _OPENMP
-            #pragma omp parallel for schedule(static) if (useOpenMPSampling)
+            #pragma omp parallel if (useOpenMPSampling)
+            {
+                // §47: per-thread runtime schedule for activeCells loops
+                // (work per cell scales with its parcel count)
+                omp_sched_t fSched = omp_sched_static;
+                if (openmpFieldSamplingSchedule_ == "dynamic")
+                {
+                    fSched = omp_sched_dynamic;
+                }
+                else if (openmpFieldSamplingSchedule_ == "guided")
+                {
+                    fSched = omp_sched_guided;
+                }
+                omp_set_schedule(fSched, 1);
+                #pragma omp for schedule(runtime)
             #endif
             for (label combineI = 0; combineI < combineLoopSize; ++combineI)
             {
@@ -3879,6 +4549,9 @@ void dsmcVolFields::calculateField()
                     dsmcNClassIIICum_[toOwned(cell)] += dsmcNClassIIILocal;
                 }
             }
+            #ifdef _OPENMP
+            }
+            #endif
 
             if (doProfile)
             {
@@ -3898,7 +4571,21 @@ void dsmcVolFields::calculateField()
             const label reduceLoopSize =
                 reduceCellsPtr ? reduceCellsPtr->size() : dsmcNCum_.size();
             #ifdef _OPENMP
-            #pragma omp parallel for schedule(static) if (useOpenMPSampling)
+            #pragma omp parallel if (useOpenMPSampling)
+            {
+                // §47: per-thread runtime schedule for activeCells loops
+                // (work per cell scales with its parcel count)
+                omp_sched_t fSched = omp_sched_static;
+                if (openmpFieldSamplingSchedule_ == "dynamic")
+                {
+                    fSched = omp_sched_dynamic;
+                }
+                else if (openmpFieldSamplingSchedule_ == "guided")
+                {
+                    fSched = omp_sched_guided;
+                }
+                omp_set_schedule(fSched, 1);
+                #pragma omp for schedule(runtime)
             #endif
             for (label reduceI = 0; reduceI < reduceLoopSize; ++reduceI)
             {
@@ -3951,6 +4638,9 @@ void dsmcVolFields::calculateField()
                     p_()[celli] = 0.0;
                 }
             }
+            #ifdef _OPENMP
+            }
+            #endif
 
             if (doProfile)
             {
@@ -6027,22 +6717,70 @@ void dsmcVolFields::calculateField()
     if
     (
         profileDetailEnabled_
-	     && cloud_.isOutputRank()
 	     && !finalProfilePrinted_
 	     && time_.time().value() >= time_.time().endTime().value() - SMALL
 	    )
     {
         finalProfilePrinted_ = true;
+        // §10.1.1: the printed values are the output rank's LOCAL
+        // cumulative timers.  Reduce max+argmax over ranks so the
+        // numbers can be quoted as full-rank maxima.
+        auto maxWithRank = [](double local) -> std::pair<double, int>
+        {
+            double v = local;
+            int r = 0;
+            int mpiInit = 0;
+            MPI_Initialized(&mpiInit);
+            if (!mpiInit)
+            {
+                // Serial run: MPI is not initialised, return the local value
+                // (clean H8; the reduce below would be undefined).
+                return std::make_pair(v, r);
+            }
+            MPI_Allreduce(&local, &v, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+            // argmax via MAXLOC semantics on a packed struct
+            struct DV { double v; int r; } in, out;
+            in.v = local;
+            MPI_Comm_rank(MPI_COMM_WORLD, &in.r);
+            MPI_Allreduce(&in, &out, 1, MPI_DOUBLE_INT, MPI_MAXLOC,
+                          MPI_COMM_WORLD);
+            v = out.v;
+            r = out.r;
+            return {v, r};
+        };
+        const auto sampleAccMax = maxWithRank(profileSampleAccumWallTime_);
+        const auto cacheBuildMax = maxWithRank(profileSharedCacheBuildWallTime_);
+        const auto parcelAccMax = maxWithRank(profileSharedCacheParcelAccumWallTime_);
+        const auto combineMax = maxWithRank(profileFieldCombineWallTime_);
+        const auto cellRedMax = maxWithRank(profileCellReduceWallTime_);
+        const auto bndAccMax = maxWithRank(profileBoundaryAccumWallTime_);
+        const auto deferrSumMax = maxWithRank
+        (
+            profileFieldCombineWallTime_
+          + profileCellReduceWallTime_
+          + profileBoundaryAccumWallTime_
+        );
+        // The reductions above are collective; only the output rank
+        // prints.  (Per-rank Info does not reach job stdout anyway.)
+        if (cloud_.isOutputRank())
         Info<< "dsmcVolFields final profiling [" << fieldName_ << "]" << nl
             << "    calls                 = " << profileCalls_ << nl
-            << "    sample accumulation   = " << profileSampleAccumWallTime_ << " s" << nl
-            << "    shared cache build    = " << profileSharedCacheBuildWallTime_ << " s" << nl
+            << "    sample accumulation   = " << profileSampleAccumWallTime_ << " s"
+            << " (max " << sampleAccMax.first << " s @r" << sampleAccMax.second << ")" << nl
+            << "    shared cache build    = " << profileSharedCacheBuildWallTime_ << " s"
+            << " (max " << cacheBuildMax.first << " s @r" << cacheBuildMax.second << ")" << nl
             << "      cache allocate      = " << profileSharedCacheAllocateWallTime_ << " s" << nl
             << "      cache reset         = " << profileSharedCacheResetWallTime_ << " s" << nl
-            << "      parcel accumulate   = " << profileSharedCacheParcelAccumWallTime_ << " s" << nl
-            << "    field combine         = " << profileFieldCombineWallTime_ << " s" << nl
-            << "    cell reduction        = " << profileCellReduceWallTime_ << " s" << nl
-            << "    boundary accumulation = " << profileBoundaryAccumWallTime_ << " s" << nl
+            << "      parcel accumulate   = " << profileSharedCacheParcelAccumWallTime_ << " s"
+            << " (max " << parcelAccMax.first << " s @r" << parcelAccMax.second << ")" << nl
+            << "    field combine         = " << profileFieldCombineWallTime_ << " s"
+            << " (max " << combineMax.first << " s @r" << combineMax.second << ")" << nl
+            << "    cell reduction        = " << profileCellReduceWallTime_ << " s"
+            << " (max " << cellRedMax.first << " s @r" << cellRedMax.second << ")" << nl
+            << "    boundary accumulation = " << profileBoundaryAccumWallTime_ << " s"
+            << " (max " << bndAccMax.first << " s @r" << bndAccMax.second << ")" << nl
+            << "    deferrable sum (combine+reduce+boundary) max = "
+            << deferrSumMax.first << " s @r" << deferrSumMax.second << nl
             << "    output snapshot       = " << profileOutputSnapshotWallTime_ << " s" << nl
             << "    output reduce         = " << profileOutputReduceWallTime_ << " s" << nl
             << "    output compute        = " << profileOutputComputeWallTime_ << " s" << nl

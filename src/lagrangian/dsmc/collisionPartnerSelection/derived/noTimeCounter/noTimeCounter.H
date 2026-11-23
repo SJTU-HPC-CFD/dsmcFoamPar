@@ -71,8 +71,12 @@ private:
     List<DynamicList<label>> threadCandidateCells_;
     List<dsmcPaddedFastRng*> collisionThreadFastRng_;
     DynamicList<label> candidateCellsToClear_;
-    label profileLocalCollisions_;
-    label profileLocalCollisionCandidates_;
+    // clean M13: WM_LABEL_SIZE=32 in this build, so a label accumulator
+    // overflows at 2^31.  These counters are cumulative over the whole
+    // run, so they are stored as doubles (exact for integers < 2^53), the
+    // same representation already used for the moveDetail counters.
+    double profileLocalCollisions_;
+    double profileLocalCollisionCandidates_;
     scalar profileCollisionLocalLoopWall_;
     scalar profileCollisionReduceWall_;
     scalar profileCollisionSigmaWall_;
@@ -160,14 +164,22 @@ public:
                 return profileCollisionPreOutputWall_;
             }
 
+            // Clean M13: the interface returns label (int32 in this build)
+            // but the counters are double.  Saturate instead of an
+            // out-of-range cast (which is undefined); no caller uses these
+            // accessors — the wide values go through the diagnostic
+            // gather/print, which is double end to end.
             label collisionLocalAcceptedCount() const override
             {
-                return profileLocalCollisions_;
+                return label(min(profileLocalCollisions_, scalar(labelMax)));
             }
 
             label collisionLocalCandidateCount() const override
             {
-                return profileLocalCollisionCandidates_;
+                return label
+                (
+                    min(profileLocalCollisionCandidates_, scalar(labelMax))
+                );
             }
 
         // Write

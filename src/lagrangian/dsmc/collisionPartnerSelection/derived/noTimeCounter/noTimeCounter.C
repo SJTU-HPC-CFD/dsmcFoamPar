@@ -29,6 +29,7 @@ Description
 \*----------------------------------------------------------------------------*/
 
 #include "noTimeCounter.H"
+#include <cstdio>
 #include "addToRunTimeSelectionTable.H"
 #include "../../../dsmcFastRng.H"
 #include <chrono>
@@ -219,15 +220,34 @@ void noTimeCounter::printReplicatedRankCollisionDetail
 
     const label myRank = cloud_.replicatedMesh().myRank();
     const label nRanks = cloud_.replicatedMesh().nProcs();
-    const label nLocalValues = 4;
-    const label nScalarValues = 4;
+    const label nLocalValues = 5;
+    const label nScalarValues = 8;
 
-    label localValues[nLocalValues] =
+    // clean M13: cumulative counters can exceed int32 at scale (this build
+    // has WM_LABEL_SIZE=32); gather them as doubles (exact for integers
+    // < 2^53) instead of MPI_INT.
+    //
+    // Verification hook (default 0): add a synthetic offset to the four
+    // local counts to exercise this aggregation path near/across 2^31
+    // without running billions of collisions.  The offset is applied to
+    // the GATHERED copy only — the real accumulators are untouched.
+    // Read as a double: a 32-bit label cannot even express 2^31, which is
+    // exactly the boundary this verification targets.
+    const double syntheticOffset =
+        cloud_.mesh().time().controlDict().lookupOrDefault<double>
+        (
+            "collisionDetailSyntheticOffset",
+            0.0
+        );
+    const double synthetic = syntheticOffset + double(myRank);
+
+    double localValues[nLocalValues] =
     {
-        localCollisions,
-        localCollisionCandidates,
-        profileLocalCollisions_,
-        profileLocalCollisionCandidates_
+        double(localCollisions) + synthetic,
+        double(localCollisionCandidates) + synthetic,
+        profileLocalCollisions_ + synthetic,
+        profileLocalCollisionCandidates_ + synthetic,
+        double(cloud_.size())
     };
 
     scalar localScalarValues[nScalarValues] =
@@ -235,10 +255,12 @@ void noTimeCounter::printReplicatedRankCollisionDetail
         profileCollisionLocalLoopWall_,
         profileCollisionReduceWall_,
         profileCollisionSigmaWall_,
-        profileCollisionPreOutputWall_
+        profileCollisionPreOutputWall_,
+        cloud_.moveDetailCumulative(0),
+        cloud_.moveDetailCumulative(1)
     };
 
-    List<label> allValues;
+    List<scalar> allValues;
     List<scalar> allScalarValues;
     if (myRank == 0)
     {
@@ -250,10 +272,10 @@ void noTimeCounter::printReplicatedRankCollisionDetail
     (
         localValues,
         nLocalValues,
-        MPI_INT,
+        MPI_DOUBLE,
         myRank == 0 ? allValues.data() : nullptr,
         nLocalValues,
-        MPI_INT,
+        MPI_DOUBLE,
         0,
         MPI_COMM_WORLD
     );
@@ -275,22 +297,34 @@ void noTimeCounter::printReplicatedRankCollisionDetail
         return;
     }
 
-    label minLocalCandidates = labelMax;
-    label maxLocalCandidates = 0;
-    label minCumulativeCandidates = labelMax;
-    label maxCumulativeCandidates = 0;
+    // clean M13: the sentinel must not be labelMax (and not any 32-bit
+    // limit) — a synthetic or real count above 2^31 would never become the
+    // minimum and the max/min ratio would be wrong (observed 2.0 instead
+    // of ~1.0 with every count above 2^31).
+    double minLocalCandidates = 1.0e300;
+    double maxLocalCandidates = 0.0;
+    double minCumulativeCandidates = 1.0e300;
+    double maxCumulativeCandidates = 0.0;
 
     Info<< "    Replicated mesh collision detail by rank:" << nl
-        << "        rank localColl localCand cumColl cumCand"
+        << "        rank localColl localCand cumColl cumCand particles moveParcels trackCalls"
         << " localAcc cumAcc" << nl;
 
     for (label rankI = 0; rankI < nRanks; ++rankI)
     {
         const label base = rankI*nLocalValues;
-        const label rankLocalCollisions = allValues[base + 0];
-        const label rankLocalCandidates = allValues[base + 1];
-        const label rankCumulativeCollisions = allValues[base + 2];
-        const label rankCumulativeCandidates = allValues[base + 3];
+        // clean M13: the gathered counters are double; convert to int64 for
+        // printing (int32 label would truncate at 2^31 and hide overflow).
+        const double rankLocalCollisions = allValues[base + 0];
+        const double rankLocalCandidates = allValues[base + 1];
+        const double rankCumulativeCollisions = allValues[base + 2];
+        const double rankCumulativeCandidates = allValues[base + 3];
+        const double rankParticles = allValues[base + 4];
+        // moveDetail counters ride the scalar gather (int32 overflows at
+        // 1200w scale within ~10 steps)
+        const label sbase = rankI*nScalarValues;
+        const double rankMoveParcels = allScalarValues[sbase + 4];
+        const double rankTrackCalls = allScalarValues[sbase + 5];
 
         minLocalCandidates = min(minLocalCandidates, rankLocalCandidates);
         maxLocalCandidates = max(maxLocalCandidates, rankLocalCandidates);
@@ -299,15 +333,35 @@ void noTimeCounter::printReplicatedRankCollisionDetail
         maxCumulativeCandidates =
             max(maxCumulativeCandidates, rankCumulativeCandidates);
 
+        // Print the wide counters without going through label: in this
+        // build label is int32, and OF's int64 stream operator writes
+        // label(value), so the value would wrap at 2^31 (observed as a
+        // negative count).  "%.0f" keeps every integer up to 2^53 exact.
+        char collBuf[32];
+        char candBuf[32];
+        char cumCollBuf[32];
+        char cumCandBuf[32];
+        char partBuf[32];
+        std::snprintf(collBuf, sizeof(collBuf), "%.0f", rankLocalCollisions);
+        std::snprintf(candBuf, sizeof(candBuf), "%.0f", rankLocalCandidates);
+        std::snprintf(cumCollBuf, sizeof(cumCollBuf), "%.0f",
+                      rankCumulativeCollisions);
+        std::snprintf(cumCandBuf, sizeof(cumCandBuf), "%.0f",
+                      rankCumulativeCandidates);
+        std::snprintf(partBuf, sizeof(partBuf), "%.0f", rankParticles);
+
         Info<< "        rank" << rankI
+            << " " << collBuf
+            << " " << candBuf
+            << " " << cumCollBuf
+            << " " << cumCandBuf
+            << " " << partBuf
+            << " " << rankMoveParcels
+            << " " << rankTrackCalls
             << " " << rankLocalCollisions
-            << " " << rankLocalCandidates
+                /max(rankLocalCandidates, SMALL)
             << " " << rankCumulativeCollisions
-            << " " << rankCumulativeCandidates
-            << " " << scalar(rankLocalCollisions)
-                /max(scalar(rankLocalCandidates), SMALL)
-            << " " << scalar(rankCumulativeCollisions)
-                /max(scalar(rankCumulativeCandidates), SMALL)
+                /max(rankCumulativeCandidates, SMALL)
             << nl;
     }
 
@@ -391,6 +445,7 @@ void noTimeCounter::collide()
     if (!cloud_.binaryCollision().active())
     {
         labelList& nCandidatesPerCell = cloud_.nCandidatesPerCell();
+        cloud_.accumulateCellCostCandidates(nCandidatesPerCell, candidateCellsToClear_);
         clearCandidateCounts(nCandidatesPerCell, cloud_.mesh().nCells());
         if (subphaseTimers)
         {
@@ -439,6 +494,7 @@ void noTimeCounter::collide()
         const label nCollisionCells = collisionCells.size();
 
         labelList& nCandidatesPerCell = cloud_.nCandidatesPerCell();
+        cloud_.accumulateCellCostCandidates(nCandidatesPerCell, candidateCellsToClear_);
         clearCandidateCounts(nCandidatesPerCell, nCells);
 
         if
@@ -756,6 +812,7 @@ void noTimeCounter::collide()
 
         profileLocalCollisionCandidates_ += localCollisionCandidates;
         profileLocalCollisions_ += localCollisions;
+        cloud_.addToCumulativeCollisions(localCollisions, localCollisionCandidates);
 
         if (subphaseTimers)
         {
@@ -923,6 +980,7 @@ void noTimeCounter::collide()
       : cloud_.occupancyOwnedCollisionCells();
 
     labelList& nCandidatesPerCell = cloud_.nCandidatesPerCell();
+    cloud_.accumulateCellCostCandidates(nCandidatesPerCell, candidateCellsToClear_);
     clearCandidateCounts(nCandidatesPerCell, nCells);
 
     if (threadWhichSubCell_.size() < 1)
@@ -1180,6 +1238,7 @@ void noTimeCounter::collide()
 
     profileLocalCollisionCandidates_ += localCollisionCandidates;
     profileLocalCollisions_ += localCollisions;
+    cloud_.addToCumulativeCollisions(localCollisions, localCollisionCandidates);
 
     if (subphaseTimers)
     {

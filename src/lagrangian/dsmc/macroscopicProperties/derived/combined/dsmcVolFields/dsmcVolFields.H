@@ -185,6 +185,11 @@ protected:
         List<vectorField> t2_;
 
         bool openmpFieldSampling_;
+        //- §47: schedule for the activeCells sampling/combine loops
+        // (static/guided/dynamic; default guided — per-cell parcel
+        // counts are spatially clustered, static equal-cells split
+        // is unfair).
+        word openmpFieldSamplingSchedule_;
         bool averagingAcrossManyRuns_;
         bool measureClassifications_;
         bool measureMeanFreePath_;

@@ -43,6 +43,7 @@ namespace Foam
 {
 namespace cloudOpenMP
 {
+
 template<class TrackCloudType>
 inline auto moveEnabled(const TrackCloudType& cloud, int)
 -> decltype(cloud.openmpMoveEnabled(), bool())
@@ -144,6 +145,66 @@ inline bool fastRngEnabled(const TrackCloudType&, long)
 {
     return false;
 }
+
+// dlb_offload.md P0/P1 observe-only probe: SFINAE so generic clouds
+// without the probe members compile unchanged.
+template<class TrackCloudType>
+inline auto offloadProbeActive(const TrackCloudType& cloud, int)
+-> decltype(cloud.offloadProbeEnabled(), bool())
+{
+    return cloud.offloadProbeEnabled();
+}
+
+template<class TrackCloudType>
+inline bool offloadProbeActive(const TrackCloudType&, long)
+{
+    return false;
+}
+
+template<class TrackCloudType>
+inline auto offloadObserveActive(const TrackCloudType& cloud, int)
+-> decltype(cloud.offloadObserveEnabled(), bool())
+{
+    return cloud.offloadObserveEnabled();
+}
+
+template<class TrackCloudType>
+inline bool offloadObserveActive(const TrackCloudType&, long)
+{
+    return false;
+}
+
+template<class TrackData>
+inline auto initOffloadProbe
+(
+    TrackData& td,
+    const bool observeOn,
+    int
+)
+-> decltype(td.offloadProbeInit(observeOn), void())
+{
+    td.offloadProbeInit(observeOn);
+}
+
+template<class TrackData>
+inline void initOffloadProbe(TrackData&, const bool, long)
+{}
+
+template<class TrackData>
+inline auto accumulateOffloadProbe
+(
+    TrackData& td,
+    const TrackData& localTd,
+    int
+)
+-> decltype(td.offloadProbeAccumulate(localTd), void())
+{
+    td.offloadProbeAccumulate(localTd);
+}
+
+template<class TrackData>
+inline void accumulateOffloadProbe(TrackData&, const TrackData&, long)
+{}
 
 template<class TrackData>
 inline auto setFastRng(TrackData& td, const bool enabled, int)
@@ -801,6 +862,11 @@ void Foam::Cloud<ParticleType>::move(TrackData& td, const scalar trackTime)
                 const bool inlineReset = resetPending;
                 const bool fastRng =
                     cloudOpenMP::fastRngEnabled(td.cloud(), 0);
+                const bool offloadProbeOn =
+                    cloudOpenMP::offloadProbeActive(td.cloud(), 0);
+                const bool offloadObserveOn =
+                    offloadProbeOn
+                 && cloudOpenMP::offloadObserveActive(td.cloud(), 0);
                 resetPending = false;
 
                 omp_sched_t sched = omp_sched_static;
@@ -818,6 +884,7 @@ void Foam::Cloud<ParticleType>::move(TrackData& td, const scalar trackTime)
                 {
                     TrackData localTd(td.cloud());
                     cloudOpenMP::copyMoveDetailProfile(localTd, td, 0);
+                    cloudOpenMP::initOffloadProbe(localTd, offloadObserveOn, 0);
                     cloudOpenMP::setFastRng(localTd, fastRng, 0);
                     cloudOpenMP::setMoveSeed
                     (
@@ -840,6 +907,19 @@ void Foam::Cloud<ParticleType>::move(TrackData& td, const scalar trackTime)
                             particles[i]->move(localTd, trackTime) ? 1 : 0;
                         switchProcessorFlags[i] =
                             localTd.switchProcessor ? 1 : 0;
+                    }
+
+                    if (offloadObserveOn)
+                    {
+                        #pragma omp critical(dsmcOffloadProbe)
+                        {
+                            cloudOpenMP::accumulateOffloadProbe
+                            (
+                                td,
+                                localTd,
+                                0
+                            );
+                        }
                     }
 
                     if (collectMoveDetail)
@@ -1175,6 +1255,11 @@ void Foam::Cloud<ParticleType>::move(TrackData& td, const scalar trackTime)
         );
         const bool inlineReset = true;
         const bool fastRng = cloudOpenMP::fastRngEnabled(td.cloud(), 0);
+        const bool offloadProbeOn =
+            cloudOpenMP::offloadProbeActive(td.cloud(), 0);
+        const bool offloadObserveOn =
+            offloadProbeOn
+         && cloudOpenMP::offloadObserveActive(td.cloud(), 0);
         label deletedParticleCount = 0;
 
         omp_sched_t sched = omp_sched_static;
@@ -1192,6 +1277,7 @@ void Foam::Cloud<ParticleType>::move(TrackData& td, const scalar trackTime)
         {
             TrackData localTd(td.cloud());
             cloudOpenMP::copyMoveDetailProfile(localTd, td, 0);
+            cloudOpenMP::initOffloadProbe(localTd, offloadObserveOn, 0);
             cloudOpenMP::setFastRng(localTd, fastRng, 0);
             cloudOpenMP::setMoveSeed(localTd, omp_get_thread_num(), 0);
 
@@ -1212,6 +1298,14 @@ void Foam::Cloud<ParticleType>::move(TrackData& td, const scalar trackTime)
                 if (!keepParticle)
                 {
                     ++deletedParticleCount;
+                }
+            }
+
+            if (offloadObserveOn)
+            {
+                #pragma omp critical(dsmcOffloadProbe)
+                {
+                    cloudOpenMP::accumulateOffloadProbe(td, localTd, 0);
                 }
             }
 

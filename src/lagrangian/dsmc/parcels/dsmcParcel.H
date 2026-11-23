@@ -697,6 +697,31 @@ public:
                     //parcelTrajectory_.append(sF);
                 }
 
+                //- Set the complete tracer state (clean N1: used when
+                //  restoring an explicit migration record; the per-field
+                //  setters only cover the initial-info subset).
+                void setMigrationState
+                (
+                    const bool tracked,
+                    const label inPatchId,
+                    const bool storePositions,
+                    const scalar t0,
+                    const vector& initialPosition,
+                    const vector& currentPosition,
+                    const vector& distanceTravelled,
+                    const vector& msd
+                )
+                {
+                    tracked_ = tracked;
+                    inPatchId_ = inPatchId;
+                    storePositions_ = storePositions;
+                    t0_ = t0;
+                    initialPosition_ = initialPosition;
+                    currentPosition_ = currentPosition;
+                    distanceTravelled_ = distanceTravelled;
+                    msd_ = msd;
+                }
+
 
             // Access
 
@@ -851,7 +876,7 @@ public:
                 {
                     forAll(nw, dim)
                     {
-                        if(abs(nw[dim]) > SMALL)
+                        if (mag(nw[dim]) > SMALL)
                         {
                             distanceTravelled_[dim] *= -1;
                         }
@@ -922,24 +947,38 @@ public:
                     }
                     else
                     {
+                        // clean N1: member-by-member, symmetric with the
+                        // writer.  The old blob started at initialPosition_,
+                        // so it read past the object and never transferred
+                        // tracked_/inPatchId_/storePositions_/t0_.
+                        label trackedL = 0;
+                        label storePosL = 0;
                         is.read
                         (
-                            reinterpret_cast<char*>(&tP.initialPosition_),
-                            sizeof(tP.tracked())
-                            + sizeof(tP.inPatchId())
-                            + sizeof(tP.storePositions())
-                            + sizeof(tP.initialTime())
-                            + sizeof(tP.initialPosition())
-                            //+ sizeof(tP.currentPosition()) // careful
-                            //+ sizeof(tP.distanceTravelledVector()) // careful
-                            //+ sizeof(tP.meanSquaredDisplacementVector()) // careful
+                            reinterpret_cast<char*>(&trackedL),
+                            sizeof(trackedL)
                         );
-
-                        is >> tP.currentPosition_
+                        is.read
+                        (
+                            reinterpret_cast<char*>(&tP.inPatchId_),
+                            sizeof(tP.inPatchId_)
+                        );
+                        is.read
+                        (
+                            reinterpret_cast<char*>(&storePosL),
+                            sizeof(storePosL)
+                        );
+                        is.read
+                        (
+                            reinterpret_cast<char*>(&tP.t0_),
+                            sizeof(tP.t0_)
+                        );
+                        is >> tP.initialPosition_
+                           >> tP.currentPosition_
                            >> tP.distanceTravelled_
                            >> tP.msd_;
-
-                        //is >> tP.parcelTrajectory_;
+                        tP.tracked_ = (trackedL != 0);
+                        tP.storePositions_ = (storePosL != 0);
                     }
 
                     // Check state of Istream
@@ -973,25 +1012,34 @@ public:
                     }
                     else
                     {
+                        // clean N1: member-by-member, symmetric with the
+                        // reader (see operator>>).
+                        const label trackedL = tP.tracked_ ? 1 : 0;
+                        const label storePosL = tP.storePositions_ ? 1 : 0;
                         os.write
                         (
-                            reinterpret_cast<const char*>
-                                (&tP.initialPosition_),
-                            sizeof(tP.tracked())
-                            + sizeof(tP.inPatchId())
-                            + sizeof(tP.storePositions())
-                            + sizeof(tP.initialTime())
-                            + sizeof(tP.initialPosition())
-                            //+ sizeof(tP.currentPosition()) // careful
-                            //+ sizeof(tP.distanceTravelledVector()) // careful
-                            //+ sizeof(tP.meanSquaredDisplacementVector()) // careful
+                            reinterpret_cast<const char*>(&trackedL),
+                            sizeof(trackedL)
                         );
-
-                        os << tP.currentPosition_
+                        os.write
+                        (
+                            reinterpret_cast<const char*>(&tP.inPatchId_),
+                            sizeof(tP.inPatchId_)
+                        );
+                        os.write
+                        (
+                            reinterpret_cast<const char*>(&storePosL),
+                            sizeof(storePosL)
+                        );
+                        os.write
+                        (
+                            reinterpret_cast<const char*>(&tP.t0_),
+                            sizeof(tP.t0_)
+                        );
+                        os << tP.initialPosition_
+                           << tP.currentPosition_
                            << tP.distanceTravelled_
                            << tP.msd_;
-
-                        //os << tP.parcelTrajectory_;
                     }
 
                     // Check state of Ostream
@@ -1045,6 +1093,62 @@ public:
         scalar moveWallCellTrackWallTime;
         scalar moveInteriorTrackWallTime;
 
+        // dlb_offload.md P0/P1 observe-only probe.  Per-thread counters
+        // attributing each particle's whole move work (trackToFace calls,
+        // boundary events) to its starting-cell distance bucket, plus an
+        // exact per-particle safety screen against boundary reachability.
+        // All zero-cost when offloadProbeOn is false.  Buckets are linear
+        // in the per-cell conservative clearance (dist - circumradius);
+        // the safe decision itself is exact per particle:
+        // safeDist > 2*|U|*dt (squared comparison, no sqrt).
+        static const label offloadNBuckets;
+        bool offloadProbeOn;
+        label offloadCurBucket;
+        bool offloadCurSafe;
+        label offHistP[12];
+        label offHistT[12];
+        label offHistB[12];
+        label offSafeP;
+        label offSafeT;
+        label offSafeB;
+        scalar offMaxMagSqrU;
+
+        //- Zero probe counters and arm/disarm per-thread collection
+        void offloadProbeInit(bool observeOn);
+
+        //- Attribute the particle being moved: distance bucket of its
+        //  starting cell, exact per-particle safe screen, speed max
+        void offloadBeginParticle(label celli, scalar magSqrU, scalar dtCell);
+
+        //- One trackToFace call charged to the starting bucket
+        inline void offloadTrackEvent()
+        {
+            if (offloadProbeOn)
+            {
+                ++offHistT[offloadCurBucket];
+                if (offloadCurSafe)
+                {
+                    ++offSafeT;
+                }
+            }
+        }
+
+        //- One boundary-model event charged to the starting bucket
+        inline void offloadBoundaryEvent()
+        {
+            if (offloadProbeOn)
+            {
+                ++offHistB[offloadCurBucket];
+                if (offloadCurSafe)
+                {
+                    ++offSafeB;
+                }
+            }
+        }
+
+        //- Merge a thread-local trackingData into the master one
+        void offloadProbeAccumulate(const trackingData& other);
+
         // Constructors
 
             //- Construct from components
@@ -1070,7 +1174,17 @@ public:
                 moveWallCellTrackCalls(0),
                 moveInteriorTrackCalls(0),
                 moveWallCellTrackWallTime(0.0),
-                moveInteriorTrackWallTime(0.0)
+                moveInteriorTrackWallTime(0.0),
+                offloadProbeOn(false),
+                offloadCurBucket(-1),
+                offloadCurSafe(false),
+                offHistP(),
+                offHistT(),
+                offHistB(),
+                offSafeP(0),
+                offSafeT(0),
+                offSafeB(0),
+                offMaxMagSqrU(0.0)
             {}
 
     };
@@ -1469,8 +1583,18 @@ public:
 
         // I-O
 
-            //- Fast binary write for migration
+            //- Fast binary write for migration (clean N1: explicit,
+            //  versioned, fixed-layout record; see writeBinaryFast in
+            //  dsmcParcel.C).  The stream operator<< is NOT used here.
             void writeBinaryFast(Ostream& os) const;
+
+            //- Read one record written by writeBinaryFast.  The caller
+            //  owns the returned parcel.
+            static dsmcParcel* readTransferRecord
+            (
+                const polyMesh& mesh,
+                Istream& is
+            );
 
             enum { maxVibModes = 4 };
 
@@ -1498,6 +1622,59 @@ public:
                 const polyMesh& mesh,
                 const TransferData& td
             );
+
+            // H6: field-by-field verification of the flat transfer record.
+            // When enabled, the first `limit` packTransfer() calls on this
+            // rank immediately unpack the record and compare every carried
+            // field; a mismatch is a fatal error naming the first field
+            // that differs.  This is a verification switch (default off):
+            // it costs one parcel construction per checked record.
+            static void verifyTransferRoundTrip
+            (
+                const bool enabled,
+                const label limit
+            );
+
+            //- Per-rank counters for the H6 round-trip verification.
+            static void transferRoundTripStats
+            (
+                label& nVerified,
+                label& nMismatch
+            );
+
+            //- Compare every field a transfer is required to preserve
+            //  (topology, velocity, weights, internal energy, species,
+            //  vibrational state, stuck/tracked state).  Returns the number
+            //  of differences and fills the first mismatching field name
+            //  and values.  Quantities that TransferData does not carry
+            //  (origProc_/origId_) are excluded — they are re-assigned when
+            //  the parcel is inserted (see the state contract).
+            static label compareTransferFields
+            (
+                const dsmcParcel& a,
+                const dsmcParcel& b,
+                const char*& firstName,
+                scalar& firstA,
+                scalar& firstB
+            );
+
+            // §36.3/§36.4: real allocation counters for the unpack/rebuild
+            // path.  The per-thread magazine batches arena traffic, so the
+            // magazine refill is the allocation event; these are counted
+            // outside the arena lock (see dsmcParcel.C):
+            //   unpackAllocCount          — arena slots handed out (parcel
+            //                               constructions, magazine-batched)
+            //   unpackMagazineRefillCount — magazine refills (arena locks)
+            //   unpackArenaBlockCount     — arena block mallocs (::malloc)
+            //   unpackArenaInUse          — live slots at report time
+            //   unpackVibReallocCount     — vibScratch growths in unpack
+            //   unpackVibMaxModes         — largest vib-mode vector in unpack
+            static label unpackAllocCount();
+            static label unpackMagazineRefillCount();
+            static label unpackArenaBlockCount();
+            static label unpackArenaInUse();
+            static label unpackVibReallocCount();
+            static label unpackVibMaxModes();
 
             static void readFields(Cloud<dsmcParcel>& c);
 

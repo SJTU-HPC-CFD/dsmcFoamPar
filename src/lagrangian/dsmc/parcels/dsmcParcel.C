@@ -28,10 +28,68 @@ License
 #include "meshTools.H"
 
 #include <cstdlib>
+#include <cstring>
+#include <atomic>
 #include <mutex>
 #include <new>
 
+// * * * * * * * * * * * * H6 transfer round-trip check * * * * * * * * * * //
+
+// Field-by-field verification of the flat TransferData record (default
+// off; enabled by replicatedMeshVerifyTransfer).  The check runs on the
+// migration pack path, which is single-threaded per rank, so plain file
+// statics are enough.
+static bool  dsmcVerifyTransferOn_ = false;
+static Foam::label dsmcVerifyTransferLimit_ = 0;
+static Foam::label dsmcVerifyTransferCount_ = 0;
+static Foam::label dsmcVerifyTransferMismatch_ = 0;
+
 // * * * * * * * * * * * * * * * M6 slab arena  * * * * * * * * * * * * * * //
+
+// §25: per-thread allocation magazine (bounded cache over the global
+// arena).  Declared before the arena class since operator new/delete
+// below use it.
+struct dsmcParcelMagazine
+{
+    static constexpr int capacity = 64;
+    void* slots[capacity];
+    int n = 0;
+    int tid = -1;      // cached OMP thread index, set at refill (§36.4)
+};
+
+// §36.4: per-thread allocation counters.  §36.3 put these inside the arena
+// (i.e. under the global spinlock).  With ~48 threads queueing on that
+// lock, the added critical-section work is amplified by roughly N/2, and
+// the measurement showed it: unpack went 249 -> 1325 ns/parcel and the
+// loop +20% (job 4916140 vs the pre-§36 baseline, same test).  The
+// counters now live in a padded per-thread array, updated once per
+// 64-slot magazine refill, i.e. OUTSIDE the lock and off the shared cache
+// line.  Summing the array gives the process total; the per-thread slots
+// also avoid false sharing.
+struct dsmcAllocCounter
+{
+    long long v;
+    char pad[56];
+};
+constexpr int dsmcMaxAllocThreads = 256;
+static dsmcAllocCounter dsmcAllocSlots_[dsmcMaxAllocThreads];
+static dsmcAllocCounter dsmcAllocRefills_[dsmcMaxAllocThreads];
+
+// §36.3: real allocation counters for the unpack/rebuild path.  The
+// magazine batches arena traffic (one global-arena lock per 64 slots), so
+// the actual allocator work was invisible in the P0 report and the parcel
+// count ("append") was often mistaken for an allocation count.  The arena
+// counters are incremented under the arena spinlock, so they are exact
+// without atomics; unpackTransfer runs in the serial receive loop, so the
+// vibrational-scratch counters need no atomics either.
+//   allocCalls — global-arena slot hand-outs (the real allocation count;
+//                equals parcel constructions rounded up to a magazine)
+//   blockAllocs — arena block mallocs (the actual ::malloc traffic)
+//   peakInUse  — high-water mark of live slots (arena memory watermark)
+//   vibReallocs — DynamicList vibScratch growths inside unpackTransfer
+//   vibMaxModes — largest vibrational-mode vector seen in unpackTransfer
+static long long dsmcVibReallocCount_ = 0;
+static Foam::label dsmcVibMaxModes_ = 0;
 
 // Fixed-size slot allocator for dsmcParcel.  Blocks of `blockParcels_`
 // parcels are carved from ::malloc'd chunks; freed slots are recycled
@@ -63,6 +121,11 @@ private:
     DynamicList<void*> blocks_;
     label inUse_;
 
+    // §36.4: blockAllocs_ is incremented only in allocateBlock() (one per
+    // 4096 parcels, under the arena lock) — too rare to matter.  The
+    // per-slot counters are NOT here: see dsmcAllocSlots_ above.
+    label blockAllocs_;
+
     void allocateBlock()
     {
         const size_t blockBytes = slotSize_*blockParcels_;
@@ -74,6 +137,7 @@ private:
                 << blockBytes << " bytes" << exit(FatalError);
         }
         blocks_.append(mem);
+        ++blockAllocs_;
 
         // Chain the new slots (ascending addresses for locality).
         char* base = reinterpret_cast<char*>(mem);
@@ -91,7 +155,8 @@ public:
     :
         freeList_(nullptr),
         blocks_(),
-        inUse_(0)
+        inUse_(0),
+        blockAllocs_(0)
     {}
 
     ~dsmcParcelArena()
@@ -126,20 +191,37 @@ public:
         --inUse_;
     }
 
-    static dsmcParcelArena& threadArena()
+    // §36.4 accessors.  blockAllocs_/inUse_ are read at report time, when
+    // no thread is inside the arena (the writers are serialized by the
+    // arena lock, so the values are consistent).
+    label blockAllocs() const { return blockAllocs_; }
+    label inUse() const { return inUse_; }
+
+    // M6-ratchet fix: a single global arena.  Per-thread arenas ratchet
+    // when parcels are created and destroyed on different threads
+    // (boundary injection/outflow, DLB repacking): each thread's arena
+    // grows to its own peak and never shrinks, so total memory tracks
+    // the SUM of per-thread peaks, which drifts upward without bound.
+    // A global arena recycles slots across threads; the spinlock costs
+    // ~100ns per op against a churn of ~1% of the cloud per step.
+    static dsmcParcelArena& globalArena()
     {
-        #ifdef _OPENMP
-        static const label nMax = 256;
-        label tid = omp_get_thread_num();
-        if (tid >= nMax)
+        static dsmcParcelArena arena;
+        return arena;
+    }
+
+    static std::atomic_flag lock_;
+
+    static void lockArena()
+    {
+        while (lock_.test_and_set(std::memory_order_acquire))
         {
-            tid = 0;  // fall back to the master arena
         }
-        #else
-        const label tid = 0;
-        #endif
-        static dsmcParcelArena arenas[256];
-        return arenas[tid];
+    }
+
+    static void unlockArena()
+    {
+        lock_.clear(std::memory_order_release);
     }
 };
 
@@ -273,8 +355,89 @@ inline void controlPatchBoundaryThreadSafe
 
 Foam::label Foam::dsmcParcel::TrackedParcel::nDELETED = 0;
 
+const Foam::label Foam::dsmcParcel::trackingData::offloadNBuckets = 12;
+
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
+
+void Foam::dsmcParcel::trackingData::offloadProbeInit(bool observeOn)
+{
+    offloadProbeOn = observeOn;
+    offloadCurBucket = -1;
+    offloadCurSafe = false;
+    for (label b = 0; b < offloadNBuckets; ++b)
+    {
+        offHistP[b] = 0;
+        offHistT[b] = 0;
+        offHistB[b] = 0;
+    }
+    offSafeP = 0;
+    offSafeT = 0;
+    offSafeB = 0;
+    offMaxMagSqrU = 0.0;
+}
+
+
+void Foam::dsmcParcel::trackingData::offloadBeginParticle
+(
+    label celli,
+    scalar magSqrU,
+    scalar dtCell
+)
+{
+    if (!offloadProbeOn)
+    {
+        offloadCurBucket = -1;
+        offloadCurSafe = false;
+        return;
+    }
+
+    if (magSqrU > offMaxMagSqrU)
+    {
+        offMaxMagSqrU = magSqrU;
+    }
+
+    const label b = cloud().offloadDistBucket(celli);
+    offloadCurBucket = (b >= 0 && b < offloadNBuckets) ? b : 0;
+    ++offHistP[offloadCurBucket];
+
+    // dlb_offload.md §3: exact per-particle screen.  safeDist_[c] is a
+    // conservative lower bound (Dijkstra over cell centres minus the cell
+    // circumradius, sources at 0) on the clearance of any point of the
+    // cell from any boundary face; a particle is safe when that clearance
+    // exceeds twice its step displacement (margin 2).
+    const scalar clearance = cloud().offloadCellClearance(celli);
+    offloadCurSafe =
+        clearance > 0
+     && clearance*clearance > 4*magSqrU*dtCell*dtCell;
+    if (offloadCurSafe)
+    {
+        ++offSafeP;
+    }
+}
+
+
+void Foam::dsmcParcel::trackingData::offloadProbeAccumulate
+(
+    const trackingData& other
+)
+{
+    if (!other.offloadProbeOn)
+    {
+        return;
+    }
+    for (label b = 0; b < offloadNBuckets; ++b)
+    {
+        offHistP[b] += other.offHistP[b];
+        offHistT[b] += other.offHistT[b];
+        offHistB[b] += other.offHistB[b];
+    }
+    offSafeP += other.offSafeP;
+    offSafeT += other.offSafeT;
+    offSafeB += other.offSafeB;
+    offMaxMagSqrU = max(offMaxMagSqrU, other.offMaxMagSqrU);
+}
+
 
 bool Foam::dsmcParcel::move
 (
@@ -322,6 +485,10 @@ bool Foam::dsmcParcel::move
         label orgCell = cell(); // NEW VINCENT
         scalar dtCell = uniformDeltaT ? trackTime : cloud.deltaTValue(orgCell);
         scalar tEnd = (1.0 - stepFraction())*dtCell; // NEW VINCENT
+
+        // dlb_offload.md P1: charge this particle's whole move work to its
+        // starting cell (start-cell attribution, not per-crossing cell).
+        td.offloadBeginParticle(orgCell, magSqr(U_), dtCell);
         //const scalar dtMax = tEnd; // OLD FORMULATION
 
         // For reduced-D cases, the velocity used to track needs to be
@@ -352,6 +519,8 @@ bool Foam::dsmcParcel::move
             orgCell = cell(); // NEW VINCENT
             label tetFaceBefore = -1;
             label tetPtBefore = -1;
+
+            td.offloadTrackEvent();
 
             if (moveDetailProfile)
             {
@@ -464,6 +633,7 @@ bool Foam::dsmcParcel::move
 
                     if (cyclicModelId >= 0)
                     {
+                        td.offloadBoundaryEvent();
                         if (moveDetailProfile)
                         {
                             ++td.moveCyclicHits;
@@ -577,6 +747,7 @@ void Foam::dsmcParcel::hitWallPatch
     const label& patchModelId = td.cloud().boundaries().patchToModelIds()[patchIndex];
 
     //- apply a boundary model when a molecule collides with this poly patch
+    td.offloadBoundaryEvent();
     if (td.moveDetailProfile)
     {
         ++td.movePatchHits;
@@ -603,6 +774,7 @@ void Foam::dsmcParcel::hitPatch
     const label& patchModelId = td.cloud().boundaries().patchToModelIds()[patchIndex];
 
     //- apply a boundary model when a molecule collides with this poly patch
+    td.offloadBoundaryEvent();
     if (td.moveDetailProfile)
     {
         ++td.movePatchHits;
@@ -636,15 +808,320 @@ void Foam::dsmcParcel::transformProperties
 }
 
 
+// * * * * * * * * * * * non-flat transfer record  * * * * * * * * * * * * //
+
+namespace
+{
+
+//- Version of the explicit non-flat migration record.  A reader rejects
+//  any other version: records from a different layout must not be mixed.
+const Foam::label dsmcTransferRecordVersion = 1;
+
+//- Trailing marker of a complete record (truncation/misalignment check).
+const Foam::label dsmcTransferRecordEnd = 0x5A17C0DE;
+
+template<class T>
+inline void dsmcWriteRaw(Foam::Ostream& os, const T& v)
+{
+    os.write
+    (
+        reinterpret_cast<const char*>(&v),
+        std::streamsize(sizeof(T))
+    );
+}
+
+template<class T>
+inline void dsmcReadRaw(Foam::Istream& is, T& v)
+{
+    is.read(reinterpret_cast<char*>(&v), std::streamsize(sizeof(T)));
+}
+
+//- Fixed part of the record.  The variable-length data (stuck wall
+//  points, vibrational levels) follows it, then the end marker.
+struct DsmcTransferRecordFixed
+{
+    Foam::label version;
+
+    Foam::scalar position[3];
+    Foam::scalar stepFraction;
+    Foam::label celli;
+    Foam::label facei;
+    Foam::label tetFacei;
+    Foam::label tetPti;
+    Foam::label origProc;
+    Foam::label origId;
+
+    Foam::scalar U[3];
+    Foam::scalar RWF;
+    Foam::scalar ERot;
+    Foam::label ELevel;
+    Foam::label typeId;
+    Foam::label newParcel;
+    Foam::label classification;
+
+    Foam::label tracked;
+    Foam::label inPatchId;
+    Foam::label storePositions;
+    Foam::scalar t0;
+    Foam::scalar initialPosition[3];
+    Foam::scalar currentPosition[3];
+    Foam::scalar distanceTravelled[3];
+    Foam::scalar msd[3];
+
+    Foam::label nWallPoints;
+    Foam::label nVibModes;
+};
+
+} // End anonymous namespace
+
+
 void Foam::dsmcParcel::writeBinaryFast(Ostream& os) const
 {
-    os << *this;
+    // clean N1: explicit, versioned record.  The previous implementation
+    // streamed the parcel through operator<< (ASCII tokens plus framed raw
+    // blocks, including the base-particle serializer).  That made the
+    // record layout implicit and length-dependent on the token reader, and
+    // a mismatch only surfaced later as a stream error during migration.
+    // Here every field has an explicit layout and the record ends with a
+    // marker; see readTransferRecord().
+    DsmcTransferRecordFixed r;
+    std::memset(&r, 0, sizeof(r));
+
+    r.version = dsmcTransferRecordVersion;
+
+    r.position[0] = position_.x();
+    r.position[1] = position_.y();
+    r.position[2] = position_.z();
+    r.stepFraction = stepFraction_;
+    r.celli = cellI_;
+    r.facei = faceI_;
+    r.tetFacei = tetFaceI_;
+    r.tetPti = tetPtI_;
+    r.origProc = origProc_;
+    r.origId = origId_;
+
+    r.U[0] = U_.x();
+    r.U[1] = U_.y();
+    r.U[2] = U_.z();
+    r.RWF = RWF_;
+    r.ERot = ERot_;
+    r.ELevel = ELevel_;
+    r.typeId = typeId_;
+    r.newParcel = newParcel_;
+    r.classification = classification_;
+
+    r.tracked = tracked_.tracked() ? 1 : 0;
+    r.inPatchId = tracked_.inPatchId();
+    r.storePositions = tracked_.storePositions() ? 1 : 0;
+    r.t0 = tracked_.initialTime();
+    const vector& tIP = tracked_.initialPosition();
+    const vector& tCP = tracked_.currentPosition();
+    const vector& tDT = tracked_.distanceTravelledVector();
+    const vector& tMSD = tracked_.meanSquaredDisplacementVector();
+    r.initialPosition[0] = tIP.x();
+    r.initialPosition[1] = tIP.y();
+    r.initialPosition[2] = tIP.z();
+    r.currentPosition[0] = tCP.x();
+    r.currentPosition[1] = tCP.y();
+    r.currentPosition[2] = tCP.z();
+    r.distanceTravelled[0] = tDT.x();
+    r.distanceTravelled[1] = tDT.y();
+    r.distanceTravelled[2] = tDT.z();
+    r.msd[0] = tMSD.x();
+    r.msd[1] = tMSD.y();
+    r.msd[2] = tMSD.z();
+
+    r.nWallPoints = stuck_ ? stuck_->wallTemperature().size() : 0;
+    r.nVibModes = vibLevel_.size();
+
+    dsmcWriteRaw(os, r);
+
+    if (r.nWallPoints > 0)
+    {
+        const scalarField& wT = stuck_->wallTemperature();
+        const vectorField& wV = stuck_->wallVectors();
+        os.write
+        (
+            reinterpret_cast<const char*>(wT.cdata()),
+            std::streamsize(wT.size()*sizeof(scalar))
+        );
+        os.write
+        (
+            reinterpret_cast<const char*>(wV.cdata()),
+            std::streamsize(wV.size()*sizeof(vector))
+        );
+    }
+
+    if (r.nVibModes > 0)
+    {
+        os.write
+        (
+            reinterpret_cast<const char*>(vibLevel_.cdata()),
+            std::streamsize(r.nVibModes*sizeof(label))
+        );
+    }
+
+    const label endMarker = dsmcTransferRecordEnd;
+    dsmcWriteRaw(os, endMarker);
+
     os.check("dsmcParcel::writeBinaryFast");
+}
+
+
+Foam::dsmcParcel* Foam::dsmcParcel::readTransferRecord
+(
+    const polyMesh& mesh,
+    Istream& is
+)
+{
+    DsmcTransferRecordFixed r;
+    dsmcReadRaw(is, r);
+
+    if (r.version != dsmcTransferRecordVersion)
+    {
+        FatalErrorInFunction
+            << "Unsupported non-flat parcel record version " << r.version
+            << " (this build writes/reads version "
+            << dsmcTransferRecordVersion << ")"
+            << abort(FatalError);
+    }
+    if
+    (
+        r.nWallPoints < 0
+     || r.nWallPoints > 1024
+     || r.nVibModes < 0
+     || r.nVibModes > label(maxVibModes)
+    )
+    {
+        FatalErrorInFunction
+            << "Invalid non-flat parcel record: nWallPoints "
+            << r.nWallPoints << " nVibModes " << r.nVibModes
+            << abort(FatalError);
+    }
+
+    scalarField wallT;
+    vectorField wallV;
+    if (r.nWallPoints > 0)
+    {
+        wallT.setSize(r.nWallPoints);
+        wallV.setSize(r.nWallPoints);
+        is.read
+        (
+            reinterpret_cast<char*>(wallT.data()),
+            std::streamsize(r.nWallPoints*sizeof(scalar))
+        );
+        is.read
+        (
+            reinterpret_cast<char*>(wallV.data()),
+            std::streamsize(r.nWallPoints*sizeof(vector))
+        );
+    }
+
+    labelList vib(r.nVibModes);
+    if (r.nVibModes > 0)
+    {
+        is.read
+        (
+            reinterpret_cast<char*>(vib.data()),
+            std::streamsize(r.nVibModes*sizeof(label))
+        );
+    }
+
+    label endMarker = 0;
+    dsmcReadRaw(is, endMarker);
+    if (endMarker != dsmcTransferRecordEnd)
+    {
+        FatalErrorInFunction
+            << "Truncated or misaligned non-flat parcel record: end marker "
+            << endMarker << " (expected " << dsmcTransferRecordEnd << ")"
+            << abort(FatalError);
+    }
+
+    auto* p = new dsmcParcel
+    (
+        mesh,
+        vector(r.position[0], r.position[1], r.position[2]),
+        vector(r.U[0], r.U[1], r.U[2]),
+        r.RWF,
+        r.ERot,
+        r.ELevel,
+        r.celli,
+        r.tetFacei,
+        r.tetPti,
+        r.typeId,
+        r.newParcel,
+        r.classification,
+        vib
+    );
+
+    p->face() = r.facei;
+    p->stepFraction() = r.stepFraction;
+    p->origProc() = r.origProc;
+    p->origId() = r.origId;
+
+    p->tracked_.setMigrationState
+    (
+        r.tracked != 0,
+        r.inPatchId,
+        r.storePositions != 0,
+        r.t0,
+        vector
+        (
+            r.initialPosition[0], r.initialPosition[1], r.initialPosition[2]
+        ),
+        vector
+        (
+            r.currentPosition[0], r.currentPosition[1], r.currentPosition[2]
+        ),
+        vector
+        (
+            r.distanceTravelled[0],
+            r.distanceTravelled[1],
+            r.distanceTravelled[2]
+        ),
+        vector(r.msd[0], r.msd[1], r.msd[2])
+    );
+
+    if (r.nWallPoints > 0)
+    {
+        p->stuck_ = new StuckParcel(wallT, wallV);
+    }
+
+    return p;
 }
 
 
 void Foam::dsmcParcel::packTransfer(TransferData& td) const
 {
+    // State contract: TransferData only carries the move input below.
+    // Stuck (wall temperature/momentum) and tracked (tracer) states are not
+    // representable, and the vibrational capacity is fixed — refuse instead
+    // of silently resetting or truncating them.
+    if (isStuck())
+    {
+        FatalErrorInFunction
+            << "Cannot transfer a stuck parcel: the StuckParcel wall "
+            << "temperature/momentum state is not part of TransferData. "
+            << "Keep sticking-wall states out of replicated/DLB migration "
+            << "or extend the transfer schema."
+            << abort(FatalError);
+    }
+    if (tracked().tracked())
+    {
+        FatalErrorInFunction
+            << "Cannot transfer a tracked parcel: the TrackedParcel tracer "
+            << "state is not part of TransferData."
+            << abort(FatalError);
+    }
+    if (vibLevel_.size() > label(maxVibModes))
+    {
+        FatalErrorInFunction
+            << "Cannot transfer a parcel with " << vibLevel_.size()
+            << " vibrational modes (TransferData capacity "
+            << int(maxVibModes) << "): silent truncation is not allowed."
+            << abort(FatalError);
+    }
+
     td.position[0] = position().x();
     td.position[1] = position().y();
     td.position[2] = position().z();
@@ -662,7 +1139,7 @@ void Foam::dsmcParcel::packTransfer(TransferData& td) const
     td.newParcel = newParcel_;
     td.classification = classification_;
 
-    td.nVibModes = min(vibLevel_.size(), label(maxVibModes));
+    td.nVibModes = vibLevel_.size();
     for (label i = 0; i < td.nVibModes; ++i)
     {
         td.vibLevel[i] = vibLevel_[i];
@@ -671,6 +1148,221 @@ void Foam::dsmcParcel::packTransfer(TransferData& td) const
     {
         td.vibLevel[i] = 0;
     }
+
+    // H6: compare the record with a real unpack, field by field.  The
+    // values are copied bit-for-bit through the POD, so any difference is
+    // a schema/offset defect, not rounding.  Identity fields carried by
+    // the base particle (origProc_/origId_) are not part of TransferData
+    // and are re-assigned on insertion; that limitation is explicitly
+    // recorded in the state contract.
+    if (dsmcVerifyTransferOn_ && dsmcVerifyTransferCount_ < dsmcVerifyTransferLimit_)
+    {
+        ++dsmcVerifyTransferCount_;
+
+        dsmcParcel* back = dsmcParcel::unpackTransfer(mesh(), td);
+
+        const char* firstName = nullptr;
+        scalar firstA = 0;
+        scalar firstB = 0;
+        const label nDiff =
+            compareTransferFields(*this, *back, firstName, firstA, firstB);
+        delete back;
+
+        if (nDiff != 0)
+        {
+            ++dsmcVerifyTransferMismatch_;
+            FatalErrorInFunction
+                << "H6 flat transfer round-trip mismatch: " << nDiff
+                << " field(s) differ, first " << (firstName ? firstName : "?")
+                << " unpacked " << firstA << " != packed " << firstB
+                << " (cell " << cell() << " type " << typeId_ << ")"
+                << abort(FatalError);
+        }
+    }
+}
+
+
+void Foam::dsmcParcel::verifyTransferRoundTrip
+(
+    const bool enabled,
+    const label limit
+)
+{
+    dsmcVerifyTransferOn_ = enabled;
+    dsmcVerifyTransferLimit_ = max(label(0), limit);
+    dsmcVerifyTransferCount_ = 0;
+    dsmcVerifyTransferMismatch_ = 0;
+}
+
+
+void Foam::dsmcParcel::transferRoundTripStats
+(
+    label& nVerified,
+    label& nMismatch
+)
+{
+    nVerified = dsmcVerifyTransferCount_;
+    nMismatch = dsmcVerifyTransferMismatch_;
+}
+
+
+Foam::label Foam::dsmcParcel::compareTransferFields
+(
+    const dsmcParcel& a,
+    const dsmcParcel& b,
+    const char*& firstName,
+    scalar& firstA,
+    scalar& firstB
+)
+{
+    label nDiff = 0;
+    firstName = nullptr;
+    firstA = 0;
+    firstB = 0;
+
+    auto cmp = [&](const char* name, const scalar va, const scalar vb)
+    {
+        if (va != vb)
+        {
+            ++nDiff;
+            if (!firstName)
+            {
+                firstName = name;
+                firstA = va;
+                firstB = vb;
+            }
+        }
+    };
+
+    cmp("position.x", a.position().x(), b.position().x());
+    cmp("position.y", a.position().y(), b.position().y());
+    cmp("position.z", a.position().z(), b.position().z());
+    cmp("cell", scalar(a.cell()), scalar(b.cell()));
+    cmp("tetFace", scalar(a.tetFace()), scalar(b.tetFace()));
+    cmp("tetPt", scalar(a.tetPt()), scalar(b.tetPt()));
+    cmp("U.x", a.U_.x(), b.U_.x());
+    cmp("U.y", a.U_.y(), b.U_.y());
+    cmp("U.z", a.U_.z(), b.U_.z());
+    cmp("RWF", a.RWF_, b.RWF_);
+    cmp("ERot", a.ERot_, b.ERot_);
+    cmp("ELevel", scalar(a.ELevel_), scalar(b.ELevel_));
+    cmp("typeId", scalar(a.typeId_), scalar(b.typeId_));
+    cmp("newParcel", scalar(a.newParcel_), scalar(b.newParcel_));
+    cmp("classification", scalar(a.classification_), scalar(b.classification_));
+    cmp("nVibModes", scalar(a.vibLevel_.size()), scalar(b.vibLevel_.size()));
+    if (a.vibLevel_.size() == b.vibLevel_.size())
+    {
+        forAll(a.vibLevel_, i)
+        {
+            cmp("vibLevel", scalar(a.vibLevel_[i]), scalar(b.vibLevel_[i]));
+        }
+    }
+
+    // Stuck / tracked state (the non-flat serializer carries it; the flat
+    // record refuses it, so both sides are absent there and compare equal).
+    cmp("isStuck", a.isStuck() ? 1 : 0, b.isStuck() ? 1 : 0);
+    if (a.isStuck() && b.isStuck())
+    {
+        const scalarField& ta = a.stuck().wallTemperature();
+        const scalarField& tb = b.stuck().wallTemperature();
+        cmp("stuckWT.size", scalar(ta.size()), scalar(tb.size()));
+        if (ta.size() == tb.size())
+        {
+            forAll(ta, i)
+            {
+                cmp("stuckWT", ta[i], tb[i]);
+            }
+        }
+        const vectorField& va = a.stuck().wallVectors();
+        const vectorField& vb = b.stuck().wallVectors();
+        cmp("stuckWV.size", scalar(va.size()), scalar(vb.size()));
+        if (va.size() == vb.size())
+        {
+            forAll(va, i)
+            {
+                cmp("stuckWV.x", va[i].x(), vb[i].x());
+                cmp("stuckWV.y", va[i].y(), vb[i].y());
+                cmp("stuckWV.z", va[i].z(), vb[i].z());
+            }
+        }
+    }
+
+    cmp("tracked", a.tracked().tracked() ? 1 : 0, b.tracked().tracked() ? 1 : 0);
+    cmp
+    (
+        "inPatchId",
+        scalar(a.tracked().inPatchId()),
+        scalar(b.tracked().inPatchId())
+    );
+    cmp
+    (
+        "storePositions",
+        a.tracked().storePositions() ? 1 : 0,
+        b.tracked().storePositions() ? 1 : 0
+    );
+    cmp("tracked.t0", a.tracked().initialTime(), b.tracked().initialTime());
+    cmp
+    (
+        "tracked.initialPosition.x",
+        a.tracked().initialPosition().x(),
+        b.tracked().initialPosition().x()
+    );
+    cmp
+    (
+        "tracked.initialPosition.y",
+        a.tracked().initialPosition().y(),
+        b.tracked().initialPosition().y()
+    );
+    cmp
+    (
+        "tracked.initialPosition.z",
+        a.tracked().initialPosition().z(),
+        b.tracked().initialPosition().z()
+    );
+    cmp
+    (
+        "tracked.currentPosition.x",
+        a.tracked().currentPosition().x(),
+        b.tracked().currentPosition().x()
+    );
+    cmp
+    (
+        "tracked.currentPosition.y",
+        a.tracked().currentPosition().y(),
+        b.tracked().currentPosition().y()
+    );
+    cmp
+    (
+        "tracked.currentPosition.z",
+        a.tracked().currentPosition().z(),
+        b.tracked().currentPosition().z()
+    );
+    cmp
+    (
+        "tracked.distance.x",
+        a.tracked().distanceTravelledVector().x(),
+        b.tracked().distanceTravelledVector().x()
+    );
+    cmp
+    (
+        "tracked.distance.y",
+        a.tracked().distanceTravelledVector().y(),
+        b.tracked().distanceTravelledVector().y()
+    );
+    cmp
+    (
+        "tracked.distance.z",
+        a.tracked().distanceTravelledVector().z(),
+        b.tracked().distanceTravelledVector().z()
+    );
+    cmp("tracked.msd", a.tracked().meanSquaredDisplacementVector().x(),
+        b.tracked().meanSquaredDisplacementVector().x());
+    cmp("tracked.msd.y", a.tracked().meanSquaredDisplacementVector().y(),
+        b.tracked().meanSquaredDisplacementVector().y());
+    cmp("tracked.msd.z", a.tracked().meanSquaredDisplacementVector().z(),
+        b.tracked().meanSquaredDisplacementVector().z());
+
+    return nDiff;
 }
 
 
@@ -678,12 +1370,31 @@ Foam::dsmcParcel* Foam::dsmcParcel::unpackTransfer
 (
     const polyMesh& mesh,
     const TransferData& td
-)
-{
-    labelList vib(td.nVibModes);
+){
+    // §34.3: OF-v1706 List::setSize() reallocates whenever the size
+    // changes (List.C:283 — no capacity retention; verified), so the
+    // previous labelList scratch still allocated for every parcel whose
+    // vibrational-mode count alternated between species — which made the
+    // §26 "no benefit" measurement uninformative about allocation cost.
+    // A DynamicList keeps its storage across clear().
+    static thread_local DynamicList<label> vibScratch;
+    const label vibCapBefore = vibScratch.capacity();
+    vibScratch.clear();
     for (label i = 0; i < td.nVibModes; ++i)
     {
-        vib[i] = td.vibLevel[i];
+        vibScratch.append(td.vibLevel[i]);
+    }
+
+    // §36.3: a capacity change is a real reallocation; counting them shows
+    // whether the DynamicList actually removed the per-parcel allocation
+    // (a single growth covers every later parcel of the same/smaller size).
+    if (vibScratch.capacity() != vibCapBefore)
+    {
+        ++dsmcVibReallocCount_;
+    }
+    if (td.nVibModes > dsmcVibMaxModes_)
+    {
+        dsmcVibMaxModes_ = td.nVibModes;
     }
 
     return new dsmcParcel
@@ -700,7 +1411,7 @@ Foam::dsmcParcel* Foam::dsmcParcel::unpackTransfer
         td.typeId,
         td.newParcel,
         td.classification,
-        vib
+        vibScratch
     );
 }
 
@@ -768,7 +1479,56 @@ bool Foam::dsmcParcel::relocateStuckParcel
 
 // * * * * * * * * * * * * * * * *  IOStream operators * * * * * * * * * * * //
 
+
 // * * * * * * * * * * * * * * * Operators  * * * * * * * * * * * * * * * * //
+
+std::atomic_flag Foam::dsmcParcelArena::lock_ = ATOMIC_FLAG_INIT;
+
+// §36.4: unpack-path allocation counters, read by the replicated-mesh P0
+// report.  No arena lock is needed: the per-slot counters above are
+// per-thread and only written while the owning thread is inside a parcel
+// allocation; the report runs after every parallel region has been left,
+// so the values are stable.  blockAllocs_/inUse_ are serialized by the
+// arena lock anyway.
+Foam::label Foam::dsmcParcel::unpackAllocCount()
+{
+    long long total = 0;
+    for (int i = 0; i < dsmcMaxAllocThreads; ++i)
+    {
+        total += dsmcAllocSlots_[i].v;
+    }
+    return label(total);
+}
+
+Foam::label Foam::dsmcParcel::unpackMagazineRefillCount()
+{
+    long long total = 0;
+    for (int i = 0; i < dsmcMaxAllocThreads; ++i)
+    {
+        total += dsmcAllocRefills_[i].v;
+    }
+    return label(total);
+}
+
+Foam::label Foam::dsmcParcel::unpackArenaBlockCount()
+{
+    return dsmcParcelArena::globalArena().blockAllocs();
+}
+
+Foam::label Foam::dsmcParcel::unpackArenaInUse()
+{
+    return dsmcParcelArena::globalArena().inUse();
+}
+
+Foam::label Foam::dsmcParcel::unpackVibReallocCount()
+{
+    return label(dsmcVibReallocCount_);
+}
+
+Foam::label Foam::dsmcParcel::unpackVibMaxModes()
+{
+    return dsmcVibMaxModes_;
+}
 
 // M7 phase 1: dedicated arena for StuckParcel cold data.  Stuck parcels are
 // a small fraction of the cloud, so a single shared arena (no per-thread
@@ -817,9 +1577,53 @@ void* Foam::dsmcParcel::operator new(size_t sz)
     if (sz != dsmcParcelArena::slotSize_)
     {
         // Derived-class or padded request: fall back to the heap.
+        static bool warnedOnce = false;
+        if (!warnedOnce)
+        {
+            warnedOnce = true;
+            Info<< "dsmcParcel arena FALLBACK: sz=" << label(sz)
+                << " slotSize_=" << label(dsmcParcelArena::slotSize_)
+                << " (this message prints once)" << endl;
+        }
         return std::malloc(sz);
     }
-    return dsmcParcelArena::threadArena().allocate();
+
+    // §25: per-thread magazine.  The global arena spinlock costs ~100ns
+    // per op at the design's spread churn, but a migration is a 48-thread
+    // allocation BURST: the deser probe (job 4844354) measured 2.36us per
+    // allocation in the parallel unpack loop while the serial append
+    // (no allocation) ran at 83ns.  Each thread now takes a fixed-size
+    // batch under one lock and pops locally, so the shared cache line is
+    // touched once per 64 allocations.  The magazine is a bounded cache
+    // over the SINGLE global arena — the M6 ratchet fix (no per-thread
+    // pools that grow without bound) is preserved.
+    static thread_local dsmcParcelMagazine magazine;
+    if (magazine.n == 0)
+    {
+        #ifdef _OPENMP
+        const int ompTid = omp_in_parallel() ? omp_get_thread_num() : 0;
+        #else
+        const int ompTid = 0;
+        #endif
+        magazine.tid =
+        (
+            ompTid >= 0 && ompTid < dsmcMaxAllocThreads ? ompTid : 0
+        );
+
+        dsmcParcelArena& arena = dsmcParcelArena::globalArena();
+        dsmcParcelArena::lockArena();
+        for (label i = 0; i < magazine.capacity; ++i)
+        {
+            magazine.slots[i] = arena.allocate();
+        }
+        dsmcParcelArena::unlockArena();
+        magazine.n = magazine.capacity;
+
+        // §36.4: count the batch here — per-thread, outside the lock.
+        dsmcAllocSlots_[magazine.tid].v += magazine.capacity;
+        ++dsmcAllocRefills_[magazine.tid].v;
+    }
+    return magazine.slots[--magazine.n];
 }
 
 
@@ -835,10 +1639,27 @@ void Foam::dsmcParcel::operator delete(void* ptr) noexcept
     {
         return;
     }
-    // Slots from the fallback heap path cannot be distinguished from arena
-    // slots by value; the arena only ever receives sizeof(dsmcParcel)
+    // §25: return to the thread's magazine; flush the whole batch to the
+    // global arena only when the magazine is full (one lock per 64 frees).
+    // Slots from the fallback heap path cannot be distinguished from
+    // arena slots by value; the arena only ever receives sizeof(dsmcParcel)
     // requests, so any delete of a base-size parcel is an arena slot.
-    dsmcParcelArena::threadArena().deallocate(ptr);
+    static thread_local dsmcParcelMagazine magazine;
+    if (magazine.n < magazine.capacity)
+    {
+        magazine.slots[magazine.n++] = ptr;
+        return;
+    }
+
+    dsmcParcelArena& arena = dsmcParcelArena::globalArena();
+    dsmcParcelArena::lockArena();
+    for (label i = 0; i < magazine.n; ++i)
+    {
+        arena.deallocate(magazine.slots[i]);
+    }
+    arena.deallocate(ptr);
+    dsmcParcelArena::unlockArena();
+    magazine.n = 0;
 }
 
 
